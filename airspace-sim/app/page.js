@@ -59,7 +59,7 @@ export default function Home() {
         mapRef.current = new maplibregl.Map({
             container: mapContainerRef.current,
             projection: {type: 'globe'},
-            style: 'https://demotiles.maplibre.org/style.json',
+            style: 'dark-matter-gl-style.json',
             center: [0, 0],
             zoom: 1
         })
