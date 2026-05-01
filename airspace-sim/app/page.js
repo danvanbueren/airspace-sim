@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useLayoutEffect, useRef, useState} from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
@@ -9,6 +9,8 @@ export default function Home() {
     ** React assigns this ref to the inner <div> rendered below.
     */
     const mapContainerRef = useRef(null)
+
+    const cursorBoxRef = useRef(null)
 
     /* Holds the MapLibre map instance.
     ** Keeping this in a ref prevents unnecessary React re-renders and allows
@@ -22,12 +24,58 @@ export default function Home() {
     */
     const cursorLngLatRef = useRef(null)
 
+    /* Stores the active right-click drag line start point.
+    ** When null, no temporary bearing/range line is being drawn.
+    */
+    const bearingLineStartRef = useRef(null)
+
     /* Stores the data needed to render the cursor coordinate overlay:
     ** - x/y: current screen position of the cursor or projected coordinate.
     ** - lng/lat: current geographic coordinate under the cursor.
     ** A null value hides the overlay.
     */
     const [cursorInfo, setCursorInfo] = useState(null)
+    const [cursorBoxSize, setCursorBoxSize] = useState({width: 0, height: 0})
+
+    useLayoutEffect(() => {
+        if (!cursorBoxRef.current)
+            return
+
+        const {width, height} = cursorBoxRef.current.getBoundingClientRect()
+
+        setCursorBoxSize((current) => {
+            if (current.width === width && current.height === height)
+                return current
+
+            return {width, height}
+        })
+    }, [cursorInfo])
+
+    const getCursorBoxPosition = () => {
+        if (!cursorInfo)
+            return {}
+
+        const offset = 12
+        const edgePadding = 8
+        const containerWidth = mapContainerRef.current?.clientWidth ?? window.innerWidth
+        const containerHeight = mapContainerRef.current?.clientHeight ?? window.innerHeight
+        const boxWidth = cursorBoxSize.width
+        const boxHeight = cursorBoxSize.height
+
+        let left = cursorInfo.x + offset
+        let top = cursorInfo.y + offset
+
+        if (boxWidth && left + boxWidth > containerWidth - edgePadding)
+            left = cursorInfo.x - boxWidth - offset
+
+        if (boxHeight && top + boxHeight > containerHeight - edgePadding)
+            top = cursorInfo.y - boxHeight - offset
+
+        return {
+            left: Math.max(edgePadding, left),
+            top: Math.max(edgePadding, top)
+        }
+    }
 
     /* Format latitude values to a fixed-width string with five decimal places.
     ** Padding keeps the coordinate display aligned in the monospace overlay.
@@ -63,6 +111,12 @@ export default function Home() {
             center: [0, 0],
             zoom: 1
         })
+
+        /* Replace MapLibre's default right-click drag behavior.
+        ** By default, right-click + drag rotates and pitches the map.
+        */
+        mapRef.current.dragRotate.disable()
+        mapRef.current.touchZoomRotate.disableRotation()
 
         /* Recalculate the overlay's pixel position from the saved geographic
         ** cursor coordinate.
@@ -107,6 +161,60 @@ export default function Home() {
             updateCursorBoxPosition()
         }
 
+        /* Update the temporary bearing/range line source.
+        ** Passing null clears the line from the map.
+        */
+        const setBearingLineData = (coordinates) => {
+            const bearingLineSource = mapRef.current?.getSource('bearing-range-line')
+
+            if (!bearingLineSource)
+                return
+
+            bearingLineSource.setData({
+                type: 'Feature',
+                geometry: {
+                    type: 'LineString',
+                    coordinates: coordinates ?? []
+                },
+                properties: {}
+            })
+        }
+
+        /* Start drawing a temporary white bearing/range line on right-click.
+        ** The line begins at the initially clicked coordinate.
+        */
+        const handleBearingLineMouseDown = (e) => {
+            if (e.originalEvent.button !== 2)
+                return
+
+            e.preventDefault()
+            bearingLineStartRef.current = e.lngLat.wrap()
+
+            setBearingLineData([
+                [bearingLineStartRef.current.lng, bearingLineStartRef.current.lat],
+                [bearingLineStartRef.current.lng, bearingLineStartRef.current.lat]
+            ])
+        }
+
+        /* Finish the temporary bearing/range line when the right mouse button
+        ** is released.
+        */
+        const handleBearingLineMouseUp = (e) => {
+            if (e.originalEvent.button !== 2 || !bearingLineStartRef.current)
+                return
+
+            e.preventDefault()
+            bearingLineStartRef.current = null
+            setBearingLineData(null)
+        }
+
+        /* Prevent the browser context menu from appearing over the map when
+        ** right-click is used for the temporary bearing/range line.
+        */
+        const handleContextMenu = (e) => {
+            e.preventDefault()
+        }
+
         /* Track mouse movement over the map.
         ** Each movement updates:
         ** - the cursor coordinate ref used by resize/zoom handlers,
@@ -147,7 +255,22 @@ export default function Home() {
                     'coordinates': [lngLat.lng, lngLat.lat]
                 })
             }
+
+            /* While the right mouse button is held, redraw the temporary
+                ** bearing/range line from the original right-click point to the
+                ** current cursor position.
+                */
+            if (bearingLineStartRef.current) {
+                setBearingLineData([
+                    [bearingLineStartRef.current.lng, bearingLineStartRef.current.lat],
+                    [lngLat.lng, lngLat.lat]
+                ])
+            }
         })
+
+        mapRef.current.on('mousedown', handleBearingLineMouseDown)
+        mapRef.current.on('mouseup', handleBearingLineMouseUp)
+        mapRef.current.on('contextmenu', handleContextMenu)
 
         /* Hide the coordinate overlay when the cursor leaves the map area.
         ** Clearing the ref also prevents zoom/resize handlers from trying to
@@ -184,6 +307,32 @@ export default function Home() {
                     'coordinates': [50, 0]
                 }
             })
+
+            /* Source and layer for the temporary right-click drag bearing/range
+            ** line. The source starts empty and is populated only while the
+            ** right mouse button is held down.
+            */
+            mapRef.current.addSource('bearing-range-line', {
+                type: 'geojson',
+                data: {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: []
+                    },
+                    properties: {}
+                }
+            })
+
+            mapRef.current.addLayer({
+                id: 'bearing-range-line',
+                type: 'line',
+                source: 'bearing-range-line',
+                paint: {
+                    'line-color': '#ffffff',
+                    'line-width': 2
+                }
+            })
         })
 
         /* Cleanup function run when the component unmounts.
@@ -194,6 +343,9 @@ export default function Home() {
             window.removeEventListener('resize', handleWindowResize)
             mapRef.current?.off('zoom', updateCursorBoxPosition)
             mapRef.current?.off('resize', updateCursorBoxPosition)
+            mapRef.current?.off('mousedown', handleBearingLineMouseDown)
+            mapRef.current?.off('mouseup', handleBearingLineMouseUp)
+            mapRef.current?.off('contextmenu', handleContextMenu)
             mapRef.current?.remove()
             mapRef.current = null
         }
@@ -203,52 +355,54 @@ export default function Home() {
     ** an absolutely positioned coordinate overlay near the cursor.
     */
     return (
-        <div
-            style={{
-                position: 'relative',
-                width: '100vw',
-                height: '100vh',
-                overflow: 'hidden',
-                margin: 0,
-                padding: 0,
-            }}
-        >
+        <>
             <div
-                ref={mapContainerRef}
                 style={{
-                    width: '100%',
-                    height: '100%',
+                    position: 'relative',
+                    width: '100vw',
+                    height: '100vh',
+                    overflow: 'hidden',
+                    margin: 0,
+                    padding: 0,
                 }}
-            />
-
-            {cursorInfo && (
+            >
                 <div
+                    ref={mapContainerRef}
                     style={{
-                        position: 'absolute',
-                        left: cursorInfo.x + 12,
-                        top: cursorInfo.y + 12,
-
-                        // Keep the overlay above the map canvas.
-                        zIndex: 1,
-
-                        padding: '6px 8px',
-                        borderRadius: 4,
-                        background: 'rgba(0, 0, 0, 0.75)',
-                        color: '#fff',
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-
-                        // Let mouse events pass through the overlay to the map.
-                        pointerEvents: 'none',
-
-                        // Preserve spacing from the padded coordinate strings.
-                        whiteSpace: 'pre',
+                        width: '100%',
+                        height: '100%',
                     }}
-                >
-                    LAT: {formatLat(cursorInfo.lat)}<br/>
-                    LNG: {formatLng(cursorInfo.lng)}
-                </div>
-            )}
-        </div>
+                />
+
+                {cursorInfo && (
+                    <div
+                        ref={cursorBoxRef}
+                        style={{
+                            position: 'absolute',
+                            ...getCursorBoxPosition(),
+
+                            // Keep the overlay above the map canvas.
+                            zIndex: 1,
+
+                            padding: '6px 8px',
+                            borderRadius: 4,
+                            background: 'rgba(0, 0, 0, 0.75)',
+                            color: '#fff',
+                            fontSize: 12,
+                            fontFamily: 'monospace',
+
+                            // Let mouse events pass through the overlay to the map.
+                            pointerEvents: 'none',
+
+                            // Preserve spacing from the padded coordinate strings.
+                            whiteSpace: 'pre',
+                        }}
+                    >
+                        LAT: {formatLat(cursorInfo.lat)}<br/>
+                        LNG: {formatLng(cursorInfo.lng)}
+                    </div>
+                )}
+            </div>
+        </>
     )
 }
