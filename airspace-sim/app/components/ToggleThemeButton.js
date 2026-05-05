@@ -1,0 +1,36 @@
+'use client'
+
+import { Fab, Tooltip } from "@mui/material"
+import DarkModeIcon from "@mui/icons-material/DarkMode"
+import LightModeIcon from "@mui/icons-material/LightMode"
+import { useColorMode } from "./AppThemeProvider"
+
+export default function ToggleThemeButton() {
+    const colorMode = useColorMode()
+
+    const isDark = colorMode.mode === "dark"
+
+    return (
+        <Tooltip
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            placement='top'
+        >
+            <Fab
+                onClick={colorMode.toggleColorMode}
+                color='inherit'
+                sx={{
+                    backgroundColor: 'background.paper',
+                    '&:hover': {
+                        backgroundColor: 'divider',
+                    }
+            }}
+            >
+                {
+                    isDark ?
+                        <LightModeIcon /> :
+                        <DarkModeIcon />
+                }
+            </Fab>
+        </Tooltip>
+    )
+}
