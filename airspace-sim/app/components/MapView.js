@@ -61,6 +61,11 @@ export default function MapView() {
             const slowPanSpeed = 500
             const fastPanSpeed = 2000
             const panSpeed = pressedKeys.has('shift') ? slowPanSpeed : fastPanSpeed
+            const hasMovementKey =
+                pressedKeys.has('w') ||
+                pressedKeys.has('a') ||
+                pressedKeys.has('s') ||
+                pressedKeys.has('d')
             let x = 0
             let y = 0
 
@@ -80,7 +85,9 @@ export default function MapView() {
                     (x / length) * panSpeed * deltaSeconds,
                     (y / length) * panSpeed * deltaSeconds,
                 ], {duration: 0})
+            }
 
+            if (hasMovementKey) {
                 animationFrameId = window.requestAnimationFrame(moveCamera)
             } else {
                 animationFrameId = null
