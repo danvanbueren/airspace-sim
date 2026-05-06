@@ -12,14 +12,8 @@ export default function FixedFunctionPanel() {
 
     // Handle toggle button press
     const handleToggles = (event, newToggles) => {
-        setCurrentToggles(newToggles)
+        setCurrentToggles(newToggles.filter((toggle) => toggle !== '-'))
     }
-
-    // Remove the '-' toggle when it's selected
-    useEffect(() => {
-        if (currentToggles.includes('-'))
-            setCurrentToggles(currentToggles.filter(toggle => toggle !== '-'))
-    }, [currentToggles])
 
     return (
         <FloatingGlassPanel title='Fixed Function Panel'>

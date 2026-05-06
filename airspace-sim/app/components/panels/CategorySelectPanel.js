@@ -12,14 +12,8 @@ export default function CategorySelectPanel() {
 
     // Handle toggle button press
     const handleToggles = (event, newToggles) => {
-        setCurrentToggles(newToggles)
+        setCurrentToggles(newToggles.filter((toggle) => toggle !== '-'))
     }
-
-    // Remove the '-' toggle when it's selected
-    useEffect(() => {
-        if (currentToggles.includes('-'))
-            setCurrentToggles(currentToggles.filter(toggle => toggle !== '-'))
-    }, [currentToggles])
 
     return (
         <FloatingGlassPanel title='Category Select Panel'>
@@ -42,7 +36,7 @@ export default function CategorySelectPanel() {
                                 key={'CSP_TOGGLE_' + value + '_' + index}
                                 value={value}
                                 disabled={value === '-'}
-                                variant='contained' color='success'
+                                color='success'
                                 fullWidth
                                 sx={{
                                     height: 80,
