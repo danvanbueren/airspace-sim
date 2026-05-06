@@ -14,6 +14,7 @@ import { useMapStyle } from '../hooks/useMapStyle'
 import { useMeasuredElementSize } from '../hooks/useMeasuredElementSize'
 import {useBearingRangeTool} from "@/app/hooks/useBearingRangeTool";
 import {Box, Paper, Typography} from "@mui/material";
+import BearingRangeContextMenu from "./BearingRangeContextMenu";
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -37,18 +38,32 @@ export default function MapView() {
     useMapInteractionGuards(mapRef, mapReady)
     useMapResize(mapRef, mapReady)
 
-    const handleBearingRangeContextMenu = useCallback(({ point, lngLat }) => {
+    const handleBearingRangeContextMenu = useCallback(({ point, lngLat, line }) => {
         setContextMenu({
             x: point.x,
             y: point.y,
             lngLat,
+            line,
         })
     }, [])
 
-    useBearingRangeTool(mapRef, mapReady, {
+    const {
+        removeBearingRangeLine,
+        clearBearingRangeLines,
+    } = useBearingRangeTool(mapRef, mapReady, {
         onContextMenu: handleBearingRangeContextMenu,
         lineColor: theme.palette.mode === 'dark' ? '#fff' : '#111',
     })
+
+    const handleRemoveBearingRangeLine = useCallback((lineId) => {
+        removeBearingRangeLine(lineId)
+        setContextMenu(null)
+    }, [removeBearingRangeLine])
+
+    const handleClearBearingRangeLines = useCallback(() => {
+        clearBearingRangeLines()
+        setContextMenu(null)
+    }, [clearBearingRangeLines])
 
     const cursorInfo = useCursorHooks(mapRef, mapReady, mapContainerRef)
     const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [cursorInfo])
@@ -76,30 +91,11 @@ export default function MapView() {
                 mapContainerRef={mapContainerRef}
             />
 
-            {contextMenu && (
-                <Paper
-                    elevation={8}
-                    onClick={(event) => event.stopPropagation()}
-                    sx={{
-                        position: 'fixed',
-                        left: contextMenu.x,
-                        top: contextMenu.y,
-                        zIndex: 10,
-                        minWidth: 180,
-                        p: 1,
-                        backgroundColor: 'background.paper',
-                    }}
-                >
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        Map Options
-                    </Typography>
-                    <Box sx={{ mt: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                            {contextMenu.lngLat.lat.toFixed(4)}, {contextMenu.lngLat.lng.toFixed(4)}
-                        </Typography>
-                    </Box>
-                </Paper>
-            )}
+            <BearingRangeContextMenu
+                contextMenu={contextMenu}
+                onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
+                onClearBearingRangeLines={handleClearBearingRangeLines}
+            />
         </div>
     )
 }

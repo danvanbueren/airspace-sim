@@ -269,7 +269,7 @@ export function useBearingRangeTool(
 
         return runWhenStyleIsReady(map, () => {
             ensureLineLayer(map, LINE_SOURCE_ID, LINE_LAYER_ID, 1, lineColor)
-            ensureLineLayer(map, PREVIEW_LINE_SOURCE_ID, PREVIEW_LINE_LAYER_ID, 0.75, lineColor)
+            ensureLineLayer(map, PREVIEW_LINE_SOURCE_ID, PREVIEW_LINE_LAYER_ID, 0.5, lineColor)
 
             updateLineSource(map, LINE_SOURCE_ID, lines)
             updateLineSource(map, PREVIEW_LINE_SOURCE_ID, previewLine ? [previewLine] : [])
@@ -293,7 +293,7 @@ export function useBearingRangeTool(
                 const element = createLabelElement(line)
 
                 if (line.isPreview) {
-                    element.style.opacity = '0.75'
+                    element.style.opacity = '0.5'
                 }
 
                 const marker = new maplibregl.Marker({
@@ -329,8 +329,34 @@ export function useBearingRangeTool(
                 x: event.clientX,
                 y: event.clientY,
             },
+            mapPoint: {
+                x: event.offsetX,
+                y: event.offsetY,
+            },
             lngLat: map.unproject([event.offsetX, event.offsetY]),
         })
+
+        const getBearingRangeLineAtPoint = (point) => {
+            if (!map.getLayer(LINE_LAYER_ID))
+                return null
+
+            const features = map.queryRenderedFeatures(
+                [
+                    [point.mapPoint.x - 6, point.mapPoint.y - 6],
+                    [point.mapPoint.x + 6, point.mapPoint.y + 6],
+                ],
+                {
+                    layers: [LINE_LAYER_ID],
+                },
+            )
+
+            const lineId = features[0]?.properties?.id
+
+            if (!lineId)
+                return null
+
+            return lines.find((line) => line.id === lineId) ?? null
+        }
 
         const handleMouseDown = (event) => {
             if (event.button !== RIGHT_MOUSE_BUTTON)
@@ -393,6 +419,7 @@ export function useBearingRangeTool(
                 onContextMenu?.({
                     point: endDragPoint.point,
                     lngLat: endDragPoint.lngLat,
+                    line: getBearingRangeLineAtPoint(endDragPoint),
                 })
 
                 return
@@ -424,10 +451,14 @@ export function useBearingRangeTool(
             canvas.removeEventListener('mouseup', handleMouseUp)
             canvas.removeEventListener('contextmenu', handleContextMenu)
         }
-    }, [mapRef, enabled, onContextMenu])
+    }, [mapRef, enabled, onContextMenu, lines])
 
     return {
         lines,
+        removeBearingRangeLine: (lineId) => {
+            setLines((currentLines) => currentLines.filter((line) => line.id !== lineId))
+            setPreviewLine(null)
+        },
         clearBearingRangeLines: () => {
             setLines([])
             setPreviewLine(null)
