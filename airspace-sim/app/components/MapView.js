@@ -45,13 +45,16 @@ export default function MapView() {
             mapRef.current.getCanvas().style.cursor = 'default'
         }
 
-        const setGrabbingCursor = () => {
-            mapRef.current.getCanvas().style.cursor = 'grabbing'
+        const setCustomCursor = (e) => {
+            if (e.originalEvent.buttons === 1)
+                mapRef.current.getCanvas().style.cursor = 'grabbing'
+            if (e.originalEvent.buttons === 2)
+                mapRef.current.getCanvas().style.cursor = 'crosshair'
         }
 
         setDefaultCursor()
 
-        mapRef.current.on('mousedown', setGrabbingCursor)
+        mapRef.current.on('mousedown', setCustomCursor)
         mapRef.current.on('mouseup', setDefaultCursor)
         mapRef.current.on('dragend', setDefaultCursor)
 
@@ -74,7 +77,7 @@ export default function MapView() {
             window.removeEventListener('resize', handleWindowResize)
             mapRef.current?.off('load', handleMapLoad)
             mapRef.current?.off('contextmenu', handleContextMenu)
-            mapRef.current?.off('mousedown', setGrabbingCursor)
+            mapRef.current?.off('mousedown', setCustomCursor)
             mapRef.current?.off('mouseup', setDefaultCursor)
             mapRef.current?.off('dragend', setDefaultCursor)
             mapRef.current?.remove()
