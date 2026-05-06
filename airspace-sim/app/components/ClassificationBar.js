@@ -36,6 +36,7 @@ export default function ClassificationBar({
                     fontWeight: 'bold',
                     fontFamily: 'monospace',
                     fontSize: isLgUp ? '1.0rem' : '0.7rem',
+                    userSelect: 'none',
                 }}
             >
                 {classificationText}
