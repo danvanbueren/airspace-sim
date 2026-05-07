@@ -2,15 +2,15 @@
 
 import { Box, Button, Divider, Paper, Stack, Typography } from '@mui/material'
 
-export default function BearingRangeContextMenu({
-                                                    contextMenu,
+export default function MapContextMenu({
+                                                    elementContainer,
                                                     onRemoveBearingRangeLine,
                                                     onClearBearingRangeLines,
                                                 }) {
-    if (!contextMenu)
+    if (!elementContainer)
         return null
 
-    const hasBearingRangeLine = Boolean(contextMenu.line)
+    const hasBearingRangeLine = Boolean(elementContainer.line)
 
     return (
         <Paper
@@ -18,8 +18,8 @@ export default function BearingRangeContextMenu({
             onClick={(event) => event.stopPropagation()}
             sx={{
                 position: 'fixed',
-                left: contextMenu.x,
-                top: contextMenu.y,
+                left: elementContainer.x,
+                top: elementContainer.y,
                 zIndex: 10,
                 minWidth: 220,
                 p: 1,
@@ -27,12 +27,12 @@ export default function BearingRangeContextMenu({
             }}
         >
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {hasBearingRangeLine ? 'Bearing/Range Line' : 'Map Options'}
+                Dynamic Context Menu
             </Typography>
 
             <Box sx={{ mt: 1 }}>
                 <Typography variant="caption" color="text.secondary">
-                    {contextMenu.lngLat.lat.toFixed(4)}, {contextMenu.lngLat.lng.toFixed(4)}
+                    {elementContainer.lngLat.lat.toFixed(4)}, {elementContainer.lngLat.lng.toFixed(4)}
                 </Typography>
             </Box>
 
@@ -40,14 +40,18 @@ export default function BearingRangeContextMenu({
                 <>
                     <Divider sx={{ my: 1 }} />
 
+                    <Typography variant="body2" sx={{paddingBottom: 1}}>
+                        Bearing/Range Lines
+                    </Typography>
+
                     <Stack spacing={0.5}>
                         <Button
-                            color="error"
+                            color="primary"
                             size="small"
-                            onClick={() => onRemoveBearingRangeLine(contextMenu.line.id)}
+                            onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
                             sx={{ justifyContent: 'flex-start' }}
                         >
-                            Remove this bearing/range line
+                            Clear line
                         </Button>
 
                         <Button
@@ -56,7 +60,7 @@ export default function BearingRangeContextMenu({
                             onClick={onClearBearingRangeLines}
                             sx={{ justifyContent: 'flex-start' }}
                         >
-                            Clear all bearing/range lines
+                            Clear all lines
                         </Button>
                     </Stack>
                 </>

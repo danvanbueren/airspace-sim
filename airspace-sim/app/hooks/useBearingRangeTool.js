@@ -9,6 +9,8 @@ const LINE_SOURCE_ID = 'bearing-range-lines-source'
 const LINE_LAYER_ID = 'bearing-range-lines-layer'
 const PREVIEW_LINE_SOURCE_ID = 'bearing-range-preview-line-source'
 const PREVIEW_LINE_LAYER_ID = 'bearing-range-preview-line-layer'
+const DEFAULT_MAP_CURSOR = 'crosshair'
+const BEARING_RANGE_CONTEXT_MENU_CURSOR = 'context-menu'
 
 function toRadians(value) {
     return value * Math.PI / 180
@@ -358,6 +360,17 @@ export function useBearingRangeTool(
             return lines.find((line) => line.id === lineId) ?? null
         }
 
+        const updateBearingRangeCursor = (event) => {
+            if (dragStartRef.current || event.buttons !== 0)
+                return
+
+            const hoveredLine = getBearingRangeLineAtPoint(getDragPoint(event))
+
+            canvas.style.cursor = hoveredLine
+                ? BEARING_RANGE_CONTEXT_MENU_CURSOR
+                : DEFAULT_MAP_CURSOR
+        }
+
         const handleMouseDown = (event) => {
             if (event.button !== RIGHT_MOUSE_BUTTON)
                 return
@@ -373,8 +386,10 @@ export function useBearingRangeTool(
         }
 
         const handleMouseMove = (event) => {
-            if (!dragStartRef.current)
+            if (!dragStartRef.current) {
+                updateBearingRangeCursor(event)
                 return
+            }
 
             event.preventDefault()
 
@@ -440,15 +455,21 @@ export function useBearingRangeTool(
             event.preventDefault()
         }
 
+        const handleMouseLeave = () => {
+            canvas.style.cursor = DEFAULT_MAP_CURSOR
+        }
+
         canvas.addEventListener('mousedown', handleMouseDown)
         canvas.addEventListener('mousemove', handleMouseMove)
         canvas.addEventListener('mouseup', handleMouseUp)
+        canvas.addEventListener('mouseleave', handleMouseLeave)
         canvas.addEventListener('contextmenu', handleContextMenu)
 
         return () => {
             canvas.removeEventListener('mousedown', handleMouseDown)
             canvas.removeEventListener('mousemove', handleMouseMove)
             canvas.removeEventListener('mouseup', handleMouseUp)
+            canvas.removeEventListener('mouseleave', handleMouseLeave)
             canvas.removeEventListener('contextmenu', handleContextMenu)
         }
     }, [mapRef, enabled, onContextMenu, lines])

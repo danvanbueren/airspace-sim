@@ -12,9 +12,8 @@ import { useMapLibreMap } from '../hooks/useMapLibreMap'
 import { useMapResize } from '../hooks/useMapResize'
 import { useMapStyle } from '../hooks/useMapStyle'
 import { useMeasuredElementSize } from '../hooks/useMeasuredElementSize'
-import {useBearingRangeTool} from "@/app/hooks/useBearingRangeTool";
-import {Box, Paper, Typography} from "@mui/material";
-import BearingRangeContextMenu from "./BearingRangeContextMenu";
+import {useBearingRangeTool} from "@/app/hooks/useBearingRangeTool"
+import MapContextMenu from "./MapContextMenu"
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -25,7 +24,7 @@ export default function MapView() {
     const theme = useTheme()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
-    const [contextMenu, setContextMenu] = useState(null)
+    const [currentContextMenuElement, setCurrentContextMenuElement] = useState(null)
 
     const {mapRef, mapReady} = useMapLibreMap({
         mapContainerRef,
@@ -39,7 +38,7 @@ export default function MapView() {
     useMapResize(mapRef, mapReady)
 
     const handleBearingRangeContextMenu = useCallback(({ point, lngLat, line }) => {
-        setContextMenu({
+        setCurrentContextMenuElement({
             x: point.x,
             y: point.y,
             lngLat,
@@ -57,12 +56,12 @@ export default function MapView() {
 
     const handleRemoveBearingRangeLine = useCallback((lineId) => {
         removeBearingRangeLine(lineId)
-        setContextMenu(null)
+        setCurrentContextMenuElement(null)
     }, [removeBearingRangeLine])
 
     const handleClearBearingRangeLines = useCallback(() => {
         clearBearingRangeLines()
-        setContextMenu(null)
+        setCurrentContextMenuElement(null)
     }, [clearBearingRangeLines])
 
     const cursorInfo = useCursorHooks(mapRef, mapReady, mapContainerRef)
@@ -70,7 +69,7 @@ export default function MapView() {
 
     return (
         <div
-            onClick={() => setContextMenu(null)}
+            onClick={() => setCurrentContextMenuElement(null)}
             style={{
                 position: 'relative',
                 width: '100%',
@@ -91,8 +90,8 @@ export default function MapView() {
                 mapContainerRef={mapContainerRef}
             />
 
-            <BearingRangeContextMenu
-                contextMenu={contextMenu}
+            <MapContextMenu
+                elementContainer={currentContextMenuElement}
                 onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
                 onClearBearingRangeLines={handleClearBearingRangeLines}
             />
