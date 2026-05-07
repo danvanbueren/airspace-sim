@@ -2,7 +2,7 @@
 
 import MapView from "./components/MapView"
 import {Box} from "@mui/material"
-import ToggleThemeButton from "./components/ToggleThemeButton"
+import ToggleThemeButton from "./components/panels/floating/ToggleThemeButton"
 import CategorySelectPanel from "./components/panels/CategorySelectPanel"
 import FixedFunctionPanel from "./components/panels/FixedFunctionPanel"
 import ClassificationBar from "./components/ClassificationBar";

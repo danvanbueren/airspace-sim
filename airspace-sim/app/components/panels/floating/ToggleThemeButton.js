@@ -3,7 +3,7 @@
 import { Fab, Tooltip } from "@mui/material"
 import DarkModeIcon from "@mui/icons-material/DarkMode"
 import LightModeIcon from "@mui/icons-material/LightMode"
-import { useColorMode } from "./AppThemeProvider"
+import { useColorMode } from "../../AppThemeProvider"
 
 export default function ToggleThemeButton() {
     const colorMode = useColorMode()
@@ -19,10 +19,12 @@ export default function ToggleThemeButton() {
                 onClick={colorMode.toggleColorMode}
                 color='inherit'
                 sx={{
+                    color: 'primary.main',
                     backgroundColor: 'background.paper',
                     '&:hover': {
-                        backgroundColor: 'divider',
-                    }
+                        color: 'primary.contrastText',
+                        backgroundColor: 'primary.main',
+                    },
             }}
             >
                 {
