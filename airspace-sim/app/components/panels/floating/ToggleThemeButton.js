@@ -18,6 +18,7 @@ export default function ToggleThemeButton() {
             <Fab
                 onClick={colorMode.toggleColorMode}
                 color='inherit'
+                size='small'
                 sx={{
                     color: 'primary.main',
                     backgroundColor: 'background.paper',

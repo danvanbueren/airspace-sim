@@ -4,7 +4,7 @@ import { Fab, Tooltip } from "@mui/material"
 import MenuIcon from '@mui/icons-material/Menu';
 import { useColorMode } from "../../AppThemeProvider"
 
-export default function ToggleThemeButton() {
+export default function ToggleDrawerHamburgerButton() {
     const colorMode = useColorMode()
 
     const isDark = colorMode.mode === "dark"
@@ -15,13 +15,15 @@ export default function ToggleThemeButton() {
             placement='top'
         >
             <Fab
-                onClick={colorMode.toggleColorMode}
+                onClick={() => alert('todo')}
                 color='inherit'
                 sx={{
-                    backgroundColor: 'background.paper',
-                    '&:hover': {
-                        backgroundColor: '#fff',
-                    }
+                        color: 'primary.main',
+                        backgroundColor: 'background.paper',
+                        '&:hover': {
+                            color: 'primary.contrastText',
+                            backgroundColor: 'primary.main',
+                        },
                 }}
             >
                 {

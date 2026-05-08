@@ -2,10 +2,10 @@
 
 import MapView from "./components/MapView"
 import {Box} from "@mui/material"
-import ToggleThemeButton from "./components/panels/floating/ToggleThemeButton"
 import CategorySelectPanel from "./components/panels/CategorySelectPanel"
 import FixedFunctionPanel from "./components/panels/FixedFunctionPanel"
-import ClassificationBar from "./components/ClassificationBar";
+import ClassificationBar from "./components/ClassificationBar"
+import FloatingPanel from "./components/panels/floating/FloatingPanel"
 
 export default function Home() {
     return (
@@ -57,7 +57,7 @@ export default function Home() {
                         zIndex: 1,
                     }}
                 >
-                    <ToggleThemeButton/>
+                    <FloatingPanel/>
                 </Box>
                 <MapView/>
             </Box>
