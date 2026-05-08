@@ -13,7 +13,7 @@ export default function ToggleThemeButton() {
     return (
         <Tooltip
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            placement='top'
+            placement='left'
         >
             <Fab
                 onClick={colorMode.toggleColorMode}

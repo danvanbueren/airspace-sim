@@ -5,7 +5,7 @@ import {Box} from "@mui/material"
 import CategorySelectPanel from "./components/panels/CategorySelectPanel"
 import FixedFunctionPanel from "./components/panels/FixedFunctionPanel"
 import ClassificationBar from "./components/ClassificationBar"
-import FloatingPanel from "./components/panels/floating/FloatingPanel"
+import FabDrawer from "./components/panels/fabs/FabDrawer"
 
 export default function Home() {
     return (
@@ -52,12 +52,12 @@ export default function Home() {
                 <Box
                     style={{
                         position: 'absolute',
-                        bottom: 40,
-                        right: 40,
+                        top: 20,
+                        right: 20,
                         zIndex: 1,
                     }}
                 >
-                    <FloatingPanel/>
+                    <FabDrawer/>
                 </Box>
                 <MapView/>
             </Box>

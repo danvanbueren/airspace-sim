@@ -3,7 +3,7 @@
 import {Box, Card} from "@mui/material"
 import MuiPaletteShowcase from "./MuiPaletteShowcase";
 import ClassificationBar from "../../components/ClassificationBar";
-import FloatingPanel from "../../components/panels/floating/FloatingPanel";
+import FabDrawer from "../../components/panels/fabs/FabDrawer";
 
 export default function Home() {
     return (
@@ -34,7 +34,7 @@ export default function Home() {
                         zIndex: 1,
                     }}
                 >
-                    <FloatingPanel/>
+                    <FabDrawer/>
                 </Box>
 
                 <Box sx={{height: '100%', alignContent: 'center', }}>
