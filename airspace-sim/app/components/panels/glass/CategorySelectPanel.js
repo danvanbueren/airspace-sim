@@ -1,8 +1,8 @@
 'use client'
 
-import FloatingGlassPanel from "./FloatingGlassPanel"
-import { Divider, Grid, ToggleButton, ToggleButtonGroup } from "@mui/material"
-import { useEffect, useState } from "react"
+import { Divider, Grid, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { useState } from 'react'
+import BasicGlassPanel from './BasicGlassPanel'
 
 export default function CategorySelectPanel() {
 
@@ -16,7 +16,7 @@ export default function CategorySelectPanel() {
     }
 
     return (
-        <FloatingGlassPanel title='Category Select Panel'>
+        <BasicGlassPanel title='Category Select Panel'>
 
             <ToggleButtonGroup
                 value={currentToggles}
@@ -45,10 +45,10 @@ export default function CategorySelectPanel() {
                                 <span
                                     key={'CSP_TOGGLE_SPAN_' + value + '_' + index}
                                     style={{
-                                        display: "block",
-                                        width: "100%",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
+                                        display: 'block',
+                                        width: '100%',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
                                         fontFamily: 'monospace',
                                         fontWeight: 'bold'
                                     }}
@@ -64,7 +64,7 @@ export default function CategorySelectPanel() {
             {/* TODO: Remove this (temp) */}
             {currentToggles.length !== 0 &&
                 <>
-                    <Divider orientation="horizontal" flexItem sx={{marginTop: 1.5, marginBottom: 1.5}} />
+                    <Divider orientation='horizontal' flexItem sx={{marginTop: 1.5, marginBottom: 1.5}} />
                     <span style={{fontFamily: 'monospace'}}>TODO: IMPLEMENT TOGGLES</span>
                     {currentToggles.map((value, index) => (
                         <span key={'tempCSP_' + value + '_' + index} style={{fontFamily: 'monospace', fontWeight: 'bold'}}>{value}</span>
@@ -73,6 +73,6 @@ export default function CategorySelectPanel() {
             }
             {/* TODO: Remove this (temp) */}
 
-        </FloatingGlassPanel>
+        </BasicGlassPanel>
     )
 }

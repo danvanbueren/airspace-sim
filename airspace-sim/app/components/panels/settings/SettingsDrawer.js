@@ -1,11 +1,11 @@
 'use client'
 
-import {alpha, Box, Card, Collapse, Grid} from "@mui/material";
-import ToggleThemeButton from "./ToggleThemeButton";
-import ToggleFabDrawerButton from "./ToggleFabDrawerButton";
-import {useRef, useState} from "react";
+import { alpha, Box, Card, Collapse } from '@mui/material'
+import { useRef, useState } from 'react'
+import ToggleThemeButton from './ToggleThemeButton'
+import ToggleSettingsDrawerButton from './ToggleSettingsDrawerButton'
 
-export default function FabDrawer() {
+export default function SettingsDrawer() {
 
     const [open, setOpen] = useState(false)
     const collapseTimerRef = useRef(null)
@@ -26,7 +26,7 @@ export default function FabDrawer() {
 
     return (
         <Card
-            variant="outlined"
+            variant='outlined'
 
             sx={(theme) => ({
                 padding: 1,
@@ -55,7 +55,7 @@ export default function FabDrawer() {
                         padding: 0.5,
                     }}
                 >
-                    <ToggleFabDrawerButton
+                    <ToggleSettingsDrawerButton
                         open={open}
                         setOpen={setOpen}
                     />

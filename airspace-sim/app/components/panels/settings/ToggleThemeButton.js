@@ -1,18 +1,18 @@
 'use client'
 
-import { Fab, Tooltip } from "@mui/material"
-import DarkModeIcon from "@mui/icons-material/DarkMode"
-import LightModeIcon from "@mui/icons-material/LightMode"
-import { useColorMode } from "../../AppThemeProvider"
+import { Fab, Tooltip } from '@mui/material'
+import { useColorMode } from '../../base/CustomThemeProvider'
+import DarkModeIcon from '@mui/icons-material/DarkMode'
+import LightModeIcon from '@mui/icons-material/LightMode'
 
 export default function ToggleThemeButton() {
     const colorMode = useColorMode()
 
-    const isDark = colorMode.mode === "dark"
+    const isDark = colorMode.mode === 'dark'
 
     return (
         <Tooltip
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             placement='left'
         >
             <Fab

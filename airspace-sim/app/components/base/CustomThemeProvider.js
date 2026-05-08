@@ -1,7 +1,7 @@
 'use client'
 
-import { createContext, useContext, useMemo, useState } from "react"
-import { ThemeProvider, CssBaseline, createTheme } from "@mui/material"
+import { createContext, useContext, useMemo, useState } from 'react'
+import { ThemeProvider, CssBaseline, createTheme } from '@mui/material'
 
 const ColorModeContext = createContext(null)
 
@@ -9,7 +9,7 @@ export function useColorMode() {
     return useContext(ColorModeContext)
 }
 
-export default function AppThemeProvider({ initialMode = "light", children }) {
+export default function CustomThemeProvider({ initialMode = 'light', children }) {
     const [mode, setMode] = useState(initialMode)
 
     const colorMode = useMemo(
@@ -17,7 +17,7 @@ export default function AppThemeProvider({ initialMode = "light", children }) {
             mode,
             toggleColorMode: () => {
                 setMode((currentMode) => {
-                    const nextMode = currentMode === "light" ? "dark" : "light"
+                    const nextMode = currentMode === 'light' ? 'dark' : 'light'
 
                     document.cookie = `theme=${nextMode}; path=/; max-age=31536000; SameSite=Lax`
 

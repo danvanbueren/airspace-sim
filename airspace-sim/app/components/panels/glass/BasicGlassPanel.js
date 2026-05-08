@@ -1,12 +1,12 @@
 'use client'
 
-import {alpha, Card, Divider, Typography} from "@mui/material"
+import { alpha, Card, Divider, Typography } from '@mui/material'
 
-export default function FloatingGlassPanel({title, children}) {
+export default function BasicGlassPanel({title, children}) {
 
     return (
         <Card
-            variant="outlined"
+            variant='outlined'
             style={{
                 width: 400,
                 padding: 20,
@@ -24,8 +24,8 @@ export default function FloatingGlassPanel({title, children}) {
                 userSelect: 'none',
             })}
         >
-            <Typography variant="h6" style={{fontFamily: 'monospace', fontWeight: 'bold'}}>{title}</Typography>
-            <Divider orientation="horizontal" flexItem sx={{marginBottom: 1.5}} />
+            <Typography variant='h6' style={{fontFamily: 'monospace', fontWeight: 'bold'}}>{title}</Typography>
+            <Divider orientation='horizontal' flexItem sx={{marginBottom: 1.5}} />
             {children}
         </Card>
     )

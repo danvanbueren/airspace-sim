@@ -1,6 +1,6 @@
 'use client'
 
-import {Box, Typography, useMediaQuery, useTheme} from "@mui/material"
+import { Box, Typography, useMediaQuery, useTheme } from '@mui/material'
 
 export default function ClassificationBar({
                                               theme = useTheme(),

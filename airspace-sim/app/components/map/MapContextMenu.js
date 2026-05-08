@@ -26,12 +26,12 @@ export default function MapContextMenu({
                 backgroundColor: 'background.paper',
             }}
         >
-            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+            <Typography variant='body2' sx={{ fontWeight: 700 }}>
                 Dynamic Context Menu
             </Typography>
 
             <Box sx={{ mt: 1 }}>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant='caption' color='text.secondary'>
                     {elementContainer.lngLat.lat.toFixed(4)}, {elementContainer.lngLat.lng.toFixed(4)}
                 </Typography>
             </Box>
@@ -40,14 +40,14 @@ export default function MapContextMenu({
                 <>
                     <Divider sx={{ my: 1 }} />
 
-                    <Typography variant="body2" sx={{paddingBottom: 1}}>
+                    <Typography variant='body2' sx={{paddingBottom: 1}}>
                         Bearing/Range Lines
                     </Typography>
 
                     <Stack spacing={0.5}>
                         <Button
-                            color="primary"
-                            size="small"
+                            color='primary'
+                            size='small'
                             onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
                             sx={{ justifyContent: 'flex-start' }}
                         >
@@ -55,8 +55,8 @@ export default function MapContextMenu({
                         </Button>
 
                         <Button
-                            color="error"
-                            size="small"
+                            color='error'
+                            size='small'
                             onClick={onClearBearingRangeLines}
                             sx={{ justifyContent: 'flex-start' }}
                         >

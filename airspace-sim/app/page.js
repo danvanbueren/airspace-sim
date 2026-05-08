@@ -1,11 +1,11 @@
 'use client'
 
-import MapView from "./components/MapView"
+import MapView from "./components/map/MapView"
 import {Box} from "@mui/material"
-import CategorySelectPanel from "./components/panels/CategorySelectPanel"
-import FixedFunctionPanel from "./components/panels/FixedFunctionPanel"
-import ClassificationBar from "./components/ClassificationBar"
-import FabDrawer from "./components/panels/fabs/FabDrawer"
+import CategorySelectPanel from "./components/panels/glass/CategorySelectPanel"
+import FixedFunctionPanel from "./components/panels/glass/FixedFunctionPanel"
+import ClassificationBar from "./components/base/ClassificationBar"
+import SettingsDrawer from "./components/panels/settings/SettingsDrawer"
 
 export default function Home() {
     return (
@@ -57,7 +57,7 @@ export default function Home() {
                         zIndex: 1,
                     }}
                 >
-                    <FabDrawer/>
+                    <SettingsDrawer/>
                 </Box>
                 <MapView/>
             </Box>

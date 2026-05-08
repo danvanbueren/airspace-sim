@@ -1,10 +1,10 @@
 'use client'
 
-import { Fab } from "@mui/material"
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import MenuIcon from '@mui/icons-material/Menu';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
+import MenuIcon from '@mui/icons-material/Menu'
+import { Fab } from '@mui/material'
 
-export default function ToggleFabDrawerButton({open, setOpen}) {
+export default function ToggleSettingsDrawerButton({open, setOpen}) {
 
     return (
         <Fab

@@ -6,7 +6,7 @@ import '@fontsource/roboto/500.css'
 import '@fontsource/roboto/700.css'
 
 import { cookies } from "next/headers";
-import AppThemeProvider from "./components/AppThemeProvider";
+import CustomThemeProvider from "./components/base/CustomThemeProvider";
 
 export const metadata = {
   title: "airspace-sim",
@@ -22,9 +22,9 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <AppThemeProvider initialMode={initialMode}>
+        <CustomThemeProvider initialMode={initialMode}>
           {children}
-        </AppThemeProvider>
+        </CustomThemeProvider>
       </body>
     </html>
   )

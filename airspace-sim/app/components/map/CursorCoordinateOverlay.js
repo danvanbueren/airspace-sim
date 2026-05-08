@@ -1,7 +1,7 @@
 'use client'
 
-import { getCursorBoxPosition } from '../hooks/useCursorHooks'
-import { formatLatLong } from '../tools/formatting/PrettyLatLong'
+import { getCursorBoxPosition } from '../../hooks/useCursorHooks'
+import { formatLatLong } from '../../tools/formatting/PrettyLatLong'
 
 export default function CursorCoordinateOverlay({
                                                     cursorInfo,

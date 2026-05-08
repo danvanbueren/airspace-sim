@@ -1,8 +1,8 @@
 'use client'
 
-import FloatingGlassPanel from "./FloatingGlassPanel"
-import { Divider, Grid, ToggleButton, ToggleButtonGroup } from "@mui/material"
-import { useEffect, useState } from "react"
+import { Divider, Grid, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { useState } from 'react'
+import BasicGlassPanel from './BasicGlassPanel'
 
 export default function FixedFunctionPanel() {
 
@@ -16,7 +16,7 @@ export default function FixedFunctionPanel() {
     }
 
     return (
-        <FloatingGlassPanel title='Fixed Function Panel'>
+        <BasicGlassPanel title='Fixed Function Panel'>
 
             {/* TODO: Remove this (temp) */}
             {currentToggles.length !== 0 &&
@@ -25,7 +25,7 @@ export default function FixedFunctionPanel() {
                     {currentToggles.map((value, index) => (
                         <span key={'tempFFP_' + value + '_' + index} style={{fontFamily: 'monospace', fontWeight: 'bold'}}>{value}</span>
                     ))}
-                    <Divider orientation="horizontal" flexItem sx={{marginTop: 1.5, marginBottom: 1.5}} />
+                    <Divider orientation='horizontal' flexItem sx={{marginTop: 1.5, marginBottom: 1.5}} />
                 </>
             }
             {/* TODO: Remove this (temp) */}
@@ -57,10 +57,10 @@ export default function FixedFunctionPanel() {
                                 <span
                                     key={'FFP_TOGGLE_SPAN_' + value + '_' + index}
                                     style={{
-                                        display: "block",
-                                        width: "100%",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
+                                        display: 'block',
+                                        width: '100%',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
                                         fontFamily: 'monospace',
                                         fontWeight: 'bold'
                                     }}
@@ -72,6 +72,6 @@ export default function FixedFunctionPanel() {
                     ))}
                 </Grid>
             </ToggleButtonGroup>
-        </FloatingGlassPanel>
+        </BasicGlassPanel>
     )
 }
