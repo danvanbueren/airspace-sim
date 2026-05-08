@@ -1,11 +1,18 @@
 'use client'
 
-import { alpha, Box, Card, Collapse } from '@mui/material'
+import { alpha, Box, Card, Collapse, Divider } from '@mui/material'
 import { useRef, useState } from 'react'
-import ToggleThemeButton from './ToggleThemeButton'
+import { useColorMode } from "@/app/components/base/CustomThemeProvider"
 import ToggleSettingsDrawerButton from './ToggleSettingsDrawerButton'
+import QuickSettingsButton from "./QuickSettingsButton"
+import HistoryEduIcon from '@mui/icons-material/HistoryEdu'
+import SettingsIcon from '@mui/icons-material/Settings'
+import KeyboardIcon from '@mui/icons-material/Keyboard'
+import InfoIcon from '@mui/icons-material/Info'
+import DarkModeIcon from '@mui/icons-material/DarkMode'
+import LightModeIcon from '@mui/icons-material/LightMode'
 
-export default function SettingsDrawer() {
+export default function QuickSettingsDrawer() {
 
     const [open, setOpen] = useState(false)
     const collapseTimerRef = useRef(null)
@@ -23,6 +30,9 @@ export default function SettingsDrawer() {
             collapseTimerRef.current = null
         }, 3000)
     }
+
+    const colorMode = useColorMode()
+    const isDark = colorMode.mode === 'dark'
 
     return (
         <Card
@@ -75,7 +85,41 @@ export default function SettingsDrawer() {
                             pointerEvents: open ? 'auto' : 'none',
                         }}
                     >
-                        <ToggleThemeButton/>
+                        <QuickSettingsButton
+                            icon = {isDark ? <LightModeIcon /> : <DarkModeIcon />}
+                            tooltip={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                            onClick={colorMode.toggleColorMode}
+                        />
+
+                        <Divider/>
+
+                        <QuickSettingsButton
+                            icon = {<SettingsIcon/>}
+                            tooltip='Settings'
+                            onClick={() => alert('Settings feature coming soon!')}
+                        />
+
+                        <QuickSettingsButton
+                            icon = {<KeyboardIcon/>}
+                            tooltip='Keybinds'
+                            onClick={() => alert('Keybinds feature coming soon!')}
+                        />
+
+                        <QuickSettingsButton
+                            icon = {<HistoryEduIcon/>}
+                            tooltip='Roadmap'
+                            onClick={() => alert('Roadmap feature coming soon!')}
+                        />
+                        {/*
+                        TODO: Hide cursor tooltip when drawing bearing/range line.
+                        TODO: Create settings modal
+                        */}
+
+                        <QuickSettingsButton
+                            icon = {<InfoIcon/>}
+                            tooltip='About'
+                            onClick={() => alert('About feature coming soon!')}
+                        />
                     </Box>
                 </Collapse>
             </Box>
