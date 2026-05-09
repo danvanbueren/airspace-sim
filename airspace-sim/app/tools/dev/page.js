@@ -3,7 +3,7 @@
 import {Box, Card} from "@mui/material"
 import MuiPaletteShowcase from "./MuiPaletteShowcase";
 import ClassificationBar from "../../components/base/ClassificationBar";
-import QuickSettingsDrawer from "../../components/panels/settings/quick/QuickSettingsDrawer";
+import QuickSettingsContainer from "../../components/panels/settings/quick/QuickSettingsContainer";
 
 export default function Home() {
     return (
@@ -34,7 +34,7 @@ export default function Home() {
                         zIndex: 1,
                     }}
                 >
-                    <QuickSettingsDrawer/>
+                    <QuickSettingsContainer/>
                 </Box>
 
                 <Box sx={{height: '100%', alignContent: 'center', }}>

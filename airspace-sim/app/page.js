@@ -5,7 +5,7 @@ import {Box} from "@mui/material"
 import CategorySelectPanel from "./components/panels/glass/CategorySelectPanel"
 import FixedFunctionPanel from "./components/panels/glass/FixedFunctionPanel"
 import ClassificationBar from "./components/base/ClassificationBar"
-import QuickSettingsDrawer from "./components/panels/settings/quick/QuickSettingsDrawer"
+import QuickSettingsContainer from "./components/panels/settings/quick/QuickSettingsContainer"
 
 export default function Home() {
     return (
@@ -57,7 +57,7 @@ export default function Home() {
                         zIndex: 1,
                     }}
                 >
-                    <QuickSettingsDrawer/>
+                    <QuickSettingsContainer/>
                 </Box>
                 <MapView/>
             </Box>
