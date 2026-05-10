@@ -44,7 +44,7 @@ export default function SettingsToolbelt({toolbeltOpen, setToolbeltOpen, buildDa
         >
             <Box
                 style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', maxHeight: '90dvh', overflow: 'auto'
+                    display: 'flex', flexDirection: 'column', alignItems: 'center'
                 }}
             >
                 <Box
@@ -62,6 +62,9 @@ export default function SettingsToolbelt({toolbeltOpen, setToolbeltOpen, buildDa
                     in={toolbeltOpen}
                     timeout={250}
                     unmountOnExit
+                    style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', maxHeight: '50dvh', overflow: 'auto', scrollbarWidth: 'none'
+                    }}
                 >
                     <Box
                         sx={{
