@@ -1,9 +1,9 @@
 'use client'
 
-import {Box, Card} from "@mui/material"
-import MuiPaletteShowcase from "./MuiPaletteShowcase";
-import ClassificationBar from "../../components/base/ClassificationBar";
-import QuickSettingsContainer from "../../components/panels/settings/quick/QuickSettingsContainer";
+import {Box, Card} from '@mui/material'
+import MuiPaletteShowcase from './MuiPaletteShowcase'
+import ClassificationBar from '../../components/base/ClassificationBar'
+import SettingsToolbelt from '../../components/panels/settings/toolbelt/SettingsToolbelt'
 
 export default function Home() {
     return (
@@ -34,7 +34,7 @@ export default function Home() {
                         zIndex: 1,
                     }}
                 >
-                    <QuickSettingsContainer/>
+                    <SettingsToolbelt/>
                 </Box>
 
                 <Box sx={{height: '100%', alignContent: 'center', }}>
