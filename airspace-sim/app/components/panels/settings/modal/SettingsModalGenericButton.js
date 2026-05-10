@@ -15,6 +15,9 @@ export default function SettingsModalGenericButton({
         variant={selected ? 'contained' : 'outlined'}
         size='large'
         startIcon={icon}
+        sx={{
+            justifyContent: 'flex-start'
+        }}
     >
         {tooltip}
     </Button>)
