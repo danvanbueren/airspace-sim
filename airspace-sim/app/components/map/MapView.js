@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from '@mui/material/styles'
 import { useCursorHooks } from '../../hooks/useCursorHooks'
 import { useKeyboardCameraControls } from '../../hooks/useKeyboardCameraControls'
@@ -24,6 +24,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
     const theme = useTheme()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
+    const contextMenuRef = useRef(null)
     const [currentContextMenuElement, setCurrentContextMenuElement] = useState(null)
 
     const {mapRef, mapReady} = useMapLibreMap({
@@ -49,6 +50,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
     const {
         removeBearingRangeLine,
         clearBearingRangeLines,
+        isDrawingBearingRangeLine,
     } = useBearingRangeTool(mapRef, mapReady, {
         onContextMenu: handleBearingRangeContextMenu,
         lineColor: theme.palette.mode === 'dark' ? '#fff' : '#111',
@@ -64,12 +66,28 @@ export default function MapView({mapInteractionsEnabled = true}) {
         setCurrentContextMenuElement(null)
     }, [clearBearingRangeLines])
 
+    useEffect(() => {
+        if (!currentContextMenuElement) return
+
+        const handlePointerDown = (event) => {
+            if (contextMenuRef.current?.contains(event.target)) return
+
+            setCurrentContextMenuElement(null)
+        }
+
+        document.addEventListener('pointerdown', handlePointerDown)
+
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown)
+        }
+    }, [currentContextMenuElement])
+
     const cursorInfo = useCursorHooks(mapRef, mapReady && mapInteractionsEnabled, mapContainerRef)
-    const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [cursorInfo])
+    const visibleCursorInfo = isDrawingBearingRangeLine ? null : cursorInfo
+    const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [visibleCursorInfo])
 
     return (
         <div
-            onClick={() => setCurrentContextMenuElement(null)}
             style={{
                 position: 'relative',
                 width: '100%',
@@ -84,13 +102,14 @@ export default function MapView({mapInteractionsEnabled = true}) {
                 }}
             />
             <CursorCoordinateOverlay
-                cursorInfo={cursorInfo}
+                cursorInfo={visibleCursorInfo}
                 cursorBoxRef={cursorBoxRef}
                 cursorBoxSize={cursorBoxSize}
                 mapContainerRef={mapContainerRef}
             />
 
             <MapContextMenu
+                ref={contextMenuRef}
                 elementContainer={currentContextMenuElement}
                 onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
                 onClearBearingRangeLines={handleClearBearingRangeLines}

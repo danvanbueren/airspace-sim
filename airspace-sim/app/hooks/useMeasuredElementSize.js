@@ -9,7 +9,12 @@ export function useMeasuredElementSize(elementRef, dependencies = []) {
 
         const {width, height} = elementRef.current.getBoundingClientRect()
 
-        setSize({width, height})
+        setSize((currentSize) => {
+            if (currentSize.width === width && currentSize.height === height)
+                return currentSize
+
+            return {width, height}
+        })
     }, [elementRef, ...dependencies])
 
     return size

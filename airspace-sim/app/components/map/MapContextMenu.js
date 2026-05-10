@@ -1,12 +1,13 @@
 'use client'
 
+import { forwardRef } from 'react'
 import { Box, Button, Divider, Paper, Stack, Typography } from '@mui/material'
 
-export default function MapContextMenu({
+const MapContextMenu = forwardRef(function MapContextMenu({
                                                     elementContainer,
                                                     onRemoveBearingRangeLine,
                                                     onClearBearingRangeLines,
-                                                }) {
+                                                }, ref) {
     if (!elementContainer)
         return null
 
@@ -14,6 +15,7 @@ export default function MapContextMenu({
 
     return (
         <Paper
+            ref={ref}
             elevation={8}
             onClick={(event) => event.stopPropagation()}
             sx={{
@@ -67,4 +69,6 @@ export default function MapContextMenu({
             )}
         </Paper>
     )
-}
+})
+
+export default MapContextMenu
