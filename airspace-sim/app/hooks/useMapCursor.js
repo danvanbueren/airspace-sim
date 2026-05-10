@@ -2,10 +2,15 @@ import { useEffect } from 'react'
 
 export function useMapCursor(mapRef, enabled) {
     useEffect(() => {
-        if (!enabled || !mapRef.current)
+        if (!mapRef.current)
             return
 
         const map = mapRef.current
+
+        if (!enabled) {
+            map.getCanvas().style.cursor = ''
+            return
+        }
 
         const setDefaultCursor = () => {
             map.getCanvas().style.cursor = 'crosshair'
@@ -29,6 +34,7 @@ export function useMapCursor(mapRef, enabled) {
             map.off('mousedown', setCustomCursor)
             map.off('mouseup', setDefaultCursor)
             map.off('dragend', setDefaultCursor)
+            map.getCanvas().style.cursor = ''
         }
     }, [mapRef, enabled])
 }

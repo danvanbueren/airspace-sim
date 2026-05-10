@@ -20,7 +20,7 @@ const MAP_STYLES = {
     dark: 'map-styles/dark-matter-gl-style.json',
 }
 
-export default function MapView() {
+export default function MapView({mapInteractionsEnabled = true}) {
     const theme = useTheme()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
@@ -32,9 +32,9 @@ export default function MapView() {
     })
 
     useMapStyle(mapRef, MAP_STYLES[theme.palette.mode])
-    useKeyboardCameraControls(mapRef, mapReady)
-    useMapCursor(mapRef, mapReady)
-    useMapInteractionGuards(mapRef, mapReady)
+    useKeyboardCameraControls(mapRef, mapReady && mapInteractionsEnabled)
+    useMapCursor(mapRef, mapReady && mapInteractionsEnabled)
+    useMapInteractionGuards(mapRef, mapReady && mapInteractionsEnabled)
     useMapResize(mapRef, mapReady)
 
     const handleBearingRangeContextMenu = useCallback(({ point, lngLat, line }) => {
@@ -64,7 +64,7 @@ export default function MapView() {
         setCurrentContextMenuElement(null)
     }, [clearBearingRangeLines])
 
-    const cursorInfo = useCursorHooks(mapRef, mapReady, mapContainerRef)
+    const cursorInfo = useCursorHooks(mapRef, mapReady && mapInteractionsEnabled, mapContainerRef)
     const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [cursorInfo])
 
     return (

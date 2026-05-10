@@ -2,14 +2,23 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-export function useCursorHooks(mapRef, mapReady, mapContainerRef) {
+export function useCursorHooks(mapRef, enabled, mapContainerRef) {
     const [cursorInfo, setCursorInfo] = useState(null)
     const animationFrameRef = useRef(null)
     const latestPointerRef = useRef(null)
 
     useEffect(() => {
-        if (!mapReady || !mapRef.current || !mapContainerRef.current)
+        if (!enabled || !mapRef.current || !mapContainerRef.current) {
+            latestPointerRef.current = null
+            setCursorInfo(null)
+
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current)
+                animationFrameRef.current = null
+            }
+
             return
+        }
 
         const map = mapRef.current
         const container = mapContainerRef.current
@@ -59,12 +68,15 @@ export function useCursorHooks(mapRef, mapReady, mapContainerRef) {
             container.removeEventListener('pointerdown', scheduleCursorUpdate)
             container.removeEventListener('pointerleave', handlePointerLeave)
 
+            latestPointerRef.current = null
+            setCursorInfo(null)
+
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current)
                 animationFrameRef.current = null
             }
         }
-    }, [mapRef, mapReady, mapContainerRef])
+    }, [mapRef, enabled, mapContainerRef])
 
     return cursorInfo
 }
