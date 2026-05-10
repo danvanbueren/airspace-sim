@@ -3,7 +3,7 @@
 import { Fab, Tooltip } from '@mui/material'
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 
-export default function QuickSettingsButton({icon = <QuestionMarkIcon/>, tooltip = 'Unknown', onClick = null}) {
+export default function SettingsToolbeltGenericButton({icon = <QuestionMarkIcon/>, tooltip = 'Unknown', onClick = null}) {
 
     return (
         <Tooltip

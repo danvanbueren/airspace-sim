@@ -4,7 +4,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import MenuIcon from '@mui/icons-material/Menu'
 import { Fab } from '@mui/material'
 
-export default function ToggleSettingsDrawerButton({open, setOpen}) {
+export default function SettingsToolbeltToggleOpenButton({open, setOpen}) {
 
     return (
         <Fab
