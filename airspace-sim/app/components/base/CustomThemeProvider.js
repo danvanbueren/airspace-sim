@@ -38,6 +38,43 @@ export default function CustomThemeProvider({ initialMode = 'light', children })
                 palette: {
                     mode,
                 },
+                components: {
+                    MuiCssBaseline: {
+                        styleOverrides: (theme) => ({
+                            ':root': {
+                                '--scrollbar-thumb': theme.palette.mode === 'dark'
+                                    ? 'rgba(255, 255, 255, 0.22)'
+                                    : 'rgba(0, 0, 0, 0.22)',
+                                '--scrollbar-thumb-hover': theme.palette.mode === 'dark'
+                                    ? 'rgba(255, 255, 255, 0.44)'
+                                    : 'rgba(0, 0, 0, 0.44)',
+                            },
+                            '*': {
+                                scrollbarWidth: 'thin',
+                                scrollbarColor: 'var(--scrollbar-thumb) transparent',
+                            },
+                            '*::-webkit-scrollbar': {
+                                width: 10,
+                                height: 10
+                            },
+                            '*::-webkit-scrollbar-track': {
+                                background: 'transparent',
+                            },
+                            '*::-webkit-scrollbar-thumb': {
+                                backgroundColor: 'var(--scrollbar-thumb)',
+                                borderRadius: 999,
+                                border: '3px solid transparent',
+                                backgroundClip: 'content-box'
+                            },
+                            '*::-webkit-scrollbar-thumb:hover': {
+                                backgroundColor: 'var(--scrollbar-thumb-hover)',
+                            },
+                            '*::-webkit-scrollbar-corner': {
+                                background: 'transparent',
+                            },
+                        }),
+                    },
+                },
             }),
         [mode]
     )
