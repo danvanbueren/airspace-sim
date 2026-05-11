@@ -1,11 +1,14 @@
-import { useEffect } from 'react'
-
-const MOVEMENT_KEYS = ['w', 'a', 's', 'd', 'shift']
+import {useEffect} from 'react'
+import {
+    getKeyboardCameraActionForKey, pressedKeysMatchBinding, useControlBindings,
+} from '../contexts/ControlBindingsContext'
 
 export function useKeyboardCameraControls(mapRef, enabled) {
+    const {controlBindings} = useControlBindings()
+    const keyboardCameraBindings = controlBindings.keyboardCamera
+
     useEffect(() => {
-        if (!enabled)
-            return
+        if (!enabled) return
 
         const pressedKeys = new Set()
         let animationFrameId = null
@@ -17,42 +20,30 @@ export function useKeyboardCameraControls(mapRef, enabled) {
                 return
             }
 
-            if (lastFrameTime === null)
-                lastFrameTime = timestamp
+            if (lastFrameTime === null) lastFrameTime = timestamp
 
             const deltaSeconds = (timestamp - lastFrameTime) / 1000
             lastFrameTime = timestamp
 
-            const slowPanSpeed = 500
-            const fastPanSpeed = 2000
-            const panSpeed = pressedKeys.has('shift') ? slowPanSpeed : fastPanSpeed
+            const isSlowPan = pressedKeysMatchBinding(pressedKeys, keyboardCameraBindings.panSpeedModifier,)
+
+            const panSpeed = isSlowPan ? keyboardCameraBindings.regularPanSpeed * keyboardCameraBindings.panSpeedMultiplier : keyboardCameraBindings.regularPanSpeed
 
             let x = 0
             let y = 0
 
-            if (pressedKeys.has('w'))
-                y -= 1
-            if (pressedKeys.has('a'))
-                x -= 1
-            if (pressedKeys.has('s'))
-                y += 1
-            if (pressedKeys.has('d'))
-                x += 1
+            if (pressedKeysMatchBinding(pressedKeys, keyboardCameraBindings.panUp)) y -= 1
+            if (pressedKeysMatchBinding(pressedKeys, keyboardCameraBindings.panLeft)) x -= 1
+            if (pressedKeysMatchBinding(pressedKeys, keyboardCameraBindings.panDown)) y += 1
+            if (pressedKeysMatchBinding(pressedKeys, keyboardCameraBindings.panRight)) x += 1
 
             if (x !== 0 || y !== 0) {
                 const length = Math.sqrt(x * x + y * y)
 
-                mapRef.current.panBy([
-                    (x / length) * panSpeed * deltaSeconds,
-                    (y / length) * panSpeed * deltaSeconds,
-                ], {duration: 0})
+                mapRef.current.panBy([(x / length) * panSpeed * deltaSeconds, (y / length) * panSpeed * deltaSeconds,], {duration: 0})
             }
 
-            const hasMovementKey =
-                pressedKeys.has('w') ||
-                pressedKeys.has('a') ||
-                pressedKeys.has('s') ||
-                pressedKeys.has('d')
+            const hasMovementKey = pressedKeysMatchBinding(pressedKeys, keyboardCameraBindings.panUp) || pressedKeysMatchBinding(pressedKeys, keyboardCameraBindings.panLeft) || pressedKeysMatchBinding(pressedKeys, keyboardCameraBindings.panDown) || pressedKeysMatchBinding(pressedKeys, keyboardCameraBindings.panRight)
 
             if (hasMovementKey) {
                 animationFrameId = window.requestAnimationFrame(moveCamera)
@@ -63,15 +54,14 @@ export function useKeyboardCameraControls(mapRef, enabled) {
         }
 
         const startCameraMovement = () => {
-            if (animationFrameId === null)
-                animationFrameId = window.requestAnimationFrame(moveCamera)
+            if (animationFrameId === null) animationFrameId = window.requestAnimationFrame(moveCamera)
         }
 
         const handleKeyDown = (e) => {
             const key = e.key.toLowerCase()
+            const action = getKeyboardCameraActionForKey(key, keyboardCameraBindings)
 
-            if (!MOVEMENT_KEYS.includes(key))
-                return
+            if (!action) return
 
             e.preventDefault()
             pressedKeys.add(key)
@@ -80,9 +70,9 @@ export function useKeyboardCameraControls(mapRef, enabled) {
 
         const handleKeyUp = (e) => {
             const key = e.key.toLowerCase()
+            const action = getKeyboardCameraActionForKey(key, keyboardCameraBindings)
 
-            if (!MOVEMENT_KEYS.includes(key))
-                return
+            if (!action) return
 
             e.preventDefault()
             pressedKeys.delete(key)
@@ -95,8 +85,7 @@ export function useKeyboardCameraControls(mapRef, enabled) {
             window.removeEventListener('keydown', handleKeyDown)
             window.removeEventListener('keyup', handleKeyUp)
 
-            if (animationFrameId !== null)
-                window.cancelAnimationFrame(animationFrameId)
+            if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId)
         }
-    }, [mapRef, enabled])
+    }, [mapRef, enabled, keyboardCameraBindings])
 }

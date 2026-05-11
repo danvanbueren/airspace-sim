@@ -1,5 +1,9 @@
 import {alpha, Box, Card, Divider, Grid, Modal, Typography} from '@mui/material'
 import SettingsModalGenericButton from '@/app/components/panels/settings/modal/SettingsModalGenericButton'
+import SettingsModalSettingsPage from "@/app/components/panels/settings/modal/pages/SettingsModalSettingsPage";
+import SettingsModalKeybindsPage from "./pages/SettingsModalKeybindsPage";
+import SettingsModalRoadmapPage from "./pages/SettingsModalRoadmapPage";
+import SettingsModalAboutPage from "./pages/SettingsModalAboutPage";
 
 export default function SettingsModal({open, setOpen, state = 'settings', buildData}) {
 
@@ -19,6 +23,21 @@ export default function SettingsModal({open, setOpen, state = 'settings', buildD
         p: 5,
     })
 
+    const getModalPage = () => {
+        switch (state) {
+            case 'settings':
+                return <SettingsModalSettingsPage/>
+            case 'keybinds':
+                return <SettingsModalKeybindsPage/>
+            case 'roadmap':
+                return <SettingsModalRoadmapPage/>
+            case 'about':
+                return <SettingsModalAboutPage/>
+            default:
+                return 'UNKNOWN MODAL STATE'
+        }
+    }
+
     return (<Modal
         open={open}
         onClose={() => setOpen(false)}
@@ -32,7 +51,14 @@ export default function SettingsModal({open, setOpen, state = 'settings', buildD
                             display: 'flex', height: '100%', overflow: 'hidden'
                         }}
                     >
-                        <Box sx={{display: 'flex', flexDirection: 'column', gap: 2, overflow: 'auto', height: '100%', paddingRight: 1}}>
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 2,
+                            overflow: 'auto',
+                            height: '100%',
+                            paddingRight: 1
+                        }}>
 
                             {buildData.oneClick.map((object, index) => (<SettingsModalGenericButton
                                 key={'SettingsModal-OneClick-' + object.name + '-' + index}
@@ -65,7 +91,7 @@ export default function SettingsModal({open, setOpen, state = 'settings', buildD
                     </Typography>
                     <Box sx={{overflow: 'auto', height: '100%', paddingRight: 1}}>
                         <Card sx={{borderRadius: 2, padding: 3, minHeight: '100%'}}>
-                            <Typography variant='h1'>todo...</Typography>
+                            {getModalPage()}
                         </Card>
                     </Box>
                 </Grid>

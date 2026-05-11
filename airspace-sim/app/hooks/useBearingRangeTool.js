@@ -1,10 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import maplibregl from 'maplibre-gl'
+import {useControlBindings} from '../contexts/ControlBindingsContext'
 
-const RIGHT_MOUSE_BUTTON = 2
-const CONTEXT_MENU_MAX_MS = 250
-const CONTEXT_MENU_MAX_PIXELS = 6
-const MIN_PERSISTED_LINE_PIXELS = 24
 const LINE_SOURCE_ID = 'bearing-range-lines-source'
 const LINE_LAYER_ID = 'bearing-range-lines-layer'
 const DEFAULT_MAP_CURSOR = 'crosshair'
@@ -199,6 +196,9 @@ function getDistancePixels(startPoint, endPoint) {
 export function useBearingRangeTool(mapRef, enabled, {
     onContextMenu, lineColor = '#fff',
 } = {},) {
+    const {controlBindings} = useControlBindings()
+    const bearingRangeBindings = controlBindings.bearingRangeTool
+
     const labelsRef = useRef([])
     const dragStartRef = useRef(null)
     const previewLineRef = useRef(null)
@@ -334,7 +334,7 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const updateCursor = (event) => {
-            if (dragStartRef.current || event.buttons !== 0) return
+            if (dragStartRef.current) return
 
             const hoveredLine = getBearingRangeLineAtPoint(getDragPoint(event))
 
@@ -342,7 +342,7 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const handleMouseDown = (event) => {
-            if (event.button !== RIGHT_MOUSE_BUTTON) return
+            if (event.button !== bearingRangeBindings.drawButton) return
 
             event.preventDefault()
 
@@ -367,7 +367,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             const currentPoint = getDragPoint(event)
             const deltaPixels = getDistancePixels(dragStart.point, currentPoint.point)
 
-            if (deltaPixels < MIN_PERSISTED_LINE_PIXELS) {
+            if (deltaPixels < bearingRangeBindings.minPersistedLinePixels) {
                 clearPreviewLine()
                 return
             }
@@ -380,7 +380,7 @@ export function useBearingRangeTool(mapRef, enabled, {
         const handleMouseUp = (event) => {
             const dragStart = dragStartRef.current
 
-            if (event.button !== RIGHT_MOUSE_BUTTON || !dragStart) return
+            if (event.button !== bearingRangeBindings.drawButton || !dragStart) return
 
             event.preventDefault()
 
@@ -391,7 +391,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             dragStartRef.current = null
             setIsDrawingBearingRangeLine(false)
 
-            const shouldOpenContextMenu = deltaTime <= CONTEXT_MENU_MAX_MS && deltaPixels <= CONTEXT_MENU_MAX_PIXELS
+            const shouldOpenContextMenu = event.button === bearingRangeBindings.contextMenuButton && deltaTime <= bearingRangeBindings.contextMenuMaxMs && deltaPixels <= bearingRangeBindings.contextMenuMaxPixels
 
             if (shouldOpenContextMenu) {
                 clearPreviewLine()
@@ -403,7 +403,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
-            if (deltaPixels < MIN_PERSISTED_LINE_PIXELS) {
+            if (deltaPixels < bearingRangeBindings.minPersistedLinePixels) {
                 clearPreviewLine()
                 return
             }
@@ -415,7 +415,7 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const handleContextMenu = (event) => {
-            event.preventDefault()
+            if (event.button === bearingRangeBindings.contextMenuButton) event.preventDefault()
         }
 
         const handleMouseLeave = () => {
@@ -444,12 +444,9 @@ export function useBearingRangeTool(mapRef, enabled, {
             canvas.removeEventListener('contextmenu', handleContextMenu)
             window.removeEventListener('blur', cancelDrag)
         }
-    }, [mapRef, enabled, onContextMenu, clearPreviewLine, setCurrentPreviewLine,])
+    }, [mapRef, enabled, onContextMenu, clearPreviewLine, setCurrentPreviewLine, bearingRangeBindings])
 
     return {
-        lines,
-        isDrawingBearingRangeLine,
-        removeBearingRangeLine,
-        clearBearingRangeLines,
+        lines, isDrawingBearingRangeLine, removeBearingRangeLine, clearBearingRangeLines,
     }
 }
