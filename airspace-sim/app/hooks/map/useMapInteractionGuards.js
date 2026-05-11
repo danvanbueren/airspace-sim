@@ -9,15 +9,5 @@ export function useMapInteractionGuards(mapRef, enabled) {
 
         map.dragRotate.disable()
         map.touchZoomRotate.disableRotation()
-
-        const handleContextMenu = (e) => {
-            e.preventDefault()
-        }
-
-        map.on('contextmenu', handleContextMenu)
-
-        return () => {
-            map.off('contextmenu', handleContextMenu)
-        }
     }, [mapRef, enabled])
 }
