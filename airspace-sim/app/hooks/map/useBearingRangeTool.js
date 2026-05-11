@@ -228,11 +228,16 @@ export function useBearingRangeTool(mapRef, enabled, {
     }, [])
 
     const removeBearingRangeLine = useCallback((lineId) => {
-        setLines((currentLines) => currentLines.filter((line) => line.id !== lineId))
+        setLines((currentLines) => {
+            const nextLines = currentLines.filter((line) => line.id !== lineId)
+            linesRef.current = nextLines
+            return nextLines
+        })
         clearPreviewLine()
     }, [clearPreviewLine])
 
     const clearBearingRangeLines = useCallback(() => {
+        linesRef.current = []
         setLines([])
         clearPreviewLine()
     }, [clearPreviewLine])
