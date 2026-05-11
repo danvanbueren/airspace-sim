@@ -86,6 +86,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
     const cursorInfo = useCursorHooks(mapRef, mapReady && mapInteractionsEnabled, mapContainerRef)
     const visibleCursorInfo = isDrawingBearingRangeLine ? null : cursorInfo
     const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [visibleCursorInfo])
+    const contextMenuSize = useMeasuredElementSize(contextMenuRef, [currentContextMenuElement])
 
     return (
         <div
@@ -112,6 +113,8 @@ export default function MapView({mapInteractionsEnabled = true}) {
             <MapContextMenu
                 ref={contextMenuRef}
                 elementContainer={currentContextMenuElement}
+                contextMenuSize={contextMenuSize}
+                mapContainerRef={mapContainerRef}
                 onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
                 onClearBearingRangeLines={handleClearBearingRangeLines}
                 lines={lines}

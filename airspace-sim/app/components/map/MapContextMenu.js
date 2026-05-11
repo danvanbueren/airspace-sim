@@ -2,10 +2,34 @@
 
 import {forwardRef} from 'react'
 import {Box, Button, Divider, Paper, Stack, Typography} from '@mui/material'
-import {formatLatLong} from "@/app/tools/formatting/PrettyLatLong";
+import {formatLatLong} from '@/app/tools/formatting/PrettyLatLong'
+
+function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef) {
+    const edgePadding = 8
+    const containerWidth = mapContainerRef.current?.clientWidth ?? window.innerWidth
+    const containerHeight = mapContainerRef.current?.clientHeight ?? window.innerHeight
+    const menuWidth = contextMenuSize.width
+    const menuHeight = contextMenuSize.height
+
+    let left = elementContainer.x
+    let top = elementContainer.y
+
+    if (menuWidth && left + menuWidth > containerWidth - edgePadding)
+        left = elementContainer.x - menuWidth
+
+    if (menuHeight && top + menuHeight > containerHeight - edgePadding)
+        top = elementContainer.y - menuHeight
+
+    return {
+        left: Math.max(edgePadding, left),
+        top: Math.max(edgePadding, top),
+    }
+}
 
 const MapContextMenu = forwardRef(function MapContextMenu({
                                                               elementContainer,
+                                                              contextMenuSize,
+                                                              mapContainerRef,
                                                               onRemoveBearingRangeLine,
                                                               onClearBearingRangeLines,
                                                               lines,
@@ -20,9 +44,8 @@ const MapContextMenu = forwardRef(function MapContextMenu({
             elevation={8}
             onClick={(event) => event.stopPropagation()}
             sx={{
-                position: 'fixed',
-                left: elementContainer.x,
-                top: elementContainer.y,
+                position: 'absolute',
+                ...getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef),
                 zIndex: 10,
                 width: 220,
                 userSelect: 'none',
@@ -50,7 +73,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                         LNG: {formatLatLong(elementContainer.lngLat.lng)}
                     </Typography>
                 </Box>
-                
+
                 <Divider/>
 
                 <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
