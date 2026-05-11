@@ -29,6 +29,7 @@ export default function ClassificationBar({
                 color: textColor,
                 minHeight: height,
                 maxHeight: height,
+                zIndex: 100,
             }}
         >
             <Typography
