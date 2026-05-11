@@ -84,12 +84,6 @@ function createLine(start, end, {id = crypto.randomUUID(), isPreview = false} = 
     }
 }
 
-function commitPreviewLine(line) {
-    return {
-        ...line, id: crypto.randomUUID(), isPreview: false,
-    }
-}
-
 function buildLineFeature(line) {
     const normalizedEndLngLat = normalizeLngLatToShortestPath(line.start, line.end)
 
@@ -269,7 +263,17 @@ export function useBearingRangeTool(mapRef, enabled, {
             ensureLineLayer(map, lineColor)
             updateLineSource(map, visibleLines)
         })
-    }, [mapRef, enabled, visibleLines, lineColor])
+    }, [mapRef, enabled, lineColor])
+
+    useEffect(() => {
+        if (!enabled || !mapRef.current) return
+
+        const map = mapRef.current
+
+        if (!map.getSource(LINE_SOURCE_ID)) return
+
+        updateLineSource(map, visibleLines)
+    }, [mapRef, enabled, visibleLines])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) return
