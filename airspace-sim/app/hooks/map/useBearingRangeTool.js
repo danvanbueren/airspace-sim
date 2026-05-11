@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import maplibregl from 'maplibre-gl'
-import {useControlBindings} from '../contexts/ControlBindingsContext'
+import {useControlBindings} from '../../contexts/ControlBindingsContext'
 
 const LINE_SOURCE_ID = 'bearing-range-lines-source'
 const LINE_LAYER_ID = 'bearing-range-lines-layer'

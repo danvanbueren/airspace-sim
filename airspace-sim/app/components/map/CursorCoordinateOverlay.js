@@ -1,6 +1,6 @@
 'use client'
 
-import {getCursorBoxPosition} from '../../hooks/useCursorHooks'
+import {getCursorBoxPosition} from '../../hooks/map/useCursorHooks'
 import {formatLatLong} from '../../tools/formatting/PrettyLatLong'
 import {Box} from "@mui/material";
 

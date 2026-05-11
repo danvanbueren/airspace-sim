@@ -7,7 +7,7 @@ import LightModeIcon from '@mui/icons-material/LightMode'
 import SettingsModal from './modal/SettingsModal'
 import SettingsToolbelt from './toolbelt/SettingsToolbelt'
 import {useState} from 'react'
-import {useColorMode} from '@/app/components/base/CustomThemeProvider'
+import {useColorMode} from '../../global/CustomThemeProvider'
 
 export default function SettingsController({modalOpen, setModalOpen}) {
 

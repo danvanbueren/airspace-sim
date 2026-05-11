@@ -6,7 +6,7 @@ import '@fontsource/roboto/500.css'
 import '@fontsource/roboto/700.css'
 
 import { cookies } from 'next/headers'
-import CustomThemeProvider from './components/base/CustomThemeProvider'
+import CustomThemeProvider from './components/global/CustomThemeProvider'
 import {
   CONTROL_BINDINGS_COOKIE_NAME,
   ControlBindingsProvider,

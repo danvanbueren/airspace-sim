@@ -4,7 +4,7 @@ import MapView from './components/map/MapView'
 import {Box} from '@mui/material'
 import CategorySelectPanel from './components/panels/glass/CategorySelectPanel'
 import FixedFunctionPanel from './components/panels/glass/FixedFunctionPanel'
-import ClassificationBar from './components/base/ClassificationBar'
+import ClassificationBar from './components/global/ClassificationBar'
 import SettingsController from '@/app/components/panels/settings/SettingsController'
 import {useState} from 'react'
 
