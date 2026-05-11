@@ -51,6 +51,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
         removeBearingRangeLine,
         clearBearingRangeLines,
         isDrawingBearingRangeLine,
+        lines,
     } = useBearingRangeTool(mapRef, mapReady, {
         onContextMenu: handleBearingRangeContextMenu,
         lineColor: theme.palette.mode === 'dark' ? '#fff' : '#111',
@@ -113,6 +114,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
                 elementContainer={currentContextMenuElement}
                 onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
                 onClearBearingRangeLines={handleClearBearingRangeLines}
+                lines={lines}
             />
         </div>
     )

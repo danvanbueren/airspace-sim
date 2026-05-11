@@ -1,15 +1,16 @@
 'use client'
 
-import { forwardRef } from 'react'
-import { Box, Button, Divider, Paper, Stack, Typography } from '@mui/material'
+import {forwardRef} from 'react'
+import {Box, Button, Divider, Paper, Stack, Typography} from '@mui/material'
+import {formatLatLong} from "@/app/tools/formatting/PrettyLatLong";
 
 const MapContextMenu = forwardRef(function MapContextMenu({
-                                                    elementContainer,
-                                                    onRemoveBearingRangeLine,
-                                                    onClearBearingRangeLines,
-                                                }, ref) {
-    if (!elementContainer)
-        return null
+                                                              elementContainer,
+                                                              onRemoveBearingRangeLine,
+                                                              onClearBearingRangeLines,
+                                                              lines,
+                                                          }, ref) {
+    if (!elementContainer) return null
 
     const hasBearingRangeLine = Boolean(elementContainer.line)
 
@@ -23,52 +24,63 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                 left: elementContainer.x,
                 top: elementContainer.y,
                 zIndex: 10,
-                minWidth: 220,
-                p: 1,
-                backgroundColor: 'background.paper',
+                width: 220,
+                userSelect: 'none',
+                overflow: 'hidden',
             }}
         >
-            <Typography variant='body2' sx={{ fontWeight: 700 }}>
-                Dynamic Context Menu
-            </Typography>
 
-            <Box sx={{ mt: 1 }}>
-                <Typography variant='caption' color='text.secondary'>
-                    {elementContainer.lngLat.lat.toFixed(4)}, {elementContainer.lngLat.lng.toFixed(4)}
+            <Box sx={{bgcolor: 'primary.main', p: 2}}>
+                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace', color: 'primary.contrastText'}}>
+                    Dynamic Context Menu
                 </Typography>
             </Box>
 
-            {hasBearingRangeLine && (
-                <>
-                    <Divider sx={{ my: 1 }} />
+            <Stack spacing={1} sx={{p: 2}}>
+                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
+                    Position
+                </Typography>
 
-                    <Typography variant='body2' sx={{paddingBottom: 1}}>
-                        Bearing/Range Lines
+                <Box>
+                    <Typography sx={{fontFamily: 'monospace', whiteSpace: 'pre'}}>
+                        LAT: {formatLatLong(elementContainer.lngLat.lat)}
                     </Typography>
 
-                    <Stack spacing={0.5}>
-                        <Button
-                            color='primary'
-                            size='small'
-                            onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
-                            sx={{ justifyContent: 'flex-start' }}
-                        >
-                            Clear line
-                        </Button>
+                    <Typography sx={{fontFamily: 'monospace', whiteSpace: 'pre'}}>
+                        LNG: {formatLatLong(elementContainer.lngLat.lng)}
+                    </Typography>
+                </Box>
+                
+                <Divider/>
 
-                        <Button
-                            color='error'
-                            size='small'
-                            onClick={onClearBearingRangeLines}
-                            sx={{ justifyContent: 'flex-start' }}
-                        >
-                            Clear all lines
-                        </Button>
-                    </Stack>
-                </>
-            )}
-        </Paper>
-    )
+                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
+                    Bearing/Range Lines
+                </Typography>
+
+                {hasBearingRangeLine && (<Button
+                    color='primary'
+                    size='small'
+                    variant='outlined'
+                    onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
+                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    fullWidth
+                >
+                    Clear line
+                </Button>)}
+
+                {!(hasBearingRangeLine && lines.length === 1) && (<Button
+                    color='warning'
+                    size='small'
+                    variant='outlined'
+                    onClick={onClearBearingRangeLines}
+                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    disabled={lines.length < 1}
+                    fullWidth
+                >
+                    Clear all lines
+                </Button>)}
+            </Stack>
+        </Paper>)
 })
 
 export default MapContextMenu
