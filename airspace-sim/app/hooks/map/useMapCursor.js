@@ -1,14 +1,22 @@
 'use client'
 
 import {useEffect} from 'react'
+import {
+    getMouseEventButtons,
+    pressedMouseButtonsMatchBinding,
+    useControlBindings,
+} from '@/app/contexts/ControlBindingsContext'
 
 export function useMapCursor(mapRef, enabled) {
+    const {controlBindings} = useControlBindings()
+    const mapCursorBindings = controlBindings.mapCursor
+
     useEffect(() => {
         if (!mapRef.current)
             return
 
         const map = mapRef.current
-        let isLeftButtonDown = false
+        let isGrabButtonDown = false
         let isShiftDown = false
         let isPointerOverMap = false
 
@@ -18,7 +26,7 @@ export function useMapCursor(mapRef, enabled) {
         }
 
         const setDefaultCursor = () => {
-            isLeftButtonDown = false
+            isGrabButtonDown = false
             map.getCanvas().style.cursor = isShiftDown && isPointerOverMap ? 'nesw-resize' : 'crosshair'
         }
 
@@ -28,7 +36,7 @@ export function useMapCursor(mapRef, enabled) {
                 return
             }
 
-            if (isLeftButtonDown) {
+            if (isGrabButtonDown) {
                 map.getCanvas().style.cursor = 'grabbing'
                 return
             }
@@ -36,13 +44,15 @@ export function useMapCursor(mapRef, enabled) {
             map.getCanvas().style.cursor = 'crosshair'
         }
 
-        const setCustomCursor = (e) => {
-            if (e.originalEvent.buttons === 1) {
-                isLeftButtonDown = true
+        const setCustomCursor = (event) => {
+            const buttons = getMouseEventButtons(event)
+
+            if (pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.grabButton)) {
+                isGrabButtonDown = true
                 setActiveCursor()
             }
 
-            if (e.originalEvent.buttons === 2)
+            if (pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.pointerButton))
                 map.getCanvas().style.cursor = 'pointer'
         }
 
@@ -101,5 +111,5 @@ export function useMapCursor(mapRef, enabled) {
             window.removeEventListener('mouseup', setDefaultCursor)
             map.getCanvas().style.cursor = ''
         }
-    }, [mapRef, enabled])
+    }, [mapRef, enabled, mapCursorBindings])
 }

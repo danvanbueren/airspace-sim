@@ -22,7 +22,12 @@ export const DEFAULT_CONTROL_BINDINGS = {
         panSpeedModifier: ['shift'],
         panSpeedMultiplier: 2.5,
         regularPanSpeed: 1000,
-    }, bearingRangeTool: {
+    },
+    mapCursor: {
+        grabButton: MOUSE_BUTTONS.left,
+        pointerButton: MOUSE_BUTTONS.right,
+    },
+    bearingRangeTool: {
         drawButton: MOUSE_BUTTONS.right,
         contextMenuButton: MOUSE_BUTTONS.right,
         contextMenuMaxMs: 250,
@@ -38,9 +43,16 @@ function normalizeKey(key) {
 function normalizeBindings(bindings) {
     return {
         ...DEFAULT_CONTROL_BINDINGS, ...bindings, keyboardCamera: {
-            ...DEFAULT_CONTROL_BINDINGS.keyboardCamera, ...bindings?.keyboardCamera,
-        }, bearingRangeTool: {
-            ...DEFAULT_CONTROL_BINDINGS.bearingRangeTool, ...bindings?.bearingRangeTool,
+            ...DEFAULT_CONTROL_BINDINGS.keyboardCamera,
+            ...bindings?.keyboardCamera,
+        },
+        mapCursor: {
+            ...DEFAULT_CONTROL_BINDINGS.mapCursor,
+            ...bindings?.mapCursor,
+        },
+        bearingRangeTool: {
+            ...DEFAULT_CONTROL_BINDINGS.bearingRangeTool,
+            ...bindings?.bearingRangeTool,
         },
     }
 }
@@ -109,14 +121,16 @@ export function useControlBindings() {
     return context
 }
 
-export function keyMatchesBinding(eventKey, bindingKeys) {
-    const normalizedEventKey = normalizeKey(eventKey)
-
-    return bindingKeys.some((key) => normalizeKey(key) === normalizedEventKey)
-}
-
 export function pressedKeysMatchBinding(pressedKeys, bindingKeys) {
     return bindingKeys.some((key) => pressedKeys.has(normalizeKey(key)))
+}
+
+export function mouseButtonMatchesBinding(eventButton, bindingButton) {
+    return eventButton === bindingButton
+}
+
+export function pressedMouseButtonsMatchBinding(eventButtons, bindingButton) {
+    return (eventButtons & (1 << bindingButton)) !== 0
 }
 
 export function getKeyboardCameraActionForKey(key, keyboardCameraBindings) {
@@ -127,4 +141,18 @@ export function getKeyboardCameraActionForKey(key, keyboardCameraBindings) {
     if (keyMatchesBinding(key, keyboardCameraBindings.panSpeedModifier)) return 'panSpeedModifier'
 
     return null
+}
+
+export function getMouseEventButton(event) {
+    return event.button ?? event.originalEvent?.button
+}
+
+export function getMouseEventButtons(event) {
+    return event.buttons ?? event.originalEvent?.buttons ?? 0
+}
+
+export function keyMatchesBinding(eventKey, bindingKeys) {
+    const normalizedEventKey = normalizeKey(eventKey)
+
+    return bindingKeys.some((key) => normalizeKey(key) === normalizedEventKey)
 }

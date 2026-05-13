@@ -1,6 +1,12 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import maplibregl from 'maplibre-gl'
-import {useControlBindings} from '../../contexts/ControlBindingsContext'
+import {
+    getMouseEventButton,
+    getMouseEventButtons,
+    mouseButtonMatchesBinding,
+    pressedMouseButtonsMatchBinding,
+    useControlBindings,
+} from '../../contexts/ControlBindingsContext'
 
 const LINE_SOURCE_ID = 'bearing-range-lines-source'
 const LINE_LAYER_ID = 'bearing-range-lines-layer'
@@ -346,10 +352,10 @@ export function useBearingRangeTool(mapRef, enabled, {
             if (dragStartRef.current)
                 return
 
-            const buttons = event.buttons ?? event.originalEvent?.buttons
+            const buttons = getMouseEventButtons(event)
             const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
 
-            if (buttons === 1 || shiftKey)
+            if (pressedMouseButtonsMatchBinding(buttons, bearingRangeBindings.drawButton) || shiftKey)
                 return
 
             const hoveredLine = getBearingRangeLineAtPoint(getDragPoint(event))
@@ -358,7 +364,8 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const handleMouseDown = (event) => {
-            if (event.button !== bearingRangeBindings.drawButton) return
+            if (!mouseButtonMatchesBinding(getMouseEventButton(event), bearingRangeBindings.drawButton))
+                return
 
             event.preventDefault()
 
@@ -395,8 +402,10 @@ export function useBearingRangeTool(mapRef, enabled, {
 
         const handleMouseUp = (event) => {
             const dragStart = dragStartRef.current
+            const eventButton = getMouseEventButton(event)
 
-            if (event.button !== bearingRangeBindings.drawButton || !dragStart) return
+            if (!mouseButtonMatchesBinding(eventButton, bearingRangeBindings.drawButton) || !dragStart)
+                return
 
             event.preventDefault()
 
@@ -407,7 +416,9 @@ export function useBearingRangeTool(mapRef, enabled, {
             dragStartRef.current = null
             setIsDrawingBearingRangeLine(false)
 
-            const shouldOpenContextMenu = event.button === bearingRangeBindings.contextMenuButton && deltaTime <= bearingRangeBindings.contextMenuMaxMs && deltaPixels <= bearingRangeBindings.contextMenuMaxPixels
+            const shouldOpenContextMenu = mouseButtonMatchesBinding(eventButton, bearingRangeBindings.contextMenuButton)
+                && deltaTime <= bearingRangeBindings.contextMenuMaxMs
+                && deltaPixels <= bearingRangeBindings.contextMenuMaxPixels
 
             if (shouldOpenContextMenu) {
                 clearPreviewLine()
@@ -431,7 +442,8 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const handleContextMenu = (event) => {
-            if (event.button === bearingRangeBindings.contextMenuButton) event.preventDefault()
+            if (mouseButtonMatchesBinding(getMouseEventButton(event), bearingRangeBindings.contextMenuButton))
+                event.preventDefault()
         }
 
         const handleMouseLeave = () => {
