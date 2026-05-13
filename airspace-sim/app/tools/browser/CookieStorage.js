@@ -1,3 +1,15 @@
+export function readCookieValue(name) {
+    if (typeof document === 'undefined') return undefined
+
+    const cookie = document.cookie
+        .split('; ')
+        .find((cookiePart) => cookiePart.startsWith(`${name}=`))
+
+    if (!cookie) return undefined
+
+    return cookie.slice(name.length + 1)
+}
+
 export function parseCookieValue(value, fallbackValue) {
     if (!value) return fallbackValue
 

@@ -1,9 +1,10 @@
 'use client'
 
-import {createContext, useContext, useMemo, useState} from 'react'
+import {createContext, useContext, useEffect, useMemo, useState} from 'react'
 import {ThemeProvider, CssBaseline, createTheme} from '@mui/material'
 import {
     parseCookieValue,
+    readCookieValue,
     writeCookieValue,
 } from '@/app/tools/browser/CookieStorage'
 
@@ -16,19 +17,31 @@ export function useColorMode() {
 }
 
 function normalizeColorMode(mode) {
-    return mode === 'dark' ? 'dark' : 'light'
+    return mode === 'light' ? 'light' : 'dark'
 }
 
 function parseInitialMode(initialMode) {
-    return normalizeColorMode(parseCookieValue(initialMode, 'light'))
+    return normalizeColorMode(parseCookieValue(initialMode, 'dark'))
+}
+
+function readBrowserMode() {
+    return normalizeColorMode(parseCookieValue(readCookieValue(THEME_COOKIE_NAME), 'dark'))
 }
 
 function writeThemeCookie(mode) {
     writeCookieValue(THEME_COOKIE_NAME, normalizeColorMode(mode))
 }
 
-export default function CustomThemeContext({initialMode = 'light', children}) {
+export default function CustomThemeContext({initialMode = 'dark', children}) {
     const [mode, setMode] = useState(() => parseInitialMode(initialMode))
+
+    useEffect(() => {
+        const browserMode = readBrowserMode()
+
+        setMode((currentMode) => (
+            currentMode === browserMode ? currentMode : browserMode
+        ))
+    }, [])
 
     const colorMode = useMemo(
         () => ({

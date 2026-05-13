@@ -1,8 +1,9 @@
 'use client'
 
-import {createContext, useCallback, useContext, useMemo, useState} from 'react'
+import {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react'
 import {
     parseCookieJsonValue,
+    readCookieValue,
     writeCookieJsonValue,
 } from '@/app/tools/browser/CookieStorage'
 
@@ -48,6 +49,13 @@ function parseInitialBindings(initialBindings) {
     return normalizeBindings(parseCookieJsonValue(initialBindings, DEFAULT_CONTROL_BINDINGS))
 }
 
+function readBrowserBindings() {
+    return normalizeBindings(parseCookieJsonValue(
+        readCookieValue(CONTROL_BINDINGS_COOKIE_NAME),
+        DEFAULT_CONTROL_BINDINGS
+    ))
+}
+
 const ControlBindingsContext = createContext(null)
 
 function writeControlBindingsCookie(controlBindings) {
@@ -56,6 +64,17 @@ function writeControlBindingsCookie(controlBindings) {
 
 export function ControlBindingsProvider({children, initialBindings}) {
     const [controlBindings, setControlBindings] = useState(() => parseInitialBindings(initialBindings))
+
+    useEffect(() => {
+        const browserBindings = readBrowserBindings()
+
+        setControlBindings((currentBindings) => {
+            const currentJson = JSON.stringify(currentBindings)
+            const browserJson = JSON.stringify(browserBindings)
+
+            return currentJson === browserJson ? currentBindings : browserBindings
+        })
+    }, [])
 
     const updateControlBindings = useCallback((updater) => {
         setControlBindings((currentBindings) => {

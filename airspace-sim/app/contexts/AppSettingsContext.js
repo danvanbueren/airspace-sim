@@ -1,8 +1,9 @@
 'use client'
 
-import {createContext, useCallback, useContext, useMemo, useState} from 'react'
+import {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react'
 import {
     parseCookieJsonValue,
+    readCookieValue,
     writeCookieJsonValue,
 } from '@/app/tools/browser/CookieStorage'
 
@@ -71,6 +72,13 @@ function parseInitialSettings(initialSettings) {
     return normalizeSettings(parseCookieJsonValue(initialSettings, DEFAULT_APP_SETTINGS))
 }
 
+function readBrowserSettings() {
+    return normalizeSettings(parseCookieJsonValue(
+        readCookieValue(APP_SETTINGS_COOKIE_NAME),
+        DEFAULT_APP_SETTINGS
+    ))
+}
+
 const AppSettingsContext = createContext(null)
 
 function writeAppSettingsCookie(settings) {
@@ -79,6 +87,17 @@ function writeAppSettingsCookie(settings) {
 
 export function AppSettingsProvider({children, initialSettings}) {
     const [appSettings, setAppSettings] = useState(() => parseInitialSettings(initialSettings))
+
+    useEffect(() => {
+        const browserSettings = readBrowserSettings()
+
+        setAppSettings((currentSettings) => {
+            const currentJson = JSON.stringify(currentSettings)
+            const browserJson = JSON.stringify(browserSettings)
+
+            return currentJson === browserJson ? currentSettings : browserSettings
+        })
+    }, [])
 
     const updateAppSettings = useCallback((updater) => {
         setAppSettings((currentSettings) => {
