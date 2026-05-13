@@ -343,7 +343,14 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const updateCursor = (event) => {
-            if (dragStartRef.current) return
+            if (dragStartRef.current)
+                return
+
+            const buttons = event.buttons ?? event.originalEvent?.buttons
+            const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
+
+            if (buttons === 1 || shiftKey)
+                return
 
             const hoveredLine = getBearingRangeLineAtPoint(getDragPoint(event))
 
