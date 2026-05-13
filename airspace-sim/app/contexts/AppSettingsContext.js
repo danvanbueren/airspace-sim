@@ -1,6 +1,10 @@
 'use client'
 
 import {createContext, useCallback, useContext, useMemo, useState} from 'react'
+import {
+    parseCookieJsonValue,
+    writeCookieJsonValue,
+} from '@/app/tools/browser/CookieStorage'
 
 export const APP_SETTINGS_COOKIE_NAME = 'appSettings'
 
@@ -64,24 +68,14 @@ function normalizeSettings(settings) {
 }
 
 function parseInitialSettings(initialSettings) {
-    if (!initialSettings) return DEFAULT_APP_SETTINGS
-
-    if (typeof initialSettings === 'object') {
-        return normalizeSettings(initialSettings)
-    }
-
-    try {
-        return normalizeSettings(JSON.parse(decodeURIComponent(initialSettings)))
-    } catch {
-        return DEFAULT_APP_SETTINGS
-    }
-}
-
-function writeAppSettingsCookie(settings) {
-    document.cookie = `${APP_SETTINGS_COOKIE_NAME}=${encodeURIComponent(JSON.stringify(settings))}; path=/; max-age=31536000; sameSite=lax`
+    return normalizeSettings(parseCookieJsonValue(initialSettings, DEFAULT_APP_SETTINGS))
 }
 
 const AppSettingsContext = createContext(null)
+
+function writeAppSettingsCookie(settings) {
+    writeCookieJsonValue(APP_SETTINGS_COOKIE_NAME, settings)
+}
 
 export function AppSettingsProvider({children, initialSettings}) {
     const [appSettings, setAppSettings] = useState(() => parseInitialSettings(initialSettings))

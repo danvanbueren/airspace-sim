@@ -1,6 +1,10 @@
 'use client'
 
 import {createContext, useCallback, useContext, useMemo, useState} from 'react'
+import {
+    parseCookieJsonValue,
+    writeCookieJsonValue,
+} from '@/app/tools/browser/CookieStorage'
 
 export const CONTROL_BINDINGS_COOKIE_NAME = 'controlBindings'
 
@@ -41,23 +45,13 @@ function normalizeBindings(bindings) {
 }
 
 function parseInitialBindings(initialBindings) {
-    if (!initialBindings) return DEFAULT_CONTROL_BINDINGS
-
-    if (typeof initialBindings === 'object') {
-        return normalizeBindings(initialBindings)
-    }
-
-    try {
-        return normalizeBindings(JSON.parse(initialBindings))
-    } catch {
-        return DEFAULT_CONTROL_BINDINGS
-    }
+    return normalizeBindings(parseCookieJsonValue(initialBindings, DEFAULT_CONTROL_BINDINGS))
 }
 
 const ControlBindingsContext = createContext(null)
 
 function writeControlBindingsCookie(controlBindings) {
-    document.cookie = `${CONTROL_BINDINGS_COOKIE_NAME}=${encodeURIComponent(JSON.stringify(controlBindings))}; path=/; max-age=31536000; sameSite=lax`
+    writeCookieJsonValue(CONTROL_BINDINGS_COOKIE_NAME, controlBindings)
 }
 
 export function ControlBindingsProvider({children, initialBindings}) {

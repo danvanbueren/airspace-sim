@@ -5,7 +5,7 @@ import '@fontsource/roboto/400.css'
 import '@fontsource/roboto/500.css'
 import '@fontsource/roboto/700.css'
 import {cookies} from 'next/headers'
-import CustomThemeProvider from './components/global/CustomThemeProvider'
+import CustomThemeContext from './contexts/CustomThemeContext'
 import {
     CONTROL_BINDINGS_COOKIE_NAME, ControlBindingsProvider,
 } from './contexts/ControlBindingsContext'
@@ -14,6 +14,9 @@ import {
     AppSettingsProvider,
 } from './contexts/AppSettingsContext'
 import {UseGlobalInteractionGuards} from '@/app/hooks/global/useGlobalInteractionGuards'
+import {THEME_COOKIE_NAME} from '@/app/contexts/CustomThemeContext'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata = {
     title: 'airspace-sim',
@@ -23,22 +26,20 @@ export const metadata = {
 export default async function RootLayout({children}) {
 
     const cookieStore = await cookies()
-    const themeCookie = cookieStore.get('theme')?.value
+    const themeCookie = cookieStore.get(THEME_COOKIE_NAME)?.value
     const controlBindingsCookie = cookieStore.get(CONTROL_BINDINGS_COOKIE_NAME)?.value
     const appSettingsCookie = cookieStore.get(APP_SETTINGS_COOKIE_NAME)?.value
-
-    const initialColorMode = themeCookie === 'dark' ? 'dark' : 'light'
 
     return (<html lang='en'>
     <body>
     <UseGlobalInteractionGuards>
-        <CustomThemeProvider initialMode={initialColorMode}>
+        <CustomThemeContext initialMode={themeCookie}>
             <AppSettingsProvider initialSettings={appSettingsCookie}>
                 <ControlBindingsProvider initialBindings={controlBindingsCookie}>
                     {children}
                 </ControlBindingsProvider>
             </AppSettingsProvider>
-        </CustomThemeProvider>
+        </CustomThemeContext>
     </UseGlobalInteractionGuards>
     </body>
     </html>)

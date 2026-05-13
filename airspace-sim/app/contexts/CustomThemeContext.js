@@ -1,7 +1,13 @@
 'use client'
 
-import { createContext, useContext, useMemo, useState } from 'react'
-import { ThemeProvider, CssBaseline, createTheme } from '@mui/material'
+import {createContext, useContext, useMemo, useState} from 'react'
+import {ThemeProvider, CssBaseline, createTheme} from '@mui/material'
+import {
+    parseCookieValue,
+    writeCookieValue,
+} from '@/app/tools/browser/CookieStorage'
+
+export const THEME_COOKIE_NAME = 'theme'
 
 const ColorModeContext = createContext(null)
 
@@ -9,8 +15,20 @@ export function useColorMode() {
     return useContext(ColorModeContext)
 }
 
-export default function CustomThemeProvider({ initialMode = 'light', children }) {
-    const [mode, setMode] = useState(initialMode)
+function normalizeColorMode(mode) {
+    return mode === 'dark' ? 'dark' : 'light'
+}
+
+function parseInitialMode(initialMode) {
+    return normalizeColorMode(parseCookieValue(initialMode, 'light'))
+}
+
+function writeThemeCookie(mode) {
+    writeCookieValue(THEME_COOKIE_NAME, normalizeColorMode(mode))
+}
+
+export default function CustomThemeContext({initialMode = 'light', children}) {
+    const [mode, setMode] = useState(() => parseInitialMode(initialMode))
 
     const colorMode = useMemo(
         () => ({
@@ -19,14 +37,16 @@ export default function CustomThemeProvider({ initialMode = 'light', children })
                 setMode((currentMode) => {
                     const nextMode = currentMode === 'light' ? 'dark' : 'light'
 
-                    document.cookie = `theme=${nextMode}; path=/; max-age=31536000; SameSite=Lax`
+                    writeThemeCookie(nextMode)
 
                     return nextMode
                 })
             },
             setColorMode: (nextMode) => {
-                setMode(nextMode)
-                document.cookie = `theme=${nextMode}; path=/; max-age=31536000; SameSite=Lax`
+                const normalizedMode = normalizeColorMode(nextMode)
+
+                setMode(normalizedMode)
+                writeThemeCookie(normalizedMode)
             },
         }),
         [mode]
@@ -82,7 +102,7 @@ export default function CustomThemeProvider({ initialMode = 'light', children })
     return (
         <ColorModeContext.Provider value={colorMode}>
             <ThemeProvider theme={theme}>
-                <CssBaseline />
+                <CssBaseline/>
                 {children}
             </ThemeProvider>
         </ColorModeContext.Provider>
