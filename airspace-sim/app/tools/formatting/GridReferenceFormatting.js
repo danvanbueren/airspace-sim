@@ -39,11 +39,12 @@ export function formatCoordinatePairForGridReferenceSystem(lat, lng, gridReferen
         case GRID_REFERENCE_SYSTEMS.gars.value:
         case GRID_REFERENCE_SYSTEMS.georef.value:
         case GRID_REFERENCE_SYSTEMS.geocoords.value:
-        default:
             return [
                 `${getGridReferenceSystemDisplayName(gridReferenceSystem)} formatting pending`,
-                `LAT: ${formatDdCoordinate(lat)}`,
-                `LNG: ${formatDdCoordinate(lng)}`,
+            ]
+        default:
+            return [
+                `${getGridReferenceSystemDisplayName(gridReferenceSystem)} unknown`,
             ]
     }
 }

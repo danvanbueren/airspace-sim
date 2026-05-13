@@ -1,8 +1,19 @@
 'use client'
 
 import {forwardRef} from 'react'
-import {Box, Button, Divider, Paper, Stack, Typography} from '@mui/material'
-import {useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {
+    Box,
+    Button,
+    Divider,
+    FormControl,
+    Grid,
+    MenuItem,
+    Paper,
+    Select,
+    Stack,
+    Typography
+} from '@mui/material'
+import {useAppSettings, GRID_REFERENCE_SYSTEMS} from '@/app/contexts/AppSettingsContext'
 import {
     formatCoordinatePairForGridReferenceSystem,
     getGridReferenceSystemDisplayName,
@@ -38,7 +49,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                                                                   onClearBearingRangeLines,
                                                                   lines,
                                                               }, ref) {
-    const {appSettings} = useAppSettings()
+    const {appSettings, setGridReferenceSystem} = useAppSettings()
 
     if (!elementContainer) return null
 
@@ -71,19 +82,72 @@ const MapContextMenu = forwardRef(function MapContextMenu({
             </Box>
 
             <Stack spacing={1} sx={{p: 2}}>
-                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
-                    Position
-                </Typography>
-
-                <Typography variant='caption' color='text.secondary' sx={{fontFamily: 'monospace'}}>
-                    {getGridReferenceSystemDisplayName(appSettings.gridReferenceSystem)}
-                </Typography>
+                <Grid container spacing={1} sx={{display: 'flex', alignItems: 'center'}}>
+                    <Grid size='auto'>
+                        <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
+                            Position
+                        </Typography>
+                    </Grid>
+                    <Grid size='grow' sx={{display: 'flex', justifyContent: 'flex-end'}}>
+                        <FormControl
+                            variant="filled"
+                            size="small"
+                            sx={{
+                                minWidth: '3rem',
+                                m: 0,
+                            }}
+                        >
+                            <Select
+                                value={appSettings.gridReferenceSystem}
+                                onChange={(event) => setGridReferenceSystem(event.target.value)}
+                                variant='outlined'
+                                size='small'
+                                sx={{
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.75rem',
+                                    '& .MuiSelect-select.MuiInputBase-input.MuiOutlinedInput-input': {
+                                        py: 0.5,
+                                        pl: 1,
+                                        paddingRight: '8px !important',
+                                    },
+                                    '& .MuiSelect-icon': {
+                                        display: 'none',
+                                    },
+                                }}
+                                MenuProps={{
+                                    disablePortal: true,
+                                    slotProps: {
+                                        paper: {
+                                            sx: {
+                                                '& .MuiMenuItem-root': {
+                                                    fontFamily: 'monospace',
+                                                    fontSize: '0.75rem',
+                                                    minHeight: 28,
+                                                    py: 0.25,
+                                                },
+                                            },
+                                        },
+                                    },
+                                }}
+                            >
+                                {Object.values(GRID_REFERENCE_SYSTEMS).map((gridReferenceSystem) => (
+                                    <MenuItem
+                                        key={gridReferenceSystem.value}
+                                        value={gridReferenceSystem.value}
+                                    >
+                                        {getGridReferenceSystemDisplayName(gridReferenceSystem.value)}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                </Grid>
 
                 <Box>
                     {formattedCoordinates.map((coordinateLine) => (
                         <Typography
                             key={coordinateLine}
-                            sx={{fontFamily: 'monospace', whiteSpace: 'pre'}}
+                            sx={{fontFamily: 'monospace', whiteSpace: 'pre', fontSize: '0.8rem'}}
                         >
                             {coordinateLine}
                         </Typography>
