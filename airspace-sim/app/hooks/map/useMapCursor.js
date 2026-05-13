@@ -16,7 +16,7 @@ export function useMapCursor(mapRef, enabled) {
             return
 
         const map = mapRef.current
-        let isGrabButtonDown = false
+        let isDragButtonDown = false
         let isShiftDown = false
         let isPointerOverMap = false
 
@@ -26,7 +26,7 @@ export function useMapCursor(mapRef, enabled) {
         }
 
         const setDefaultCursor = () => {
-            isGrabButtonDown = false
+            isDragButtonDown = false
             map.getCanvas().style.cursor = isShiftDown && isPointerOverMap ? 'nesw-resize' : 'crosshair'
         }
 
@@ -36,7 +36,7 @@ export function useMapCursor(mapRef, enabled) {
                 return
             }
 
-            if (isGrabButtonDown) {
+            if (isDragButtonDown) {
                 map.getCanvas().style.cursor = 'grabbing'
                 return
             }
@@ -47,9 +47,10 @@ export function useMapCursor(mapRef, enabled) {
         const setCustomCursor = (event) => {
             const buttons = getMouseEventButtons(event)
 
-            if (pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.grabButton)) {
-                isGrabButtonDown = true
+            if (pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.dragButton)) {
+                isDragButtonDown = true
                 setActiveCursor()
+                return
             }
 
             if (pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.pointerButton))
@@ -64,7 +65,6 @@ export function useMapCursor(mapRef, enabled) {
             isPointerOverMap = true
             setActiveCursor()
         }
-
         const handleMouseLeave = () => {
             isPointerOverMap = false
         }

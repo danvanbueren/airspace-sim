@@ -2,15 +2,15 @@
 
 import { alpha, Card, Divider, Typography } from '@mui/material'
 
-export default function BasicGlassPanel({title, children}) {
+export default function BasicGlassPanel({title = null, children, dense = false}) {
 
     return (
         <Card
             variant='outlined'
             style={{
-                width: 400,
-                padding: 20,
-                paddingTop: 15,
+                width: dense ? null : 400,
+                padding: dense ? 5 : 20,
+                paddingTop: dense ? 5 : 15,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 10,
@@ -24,8 +24,11 @@ export default function BasicGlassPanel({title, children}) {
                 userSelect: 'none',
             })}
         >
-            <Typography variant='h6' style={{fontFamily: 'monospace', fontWeight: 'bold'}}>{title}</Typography>
-            <Divider orientation='horizontal' flexItem sx={{marginBottom: 1.5}} />
+            { title && <>
+                <Typography variant='h6' style={{fontFamily: 'monospace', fontWeight: 'bold'}}>{title}</Typography>
+                <Divider orientation='horizontal' flexItem sx={{marginBottom: 1.5}} />
+            </>}
+
             {children}
         </Card>
     )

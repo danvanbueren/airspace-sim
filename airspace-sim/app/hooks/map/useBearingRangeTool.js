@@ -11,6 +11,7 @@ import {
 const LINE_SOURCE_ID = 'bearing-range-lines-source'
 const LINE_LAYER_ID = 'bearing-range-lines-layer'
 const DEFAULT_MAP_CURSOR = 'crosshair'
+const BEARING_RANGE_DRAW_CURSOR = 'pointer'
 const BEARING_RANGE_CONTEXT_MENU_CURSOR = 'context-menu'
 const PREVIEW_LINE_ID = 'bearing-range-preview-line'
 
@@ -197,6 +198,7 @@ export function useBearingRangeTool(mapRef, enabled, {
     onContextMenu, lineColor = '#fff',
 } = {},) {
     const {controlBindings} = useControlBindings()
+    const mapCursorBindings = controlBindings.mapCursor
     const bearingRangeBindings = controlBindings.bearingRangeTool
 
     const labelsRef = useRef([])
@@ -355,7 +357,11 @@ export function useBearingRangeTool(mapRef, enabled, {
             const buttons = getMouseEventButtons(event)
             const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
 
-            if (pressedMouseButtonsMatchBinding(buttons, bearingRangeBindings.drawButton) || shiftKey)
+            if (
+                pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.dragButton)
+                || pressedMouseButtonsMatchBinding(buttons, bearingRangeBindings.drawButton)
+                || shiftKey
+            )
                 return
 
             const hoveredLine = getBearingRangeLineAtPoint(getDragPoint(event))
@@ -368,6 +374,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
 
             event.preventDefault()
+            canvas.style.cursor = BEARING_RANGE_DRAW_CURSOR
 
             dragStartRef.current = {
                 time: performance.now(), ...getDragPoint(event),
@@ -386,6 +393,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             }
 
             event.preventDefault()
+            canvas.style.cursor = BEARING_RANGE_DRAW_CURSOR
 
             const currentPoint = getDragPoint(event)
             const deltaPixels = getDistancePixels(dragStart.point, currentPoint.point)
@@ -472,7 +480,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             canvas.removeEventListener('contextmenu', handleContextMenu)
             window.removeEventListener('blur', cancelDrag)
         }
-    }, [mapRef, enabled, onContextMenu, clearPreviewLine, setCurrentPreviewLine, bearingRangeBindings])
+    }, [mapRef, enabled, onContextMenu, clearPreviewLine, setCurrentPreviewLine, mapCursorBindings, bearingRangeBindings])
 
     return {
         lines, isDrawingBearingRangeLine, removeBearingRangeLine, clearBearingRangeLines,

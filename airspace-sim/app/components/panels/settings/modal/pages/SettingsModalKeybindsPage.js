@@ -70,6 +70,7 @@ export default function SettingsModalKeybindsPage() {
     const [listeningForBinding, setListeningForBinding] = useState(null)
 
     const keyboardCamera = controlBindings.keyboardCamera
+    const mapCursor = controlBindings.mapCursor
     const bearingRangeTool = controlBindings.bearingRangeTool
 
     const updateKeyboardCameraBinding = useCallback((bindingKey, nextValue) => {
@@ -92,6 +93,14 @@ export default function SettingsModalKeybindsPage() {
         updateControlBindings((currentBindings) => ({
             ...currentBindings, bearingRangeTool: {
                 ...currentBindings.bearingRangeTool, [bindingKey]: Number(nextValue),
+            },
+        }))
+    }, [updateControlBindings])
+
+    const updateMapCursorBinding = useCallback((bindingKey, nextValue) => {
+        updateControlBindings((currentBindings) => ({
+            ...currentBindings, mapCursor: {
+                ...currentBindings.mapCursor, [bindingKey]: Number(nextValue),
             },
         }))
     }, [updateControlBindings])
@@ -247,9 +256,26 @@ export default function SettingsModalKeybindsPage() {
                 sx={{
                     display: 'grid', gridTemplateColumns: {
                         xs: '1fr', md: '1fr 1fr',
-                    }, gap: 2,
+                    }, gap: 2, pb: '0.5rem'
                 }}
             >
+                <FormControl fullWidth>
+                    <InputLabel id='map-drag-button-label'>
+                        Map Drag Button
+                    </InputLabel>
+                    <Select
+                        labelId='map-drag-button-label'
+                        label='Map Drag Button'
+                        value={mapCursor.dragButton}
+                        onChange={(event) => updateMapCursorBinding('dragButton', event.target.value)}
+                        variant='outlined'
+                    >
+                        {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                        </MenuItem>))}
+                    </Select>
+                </FormControl>
+
                 <FormControl fullWidth>
                     <InputLabel id='bearing-range-draw-button-label'>
                         Bearing/Range Draw Button
@@ -285,9 +311,10 @@ export default function SettingsModalKeybindsPage() {
                 </FormControl>
             </Box>
 
-            <Typography variant='body2' color='text.secondary'>
-                Current draw button: <strong>{getMouseButtonLabel(bearingRangeTool.drawButton)}</strong>.
-                Context menu button: <strong>{getMouseButtonLabel(bearingRangeTool.contextMenuButton)}</strong>.
+            <Divider/>
+
+            <Typography variant='h6' sx={{fontWeight: 'bold'}}>
+                Line/Context Menu Detection Sensitivity
             </Typography>
 
             <Box
@@ -298,7 +325,7 @@ export default function SettingsModalKeybindsPage() {
                 }}
             >
                 <TextField
-                    label='Context Menu Max Time'
+                    label='Context Menu Max Timeout'
                     type='number'
                     value={bearingRangeTool.contextMenuMaxMs}
                     onChange={(event) => updateBearingRangeBinding('contextMenuMaxMs', event.target.value)}

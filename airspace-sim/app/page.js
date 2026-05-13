@@ -6,7 +6,8 @@ import CategorySelectPanel from './components/panels/glass/CategorySelectPanel'
 import FixedFunctionPanel from './components/panels/glass/FixedFunctionPanel'
 import ClassificationBar from './components/global/ClassificationBar'
 import SettingsController from '@/app/components/panels/settings/SettingsController'
-import {useState} from 'react'
+import {useCallback, useState} from 'react'
+import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
 
 export default function Home() {
 
@@ -15,13 +16,25 @@ export default function Home() {
     const boxStyle = ({top, bottom, left, right}) => {
         return {
             position: 'absolute',
-            top: top ? top : null,
-            right: right ? right : null,
-            left: left ? left : null,
-            bottom: bottom ? bottom : null,
+            top: top ?? null,
+            right: right ?? null,
+            left: left ?? null,
+            bottom: bottom ?? null,
             zIndex: 1,
         }
     }
+
+    // ALARM ALERT QUEUE ITEM STRUCTURE
+    // setQueue(...queue, [new Date(), 'test message'])
+
+    const [alarmAlertQueue, setAlarmAlertQueue] = useState([])
+
+    const addAlarmAlert = useCallback((message) => {
+        setAlarmAlertQueue((currentQueue) => [
+            ...currentQueue,
+            [new Date(), message],
+        ])
+    }, [])
 
     return (<Box
         sx={{
@@ -42,13 +55,20 @@ export default function Home() {
                 <FixedFunctionPanel/>
             </Box>
 
+            <Box style={{ ...boxStyle({ bottom: 20, left: '50%' }), transform: 'translateX(-50%)' }}>
+                <AlarmAlertPanel queue={alarmAlertQueue} setQueue={setAlarmAlertQueue}/>
+            </Box>
+
             <Box style={boxStyle({top: 20, right: 20})}>
                 <SettingsController
                     modalOpen={settingsModalOpen}
                     setModalOpen={setSettingsModalOpen}
                 />
             </Box>
-            <MapView mapInteractionsEnabled={!settingsModalOpen}/>
+            <MapView
+                mapInteractionsEnabled={!settingsModalOpen}
+                onMapError={addAlarmAlert}
+            />
         </Box>
         <ClassificationBar/>
     </Box>)

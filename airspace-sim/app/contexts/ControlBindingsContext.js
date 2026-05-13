@@ -24,6 +24,7 @@ export const DEFAULT_CONTROL_BINDINGS = {
         regularPanSpeed: 1000,
     },
     mapCursor: {
+        dragButton: MOUSE_BUTTONS.left,
         grabButton: MOUSE_BUTTONS.left,
         pointerButton: MOUSE_BUTTONS.right,
     },
@@ -130,7 +131,13 @@ export function mouseButtonMatchesBinding(eventButton, bindingButton) {
 }
 
 export function pressedMouseButtonsMatchBinding(eventButtons, bindingButton) {
-    return (eventButtons & (1 << bindingButton)) !== 0
+    const buttonMasks = {
+        [MOUSE_BUTTONS.left]: 1,
+        [MOUSE_BUTTONS.middle]: 4,
+        [MOUSE_BUTTONS.right]: 2,
+    }
+
+    return (eventButtons & buttonMasks[bindingButton]) !== 0
 }
 
 export function getKeyboardCameraActionForKey(key, keyboardCameraBindings) {

@@ -14,13 +14,14 @@ import { useBearingRangeTool } from '../../hooks/map/useBearingRangeTool'
 import MapContextMenu from './MapContextMenu'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import {useRemappableMapDragPan} from '@/app/hooks/map/useRemappableMapDragPan'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
     dark: 'map-styles/dark-matter-gl-style.json',
 }
 
-export default function MapView({mapInteractionsEnabled = true}) {
+export default function MapView({mapInteractionsEnabled = true, onMapError}) {
     const theme = useTheme()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
@@ -30,10 +31,12 @@ export default function MapView({mapInteractionsEnabled = true}) {
     const {mapRef, mapReady} = useMapLibreMap({
         mapContainerRef,
         initialStyle: MAP_STYLES[theme.palette.mode],
+        onError: onMapError,
     })
 
     useMapStyle(mapRef, MAP_STYLES[theme.palette.mode])
     useKeyboardCameraControls(mapRef, mapReady && mapInteractionsEnabled)
+    useRemappableMapDragPan(mapRef, mapReady && mapInteractionsEnabled)
     useMapCursor(mapRef, mapReady && mapInteractionsEnabled)
     useMapInteractionGuards(mapRef, mapReady && mapInteractionsEnabled)
     useMapResize(mapRef, mapReady)
