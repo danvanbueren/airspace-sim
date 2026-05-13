@@ -141,10 +141,6 @@ export default function SettingsModalKeybindsPage() {
             </Typography>
         </Stack>
 
-        {currentListeningLabel && (<Alert severity='info'>
-            Listening for new keybind: <strong>{currentListeningLabel}</strong>
-        </Alert>)}
-
         <Stack spacing={2}>
             {KEYBOARD_BINDINGS.map((binding) => {
                 const currentKey = keyboardCamera[binding.key]?.[0]
@@ -185,6 +181,17 @@ export default function SettingsModalKeybindsPage() {
                     >
                         {isListening ? 'Press Key...' : formatKeyName(currentKey)}
                     </Button>
+
+                    {isListening && currentListeningLabel && (
+                        <Alert
+                            severity='info'
+                            sx={{
+                                gridColumn: '1 / -1',
+                            }}
+                        >
+                            Listening for new keybind: <strong>{currentListeningLabel}</strong>
+                        </Alert>
+                    )}
                 </Box>)
             })}
         </Stack>
