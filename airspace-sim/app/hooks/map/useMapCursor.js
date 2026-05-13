@@ -36,11 +36,6 @@ export function useMapCursor(mapRef, enabled) {
             map.getCanvas().style.cursor = 'crosshair'
         }
 
-        const setZoomCursor = () => {
-            if (isPointerOverMap)
-                map.getCanvas().style.cursor = 'nesw-resize'
-        }
-
         const setCustomCursor = (e) => {
             if (e.originalEvent.buttons === 1) {
                 isLeftButtonDown = true
