@@ -2,7 +2,11 @@
 
 import {forwardRef} from 'react'
 import {Box, Button, Divider, Paper, Stack, Typography} from '@mui/material'
-import {formatLatLong} from '@/app/tools/formatting/PrettyLatLong'
+import {useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {
+    formatCoordinatePairForGridReferenceSystem,
+    getGridReferenceSystemDisplayName,
+} from '@/app/tools/formatting/GridReferenceFormatting'
 
 function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef) {
     const edgePadding = 8
@@ -27,16 +31,23 @@ function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerR
 }
 
 const MapContextMenu = forwardRef(function MapContextMenu({
-                                                              elementContainer,
-                                                              contextMenuSize,
-                                                              mapContainerRef,
-                                                              onRemoveBearingRangeLine,
-                                                              onClearBearingRangeLines,
-                                                              lines,
-                                                          }, ref) {
+                                                                  elementContainer,
+                                                                  contextMenuSize,
+                                                                  mapContainerRef,
+                                                                  onRemoveBearingRangeLine,
+                                                                  onClearBearingRangeLines,
+                                                                  lines,
+                                                              }, ref) {
+    const {appSettings} = useAppSettings()
+
     if (!elementContainer) return null
 
     const hasBearingRangeLine = Boolean(elementContainer.line)
+    const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
+        elementContainer.lngLat.lat,
+        elementContainer.lngLat.lng,
+        appSettings.gridReferenceSystem,
+    )
 
     return (
         <Paper
@@ -64,14 +75,19 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     Position
                 </Typography>
 
-                <Box>
-                    <Typography sx={{fontFamily: 'monospace', whiteSpace: 'pre'}}>
-                        LAT: {formatLatLong(elementContainer.lngLat.lat)}
-                    </Typography>
+                <Typography variant='caption' color='text.secondary' sx={{fontFamily: 'monospace'}}>
+                    {getGridReferenceSystemDisplayName(appSettings.gridReferenceSystem)}
+                </Typography>
 
-                    <Typography sx={{fontFamily: 'monospace', whiteSpace: 'pre'}}>
-                        LNG: {formatLatLong(elementContainer.lngLat.lng)}
-                    </Typography>
+                <Box>
+                    {formattedCoordinates.map((coordinateLine) => (
+                        <Typography
+                            key={coordinateLine}
+                            sx={{fontFamily: 'monospace', whiteSpace: 'pre'}}
+                        >
+                            {coordinateLine}
+                        </Typography>
+                    ))}
                 </Box>
 
                 <Divider/>

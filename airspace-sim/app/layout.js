@@ -9,6 +9,10 @@ import CustomThemeProvider from './components/global/CustomThemeProvider'
 import {
     CONTROL_BINDINGS_COOKIE_NAME, ControlBindingsProvider,
 } from './contexts/ControlBindingsContext'
+import {
+    APP_SETTINGS_COOKIE_NAME,
+    AppSettingsProvider,
+} from './contexts/AppSettingsContext'
 import {UseGlobalInteractionGuards} from '@/app/hooks/global/useGlobalInteractionGuards'
 
 export const metadata = {
@@ -21,15 +25,19 @@ export default async function RootLayout({children}) {
     const cookieStore = await cookies()
     const themeCookie = cookieStore.get('theme')?.value
     const controlBindingsCookie = cookieStore.get(CONTROL_BINDINGS_COOKIE_NAME)?.value
-    const initialMode = themeCookie === 'dark' ? 'dark' : 'light'
+    const appSettingsCookie = cookieStore.get(APP_SETTINGS_COOKIE_NAME)?.value
+
+    const initialColorMode = themeCookie === 'dark' ? 'dark' : 'light'
 
     return (<html lang='en'>
     <body>
     <UseGlobalInteractionGuards>
-        <CustomThemeProvider initialMode={initialMode}>
-            <ControlBindingsProvider initialBindings={controlBindingsCookie}>
-                {children}
-            </ControlBindingsProvider>
+        <CustomThemeProvider initialMode={initialColorMode}>
+            <AppSettingsProvider initialSettings={appSettingsCookie}>
+                <ControlBindingsProvider initialBindings={controlBindingsCookie}>
+                    {children}
+                </ControlBindingsProvider>
+            </AppSettingsProvider>
         </CustomThemeProvider>
     </UseGlobalInteractionGuards>
     </body>

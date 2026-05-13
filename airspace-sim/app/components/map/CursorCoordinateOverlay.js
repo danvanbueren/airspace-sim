@@ -1,13 +1,24 @@
 'use client'
 
 import {getCursorBoxPosition} from '../../hooks/map/useCursorHooks'
-import {formatLatLong} from '../../tools/formatting/PrettyLatLong'
-import {Box} from "@mui/material";
+import {Box} from '@mui/material'
+import {useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {
+    formatCoordinatePairForGridReferenceSystem,
+} from '@/app/tools/formatting/GridReferenceFormatting'
 
 export default function CursorCoordinateOverlay({
-                                                    cursorInfo, cursorBoxRef, cursorBoxSize, mapContainerRef,
-                                                }) {
+                                                        cursorInfo, cursorBoxRef, cursorBoxSize, mapContainerRef,
+                                                    }) {
+    const {appSettings} = useAppSettings()
+
     if (!cursorInfo) return null
+
+    const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
+        cursorInfo.lat,
+        cursorInfo.lng,
+        appSettings.gridReferenceSystem,
+    )
 
     return (<Box
         ref={cursorBoxRef}
@@ -26,8 +37,10 @@ export default function CursorCoordinateOverlay({
             backdropFilter: 'blur(10px)',
         }}
     >
-        LAT: {formatLatLong(cursorInfo.lat)}
-        <br/>
-        LNG: {formatLatLong(cursorInfo.lng)}
+        {formattedCoordinates.map((coordinateLine) => (
+            <Box key={coordinateLine}>
+                {coordinateLine}
+            </Box>
+        ))}
     </Box>)
 }
