@@ -76,7 +76,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
         >
 
             <Box sx={{bgcolor: 'primary.main', p: 2}}>
-                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace', color: 'primary.contrastText'}}>
+                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace', color: 'primary.contrastText', fontSize: '0.9rem'}}>
                     Dynamic Context Menu
                 </Typography>
             </Box>
@@ -154,7 +154,37 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     ))}
                 </Box>
 
-                <Divider/>
+                <Divider sx={{py: 0.5}}/>
+
+                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
+                    Actions
+                </Typography>
+
+                <Button
+                    color='primary'
+                    size='small'
+                    variant='outlined'
+                    onClick={() => {}}
+                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    fullWidth
+                    disabled
+                >
+                    Set Home
+                </Button>
+
+                <Button
+                    color='primary'
+                    size='small'
+                    variant='outlined'
+                    onClick={() => {}}
+                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    fullWidth
+                    disabled
+                >
+                    Create Track
+                </Button>
+
+                <Divider sx={{py: 0.5}}/>
 
                 <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
                     Bearing/Range Lines
