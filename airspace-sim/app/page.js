@@ -9,7 +9,7 @@ import SettingsController from '@/app/components/panels/settings/SettingsControl
 import {useState} from 'react'
 import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
 import ErrorForwarder from '@/app/hooks/global/useErrorForwarder'
-import {useAlarmAlert} from '@/app/contexts/AlarmAlertContext'
+import {useMapState} from './contexts/MapStateContext'
 
 export default function Home() {
 
@@ -27,6 +27,7 @@ export default function Home() {
     }
 
     const {addAlarmAlert} = useAlarmAlert()
+    const {addAlarmAlert} = useMapState()
 
     return (
         <ErrorForwarder onError={addAlarmAlert}>

@@ -3,10 +3,10 @@
 import BasicGlassPanel from './BasicGlassPanel'
 import {Box, Button, IconButton, List, ListItem, ListItemText} from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import {useAlarmAlert} from '@/app/contexts/AlarmAlertContext'
+import {useMapState} from '@/app/contexts/MapStateContext'
 
 export default function AlarmAlertPanel() {
-    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts} = useAlarmAlert()
+    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts} = useMapState()
 
     if (alarmAlertQueue.length < 1)
         return null

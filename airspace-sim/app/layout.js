@@ -15,7 +15,7 @@ import {
 } from './contexts/AppSettingsContext'
 import {UseGlobalInteractionGuards} from '@/app/hooks/global/useGlobalInteractionGuards'
 import {THEME_COOKIE_NAME} from '@/app/contexts/CustomThemeContext'
-import {AlarmAlertProvider} from './contexts/AlarmAlertContext'
+import {MapStateProvider} from './contexts/MapStateContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +32,7 @@ export default async function RootLayout({children}) {
 
     return (<html lang='en'>
     <body>
-    <AlarmAlertProvider>
+    <MapStateProvider>
         <UseGlobalInteractionGuards>
             <CustomThemeContext initialMode={themeCookie}>
                 <AppSettingsProvider initialSettings={appSettingsCookie}>
@@ -42,7 +42,7 @@ export default async function RootLayout({children}) {
                 </AppSettingsProvider>
             </CustomThemeContext>
         </UseGlobalInteractionGuards>
-    </AlarmAlertProvider>
+    </MapStateProvider>
     </body>
     </html>)
 }

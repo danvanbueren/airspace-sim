@@ -15,7 +15,7 @@ import MapContextMenu from './MapContextMenu'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {useRemappableMapDragPan} from '@/app/hooks/map/useRemappableMapDragPan'
-import {useAlarmAlert} from '@/app/contexts/AlarmAlertContext'
+import {useMapState} from '../../contexts/MapStateContext'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -24,7 +24,7 @@ const MAP_STYLES = {
 
 export default function MapView({mapInteractionsEnabled = true}) {
     const theme = useTheme()
-    const {addAlarmAlert} = useAlarmAlert()
+    const {addAlarmAlert} = useMapState()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
