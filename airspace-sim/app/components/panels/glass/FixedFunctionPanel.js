@@ -1,77 +1,172 @@
 'use client'
 
-import { Divider, Grid, ToggleButton, ToggleButtonGroup } from '@mui/material'
-import { useState } from 'react'
+import {Button, Grid} from '@mui/material'
 import BasicGlassPanel from './BasicGlassPanel'
+import {useMapState} from '@/app/contexts/MapStateContext'
 
 export default function FixedFunctionPanel() {
 
-    // Define available toggles, store currently active toggles
-    const availableToggles = ['ZOOM_IN', 'ZOOM_OUT', '-', 'CENTER_ON_E-3', '-', '-']
-    const [currentToggles, setCurrentToggles] = useState([])
-
-    // Handle toggle button press
-    const handleToggles = (event, newToggles) => {
-        setCurrentToggles(newToggles.filter((toggle) => toggle !== '-'))
-    }
+    const {addAlarmAlert} = useMapState()
 
     return (
         <BasicGlassPanel title='Fixed Function Panel'>
 
-            {/* TODO: Remove this (temp) */}
-            {currentToggles.length !== 0 &&
-                <>
-                    <span style={{fontFamily: 'monospace'}}>TODO: IMPLEMENT TOGGLES</span>
-                    {currentToggles.map((value, index) => (
-                        <span key={'tempFFP_' + value + '_' + index} style={{fontFamily: 'monospace', fontWeight: 'bold'}}>{value}</span>
-                    ))}
-                    <Divider orientation='horizontal' flexItem sx={{marginTop: 1.5, marginBottom: 1.5}} />
-                </>
-            }
-            {/* TODO: Remove this (temp) */}
-
-            <ToggleButtonGroup
-                value={currentToggles}
-                onChange={handleToggles}
+            <Grid
+                container
+                spacing={2}
+                style={{width: '100%'}}
             >
                 <Grid
-                    container
-                    spacing={2}
-                    style={{width: '100%'}}
+                    size={4}
                 >
-                    {availableToggles.map((value, index) => (
-                        <Grid
-                            size={4}
-                            key={'FFP_GRID' + value + '_' + index}
-                        >
-                            <ToggleButton
-                                key={'FFP_TOGGLE_' + value + '_' + index}
-                                value={value}
-                                disabled={value === '-'}
-                                variant='contained' color='success'
-                                fullWidth
-                                sx={{
-                                    height: 80,
-                                }}
-                            >
-                                <span
-                                    key={'FFP_TOGGLE_SPAN_' + value + '_' + index}
-                                    style={{
-                                        display: 'block',
-                                        width: '100%',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        fontFamily: 'monospace',
-                                        fontWeight: 'bold'
-                                    }}
-                                >
-                                    {value.replaceAll('_', ' ')}
-                                </span>
-                            </ToggleButton>
-                        </Grid>
-                    ))}
+                    <Button
+                        variant='outlined'
+                        color='inherit'
+                        sx={{
+                            height: 80,
+                            display: 'block',
+                            width: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            borderColor: 'grey.800',
+                            '&:hover': {
+                                borderColor: 'grey.400',
+                            }
+                        }}
+                        onClick={() => {addAlarmAlert('button todo')}}
+                    >
+                        ZOOM IN
+                    </Button>
                 </Grid>
-            </ToggleButtonGroup>
+
+                <Grid
+                    size={4}
+                >
+                    <Button
+                        variant='outlined'
+                        color='inherit'
+                        sx={{
+                            height: 80,
+                            display: 'block',
+                            width: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            borderColor: 'grey.800',
+                            '&:hover': {
+                                borderColor: 'grey.400',
+                            }
+                        }}
+                        onClick={() => {addAlarmAlert('button todo')}}
+                    >
+                        ZOOM OUT
+                    </Button>
+                </Grid>
+
+                <Grid
+                    size={4}
+                >
+                    <Button
+                        variant='outlined'
+                        color='inherit'
+                        sx={{
+                            height: 80,
+                            display: 'block',
+                            width: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            borderColor: 'grey.800',
+                            '&:hover': {
+                                borderColor: 'grey.400',
+                            }
+                        }}
+                        onClick={() => {addAlarmAlert('button todo')}}
+                    >
+                        HOME
+                    </Button>
+                </Grid>
+
+                <Grid
+                    size={4}
+                >
+                    <Button
+                        variant='outlined'
+                        color='inherit'
+                        sx={{
+                            height: 80,
+                            display: 'block',
+                            width: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            borderColor: 'grey.800',
+                            '&:hover': {
+                                borderColor: 'grey.400',
+                            }
+                        }}
+                        onClick={() => {addAlarmAlert('button todo')}}
+                    >
+                        CENTER ON E-3
+                    </Button>
+                </Grid>
+
+                <Grid
+                    size={4}
+                >
+                    <Button
+                        variant='outlined'
+                        color='inherit'
+                        sx={{
+                            height: 80,
+                            display: 'block',
+                            width: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            borderColor: 'grey.800',
+                            '&:hover': {
+                                borderColor: 'grey.400',
+                            }
+                        }}
+                        disabled
+                    >
+                        -
+                    </Button>
+                </Grid>
+
+                <Grid
+                    size={4}
+                >
+                    <Button
+                        variant='outlined'
+                        color='inherit'
+                        sx={{
+                            height: 80,
+                            display: 'block',
+                            width: '100%',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            borderColor: 'grey.800',
+                            '&:hover': {
+                                borderColor: 'grey.400',
+                            }
+                        }}
+                        disabled
+                    >
+                        -
+                    </Button>
+                </Grid>
+            </Grid>
+
         </BasicGlassPanel>
     )
 }
