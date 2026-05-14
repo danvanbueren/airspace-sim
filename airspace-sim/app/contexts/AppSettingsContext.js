@@ -10,36 +10,6 @@ import {
 export const APP_SETTINGS_COOKIE_NAME = 'appSettings'
 
 export const GRID_REFERENCE_SYSTEMS = {
-    mgrs: {
-        value: 'mgrs',
-        label: 'MGRS',
-        description: 'Military Grid Reference System',
-    },
-    geohash: {
-        value: 'geohash',
-        label: 'Geohash',
-        description: 'Geohash',
-    },
-    gars: {
-        value: 'gars',
-        label: 'GARS',
-        description: 'Global Area Reference System',
-    },
-    georef: {
-        value: 'georef',
-        label: 'Georef',
-        description: 'World Geographic Reference System',
-    },
-    geocoords: {
-        value: 'geocoords',
-        label: 'GeoCoords',
-        description: 'Universal Coordinate Parsing',
-    },
-    dms: {
-        value: 'dms',
-        label: 'DMS',
-        description: 'Degrees, Minutes, Seconds',
-    },
     dd: {
         value: 'dd',
         label: 'DD',
@@ -49,6 +19,36 @@ export const GRID_REFERENCE_SYSTEMS = {
         value: 'ddm',
         label: 'DDM',
         description: 'Degrees and Decimal Minutes',
+    },
+    dms: {
+        value: 'dms',
+        label: 'DMS',
+        description: 'Degrees, Minutes, Seconds',
+    },
+    gars: {
+        value: 'gars',
+        label: 'GARS',
+        description: 'Global Area Reference System',
+    },
+    geohash: {
+        value: 'geohash',
+        label: 'Geohash',
+        description: 'Public Domain Geocoding System',
+    },
+    georef: {
+        value: 'georef',
+        label: 'Georef',
+        description: 'World Geographic Reference System',
+    },
+    killbox: {
+        value: 'killbox',
+        label: 'Killbox',
+        description: 'GARS-based Killbox Reference',
+    },
+    mgrs: {
+        value: 'mgrs',
+        label: 'MGRS',
+        description: 'Military Grid Reference System',
     },
 }
 
