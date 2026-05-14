@@ -15,14 +15,16 @@ import MapContextMenu from './MapContextMenu'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {useRemappableMapDragPan} from '@/app/hooks/map/useRemappableMapDragPan'
+import {useAlarmAlert} from '@/app/contexts/AlarmAlertContext'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
     dark: 'map-styles/dark-matter-gl-style.json',
 }
 
-export default function MapView({mapInteractionsEnabled = true, onMapError}) {
+export default function MapView({mapInteractionsEnabled = true}) {
     const theme = useTheme()
+    const {addAlarmAlert} = useAlarmAlert()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
@@ -31,7 +33,7 @@ export default function MapView({mapInteractionsEnabled = true, onMapError}) {
     const {mapRef, mapReady} = useMapLibreMap({
         mapContainerRef,
         initialStyle: MAP_STYLES[theme.palette.mode],
-        onError: onMapError,
+        onError: addAlarmAlert,
     })
 
     useMapStyle(mapRef, MAP_STYLES[theme.palette.mode])

@@ -3,14 +3,12 @@
 import BasicGlassPanel from './BasicGlassPanel'
 import {Box, Button, IconButton, List, ListItem, ListItemText} from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import {useAlarmAlert} from '@/app/contexts/AlarmAlertContext'
 
-export default function AlarmAlertPanel({queue, setQueue}) {
+export default function AlarmAlertPanel() {
+    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts} = useAlarmAlert()
 
-    const deleteQueueItem = (indexToDelete) => {
-        setQueue((currentQueue) => currentQueue.filter((_, index) => index !== indexToDelete))
-    }
-
-    if (queue.length < 1)
+    if (alarmAlertQueue.length < 1)
         return null
 
     return (
@@ -19,13 +17,13 @@ export default function AlarmAlertPanel({queue, setQueue}) {
                 size='small'
                 color='warning'
                 sx={{fontFamily: 'monospace', fontSize: 12, paddingX: 1}}
-                onClick={() => setQueue([])}
+                onClick={clearAlarmAlerts}
             >
                 Clear All
             </Button>
             <Box sx={{minWidth: '20rem', maxWidth: '20rem', maxHeight: '10rem', display: 'flex', flexDirection: 'column-reverse', overflowY: 'auto'}}>
                 <List dense disablePadding>
-                    {queue.map((item, index) => (
+                    {alarmAlertQueue.map((item, index) => (
                         <ListItem
                             key={`${item[0]}-${index}`}
                             disablePadding
@@ -34,7 +32,7 @@ export default function AlarmAlertPanel({queue, setQueue}) {
                                     edge="end"
                                     size="small"
                                     aria-label="delete alarm"
-                                    onClick={() => deleteQueueItem(index)}
+                                    onClick={() => deleteAlarmAlert(index)}
                                 >
                                     <DeleteIcon fontSize="small"/>
                                 </IconButton>

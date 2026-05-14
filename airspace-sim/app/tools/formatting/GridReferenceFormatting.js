@@ -160,7 +160,11 @@ function formatKillboxCoordinate(lat, lng) {
 }
 
 function formatMgrsCoordinate(lat, lng) {
-    return forward([normalizeLongitude(lng), clampLatitude(lat)], 5)
+    try {
+        return forward([normalizeLongitude(lng), clampLatitude(lat)], 5)
+    } catch (error) {
+        return 'Invalid MGRS Coordinate'
+    }
 }
 
 export function getGridReferenceSystemDisplayName(gridReferenceSystem) {

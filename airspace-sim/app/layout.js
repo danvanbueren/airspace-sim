@@ -15,6 +15,7 @@ import {
 } from './contexts/AppSettingsContext'
 import {UseGlobalInteractionGuards} from '@/app/hooks/global/useGlobalInteractionGuards'
 import {THEME_COOKIE_NAME} from '@/app/contexts/CustomThemeContext'
+import {AlarmAlertProvider} from './contexts/AlarmAlertContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,7 +25,6 @@ export const metadata = {
 }
 
 export default async function RootLayout({children}) {
-
     const cookieStore = await cookies()
     const themeCookie = cookieStore.get(THEME_COOKIE_NAME)?.value
     const controlBindingsCookie = cookieStore.get(CONTROL_BINDINGS_COOKIE_NAME)?.value
@@ -32,15 +32,17 @@ export default async function RootLayout({children}) {
 
     return (<html lang='en'>
     <body>
-    <UseGlobalInteractionGuards>
-        <CustomThemeContext initialMode={themeCookie}>
-            <AppSettingsProvider initialSettings={appSettingsCookie}>
-                <ControlBindingsProvider initialBindings={controlBindingsCookie}>
-                    {children}
-                </ControlBindingsProvider>
-            </AppSettingsProvider>
-        </CustomThemeContext>
-    </UseGlobalInteractionGuards>
+    <AlarmAlertProvider>
+        <UseGlobalInteractionGuards>
+            <CustomThemeContext initialMode={themeCookie}>
+                <AppSettingsProvider initialSettings={appSettingsCookie}>
+                    <ControlBindingsProvider initialBindings={controlBindingsCookie}>
+                        {children}
+                    </ControlBindingsProvider>
+                </AppSettingsProvider>
+            </CustomThemeContext>
+        </UseGlobalInteractionGuards>
+    </AlarmAlertProvider>
     </body>
     </html>)
 }

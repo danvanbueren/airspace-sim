@@ -6,8 +6,10 @@ import CategorySelectPanel from './components/panels/glass/CategorySelectPanel'
 import FixedFunctionPanel from './components/panels/glass/FixedFunctionPanel'
 import ClassificationBar from './components/global/ClassificationBar'
 import SettingsController from '@/app/components/panels/settings/SettingsController'
-import {useCallback, useState} from 'react'
+import {useState} from 'react'
 import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
+import ErrorForwarder from '@/app/hooks/global/useErrorForwarder'
+import {useAlarmAlert} from '@/app/contexts/AlarmAlertContext'
 
 export default function Home() {
 
@@ -24,52 +26,45 @@ export default function Home() {
         }
     }
 
-    // ALARM ALERT QUEUE ITEM STRUCTURE
-    // setQueue(...queue, [new Date(), 'test message'])
+    const {addAlarmAlert} = useAlarmAlert()
 
-    const [alarmAlertQueue, setAlarmAlertQueue] = useState([])
+    return (
+        <ErrorForwarder onError={addAlarmAlert}>
+            <Box
+                sx={{
+                    display: 'flex', flexDirection: 'column', height: '100dvh',
+                }}
+            >
+                <ClassificationBar/>
+                <Box
+                    style={{
+                        position: 'relative', width: '100dvw', flexGrow: 1, overflow: 'hidden', margin: 0, padding: 0,
+                    }}
+                >
+                    <Box style={boxStyle({top: 20, left: 20})}>
+                        <CategorySelectPanel/>
+                    </Box>
 
-    const addAlarmAlert = useCallback((message) => {
-        setAlarmAlertQueue((currentQueue) => [
-            ...currentQueue,
-            [new Date(), message],
-        ])
-    }, [])
+                    <Box style={boxStyle({bottom: 20, left: 20})}>
+                        <FixedFunctionPanel/>
+                    </Box>
 
-    return (<Box
-        sx={{
-            display: 'flex', flexDirection: 'column', height: '100dvh',
-        }}
-    >
-        <ClassificationBar/>
-        <Box
-            style={{
-                position: 'relative', width: '100dvw', flexGrow: 1, overflow: 'hidden', margin: 0, padding: 0,
-            }}
-        >
-            <Box style={boxStyle({top: 20, left: 20})}>
-                <CategorySelectPanel/>
+                    <Box style={{ ...boxStyle({ bottom: 20, left: '50%' }), transform: 'translateX(-50%)' }}>
+                        <AlarmAlertPanel/>
+                    </Box>
+
+                    <Box style={boxStyle({top: 20, right: 20})}>
+                        <SettingsController
+                            modalOpen={settingsModalOpen}
+                            setModalOpen={setSettingsModalOpen}
+                        />
+                    </Box>
+                    <MapView
+                        mapInteractionsEnabled={!settingsModalOpen}
+                    />
+                </Box>
+                <ClassificationBar/>
             </Box>
-
-            <Box style={boxStyle({bottom: 20, left: 20})}>
-                <FixedFunctionPanel/>
-            </Box>
-
-            <Box style={{ ...boxStyle({ bottom: 20, left: '50%' }), transform: 'translateX(-50%)' }}>
-                <AlarmAlertPanel queue={alarmAlertQueue} setQueue={setAlarmAlertQueue}/>
-            </Box>
-
-            <Box style={boxStyle({top: 20, right: 20})}>
-                <SettingsController
-                    modalOpen={settingsModalOpen}
-                    setModalOpen={setSettingsModalOpen}
-                />
-            </Box>
-            <MapView
-                mapInteractionsEnabled={!settingsModalOpen}
-                onMapError={addAlarmAlert}
-            />
-        </Box>
-        <ClassificationBar/>
-    </Box>)
+        </ErrorForwarder>
+    )
 }
