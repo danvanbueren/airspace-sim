@@ -8,7 +8,7 @@ import ClassificationBar from './components/global/ClassificationBar'
 import SettingsController from '@/app/components/panels/settings/SettingsController'
 import {useState} from 'react'
 import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
-import ErrorForwarder from '@/app/hooks/global/useErrorForwarder'
+import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/hooks/global/ErrorForwarder'
 import {useMapState} from './contexts/MapStateContext'
 
 export default function Home() {
@@ -26,7 +26,6 @@ export default function Home() {
         }
     }
 
-    const {addAlarmAlert} = useAlarmAlert()
     const {addAlarmAlert} = useMapState()
 
     return (
@@ -42,27 +41,36 @@ export default function Home() {
                         position: 'relative', width: '100dvw', flexGrow: 1, overflow: 'hidden', margin: 0, padding: 0,
                     }}
                 >
-                    <Box style={boxStyle({top: 20, left: 20})}>
-                        <CategorySelectPanel/>
-                    </Box>
+                    <ReactErrorForwardingBoundary onError={addAlarmAlert} name="Category select panel">
+                        <Box style={boxStyle({top: 20, left: 20})}>
+                            <CategorySelectPanel/>
+                        </Box>
+                    </ReactErrorForwardingBoundary>
 
-                    <Box style={boxStyle({bottom: 20, left: 20})}>
-                        <FixedFunctionPanel/>
-                    </Box>
+                    <ReactErrorForwardingBoundary onError={addAlarmAlert} name="Fixed function panel">
+                        <Box style={boxStyle({bottom: 20, left: 20})}>
+                            <FixedFunctionPanel/>
+                        </Box>
+                    </ReactErrorForwardingBoundary>
 
                     <Box style={{ ...boxStyle({ bottom: 20, left: '50%' }), transform: 'translateX(-50%)' }}>
                         <AlarmAlertPanel/>
                     </Box>
 
-                    <Box style={boxStyle({top: 20, right: 20})}>
-                        <SettingsController
-                            modalOpen={settingsModalOpen}
-                            setModalOpen={setSettingsModalOpen}
+                    <ReactErrorForwardingBoundary onError={addAlarmAlert} name="Settings controller">
+                        <Box style={boxStyle({top: 20, right: 20})}>
+                            <SettingsController
+                                modalOpen={settingsModalOpen}
+                                setModalOpen={setSettingsModalOpen}
+                            />
+                        </Box>
+                    </ReactErrorForwardingBoundary>
+
+                    <ReactErrorForwardingBoundary onError={addAlarmAlert} name="Map view">
+                        <MapView
+                            mapInteractionsEnabled={!settingsModalOpen}
                         />
-                    </Box>
-                    <MapView
-                        mapInteractionsEnabled={!settingsModalOpen}
-                    />
+                    </ReactErrorForwardingBoundary>
                 </Box>
                 <ClassificationBar/>
             </Box>

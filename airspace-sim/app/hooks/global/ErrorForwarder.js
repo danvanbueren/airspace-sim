@@ -22,11 +22,25 @@ function formatErrorMessage(errorLike) {
     return String(errorLike)
 }
 
-class ErrorBoundaryInner extends Component {
+export class ReactErrorForwardingBoundary extends Component {
+    constructor(props) {
+        super(props)
+
+        this.state = {
+            hasError: false,
+        }
+    }
+
+    static getDerivedStateFromError() {
+        return {
+            hasError: true,
+        }
+    }
+
     componentDidCatch(error, errorInfo) {
         this.props.onError(
             [
-                'React component error',
+                this.props.name ? `React component error: ${this.props.name}` : 'React component error',
                 formatErrorMessage(error),
                 errorInfo?.componentStack,
             ]
@@ -36,6 +50,10 @@ class ErrorBoundaryInner extends Component {
     }
 
     render() {
+        if (this.state.hasError) {
+            return this.props.fallback ?? null
+        }
+
         return this.props.children
     }
 }
@@ -79,9 +97,5 @@ export default function ErrorForwarder({onError, children}) {
         }
     }, [onError])
 
-    return (
-        <ErrorBoundaryInner onError={onError}>
-            {children}
-        </ErrorBoundaryInner>
-    )
+    return children
 }
