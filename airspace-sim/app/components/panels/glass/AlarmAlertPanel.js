@@ -1,9 +1,10 @@
 'use client'
 
 import BasicGlassPanel from './BasicGlassPanel'
-import {Box, Button, IconButton, List, ListItem, ListItemText} from '@mui/material'
+import {Box, Button, Divider, Grid, IconButton, Stack, Typography} from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {useMapState} from '@/app/contexts/MapStateContext'
+import {formatDateTimeGroup} from '@/app/tools/formatting/DateTime'
 
 export default function AlarmAlertPanel() {
     const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts} = useMapState()
@@ -16,51 +17,102 @@ export default function AlarmAlertPanel() {
             <Button
                 size='small'
                 color='warning'
-                sx={{fontFamily: 'monospace', fontSize: 12, paddingX: 1}}
+                variant='outlined'
                 onClick={clearAlarmAlerts}
+                sx={{
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    px: 1,
+                    my: 0.5,
+                }}
+
             >
                 Clear All
             </Button>
-            <Box sx={{minWidth: '20rem', maxWidth: '20rem', maxHeight: '10rem', display: 'flex', flexDirection: 'column-reverse', overflowY: 'auto'}}>
-                <List dense disablePadding>
+            <Box
+                sx={{
+                    width: '20rem',
+                    maxHeight: '10rem',
+                    display: 'flex',
+                    flexDirection: 'column-reverse',
+                    overflowY: 'auto'
+                }}
+            >
+                <Stack
+                    direction='column'
+                    spacing={1}
+                    sx={{
+                        p: 1,
+                        width: '100%'
+                    }}
+                >
+                    <Typography
+                        sx={{
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            opacity: 0.5,
+                            alignSelf: 'center'
+                        }}
+                    >
+                        END OF ALERTS
+                    </Typography>
+
                     {alarmAlertQueue.map((item, index) => (
-                        <ListItem
-                            key={`${item[0]}-${index}`}
-                            disablePadding
-                            secondaryAction={
-                                <IconButton
-                                    edge="end"
-                                    size="small"
-                                    aria-label="delete alarm"
-                                    onClick={() => deleteAlarmAlert(index)}
-                                >
-                                    <DeleteIcon fontSize="small"/>
-                                </IconButton>
-                            }
+                        <Box
                             sx={{
-                                px: 1,
-                                py: 0.25,
-                                pr: 5,
                             }}
                         >
-                            <ListItemText
-                                primary={item[1]}
-                                secondary={
-                                    item[0].toLocaleString('en-GB', {
-                                        day: '2-digit',
-                                        month: 'short',
-                                        year: '2-digit',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        second: '2-digit',
-                                        hour12: false,
-                                        timeZone: 'UTC',
-                                    }).replace(',', '').replace(/^(\d{2}) (\w{3}) (\d{2})/, '$1-$2-$3').replace(/:/g, '') + 'Z'
-                                }
+                            <Divider
+                                sx={{my: 1}}
                             />
-                        </ListItem>
+                            <Grid container
+                                key={`${item[0]}-${index}`}
+                            >
+                                <Grid size='grow'>
+                                    <Box sx={{pt: 1}}>
+                                        <Typography
+                                            sx={{
+                                                textOverflow: 'ellipsis',
+                                                overflow: 'hidden',
+                                                fontFamily: 'monospace',
+                                            }}
+                                        >
+                                            {item[1]}
+                                        </Typography>
+                                        <Typography
+                                            sx={{
+                                                textOverflow: 'ellipsis',
+                                                overflow: 'hidden',
+                                                fontFamily: 'monospace',
+                                                color: 'grey',
+                                                fontSize: 14,
+                                                pt: 1,
+                                            }}
+                                        >
+                                            {formatDateTimeGroup(item[0])}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+
+                                <Grid
+                                    size='auto'
+                                    sx={{
+                                        alignContent: 'center',
+                                    }}
+                                >
+                                    <IconButton
+                                        edge="end"
+                                        size="small"
+                                        aria-label="delete alarm"
+                                        onClick={() => deleteAlarmAlert(index)}
+                                    >
+                                        <DeleteIcon fontSize="small"/>
+                                    </IconButton>
+                                </Grid>
+                            </Grid>
+                        </Box>
                     ))}
-                </List>
+                </Stack>
             </Box>
         </BasicGlassPanel>
     )
