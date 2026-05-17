@@ -62,9 +62,18 @@ export default function AlarmAlertPanel() {
                             key={`${item[0]}-${index}`}
                         >
                             <Divider
-                                sx={{my: 1}}
+                                sx={{m: 1, mt: 0,}}
                             />
-                            <Grid container>
+                            <Grid container
+                                  sx={{
+                                      borderRadius: 1,
+                                      px: 1,
+                                      '&:hover': {
+                                          color: 'info.contrastText',
+                                          backgroundColor: 'info.main',
+                                      },
+                                  }}
+                            >
                                 <Grid size='grow'>
                                     <Box sx={{pt: 1}}>
                                         <Typography
@@ -81,9 +90,9 @@ export default function AlarmAlertPanel() {
                                                 textOverflow: 'ellipsis',
                                                 overflow: 'hidden',
                                                 fontFamily: 'monospace',
-                                                color: 'grey',
                                                 fontSize: 14,
-                                                pt: 1,
+                                                py: 1,
+                                                opacity: 0.5,
                                             }}
                                         >
                                             {formatDateTimeGroup(item[0])}
