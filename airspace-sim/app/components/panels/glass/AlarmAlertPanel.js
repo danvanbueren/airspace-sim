@@ -59,15 +59,12 @@ export default function AlarmAlertPanel() {
 
                     {alarmAlertQueue.map((item, index) => (
                         <Box
-                            sx={{
-                            }}
+                            key={`${item[0]}-${index}`}
                         >
                             <Divider
                                 sx={{my: 1}}
                             />
-                            <Grid container
-                                key={`${item[0]}-${index}`}
-                            >
+                            <Grid container>
                                 <Grid size='grow'>
                                     <Box sx={{pt: 1}}>
                                         <Typography
