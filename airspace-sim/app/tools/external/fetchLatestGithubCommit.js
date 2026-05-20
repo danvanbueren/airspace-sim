@@ -112,7 +112,6 @@ export default async function fetchLatestGithubCommit({
 
     setCachedCommit(cacheKey, commitRequest)
 
-    console.log(commitRequest)
     return commitRequest
 
     /*
