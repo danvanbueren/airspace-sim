@@ -61,9 +61,10 @@ export default function LatestCommitDisplay() {
                         whiteSpace: 'nowrap',
                         maxWidth: '100%',
                         fontStyle: 'italic',
+                        pr: 1,
                     }}
                 >
-                    {commit.message} aksjdhfklajshdflkjhasldkjfhalksdj ajskdf asdflkhj afdskljh
+                    "{commit.message}"
                 </Typography>
 
                 <Typography
