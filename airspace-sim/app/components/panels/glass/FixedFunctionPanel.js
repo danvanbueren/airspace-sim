@@ -6,7 +6,7 @@ import {useMapState} from '@/app/contexts/MapStateContext'
 
 export default function FixedFunctionPanel() {
 
-    const {addAlarmAlert} = useMapState()
+    const {addAlarmAlert, zoomIn, zoomOut} = useMapState()
 
     return (
         <BasicGlassPanel title='Fixed Function Panel'>
@@ -35,7 +35,7 @@ export default function FixedFunctionPanel() {
                                 borderColor: 'grey.400',
                             }
                         }}
-                        onClick={() => {addAlarmAlert('button todo')}}
+                        onClick={zoomIn}
                     >
                         ZOOM IN
                     </Button>
@@ -60,7 +60,7 @@ export default function FixedFunctionPanel() {
                                 borderColor: 'grey.400',
                             }
                         }}
-                        onClick={() => {addAlarmAlert('button todo')}}
+                        onClick={zoomOut}
                     >
                         ZOOM OUT
                     </Button>

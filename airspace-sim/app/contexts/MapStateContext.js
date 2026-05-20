@@ -22,6 +22,7 @@ function normalizeAlarmAlertMessage(message) {
 
 export function MapStateProvider({children}) {
     const [alarmAlertQueue, setAlarmAlertQueue] = useState([])
+    const [map, setMap] = useState(null)
 
     const addAlarmAlert = useCallback((message) => {
         setAlarmAlertQueue((currentQueue) => [
@@ -38,12 +39,37 @@ export function MapStateProvider({children}) {
         setAlarmAlertQueue([])
     }, [])
 
+    const registerMap = useCallback((mapInstance) => {
+        setMap(mapInstance)
+    }, [])
+
+    const zoomIn = useCallback(() => {
+        map?.zoomIn()
+    }, [map])
+
+    const zoomOut = useCallback(() => {
+        map?.zoomOut()
+    }, [map])
+
     const value = useMemo(() => ({
         alarmAlertQueue,
         addAlarmAlert,
         deleteAlarmAlert,
         clearAlarmAlerts,
-    }), [alarmAlertQueue, addAlarmAlert, deleteAlarmAlert, clearAlarmAlerts])
+        map,
+        registerMap,
+        zoomIn,
+        zoomOut,
+    }), [
+        alarmAlertQueue,
+        addAlarmAlert,
+        deleteAlarmAlert,
+        clearAlarmAlerts,
+        map,
+        registerMap,
+        zoomIn,
+        zoomOut,
+    ])
 
     return (
         <MapStateContext.Provider value={value}>

@@ -24,7 +24,7 @@ const MAP_STYLES = {
 
 export default function MapView({mapInteractionsEnabled = true}) {
     const theme = useTheme()
-    const {addAlarmAlert} = useMapState()
+    const {addAlarmAlert, registerMap} = useMapState()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
@@ -35,6 +35,16 @@ export default function MapView({mapInteractionsEnabled = true}) {
         initialStyle: MAP_STYLES[theme.palette.mode],
         onError: addAlarmAlert,
     })
+
+    useEffect(() => {
+        if (!mapReady) return
+
+        registerMap(mapRef.current)
+
+        return () => {
+            registerMap(null)
+        }
+    }, [mapReady, mapRef, registerMap])
 
     useMapStyle(mapRef, MAP_STYLES[theme.palette.mode])
     useKeyboardCameraControls(mapRef, mapReady && mapInteractionsEnabled)
