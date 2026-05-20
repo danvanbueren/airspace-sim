@@ -5,7 +5,7 @@ export default function SettingsModalRoadmapPage() {
         <>
             <Typography>disorganized list</Typography>
             <ul>
-                <li>connect zoom functions</li>
+                <li>connect zoom functions ✅</li>
                 <li>build track/moving target indicator system - static/extrapolation only</li>
                 <li>build reference point system</li>
                 <li>build real-time radar/iff sensor feeds - based on phantom track data</li>
