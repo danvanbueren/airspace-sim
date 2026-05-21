@@ -45,6 +45,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                                                                   elementContainer,
                                                                   contextMenuSize,
                                                                   mapContainerRef,
+                                                                  onInitiateTrack,
                                                                   onRemoveBearingRangeLine,
                                                                   onClearBearingRangeLines,
                                                                   lines,
@@ -176,12 +177,11 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     color='primary'
                     size='small'
                     variant='outlined'
-                    onClick={() => {}}
+                    onClick={() => onInitiateTrack(elementContainer)}
                     sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
                     fullWidth
-                    disabled
                 >
-                    Create Track
+                    Initiate Track
                 </Button>
 
                 <Divider sx={{py: 0.5}}/>

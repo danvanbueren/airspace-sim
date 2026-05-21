@@ -12,6 +12,7 @@ import { useMapStyle } from '../../hooks/map/useMapStyle'
 import { useMeasuredElementSize } from '../../hooks/global/useMeasuredElementSize'
 import { useBearingRangeTool } from '../../hooks/map/useBearingRangeTool'
 import MapContextMenu from './MapContextMenu'
+import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {useRemappableMapDragPan} from '@/app/hooks/map/useRemappableMapDragPan'
@@ -29,6 +30,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
     const [currentContextMenuElement, setCurrentContextMenuElement] = useState(null)
+    const [trackManagementWindows, setTrackManagementWindows] = useState([])
 
     const {mapRef, mapReady} = useMapLibreMap({
         mapContainerRef,
@@ -82,6 +84,30 @@ export default function MapView({mapInteractionsEnabled = true}) {
         setCurrentContextMenuElement(null)
     }, [clearBearingRangeLines])
 
+    const handleInitiateTrack = useCallback((elementContainer) => {
+        const windowId = crypto.randomUUID()
+
+        setTrackManagementWindows((currentWindows) => [
+            ...currentWindows,
+            {
+                id: windowId,
+                trackId: windowId.slice(0, 8).toUpperCase(),
+                x: elementContainer.x,
+                y: elementContainer.y,
+                lngLat: elementContainer.lngLat,
+                line: elementContainer.line,
+            },
+        ])
+
+        setCurrentContextMenuElement(null)
+    }, [])
+
+    const handleCloseTrackManagementWindow = useCallback((windowId) => {
+        setTrackManagementWindows((currentWindows) => (
+            currentWindows.filter((trackManagementWindow) => trackManagementWindow.id !== windowId)
+        ))
+    }, [])
+
     useEffect(() => {
         if (!currentContextMenuElement) return
 
@@ -130,10 +156,20 @@ export default function MapView({mapInteractionsEnabled = true}) {
                 elementContainer={currentContextMenuElement}
                 contextMenuSize={contextMenuSize}
                 mapContainerRef={mapContainerRef}
+                onInitiateTrack={handleInitiateTrack}
                 onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
                 onClearBearingRangeLines={handleClearBearingRangeLines}
                 lines={lines}
             />
+
+            {trackManagementWindows.map((trackManagementWindow) => (
+                <TrackManagementWindow
+                    key={trackManagementWindow.id}
+                    trackManagementWindow={trackManagementWindow}
+                    mapContainerRef={mapContainerRef}
+                    onClose={handleCloseTrackManagementWindow}
+                />
+            ))}
         </div>
     )
 }
