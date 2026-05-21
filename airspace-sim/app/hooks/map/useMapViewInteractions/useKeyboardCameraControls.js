@@ -1,7 +1,7 @@
 import {useEffect} from 'react'
 import {
     getKeyboardCameraActionForKey, pressedKeysMatchBinding, useControlBindings,
-} from '../../contexts/ControlBindingsContext'
+} from '../../../contexts/ControlBindingsContext'
 
 export function useKeyboardCameraControls(mapRef, enabled) {
     const {controlBindings} = useControlBindings()

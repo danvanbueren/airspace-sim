@@ -13,7 +13,7 @@ export default function buildInfo() {
     // version info
     const versionEdition = '2026'
     const versionMajor = '0'
-    const versionMinor = '3'
+    const versionMinor = '4'
     const versionFlag = 'indev'
 
     // full version

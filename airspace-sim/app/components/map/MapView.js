@@ -1,21 +1,19 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useTheme } from '@mui/material/styles'
-import { useCursorHooks } from '../../hooks/map/useCursorHooks'
-import { useKeyboardCameraControls } from '../../hooks/map/useKeyboardCameraControls'
-import { useMapCursor } from '../../hooks/map/useMapCursor'
-import { useMapInteractionGuards } from '../../hooks/map/useMapInteractionGuards'
-import { useMapLibreMap } from '../../hooks/map/useMapLibreMap'
-import { useMapResize } from '../../hooks/map/useMapResize'
-import { useMapStyle } from '../../hooks/map/useMapStyle'
-import { useMeasuredElementSize } from '../../hooks/global/useMeasuredElementSize'
-import { useBearingRangeTool } from '../../hooks/map/useBearingRangeTool'
+import {useCallback, useRef} from 'react'
+import {useTheme} from '@mui/material/styles'
+import {useCursorHooks} from '../../hooks/map/useCursorHooks'
+import {useMapLibreMap} from '../../hooks/map/useMapLibreMap'
+import {useMeasuredElementSize} from '../../hooks/global/useMeasuredElementSize'
+import {useBearingRangeTool} from '../../hooks/map/useBearingRangeTool'
+import {useRegisteredMap} from '../../hooks/map/useRegisteredMap'
+import {useMapViewInteractions} from '../../hooks/map/useMapViewInteractions/useMapViewInteractions'
+import {useMapContextMenuState} from '../../hooks/map/useMapContextMenuState'
+import {useTrackManagementWindows} from '../../hooks/map/useTrackManagementWindows'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import {useRemappableMapDragPan} from '@/app/hooks/map/useRemappableMapDragPan'
 import {useMapState} from '../../contexts/MapStateContext'
 
 const MAP_STYLES = {
@@ -29,40 +27,28 @@ export default function MapView({mapInteractionsEnabled = true}) {
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
-    const [currentContextMenuElement, setCurrentContextMenuElement] = useState(null)
-    const [trackManagementWindows, setTrackManagementWindows] = useState([])
+    const mapStyle = MAP_STYLES[theme.palette.mode]
 
     const {mapRef, mapReady} = useMapLibreMap({
         mapContainerRef,
-        initialStyle: MAP_STYLES[theme.palette.mode],
+        initialStyle: mapStyle,
         onError: addAlarmAlert,
     })
 
-    useEffect(() => {
-        if (!mapReady) return
+    useRegisteredMap(mapRef, mapReady, registerMap)
 
-        registerMap(mapRef.current)
+    const interactionsEnabled = useMapViewInteractions(
+        mapRef,
+        mapReady,
+        mapInteractionsEnabled,
+        mapStyle,
+    )
 
-        return () => {
-            registerMap(null)
-        }
-    }, [mapReady, mapRef, registerMap])
-
-    useMapStyle(mapRef, MAP_STYLES[theme.palette.mode])
-    useKeyboardCameraControls(mapRef, mapReady && mapInteractionsEnabled)
-    useRemappableMapDragPan(mapRef, mapReady && mapInteractionsEnabled)
-    useMapCursor(mapRef, mapReady && mapInteractionsEnabled)
-    useMapInteractionGuards(mapRef, mapReady && mapInteractionsEnabled)
-    useMapResize(mapRef, mapReady)
-
-    const handleBearingRangeContextMenu = useCallback(({ point, lngLat, line }) => {
-        setCurrentContextMenuElement({
-            x: point.x,
-            y: point.y,
-            lngLat,
-            line,
-        })
-    }, [])
+    const {
+        currentContextMenuElement,
+        openBearingRangeContextMenu,
+        closeContextMenu,
+    } = useMapContextMenuState(contextMenuRef)
 
     const {
         removeBearingRangeLine,
@@ -70,61 +56,29 @@ export default function MapView({mapInteractionsEnabled = true}) {
         isDrawingBearingRangeLine,
         lines,
     } = useBearingRangeTool(mapRef, mapReady, {
-        onContextMenu: handleBearingRangeContextMenu,
+        onContextMenu: openBearingRangeContextMenu,
         lineColor: theme.palette.mode === 'dark' ? '#fff' : '#111',
     })
 
     const handleRemoveBearingRangeLine = useCallback((lineId) => {
         removeBearingRangeLine(lineId)
-        setCurrentContextMenuElement(null)
-    }, [removeBearingRangeLine])
+        closeContextMenu()
+    }, [removeBearingRangeLine, closeContextMenu])
 
     const handleClearBearingRangeLines = useCallback(() => {
         clearBearingRangeLines()
-        setCurrentContextMenuElement(null)
-    }, [clearBearingRangeLines])
+        closeContextMenu()
+    }, [clearBearingRangeLines, closeContextMenu])
 
-    const handleInitiateTrack = useCallback((elementContainer) => {
-        const windowId = crypto.randomUUID()
+    const {
+        trackManagementWindows,
+        initiateTrack,
+        closeTrackManagementWindow,
+    } = useTrackManagementWindows({
+        onInitiateTrack: closeContextMenu,
+    })
 
-        setTrackManagementWindows((currentWindows) => [
-            ...currentWindows,
-            {
-                id: windowId,
-                trackId: windowId.slice(0, 8).toUpperCase(),
-                x: elementContainer.x,
-                y: elementContainer.y,
-                lngLat: elementContainer.lngLat,
-                line: elementContainer.line,
-            },
-        ])
-
-        setCurrentContextMenuElement(null)
-    }, [])
-
-    const handleCloseTrackManagementWindow = useCallback((windowId) => {
-        setTrackManagementWindows((currentWindows) => (
-            currentWindows.filter((trackManagementWindow) => trackManagementWindow.id !== windowId)
-        ))
-    }, [])
-
-    useEffect(() => {
-        if (!currentContextMenuElement) return
-
-        const handlePointerDown = (event) => {
-            if (contextMenuRef.current?.contains(event.target)) return
-
-            setCurrentContextMenuElement(null)
-        }
-
-        document.addEventListener('pointerdown', handlePointerDown)
-
-        return () => {
-            document.removeEventListener('pointerdown', handlePointerDown)
-        }
-    }, [currentContextMenuElement])
-
-    const cursorInfo = useCursorHooks(mapRef, mapReady && mapInteractionsEnabled, mapContainerRef)
+    const cursorInfo = useCursorHooks(mapRef, interactionsEnabled, mapContainerRef)
     const visibleCursorInfo = isDrawingBearingRangeLine ? null : cursorInfo
     const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [visibleCursorInfo])
     const contextMenuSize = useMeasuredElementSize(contextMenuRef, [currentContextMenuElement])
@@ -156,7 +110,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
                 elementContainer={currentContextMenuElement}
                 contextMenuSize={contextMenuSize}
                 mapContainerRef={mapContainerRef}
-                onInitiateTrack={handleInitiateTrack}
+                onInitiateTrack={initiateTrack}
                 onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
                 onClearBearingRangeLines={handleClearBearingRangeLines}
                 lines={lines}
@@ -167,7 +121,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
                     key={trackManagementWindow.id}
                     trackManagementWindow={trackManagementWindow}
                     mapContainerRef={mapContainerRef}
-                    onClose={handleCloseTrackManagementWindow}
+                    onClose={closeTrackManagementWindow}
                 />
             ))}
         </div>
