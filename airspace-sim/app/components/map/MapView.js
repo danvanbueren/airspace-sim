@@ -10,6 +10,7 @@ import {useRegisteredMap} from '../../hooks/map/useRegisteredMap'
 import {useMapViewInteractions} from '../../hooks/map/useMapViewInteractions/useMapViewInteractions'
 import {useMapContextMenuState} from '../../hooks/map/useMapContextMenuState'
 import {useTrackManagementWindows} from '../../hooks/map/useTrackManagementWindows'
+import {useTrackMapLayer} from '../../hooks/map/useTrackMapLayer'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
@@ -21,18 +22,56 @@ const MAP_STYLES = {
     dark: 'map-styles/dark-matter-gl-style.json',
 }
 
+function parseOptionalNumber(value) {
+    if (value === '' || value === null || value === undefined) {
+        return null
+    }
+
+    const number = Number(value)
+
+    return Number.isFinite(number) ? number : null
+}
+
+function createTrackFromManagementWindow(trackManagementWindow) {
+    return {
+        id: trackManagementWindow.trackId,
+        trackId: trackManagementWindow.trackId,
+        longitude: trackManagementWindow.lngLat.lng,
+        latitude: trackManagementWindow.lngLat.lat,
+        domain: trackManagementWindow.domain,
+        identity: trackManagementWindow.identity,
+        type: trackManagementWindow.type,
+        heading: parseOptionalNumber(trackManagementWindow.heading) ?? 0,
+        speed: parseOptionalNumber(trackManagementWindow.speed),
+        altitude: parseOptionalNumber(trackManagementWindow.altitude),
+        callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
+    }
+}
+
 export default function MapView({mapInteractionsEnabled = true}) {
     const theme = useTheme()
     const {addAlarmAlert, registerMap} = useMapState()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
+    const openTrackManagementWindowRef = useRef(null)
     const mapStyle = MAP_STYLES[theme.palette.mode]
 
     const {mapRef, mapReady} = useMapLibreMap({
         mapContainerRef,
         initialStyle: mapStyle,
         onError: addAlarmAlert,
+    })
+
+    const handleMapTrackClick = useCallback((track, event) => {
+        openTrackManagementWindowRef.current?.(track, event)
+    }, [])
+
+    const trackMapLayer = useTrackMapLayer(mapRef, mapReady, {
+        iconSize: 40,
+        showLabels: true,
+        styleKey: mapStyle,
+        onTrackClick: handleMapTrackClick,
     })
 
     useRegisteredMap(mapRef, mapReady, registerMap)
@@ -70,13 +109,27 @@ export default function MapView({mapInteractionsEnabled = true}) {
         closeContextMenu()
     }, [clearBearingRangeLines, closeContextMenu])
 
+    const handleTrackCreated = useCallback((trackManagementWindow) => {
+        trackMapLayer.upsertTrack(createTrackFromManagementWindow(trackManagementWindow))
+    }, [trackMapLayer])
+
+    const handleTrackUpdated = useCallback((trackManagementWindow) => {
+        trackMapLayer.upsertTrack(createTrackFromManagementWindow(trackManagementWindow))
+    }, [trackMapLayer])
+
     const {
         trackManagementWindows,
         initiateTrack,
+        openTrackManagementWindow,
+        updateTrackManagementWindow,
         closeTrackManagementWindow,
     } = useTrackManagementWindows({
         onInitiateTrack: closeContextMenu,
+        onTrackCreated: handleTrackCreated,
+        onTrackUpdated: handleTrackUpdated,
     })
+
+    openTrackManagementWindowRef.current = openTrackManagementWindow
 
     const cursorInfo = useCursorHooks(mapRef, interactionsEnabled, mapContainerRef)
     const visibleCursorInfo = isDrawingBearingRangeLine ? null : cursorInfo
@@ -121,6 +174,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
                     key={trackManagementWindow.id}
                     trackManagementWindow={trackManagementWindow}
                     mapContainerRef={mapContainerRef}
+                    onChange={updateTrackManagementWindow}
                     onClose={closeTrackManagementWindow}
                 />
             ))}

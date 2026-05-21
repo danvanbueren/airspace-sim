@@ -25,23 +25,38 @@ export function useMapCursor(mapRef, enabled) {
             return
         }
 
+        const getCursorOverride = () => {
+            return map.getCanvas().dataset.cursorOverride
+        }
+
+        const setCursor = (cursor, {allowOverride = true} = {}) => {
+            const cursorOverride = getCursorOverride()
+
+            if (allowOverride && cursorOverride && !isDragButtonDown && !isShiftDown) {
+                map.getCanvas().style.cursor = cursorOverride
+                return
+            }
+
+            map.getCanvas().style.cursor = cursor
+        }
+
         const setDefaultCursor = () => {
             isDragButtonDown = false
-            map.getCanvas().style.cursor = isShiftDown && isPointerOverMap ? 'nesw-resize' : 'crosshair'
+            setCursor(isShiftDown && isPointerOverMap ? 'nesw-resize' : 'crosshair')
         }
 
         const setActiveCursor = () => {
             if (isShiftDown && isPointerOverMap) {
-                map.getCanvas().style.cursor = 'nesw-resize'
+                setCursor('nesw-resize', {allowOverride: false})
                 return
             }
 
             if (isDragButtonDown) {
-                map.getCanvas().style.cursor = 'grabbing'
+                setCursor('grabbing', {allowOverride: false})
                 return
             }
 
-            map.getCanvas().style.cursor = 'crosshair'
+            setCursor('crosshair')
         }
 
         const setCustomCursor = (event) => {
@@ -54,7 +69,7 @@ export function useMapCursor(mapRef, enabled) {
             }
 
             if (pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.pointerButton))
-                map.getCanvas().style.cursor = 'pointer'
+                setCursor('pointer', {allowOverride: false})
         }
 
         const keepDragCursor = () => {
@@ -109,6 +124,7 @@ export function useMapCursor(mapRef, enabled) {
             window.removeEventListener('keydown', handleKeyDown)
             window.removeEventListener('keyup', handleKeyUp)
             window.removeEventListener('mouseup', setDefaultCursor)
+            delete map.getCanvas().dataset.cursorOverride
             map.getCanvas().style.cursor = ''
         }
     }, [mapRef, enabled, mapCursorBindings])
