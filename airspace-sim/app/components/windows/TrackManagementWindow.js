@@ -1,6 +1,6 @@
 'use client'
 
-import {forwardRef} from 'react'
+import {forwardRef, useCallback, useLayoutEffect, useRef, useState} from 'react'
 import {
     Box,
     Button,
@@ -22,25 +22,34 @@ import {
     TRACK_TYPES,
 } from '@/app/tools/milstd2525/trackSymbolCodes'
 
-function getTrackManagementWindowPosition(trackManagementWindow, mapContainerRef) {
-    const edgePadding = 8
+const EDGE_PADDING = 8
+const WINDOW_WIDTH = 300
+const FALLBACK_WINDOW_HEIGHT = 520
+
+function getTrackManagementWindowPosition(trackManagementWindow, mapContainerRef, windowSize) {
     const containerWidth = mapContainerRef.current?.clientWidth ?? window.innerWidth
     const containerHeight = mapContainerRef.current?.clientHeight ?? window.innerHeight
-    const windowWidth = 300
-    const estimatedWindowHeight = 220
+    const windowWidth = Math.min(windowSize.width || WINDOW_WIDTH, Math.max(0, containerWidth - (EDGE_PADDING * 2)))
+    const windowHeight = Math.min(
+        windowSize.height || FALLBACK_WINDOW_HEIGHT,
+        Math.max(0, containerHeight - (EDGE_PADDING * 2)),
+    )
 
     let left = trackManagementWindow.x
     let top = trackManagementWindow.y
 
-    if (left + windowWidth > containerWidth - edgePadding)
+    if (left + windowWidth > containerWidth - EDGE_PADDING)
         left = trackManagementWindow.x - windowWidth
 
-    if (top + estimatedWindowHeight > containerHeight - edgePadding)
-        top = trackManagementWindow.y - estimatedWindowHeight
+    if (top + windowHeight > containerHeight - EDGE_PADDING)
+        top = trackManagementWindow.y - windowHeight
+
+    const maxLeft = Math.max(EDGE_PADDING, containerWidth - windowWidth - EDGE_PADDING)
+    const maxTop = Math.max(EDGE_PADDING, containerHeight - windowHeight - EDGE_PADDING)
 
     return {
-        left: Math.max(edgePadding, left),
-        top: Math.max(edgePadding, top),
+        left: Math.min(Math.max(EDGE_PADDING, left), maxLeft),
+        top: Math.min(Math.max(EDGE_PADDING, top), maxTop),
     }
 }
 
@@ -75,6 +84,51 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             onClose,
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
+    const paperRef = useRef(null)
+    const [windowSize, setWindowSize] = useState({
+        width: WINDOW_WIDTH,
+        height: FALLBACK_WINDOW_HEIGHT,
+    })
+
+    const setPaperRef = useCallback((node) => {
+        paperRef.current = node
+
+        if (typeof ref === 'function') {
+            ref(node)
+        } else if (ref) {
+            ref.current = node
+        }
+    }, [ref])
+
+    useLayoutEffect(() => {
+        const node = paperRef.current
+
+        if (!node) {
+            return
+        }
+
+        const updateWindowSize = () => {
+            const {width, height} = node.getBoundingClientRect()
+
+            setWindowSize((currentSize) => {
+                if (currentSize.width === width && currentSize.height === height)
+                    return currentSize
+
+                return {width, height}
+            })
+        }
+
+        updateWindowSize()
+
+        if (typeof ResizeObserver === 'undefined') {
+            return
+        }
+
+        const resizeObserver = new ResizeObserver(updateWindowSize)
+        resizeObserver.observe(node)
+
+        return () => resizeObserver.disconnect()
+    }, [])
 
     const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
         trackManagementWindow.lngLat.lat,
@@ -105,16 +159,17 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
 
     return (
         <Paper
-            ref={ref}
+            ref={setPaperRef}
             elevation={8}
             onClick={(event) => event.stopPropagation()}
             sx={{
                 position: 'absolute',
-                ...getTrackManagementWindowPosition(trackManagementWindow, mapContainerRef),
+                ...getTrackManagementWindowPosition(trackManagementWindow, mapContainerRef, windowSize),
                 zIndex: 10,
-                width: 300,
+                width: WINDOW_WIDTH,
+                maxHeight: `calc(100% - ${EDGE_PADDING * 2}px)`,
                 userSelect: 'none',
-                overflow: 'hidden',
+                overflowY: 'auto',
             }}
         >
             <Box sx={{bgcolor: 'primary.main', p: 2}}>
