@@ -111,9 +111,9 @@ airspace-sim/
 - [React](https://react.dev/) ([docs](https://react.dev/learn)) provides the component model, hooks, context providers, and client-side UI behavior.
 - [Material UI](https://mui.com/material-ui/) ([docs](https://mui.com/material-ui/getting-started/)) provides the UI component library used for panels, buttons, forms, modals, typography, alerts, and layout.
 - [Emotion](https://emotion.sh/docs/introduction) ([docs](https://emotion.sh/docs/introduction)) supports Material UI styling.
-- [MapLibre GL JS](https://maplibre.org/maplibre-gl-js/docs/) ([docs](https://maplibre.org/maplibre-gl-js/docs/)) renders the interactive map and map layers.
-- [milsymbol](https://spatialillusions.com/milsymbol/) ([docs](https://github.com/spatialillusions/milsymbol)) generates MIL-STD-2525-style tactical symbols for simulated tracks.
-- [mgrs](https://www.npmjs.com/package/mgrs) ([package docs](https://www.npmjs.com/package/mgrs)) converts coordinates into MGRS.
+- [MapLibre GL JS](https://maplibre.org/projects/gl-js/) ([docs](https://maplibre.org/maplibre-gl-js/docs/)) renders the interactive map and map layers.
+- [milsymbol](https://www.spatialillusions.com/) ([docs](https://github.com/spatialillusions/milsymbol)) generates MIL-STD-2525-style tactical symbols for simulated tracks.
+- [mgrs](https://www.npmjs.com/package/mgrs) ([package docs](https://github.com/proj4js/mgrs)) converts coordinates into MGRS.
 - [Fontsource Roboto](https://fontsource.org/fonts/roboto) ([docs](https://fontsource.org/docs/getting-started/introduction)) supplies the Roboto font used by Material UI.
 - [npm](https://www.npmjs.com/) ([docs](https://docs.npmjs.com/)) manages dependencies and local scripts.
 
