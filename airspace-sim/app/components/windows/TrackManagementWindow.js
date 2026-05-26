@@ -1,11 +1,13 @@
 'use client'
 
-import {forwardRef} from 'react'
+import {forwardRef, useCallback, useRef} from 'react'
 import {
     Box,
     Button,
+    Checkbox,
     Divider,
     FormControl,
+    FormControlLabel,
     InputLabel,
     MenuItem,
     Paper,
@@ -15,19 +17,22 @@ import {
     Typography,
 } from '@mui/material'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
 import {formatCoordinatePairForGridReferenceSystem} from '@/app/tools/formatting/GridReferenceFormatting'
 import {
     TRACK_DOMAINS,
-    TRACK_IDENTITIES,
-    TRACK_TYPES,
+    TRACK_IDENTITY_OPTIONS,
+    getDefaultTrackTypeForDomain,
+    getTrackTypeOption,
+    getTrackTypeOptionsForDomain,
 } from '@/app/tools/milstd2525/trackSymbolCodes'
 
-function getTrackManagementWindowPosition(trackManagementWindow, mapContainerRef) {
+function getTrackManagementWindowPosition(trackManagementWindow, trackManagementWindowSize, mapContainerRef) {
     const edgePadding = 8
     const containerWidth = mapContainerRef.current?.clientWidth ?? window.innerWidth
     const containerHeight = mapContainerRef.current?.clientHeight ?? window.innerHeight
-    const windowWidth = 300
-    const estimatedWindowHeight = 220
+    const windowWidth = trackManagementWindowSize.width || 300
+    const windowHeight = trackManagementWindowSize.height || 320
 
     let left = trackManagementWindow.x
     let top = trackManagementWindow.y
@@ -35,31 +40,13 @@ function getTrackManagementWindowPosition(trackManagementWindow, mapContainerRef
     if (left + windowWidth > containerWidth - edgePadding)
         left = trackManagementWindow.x - windowWidth
 
-    if (top + estimatedWindowHeight > containerHeight - edgePadding)
-        top = trackManagementWindow.y - estimatedWindowHeight
+    if (top + windowHeight > containerHeight - edgePadding)
+        top = trackManagementWindow.y - windowHeight
 
     return {
         left: Math.max(edgePadding, left),
         top: Math.max(edgePadding, top),
     }
-}
-
-const TRACK_TYPES_BY_DOMAIN = {
-    [TRACK_DOMAINS.AIR]: [
-        TRACK_TYPES.FIGHTER,
-        TRACK_TYPES.TANKER,
-        TRACK_TYPES.AWACS,
-    ],
-    [TRACK_DOMAINS.SURFACE]: [
-        TRACK_TYPES.SURFACE_COMBATANT,
-    ],
-    [TRACK_DOMAINS.SUBSURFACE]: [
-        TRACK_TYPES.SUBMARINE,
-    ],
-    [TRACK_DOMAINS.LAND]: [
-        TRACK_TYPES.GROUND_UNIT,
-    ],
-    [TRACK_DOMAINS.SPACE]: [],
 }
 
 function formatEnumLabel(value) {
@@ -75,6 +62,20 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             onClose,
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
+    const trackManagementWindowRef = useRef(null)
+    const trackManagementWindowSize = useMeasuredElementSize(
+        trackManagementWindowRef,
+        [trackManagementWindow, appSettings.gridReferenceSystem],
+    )
+    const setTrackManagementWindowRef = useCallback((element) => {
+        trackManagementWindowRef.current = element
+
+        if (typeof ref === 'function') {
+            ref(element)
+        } else if (ref) {
+            ref.current = element
+        }
+    }, [ref])
 
     const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
         trackManagementWindow.lngLat.lat,
@@ -82,10 +83,11 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         appSettings.gridReferenceSystem,
     )
 
-    const availableTrackTypes = TRACK_TYPES_BY_DOMAIN[trackManagementWindow.domain] ?? []
-    const selectedTrackType = availableTrackTypes.includes(trackManagementWindow.type)
-        ? trackManagementWindow.type
-        : availableTrackTypes[0] ?? ''
+    const availableTrackTypes = getTrackTypeOptionsForDomain(trackManagementWindow.domain)
+    const selectedTrackType = getTrackTypeOption(
+        trackManagementWindow.type,
+        trackManagementWindow.domain,
+    )?.value ?? getDefaultTrackTypeForDomain(trackManagementWindow.domain)
 
     const updateField = (field, value) => {
         const updates = {
@@ -93,11 +95,9 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         }
 
         if (field === 'domain') {
-            const nextTypes = TRACK_TYPES_BY_DOMAIN[value] ?? []
+            const existingTypeOption = getTrackTypeOption(trackManagementWindow.type, value)
 
-            updates.type = nextTypes.includes(trackManagementWindow.type)
-                ? trackManagementWindow.type
-                : nextTypes[0] ?? ''
+            updates.type = existingTypeOption?.value ?? getDefaultTrackTypeForDomain(value)
         }
 
         onChange(trackManagementWindow.id, updates)
@@ -105,12 +105,16 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
 
     return (
         <Paper
-            ref={ref}
+            ref={setTrackManagementWindowRef}
             elevation={8}
             onClick={(event) => event.stopPropagation()}
             sx={{
                 position: 'absolute',
-                ...getTrackManagementWindowPosition(trackManagementWindow, mapContainerRef),
+                ...getTrackManagementWindowPosition(
+                    trackManagementWindow,
+                    trackManagementWindowSize,
+                    mapContainerRef,
+                ),
                 zIndex: 10,
                 width: 300,
                 userSelect: 'none',
@@ -184,9 +188,9 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         value={trackManagementWindow.identity}
                         onChange={(event) => updateField('identity', event.target.value)}
                     >
-                        {Object.values(TRACK_IDENTITIES).map((identity) => (
-                            <MenuItem key={identity} value={identity}>
-                                {formatEnumLabel(identity)}
+                        {TRACK_IDENTITY_OPTIONS.map((identityOption) => (
+                            <MenuItem key={identityOption.value} value={identityOption.value}>
+                                {identityOption.label}
                             </MenuItem>
                         ))}
                     </Select>
@@ -202,13 +206,25 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         value={selectedTrackType}
                         onChange={(event) => updateField('type', event.target.value)}
                     >
-                        {availableTrackTypes.map((trackType) => (
-                            <MenuItem key={trackType} value={trackType}>
-                                {formatEnumLabel(trackType)}
+                        {availableTrackTypes.map((trackTypeOption) => (
+                            <MenuItem key={trackTypeOption.value} value={trackTypeOption.value}>
+                                {trackTypeOption.label}
                             </MenuItem>
                         ))}
                     </Select>
                 </FormControl>
+
+                <FormControlLabel
+                    control={(
+                        <Checkbox
+                            checked={Boolean(trackManagementWindow.infoFields)}
+                            onChange={(event) => updateField('infoFields', event.target.checked)}
+                            size='small'
+                        />
+                    )}
+                    label='Show symbol info fields'
+                    sx={{m: 0}}
+                />
 
                 <TextField
                     label='Heading'

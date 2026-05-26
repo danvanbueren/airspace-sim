@@ -4,7 +4,7 @@ import {useCallback, useState} from 'react'
 import {
     TRACK_DOMAINS,
     TRACK_IDENTITIES,
-    TRACK_TYPES,
+    getDefaultTrackTypeForDomain,
 } from '../../tools/milstd2525/trackSymbolCodes'
 
 export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTrackUpdated}) {
@@ -22,12 +22,13 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             lngLat: elementContainer.lngLat,
             line: elementContainer.line,
             domain: TRACK_DOMAINS.AIR,
-            identity: TRACK_IDENTITIES.UNKNOWN,
-            type: TRACK_TYPES.FIGHTER,
+            identity: TRACK_IDENTITIES.PENDING,
+            type: getDefaultTrackTypeForDomain(TRACK_DOMAINS.AIR),
             callsign: trackId,
             heading: 0,
             speed: '',
             altitude: '',
+            infoFields: false,
         }
 
         setTrackManagementWindows((currentWindows) => [
@@ -84,6 +85,8 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                 })
             }
 
+            const domain = track.domain ?? TRACK_DOMAINS.AIR
+
             return [
                 ...currentWindows,
                 {
@@ -93,13 +96,14 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     y: point.y,
                     lngLat,
                     line: null,
-                    domain: track.domain,
-                    identity: track.identity,
-                    type: track.type,
+                    domain,
+                    identity: track.identity ?? TRACK_IDENTITIES.PENDING,
+                    type: track.type ?? getDefaultTrackTypeForDomain(domain),
                     callsign: track.callsign ?? track.trackId ?? track.id,
                     heading: track.heading ?? 0,
                     speed: track.speed ?? '',
                     altitude: track.altitude ?? '',
+                    infoFields: Boolean(track.infoFields),
                 },
             ]
         })

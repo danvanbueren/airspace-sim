@@ -2,7 +2,10 @@
 
 import {useCallback, useEffect, useMemo, useRef} from 'react'
 import {addMilStd2525IconToMap} from '../../tools/milstd2525/createMilStd2525Icon'
-import {getTrackSymbolCode} from '../../tools/milstd2525/trackSymbolCodes'
+import {
+    getTrackSymbolCode,
+    getTrackSymbolOptions,
+} from '../../tools/milstd2525/trackSymbolCodes'
 
 const TRACK_SOURCE_ID = 'tracks'
 const TRACK_LAYER_ID = 'tracks-symbols'
@@ -28,19 +31,77 @@ function getTrackId(track) {
     return track.id ?? track.trackId ?? track.mtiId
 }
 
-function getTrackIconId(track, symbolCode) {
-    const size = track.iconSize ?? 'default'
-    const infoFields = track.infoFields ? 'info' : 'clean'
+function toFiniteNumber(value, fallback = null) {
+    if (value === '' || value === null || value === undefined) {
+        return fallback
+    }
+
+    const number = Number(value)
+
+    return Number.isFinite(number) ? number : fallback
+}
+
+function stableSerialize(value) {
+    if (value === null || value === undefined) {
+        return ''
+    }
+
+    if (Array.isArray(value)) {
+        return `[${value.map(stableSerialize).join(',')}]`
+    }
+
+    if (typeof value === 'object') {
+        return `{${Object.keys(value).sort().map((key) => (
+            `${key}:${stableSerialize(value[key])}`
+        )).join(',')}}`
+    }
+
+    return String(value)
+}
+
+function hashString(value) {
+    let hash = 0
+
+    for (let index = 0; index < value.length; index += 1) {
+        hash = ((hash << 5) - hash + value.charCodeAt(index)) | 0
+    }
+
+    return Math.abs(hash).toString(36)
+}
+
+function getTrackIconRenderOptions(track, defaultIconSize) {
+    const symbolOptions = {
+        ...getTrackSymbolOptions(track),
+        ...track.symbolOptions,
+    }
+    const trackId = getTrackId(track)
+
+    return {
+        size: track.iconSize ?? defaultIconSize,
+        label: track.iconLabel ?? (
+            track.infoFields ? track.callsign ?? track.name ?? trackId : undefined
+        ),
+        heading: toFiniteNumber(track.iconHeading ?? track.heading),
+        speed: track.iconSpeed ?? track.speed,
+        altitude: track.iconAltitude ?? track.altitude,
+        infoFields: track.infoFields ?? false,
+        civilianColor: symbolOptions.civilianColor,
+        symbolOptions,
+    }
+}
+
+function getTrackIconId(track, symbolCode, defaultIconSize) {
+    const renderOptions = getTrackIconRenderOptions(track, defaultIconSize)
+    const renderOptionsHash = hashString(stableSerialize(renderOptions))
 
     return [
         'milstd2525',
         symbolCode,
-        size,
-        infoFields,
+        renderOptionsHash,
     ].join(':')
 }
 
-function trackToFeature(track) {
+function trackToFeature(track, defaultIconSize) {
     const coordinates = normalizeTrackCoordinates(track)
 
     if (!coordinates) {
@@ -54,7 +115,7 @@ function trackToFeature(track) {
     }
 
     const symbolCode = track.symbolCode ?? getTrackSymbolCode(track)
-    const iconId = track.iconId ?? getTrackIconId(track, symbolCode)
+    const iconId = track.iconId ?? getTrackIconId(track, symbolCode, defaultIconSize)
 
     return {
         type: 'Feature',
@@ -69,7 +130,7 @@ function trackToFeature(track) {
             icon: iconId,
             symbolCode,
             label: track.label ?? track.callsign ?? track.name ?? id,
-            heading: Number.isFinite(track.heading) ? track.heading : 0,
+            heading: toFiniteNumber(track.heading, 0),
             domain: track.domain ?? null,
             identity: track.identity ?? null,
             trackType: track.type ?? null,
@@ -81,11 +142,11 @@ function trackToFeature(track) {
     }
 }
 
-function createFeatureCollection(tracks) {
+function createFeatureCollection(tracks, defaultIconSize) {
     const features = []
 
     tracks.forEach((track) => {
-        const feature = trackToFeature(track)
+        const feature = trackToFeature(track, defaultIconSize)
 
         if (feature) {
             features.push(feature)
@@ -204,11 +265,11 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
             }
 
             const source = getSource(map)
-            const featureCollection = createFeatureCollection(tracksRef.current)
+            const featureCollection = createFeatureCollection(tracksRef.current, iconSize)
 
             source?.setData(featureCollection)
         })
-    }, [mapRef])
+    }, [iconSize, mapRef])
 
     const ensureTrackIcon = useCallback(async (track) => {
         const map = mapRef.current
@@ -218,7 +279,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         }
 
         const symbolCode = track.symbolCode ?? getTrackSymbolCode(track)
-        const iconId = track.iconId ?? getTrackIconId(track, symbolCode)
+        const iconId = track.iconId ?? getTrackIconId(track, symbolCode, iconSize)
 
         if (
             registeredIconIdsRef.current.has(iconId)
@@ -232,18 +293,17 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         pendingIconIdsRef.current.add(iconId)
 
         try {
-            await addMilStd2525IconToMap(map, iconId, symbolCode, {
-                size: track.iconSize ?? iconSize,
-                label: track.iconLabel,
-                heading: track.iconHeading,
-                speed: track.iconSpeed,
-                altitude: track.iconAltitude,
-                infoFields: track.infoFields ?? false,
-                symbolOptions: track.symbolOptions,
-            })
+            const addedIcon = await addMilStd2525IconToMap(
+                map,
+                iconId,
+                symbolCode,
+                getTrackIconRenderOptions(track, iconSize),
+            )
 
-            registeredIconIdsRef.current.add(iconId)
-            scheduleSetData()
+            if (addedIcon) {
+                registeredIconIdsRef.current.add(iconId)
+                scheduleSetData()
+            }
         } finally {
             pendingIconIdsRef.current.delete(iconId)
         }
@@ -252,9 +312,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
     const ensureTrackLayer = useCallback(() => {
         const map = mapRef.current
 
-        if (!map || !map.isStyleLoaded()) {
-            return
-        }
+        if (!map || !map.isStyleLoaded()) return
 
         addTrackSource(map)
         addTrackLayers(map)

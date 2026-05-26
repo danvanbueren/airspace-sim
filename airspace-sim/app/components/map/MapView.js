@@ -44,6 +44,7 @@ function createTrackFromManagementWindow(trackManagementWindow) {
         heading: parseOptionalNumber(trackManagementWindow.heading) ?? 0,
         speed: parseOptionalNumber(trackManagementWindow.speed),
         altitude: parseOptionalNumber(trackManagementWindow.altitude),
+        infoFields: Boolean(trackManagementWindow.infoFields),
         callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
     }
 }
