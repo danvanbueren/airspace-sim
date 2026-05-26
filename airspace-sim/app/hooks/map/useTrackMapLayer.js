@@ -78,6 +78,10 @@ function getTrackIconRenderOptions(track, defaultIconSize) {
 
     return {
         size: track.iconSize ?? defaultIconSize,
+        domain: track.domain,
+        identity: track.identity,
+        type: track.type,
+        useFamiliarIcon: track.useFamiliarIcon ?? symbolOptions.useFamiliarIcon ?? true,
         label: track.iconLabel ?? (
             track.infoFields ? track.callsign ?? track.name ?? trackId : undefined
         ),

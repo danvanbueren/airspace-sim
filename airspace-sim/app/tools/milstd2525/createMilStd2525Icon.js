@@ -1,6 +1,7 @@
 'use client'
 
 import ms from 'milsymbol'
+import {createFamiliarTrackIconCanvas} from './createFamiliarTrackIcon'
 
 const FALLBACK_SYMBOL_CODE = '10011000000000000000'
 
@@ -38,8 +39,12 @@ export function createMilStd2525Canvas(symbolCode, options = {}) {
     return symbol.asCanvas()
 }
 
+export function createTrackIconCanvas(symbolCode, options = {}) {
+    return createFamiliarTrackIconCanvas(options) ?? createMilStd2525Canvas(symbolCode, options)
+}
+
 export async function createMilStd2525ImageBitmap(symbolCode, options = {}) {
-    const canvas = createMilStd2525Canvas(symbolCode, options)
+    const canvas = createTrackIconCanvas(symbolCode, options)
 
     if (typeof createImageBitmap !== 'function') {
         return canvas
