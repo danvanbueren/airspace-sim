@@ -3,11 +3,11 @@
 import {forwardRef, useCallback, useRef} from 'react'
 import {
     Box,
-    Button,
     Checkbox,
     Divider,
     FormControl,
     FormControlLabel,
+    IconButton,
     InputLabel,
     MenuItem,
     Paper,
@@ -16,6 +16,8 @@ import {
     TextField,
     Typography,
 } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
+import OpenWithIcon from '@mui/icons-material/OpenWith'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
 import {formatCoordinatePairForGridReferenceSystem} from '@/app/tools/formatting/GridReferenceFormatting'
@@ -49,6 +51,21 @@ function getTrackManagementWindowPosition(trackManagementWindow, trackManagement
     }
 }
 
+function getBoundedTrackManagementWindowPosition(left, top, trackManagementWindowSize, mapContainerRef) {
+    const edgePadding = 8
+    const containerWidth = mapContainerRef.current?.clientWidth ?? window.innerWidth
+    const containerHeight = mapContainerRef.current?.clientHeight ?? window.innerHeight
+    const windowWidth = trackManagementWindowSize.width || 300
+    const windowHeight = trackManagementWindowSize.height || 320
+    const maxLeft = Math.max(edgePadding, containerWidth - windowWidth - edgePadding)
+    const maxTop = Math.max(edgePadding, containerHeight - windowHeight - edgePadding)
+
+    return {
+        x: Math.min(Math.max(edgePadding, left), maxLeft),
+        y: Math.min(Math.max(edgePadding, top), maxTop),
+    }
+}
+
 function formatEnumLabel(value) {
     return value
         .replace(/([A-Z])/g, ' $1')
@@ -59,10 +76,13 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             trackManagementWindow,
                                                                             mapContainerRef,
                                                                             onChange,
+                                                                            onMove,
+                                                                            onActivate,
                                                                             onClose,
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
     const trackManagementWindowRef = useRef(null)
+    const dragStateRef = useRef(null)
     const trackManagementWindowSize = useMeasuredElementSize(
         trackManagementWindowRef,
         [trackManagementWindow, appSettings.gridReferenceSystem],
@@ -103,11 +123,88 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         onChange(trackManagementWindow.id, updates)
     }
 
+    const activateWindow = useCallback(() => {
+        if (trackManagementWindow.dismissOnMapClick) {
+            onActivate?.(trackManagementWindow.id)
+        }
+    }, [onActivate, trackManagementWindow.dismissOnMapClick, trackManagementWindow.id])
+
+    const handleWindowPointerDown = useCallback((event) => {
+        event.stopPropagation()
+        activateWindow()
+    }, [activateWindow])
+
+    const handleHeaderPointerDown = useCallback((event) => {
+        if (event.button !== 0) {
+            return
+        }
+
+        event.stopPropagation()
+        event.preventDefault()
+        activateWindow()
+
+        const trackManagementWindowElement = trackManagementWindowRef.current
+        const mapContainerElement = mapContainerRef.current
+
+        if (!trackManagementWindowElement || !mapContainerElement) {
+            return
+        }
+
+        const windowRect = trackManagementWindowElement.getBoundingClientRect()
+        const containerRect = mapContainerElement.getBoundingClientRect()
+
+        dragStateRef.current = {
+            pointerId: event.pointerId,
+            offsetX: event.clientX - windowRect.left,
+            offsetY: event.clientY - windowRect.top,
+            containerLeft: containerRect.left,
+            containerTop: containerRect.top,
+        }
+
+        event.currentTarget.setPointerCapture?.(event.pointerId)
+    }, [activateWindow, mapContainerRef])
+
+    const handleHeaderPointerMove = useCallback((event) => {
+        const dragState = dragStateRef.current
+
+        if (!dragState || dragState.pointerId !== event.pointerId) {
+            return
+        }
+
+        event.preventDefault()
+
+        const left = event.clientX - dragState.containerLeft - dragState.offsetX
+        const top = event.clientY - dragState.containerTop - dragState.offsetY
+
+        onMove?.(
+            trackManagementWindow.id,
+            getBoundedTrackManagementWindowPosition(
+                left,
+                top,
+                trackManagementWindowSize,
+                mapContainerRef,
+            ),
+        )
+    }, [mapContainerRef, onMove, trackManagementWindow.id, trackManagementWindowSize])
+
+    const handleHeaderPointerUp = useCallback((event) => {
+        if (dragStateRef.current?.pointerId !== event.pointerId) {
+            return
+        }
+
+        if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId)
+        }
+
+        dragStateRef.current = null
+    }, [])
+
     return (
         <Paper
             ref={setTrackManagementWindowRef}
             elevation={8}
             onClick={(event) => event.stopPropagation()}
+            onPointerDown={handleWindowPointerDown}
             sx={{
                 position: 'absolute',
                 ...getTrackManagementWindowPosition(
@@ -121,17 +218,54 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 overflow: 'hidden',
             }}
         >
-            <Box sx={{bgcolor: 'primary.main', p: 2}}>
+            <Box
+                onPointerDown={handleHeaderPointerDown}
+                onPointerMove={handleHeaderPointerMove}
+                onPointerUp={handleHeaderPointerUp}
+                onPointerCancel={handleHeaderPointerUp}
+                sx={{
+                    bgcolor: 'primary.main',
+                    px: 2,
+                    py: 1.25,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    cursor: 'move',
+                    touchAction: 'none',
+                }}
+            >
+                <OpenWithIcon
+                    sx={{
+                        color: 'primary.contrastText',
+                        fontSize: '1rem',
+                    }}
+                />
                 <Typography
                     sx={{
                         fontWeight: 'bold',
                         fontFamily: 'monospace',
                         color: 'primary.contrastText',
                         fontSize: '0.9rem',
+                        flexGrow: 1,
                     }}
                 >
                     Track Management
                 </Typography>
+                <IconButton
+                    aria-label='Close track management window'
+                    size='small'
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                        event.stopPropagation()
+                        onClose(trackManagementWindow.id)
+                    }}
+                    sx={{
+                        color: 'primary.contrastText',
+                        p: 0.25,
+                    }}
+                >
+                    <CloseIcon fontSize='small'/>
+                </IconButton>
             </Box>
 
             <Stack spacing={1.5} sx={{p: 2}}>
@@ -270,17 +404,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     }}
                     fullWidth
                 />
-
-                <Button
-                    color='primary'
-                    size='small'
-                    variant='outlined'
-                    onClick={() => onClose(trackManagementWindow.id)}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
-                    fullWidth
-                >
-                    Close
-                </Button>
             </Stack>
         </Paper>
     )

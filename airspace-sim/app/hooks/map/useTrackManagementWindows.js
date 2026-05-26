@@ -29,6 +29,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             speed: '',
             altitude: '',
             infoFields: false,
+            dismissOnMapClick: true,
         }
 
         setTrackManagementWindows((currentWindows) => [
@@ -50,6 +51,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                 const updatedTrackManagementWindow = {
                     ...trackManagementWindow,
                     ...updates,
+                    dismissOnMapClick: false,
                 }
 
                 onTrackUpdated?.(updatedTrackManagementWindow)
@@ -61,8 +63,9 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
 
     const openTrackManagementWindow = useCallback((track, mapClickEvent) => {
         setTrackManagementWindows((currentWindows) => {
+            const trackId = track.trackId ?? track.id
             const existingWindow = currentWindows.find((trackManagementWindow) => (
-                trackManagementWindow.trackId === track.trackId
+                trackManagementWindow.trackId === trackId
             ))
 
             const point = mapClickEvent?.point ?? {x: 0, y: 0}
@@ -73,7 +76,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
 
             if (existingWindow) {
                 return currentWindows.map((trackManagementWindow) => {
-                    if (trackManagementWindow.trackId !== track.trackId) {
+                    if (trackManagementWindow.trackId !== trackId) {
                         return trackManagementWindow
                     }
 
@@ -81,6 +84,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                         ...trackManagementWindow,
                         x: point.x,
                         y: point.y,
+                        dismissOnMapClick: false,
                     }
                 })
             }
@@ -90,8 +94,8 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             return [
                 ...currentWindows,
                 {
-                    id: `track-${track.trackId ?? track.id}`,
-                    trackId: track.trackId ?? track.id,
+                    id: `track-${trackId}`,
+                    trackId,
                     x: point.x,
                     y: point.y,
                     lngLat,
@@ -104,9 +108,46 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     speed: track.speed ?? '',
                     altitude: track.altitude ?? '',
                     infoFields: Boolean(track.infoFields),
+                    dismissOnMapClick: false,
                 },
             ]
         })
+    }, [])
+
+    const moveTrackManagementWindow = useCallback((windowId, position) => {
+        setTrackManagementWindows((currentWindows) => (
+            currentWindows.map((trackManagementWindow) => {
+                if (trackManagementWindow.id !== windowId) {
+                    return trackManagementWindow
+                }
+
+                return {
+                    ...trackManagementWindow,
+                    ...position,
+                }
+            })
+        ))
+    }, [])
+
+    const markTrackManagementWindowPersistent = useCallback((windowId) => {
+        setTrackManagementWindows((currentWindows) => (
+            currentWindows.map((trackManagementWindow) => {
+                if (trackManagementWindow.id !== windowId) {
+                    return trackManagementWindow
+                }
+
+                return {
+                    ...trackManagementWindow,
+                    dismissOnMapClick: false,
+                }
+            })
+        ))
+    }, [])
+
+    const closeMapDismissibleTrackManagementWindows = useCallback(() => {
+        setTrackManagementWindows((currentWindows) => (
+            currentWindows.filter((trackManagementWindow) => !trackManagementWindow.dismissOnMapClick)
+        ))
     }, [])
 
     const closeTrackManagementWindow = useCallback((windowId) => {
@@ -120,6 +161,9 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         initiateTrack,
         openTrackManagementWindow,
         updateTrackManagementWindow,
+        moveTrackManagementWindow,
+        markTrackManagementWindowPersistent,
+        closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
     }
 }

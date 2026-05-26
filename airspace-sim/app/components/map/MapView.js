@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useRef} from 'react'
+import {useCallback, useEffect, useRef} from 'react'
 import {useTheme} from '@mui/material/styles'
 import {useCursorHooks} from '../../hooks/map/useCursorHooks'
 import {useMapLibreMap} from '../../hooks/map/useMapLibreMap'
@@ -56,6 +56,7 @@ export default function MapView({mapInteractionsEnabled = true}) {
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
     const openTrackManagementWindowRef = useRef(null)
+    const closeMapDismissibleTrackManagementWindowsRef = useRef(null)
     const mapStyle = MAP_STYLES[theme.palette.mode]
 
     const {mapRef, mapReady} = useMapLibreMap({
@@ -123,6 +124,9 @@ export default function MapView({mapInteractionsEnabled = true}) {
         initiateTrack,
         openTrackManagementWindow,
         updateTrackManagementWindow,
+        moveTrackManagementWindow,
+        markTrackManagementWindowPersistent,
+        closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
     } = useTrackManagementWindows({
         onInitiateTrack: closeContextMenu,
@@ -131,6 +135,43 @@ export default function MapView({mapInteractionsEnabled = true}) {
     })
 
     openTrackManagementWindowRef.current = openTrackManagementWindow
+    closeMapDismissibleTrackManagementWindowsRef.current = closeMapDismissibleTrackManagementWindows
+
+    useEffect(() => {
+        if (!mapReady || !mapRef.current) {
+            return
+        }
+
+        const map = mapRef.current
+
+        const handleMapClick = (event) => {
+            if (event.defaultPrevented) {
+                return
+            }
+
+            const trackLayers = [
+                trackMapLayer.layerId,
+                trackMapLayer.labelLayerId,
+            ].filter((layerId) => map.getLayer(layerId))
+
+            const clickedTrack = trackLayers.length > 0 && map.queryRenderedFeatures(
+                event.point,
+                {layers: trackLayers},
+            ).length > 0
+
+            if (clickedTrack) {
+                return
+            }
+
+            closeMapDismissibleTrackManagementWindowsRef.current?.()
+        }
+
+        map.on('click', handleMapClick)
+
+        return () => {
+            map.off('click', handleMapClick)
+        }
+    }, [mapReady, mapRef, trackMapLayer.layerId, trackMapLayer.labelLayerId])
 
     const cursorInfo = useCursorHooks(mapRef, interactionsEnabled, mapContainerRef)
     const visibleCursorInfo = isDrawingBearingRangeLine ? null : cursorInfo
@@ -176,6 +217,8 @@ export default function MapView({mapInteractionsEnabled = true}) {
                     trackManagementWindow={trackManagementWindow}
                     mapContainerRef={mapContainerRef}
                     onChange={updateTrackManagementWindow}
+                    onMove={moveTrackManagementWindow}
+                    onActivate={markTrackManagementWindowPersistent}
                     onClose={closeTrackManagementWindow}
                 />
             ))}
