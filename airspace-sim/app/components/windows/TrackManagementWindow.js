@@ -17,7 +17,7 @@ import {
     Typography,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import OpenWithIcon from '@mui/icons-material/OpenWith'
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
 import {formatCoordinatePairForGridReferenceSystem} from '@/app/tools/formatting/GridReferenceFormatting'
@@ -78,7 +78,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             onChange,
                                                                             onMove,
                                                                             onActivate,
+                                                                            onClaimKeyboardCustody,
                                                                             onClose,
+                                                                            hasKeyboardCustody = false,
+                                                                            zIndex,
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
     const trackManagementWindowRef = useRef(null)
@@ -132,7 +135,8 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     const handleWindowPointerDown = useCallback((event) => {
         event.stopPropagation()
         activateWindow()
-    }, [activateWindow])
+        onClaimKeyboardCustody?.(trackManagementWindow.id)
+    }, [activateWindow, onClaimKeyboardCustody, trackManagementWindow.id])
 
     const handleHeaderPointerDown = useCallback((event) => {
         if (event.button !== 0) {
@@ -142,6 +146,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         event.stopPropagation()
         event.preventDefault()
         activateWindow()
+        onClaimKeyboardCustody?.(trackManagementWindow.id)
 
         const trackManagementWindowElement = trackManagementWindowRef.current
         const mapContainerElement = mapContainerRef.current
@@ -162,7 +167,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         }
 
         event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [activateWindow, mapContainerRef])
+    }, [activateWindow, mapContainerRef, onClaimKeyboardCustody, trackManagementWindow.id])
 
     const handleHeaderPointerMove = useCallback((event) => {
         const dragState = dragStateRef.current
@@ -205,18 +210,22 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             elevation={8}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={handleWindowPointerDown}
-            sx={{
+            sx={(theme) => ({
                 position: 'absolute',
                 ...getTrackManagementWindowPosition(
                     trackManagementWindow,
                     trackManagementWindowSize,
                     mapContainerRef,
                 ),
-                zIndex: 10,
+                zIndex,
                 width: 300,
+                pointerEvents: 'auto',
                 userSelect: 'none',
                 overflow: 'hidden',
-            }}
+                ...(hasKeyboardCustody && {
+                    boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[8]}`,
+                }),
+            })}
         >
             <Box
                 onPointerDown={handleHeaderPointerDown}
@@ -234,7 +243,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     touchAction: 'none',
                 }}
             >
-                <OpenWithIcon
+                <DragIndicatorIcon
                     sx={{
                         color: 'primary.contrastText',
                         fontSize: '1rem',

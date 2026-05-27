@@ -5,12 +5,13 @@ import {useCallback, useEffect, useState} from 'react'
 export function useMapContextMenuState(contextMenuRef) {
     const [currentContextMenuElement, setCurrentContextMenuElement] = useState(null)
 
-    const openBearingRangeContextMenu = useCallback(({point, lngLat, line}) => {
+    const openBearingRangeContextMenu = useCallback(({point, lngLat, line, track}) => {
         setCurrentContextMenuElement({
             x: point.x,
             y: point.y,
             lngLat,
             line,
+            track: track ?? null,
         })
     }, [])
 

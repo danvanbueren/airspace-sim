@@ -18,6 +18,7 @@ import {
     formatCoordinatePairForGridReferenceSystem,
     getGridReferenceSystemDisplayName,
 } from '@/app/tools/formatting/GridReferenceFormatting'
+import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
 function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef) {
     const edgePadding = 8
@@ -46,6 +47,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                                                                   contextMenuSize,
                                                                   mapContainerRef,
                                                                   onInitiateTrack,
+                                                                  onDropTrack,
                                                                   onRemoveBearingRangeLine,
                                                                   onClearBearingRangeLines,
                                                                   lines,
@@ -55,6 +57,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     if (!elementContainer) return null
 
     const hasBearingRangeLine = Boolean(elementContainer.line)
+    const hasTrack = Boolean(elementContainer.track)
     const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
         elementContainer.lngLat.lat,
         elementContainer.lngLat.lng,
@@ -69,8 +72,9 @@ const MapContextMenu = forwardRef(function MapContextMenu({
             sx={{
                 position: 'absolute',
                 ...getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef),
-                zIndex: 10,
+                zIndex: UI_Z_INDEX.CONTEXT_MENU,
                 width: 220,
+                pointerEvents: 'auto',
                 userSelect: 'none',
                 overflow: 'hidden',
             }}
@@ -183,6 +187,19 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                 >
                     Initiate Track
                 </Button>
+
+                {hasTrack && (
+                    <Button
+                        color='warning'
+                        size='small'
+                        variant='outlined'
+                        onClick={() => onDropTrack(elementContainer.track)}
+                        sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                        fullWidth
+                    >
+                        Drop Track
+                    </Button>
+                )}
 
                 <Divider sx={{py: 0.5}}/>
 

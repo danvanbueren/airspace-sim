@@ -1,6 +1,7 @@
 'use client'
 
-import {useCallback, useEffect, useRef} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
+import {createPortal} from 'react-dom'
 import {useTheme} from '@mui/material/styles'
 import {useCursorHooks} from '../../hooks/map/useCursorHooks'
 import {useMapLibreMap} from '../../hooks/map/useMapLibreMap'
@@ -10,12 +11,14 @@ import {useRegisteredMap} from '../../hooks/map/useRegisteredMap'
 import {useMapViewInteractions} from '../../hooks/map/useMapViewInteractions/useMapViewInteractions'
 import {useMapContextMenuState} from '../../hooks/map/useMapContextMenuState'
 import {useTrackManagementWindows} from '../../hooks/map/useTrackManagementWindows'
+import {useTrackManagementWindowFocusOrder} from '../../hooks/map/useTrackManagementWindowFocusOrder'
 import {useTrackMapLayer} from '../../hooks/map/useTrackMapLayer'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {useMapState} from '../../contexts/MapStateContext'
+import {blurFocusedElementWithin} from '@/app/tools/browser/blurFocusedElementWithin'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -49,7 +52,7 @@ function createTrackFromManagementWindow(trackManagementWindow) {
     }
 }
 
-export default function MapView({mapInteractionsEnabled = true}) {
+export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
     const {addAlarmAlert, registerMap} = useMapState()
     const mapContainerRef = useRef(null)
@@ -57,7 +60,14 @@ export default function MapView({mapInteractionsEnabled = true}) {
     const contextMenuRef = useRef(null)
     const openTrackManagementWindowRef = useRef(null)
     const closeMapDismissibleTrackManagementWindowsRef = useRef(null)
+    const [trackManagementKeyboardCustodyWindowId, setTrackManagementKeyboardCustodyWindowId] = useState(null)
+    const trackManagementKeyboardCustodyWindowIdRef = useRef(null)
+    const trackManagementWindowRefs = useRef(new Map())
     const mapStyle = MAP_STYLES[theme.palette.mode]
+
+    useEffect(() => {
+        trackManagementKeyboardCustodyWindowIdRef.current = trackManagementKeyboardCustodyWindowId
+    }, [trackManagementKeyboardCustodyWindowId])
 
     const {mapRef, mapReady} = useMapLibreMap({
         mapContainerRef,
@@ -78,11 +88,14 @@ export default function MapView({mapInteractionsEnabled = true}) {
 
     useRegisteredMap(mapRef, mapReady, registerMap)
 
+    const keyboardCameraControlsEnabled = trackManagementKeyboardCustodyWindowId === null
+
     const interactionsEnabled = useMapViewInteractions(
         mapRef,
         mapReady,
         mapInteractionsEnabled,
         mapStyle,
+        keyboardCameraControlsEnabled,
     )
 
     const {
@@ -91,13 +104,19 @@ export default function MapView({mapInteractionsEnabled = true}) {
         closeContextMenu,
     } = useMapContextMenuState(contextMenuRef)
 
+    const handleMapContextMenu = useCallback(({point, mapPoint, lngLat, line}) => {
+        const track = mapPoint ? trackMapLayer.getTrackAtMapPoint(mapPoint) : null
+
+        openBearingRangeContextMenu({point, lngLat, line, track})
+    }, [openBearingRangeContextMenu, trackMapLayer])
+
     const {
         removeBearingRangeLine,
         clearBearingRangeLines,
         isDrawingBearingRangeLine,
         lines,
     } = useBearingRangeTool(mapRef, mapReady, {
-        onContextMenu: openBearingRangeContextMenu,
+        onContextMenu: handleMapContextMenu,
         lineColor: theme.palette.mode === 'dark' ? '#fff' : '#111',
     })
 
@@ -128,13 +147,101 @@ export default function MapView({mapInteractionsEnabled = true}) {
         markTrackManagementWindowPersistent,
         closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
+        closeTrackManagementWindowsForTrack,
     } = useTrackManagementWindows({
         onInitiateTrack: closeContextMenu,
         onTrackCreated: handleTrackCreated,
         onTrackUpdated: handleTrackUpdated,
     })
 
-    openTrackManagementWindowRef.current = openTrackManagementWindow
+    const {
+        sortedTrackManagementWindows,
+        bringTrackManagementWindowToFront,
+        getWindowZIndex,
+    } = useTrackManagementWindowFocusOrder(trackManagementWindows)
+
+    const handleDropTrack = useCallback((track) => {
+        const trackId = track.trackId ?? track.id
+
+        if (!trackId) {
+            return
+        }
+
+        trackManagementWindows
+            .filter((trackManagementWindow) => trackManagementWindow.trackId === trackId)
+            .forEach((trackManagementWindow) => {
+                blurFocusedElementWithin(trackManagementWindowRefs.current.get(trackManagementWindow.id))
+            })
+
+        setTrackManagementKeyboardCustodyWindowId((currentWindowId) => {
+            if (!currentWindowId) {
+                return null
+            }
+
+            const custodyWindow = trackManagementWindows.find((window) => window.id === currentWindowId)
+
+            return custodyWindow?.trackId === trackId ? null : currentWindowId
+        })
+
+        trackMapLayer.removeTrack(trackId)
+        closeTrackManagementWindowsForTrack(trackId)
+        closeContextMenu()
+    }, [
+        trackMapLayer,
+        closeTrackManagementWindowsForTrack,
+        closeContextMenu,
+        trackManagementWindows,
+    ])
+
+    const registerTrackManagementWindowElement = useCallback((windowId, element) => {
+        if (element) {
+            trackManagementWindowRefs.current.set(windowId, element)
+            return
+        }
+
+        trackManagementWindowRefs.current.delete(windowId)
+    }, [])
+
+    const releaseTrackManagementKeyboardCustody = useCallback(() => {
+        const custodyWindowId = trackManagementKeyboardCustodyWindowIdRef.current
+
+        if (custodyWindowId) {
+            blurFocusedElementWithin(trackManagementWindowRefs.current.get(custodyWindowId))
+        }
+
+        setTrackManagementKeyboardCustodyWindowId(null)
+    }, [])
+
+    const handleClaimTrackManagementKeyboardCustody = useCallback((windowId) => {
+        const previousCustodyWindowId = trackManagementKeyboardCustodyWindowIdRef.current
+
+        if (previousCustodyWindowId && previousCustodyWindowId !== windowId) {
+            blurFocusedElementWithin(trackManagementWindowRefs.current.get(previousCustodyWindowId))
+        }
+
+        bringTrackManagementWindowToFront(windowId)
+        setTrackManagementKeyboardCustodyWindowId(windowId)
+    }, [bringTrackManagementWindowToFront])
+
+    const handleCloseTrackManagementWindow = useCallback((windowId) => {
+        blurFocusedElementWithin(trackManagementWindowRefs.current.get(windowId))
+        setTrackManagementKeyboardCustodyWindowId((currentWindowId) => (
+            currentWindowId === windowId ? null : currentWindowId
+        ))
+        closeTrackManagementWindow(windowId)
+    }, [closeTrackManagementWindow])
+
+    const handleOpenTrackManagementWindow = useCallback((track, event) => {
+        openTrackManagementWindow(track, event)
+
+        const trackId = track.trackId ?? track.id
+
+        if (trackId) {
+            bringTrackManagementWindowToFront(`track-${trackId}`)
+        }
+    }, [openTrackManagementWindow, bringTrackManagementWindowToFront])
+
+    openTrackManagementWindowRef.current = handleOpenTrackManagementWindow
     closeMapDismissibleTrackManagementWindowsRef.current = closeMapDismissibleTrackManagementWindows
 
     useEffect(() => {
@@ -148,6 +255,8 @@ export default function MapView({mapInteractionsEnabled = true}) {
             if (event.defaultPrevented) {
                 return
             }
+
+            releaseTrackManagementKeyboardCustody()
 
             const trackLayers = [
                 trackMapLayer.layerId,
@@ -171,12 +280,44 @@ export default function MapView({mapInteractionsEnabled = true}) {
         return () => {
             map.off('click', handleMapClick)
         }
-    }, [mapReady, mapRef, trackMapLayer.layerId, trackMapLayer.labelLayerId])
+    }, [mapReady, mapRef, trackMapLayer.layerId, trackMapLayer.labelLayerId, releaseTrackManagementKeyboardCustody])
 
     const cursorInfo = useCursorHooks(mapRef, interactionsEnabled, mapContainerRef)
     const visibleCursorInfo = isDrawingBearingRangeLine ? null : cursorInfo
     const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [visibleCursorInfo])
     const contextMenuSize = useMeasuredElementSize(contextMenuRef, [currentContextMenuElement])
+
+    const mapOverlays = (
+        <>
+            {sortedTrackManagementWindows.map((trackManagementWindow) => (
+                <TrackManagementWindow
+                    key={trackManagementWindow.id}
+                    ref={(element) => registerTrackManagementWindowElement(trackManagementWindow.id, element)}
+                    trackManagementWindow={trackManagementWindow}
+                    mapContainerRef={mapContainerRef}
+                    onChange={updateTrackManagementWindow}
+                    onMove={moveTrackManagementWindow}
+                    onActivate={markTrackManagementWindowPersistent}
+                    onClaimKeyboardCustody={handleClaimTrackManagementKeyboardCustody}
+                    onClose={handleCloseTrackManagementWindow}
+                    hasKeyboardCustody={trackManagementKeyboardCustodyWindowId === trackManagementWindow.id}
+                    zIndex={getWindowZIndex(trackManagementWindow.id)}
+                />
+            ))}
+
+            <MapContextMenu
+                ref={contextMenuRef}
+                elementContainer={currentContextMenuElement}
+                contextMenuSize={contextMenuSize}
+                mapContainerRef={mapContainerRef}
+                onInitiateTrack={initiateTrack}
+                onDropTrack={handleDropTrack}
+                onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
+                onClearBearingRangeLines={handleClearBearingRangeLines}
+                lines={lines}
+            />
+        </>
+    )
 
     return (
         <div
@@ -200,28 +341,9 @@ export default function MapView({mapInteractionsEnabled = true}) {
                 mapContainerRef={mapContainerRef}
             />
 
-            <MapContextMenu
-                ref={contextMenuRef}
-                elementContainer={currentContextMenuElement}
-                contextMenuSize={contextMenuSize}
-                mapContainerRef={mapContainerRef}
-                onInitiateTrack={initiateTrack}
-                onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
-                onClearBearingRangeLines={handleClearBearingRangeLines}
-                lines={lines}
-            />
-
-            {trackManagementWindows.map((trackManagementWindow) => (
-                <TrackManagementWindow
-                    key={trackManagementWindow.id}
-                    trackManagementWindow={trackManagementWindow}
-                    mapContainerRef={mapContainerRef}
-                    onChange={updateTrackManagementWindow}
-                    onMove={moveTrackManagementWindow}
-                    onActivate={markTrackManagementWindowPersistent}
-                    onClose={closeTrackManagementWindow}
-                />
-            ))}
+            {mapOverlayLayer
+                ? createPortal(mapOverlays, mapOverlayLayer)
+                : mapOverlays}
         </div>
     )
 }

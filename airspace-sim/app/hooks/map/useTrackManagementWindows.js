@@ -156,6 +156,12 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         ))
     }, [])
 
+    const closeTrackManagementWindowsForTrack = useCallback((trackId) => {
+        setTrackManagementWindows((currentWindows) => (
+            currentWindows.filter((trackManagementWindow) => trackManagementWindow.trackId !== trackId)
+        ))
+    }, [])
+
     return {
         trackManagementWindows,
         initiateTrack,
@@ -165,5 +171,6 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         markTrackManagementWindowPersistent,
         closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
+        closeTrackManagementWindowsForTrack,
     }
 }

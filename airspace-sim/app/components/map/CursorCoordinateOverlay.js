@@ -6,6 +6,7 @@ import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {
     formatCoordinatePairForGridReferenceSystem,
 } from '@/app/tools/formatting/GridReferenceFormatting'
+import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
 export default function CursorCoordinateOverlay({
                                                         cursorInfo, cursorBoxRef, cursorBoxSize, mapContainerRef,
@@ -24,7 +25,7 @@ export default function CursorCoordinateOverlay({
         ref={cursorBoxRef}
         style={{
             position: 'absolute', ...getCursorBoxPosition(cursorBoxSize, cursorInfo, mapContainerRef),
-            zIndex: 1,
+            zIndex: UI_Z_INDEX.MAP_OVERLAY,
             padding: '6px 8px',
             borderRadius: 4,
             background: 'rgba(0, 0, 0, 0.7)',

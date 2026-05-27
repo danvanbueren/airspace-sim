@@ -432,7 +432,10 @@ export function useBearingRangeTool(mapRef, enabled, {
                 clearPreviewLine()
 
                 onContextMenu?.({
-                    point: endPoint.point, lngLat: endPoint.lngLat, line: getBearingRangeLineAtPoint(endPoint),
+                    point: endPoint.point,
+                    mapPoint: endPoint.mapPoint,
+                    lngLat: endPoint.lngLat,
+                    line: getBearingRangeLineAtPoint(endPoint),
                 })
 
                 return

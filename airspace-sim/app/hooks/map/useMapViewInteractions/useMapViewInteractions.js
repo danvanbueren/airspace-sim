@@ -7,11 +7,18 @@ import {useMapResize} from './useMapResize'
 import {useMapStyle} from './useMapStyle'
 import {useRemappableMapDragPan} from './useRemappableMapDragPan'
 
-export function useMapViewInteractions(mapRef, mapReady, mapInteractionsEnabled, mapStyle) {
+export function useMapViewInteractions(
+    mapRef,
+    mapReady,
+    mapInteractionsEnabled,
+    mapStyle,
+    keyboardCameraControlsEnabled = true,
+) {
     const interactionsEnabled = mapReady && mapInteractionsEnabled
+    const keyboardControlsEnabled = interactionsEnabled && keyboardCameraControlsEnabled
 
     useMapStyle(mapRef, mapStyle)
-    useKeyboardCameraControls(mapRef, interactionsEnabled)
+    useKeyboardCameraControls(mapRef, keyboardControlsEnabled)
     useRemappableMapDragPan(mapRef, interactionsEnabled)
     useMapCursor(mapRef, interactionsEnabled)
     useMapInteractionGuards(mapRef, interactionsEnabled)

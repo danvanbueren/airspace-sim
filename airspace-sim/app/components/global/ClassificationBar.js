@@ -1,6 +1,7 @@
 'use client'
 
 import { Box, Typography, useMediaQuery, useTheme } from '@mui/material'
+import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
 export default function ClassificationBar({
                                               theme = useTheme(),
@@ -29,7 +30,8 @@ export default function ClassificationBar({
                 color: textColor,
                 minHeight: height,
                 maxHeight: height,
-                zIndex: 100,
+                position: 'relative',
+                zIndex: UI_Z_INDEX.CLASSIFICATION_BAR,
             }}
         >
             <Typography
