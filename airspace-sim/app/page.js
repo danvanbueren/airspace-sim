@@ -11,8 +11,11 @@ import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/hooks/global/ErrorForwarder'
 import {useMapState} from './contexts/MapStateContext'
+import usePrefetchLatestGithubCommit from '@/app/hooks/global/usePrefetchLatestGithubCommit'
 
 export default function Home() {
+
+    usePrefetchLatestGithubCommit()
 
     const [settingsModalOpen, setSettingsModalOpen] = useState(false)
     const [mapOverlayLayer, setMapOverlayLayer] = useState(null)
