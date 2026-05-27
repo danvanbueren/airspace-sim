@@ -1,25 +1,23 @@
 'use client'
 
 import { Divider, Grid, ToggleButton, ToggleButtonGroup } from '@mui/material'
-import { useState } from 'react'
 import BasicGlassPanel from './BasicGlassPanel'
+import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
+
+const AVAILABLE_TOGGLES = ['IFF_CURRENT', 'IFF_HISTORY', '-', 'RADAR_CURRENT', 'RADAR_HISTORY', '-']
 
 export default function CategorySelectPanel() {
+    const {activeToggles, setActiveDisplayToggles} = useSensorDisplay()
 
-    // Define available toggles, store currently active toggles
-    const availableToggles = ['IFF_CURRENT', 'IFF_HISTORY', '-', 'RADAR_CURRENT', 'RADAR_HISTORY', '-']
-    const [currentToggles, setCurrentToggles] = useState([])
-
-    // Handle toggle button press
     const handleToggles = (event, newToggles) => {
-        setCurrentToggles(newToggles.filter((toggle) => toggle !== '-'))
+        setActiveDisplayToggles(newToggles)
     }
 
     return (
         <BasicGlassPanel title='Category Select Panel'>
 
             <ToggleButtonGroup
-                value={currentToggles}
+                value={activeToggles}
                 onChange={handleToggles}
             >
                 <Grid
@@ -27,7 +25,7 @@ export default function CategorySelectPanel() {
                     spacing={2}
                     style={{width: '100%'}}
                 >
-                    {availableToggles.map((value, index) => (
+                    {AVAILABLE_TOGGLES.map((value, index) => (
                         <Grid
                             size={4}
                             key={'CSP_GRID' + value + '_' + index}
@@ -43,14 +41,13 @@ export default function CategorySelectPanel() {
                                 }}
                             >
                                 <span
-                                    key={'CSP_TOGGLE_SPAN_' + value + '_' + index}
                                     style={{
                                         display: 'block',
                                         width: '100%',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
                                         fontFamily: 'monospace',
-                                        fontWeight: 'bold'
+                                        fontWeight: 'bold',
                                     }}
                                 >
                                     {value.replaceAll('_', ' ')}
@@ -60,18 +57,6 @@ export default function CategorySelectPanel() {
                     ))}
                 </Grid>
             </ToggleButtonGroup>
-
-            {/* TODO: Remove this (temp) */}
-            {currentToggles.length !== 0 &&
-                <>
-                    <Divider orientation='horizontal' flexItem sx={{marginTop: 1.5, marginBottom: 1.5}} />
-                    <span style={{fontFamily: 'monospace'}}>TODO: IMPLEMENT TOGGLES</span>
-                    {currentToggles.map((value, index) => (
-                        <span key={'tempCSP_' + value + '_' + index} style={{fontFamily: 'monospace', fontWeight: 'bold'}}>{value}</span>
-                    ))}
-                </>
-            }
-            {/* TODO: Remove this (temp) */}
 
         </BasicGlassPanel>
     )

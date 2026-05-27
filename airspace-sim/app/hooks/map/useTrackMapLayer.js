@@ -122,6 +122,11 @@ function trackToFeature(track, defaultIconSize) {
     const symbolCode = track.symbolCode ?? getTrackSymbolCode(track)
     const iconId = track.iconId ?? getTrackIconId(track, symbolCode, defaultIconSize)
 
+    const baseHeading = toFiniteNumber(track.heading, 0)
+    const displayHeading = track.correlated
+        ? (baseHeading + 45) % 360
+        : baseHeading
+
     return {
         type: 'Feature',
         id,
@@ -135,7 +140,7 @@ function trackToFeature(track, defaultIconSize) {
             icon: iconId,
             symbolCode,
             label: track.label ?? track.callsign ?? track.name ?? id,
-            heading: toFiniteNumber(track.heading, 0),
+            heading: displayHeading,
             domain: track.domain ?? null,
             identity: track.identity ?? null,
             trackType: track.type ?? null,
@@ -143,6 +148,7 @@ function trackToFeature(track, defaultIconSize) {
             altitude: track.altitude ?? null,
             stale: Boolean(track.stale),
             selected: Boolean(track.selected),
+            correlated: Boolean(track.correlated),
         },
     }
 }
@@ -332,11 +338,11 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
             map.setLayoutProperty(TRACK_LABEL_LAYER_ID, 'visibility', 'visible')
         }
 
+        scheduleSetData()
+
         tracksRef.current.forEach((track) => {
             ensureTrackIcon(track)
         })
-
-        scheduleSetData()
     }, [ensureTrackIcon, mapRef, scheduleSetData, showLabels])
 
     const upsertTrack = useCallback((track) => {
@@ -389,6 +395,29 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         tracksRef.current.clear()
         scheduleSetData()
     }, [scheduleSetData])
+
+    const replaceTracks = useCallback((tracks) => {
+        tracksRef.current.clear()
+
+        tracks.forEach((track) => {
+            const id = getTrackId(track)
+
+            if (!id) {
+                return
+            }
+
+            tracksRef.current.set(id, {
+                ...track,
+                id,
+            })
+        })
+
+        tracksRef.current.forEach((track) => {
+            ensureTrackIcon(track)
+        })
+
+        scheduleSetData()
+    }, [ensureTrackIcon, scheduleSetData])
 
     const getTrack = useCallback((trackId) => {
         return tracksRef.current.get(trackId)
@@ -578,11 +607,13 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         upsertTracks,
         removeTrack,
         clearTracks,
+        replaceTracks,
         getTrack,
         getTracks,
         getTrackAtMapPoint,
     }), [
         clearTracks,
+        replaceTracks,
         getTrack,
         getTrackAtMapPoint,
         getTracks,

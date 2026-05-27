@@ -16,6 +16,8 @@ import {
 import {UseGlobalInteractionGuards} from '@/app/hooks/global/useGlobalInteractionGuards'
 import {THEME_COOKIE_NAME} from '@/app/contexts/CustomThemeContext'
 import {MapStateProvider} from './contexts/MapStateContext'
+import {SensorDisplayProvider} from './contexts/SensorDisplayContext'
+import {SimulationProvider} from './contexts/SimulationContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,9 +38,13 @@ export default async function RootLayout({children}) {
         <UseGlobalInteractionGuards>
             <CustomThemeContext initialMode={themeCookie}>
                 <AppSettingsProvider initialSettings={appSettingsCookie}>
-                    <ControlBindingsProvider initialBindings={controlBindingsCookie}>
-                        {children}
-                    </ControlBindingsProvider>
+                    <SensorDisplayProvider>
+                        <SimulationProvider>
+                            <ControlBindingsProvider initialBindings={controlBindingsCookie}>
+                                {children}
+                            </ControlBindingsProvider>
+                        </SimulationProvider>
+                    </SensorDisplayProvider>
                 </AppSettingsProvider>
             </CustomThemeContext>
         </UseGlobalInteractionGuards>
