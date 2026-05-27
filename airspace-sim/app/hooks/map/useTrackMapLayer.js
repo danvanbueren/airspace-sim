@@ -285,12 +285,16 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         const symbolCode = track.symbolCode ?? getTrackSymbolCode(track)
         const iconId = track.iconId ?? getTrackIconId(track, symbolCode, iconSize)
 
-        if (
-            registeredIconIdsRef.current.has(iconId)
-            || pendingIconIdsRef.current.has(iconId)
-            || map.hasImage(iconId)
-        ) {
+        if (registeredIconIdsRef.current.has(iconId)) {
+            return
+        }
+
+        if (map.hasImage(iconId)) {
             registeredIconIdsRef.current.add(iconId)
+            return
+        }
+
+        if (pendingIconIdsRef.current.has(iconId)) {
             return
         }
 
