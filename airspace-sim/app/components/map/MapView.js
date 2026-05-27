@@ -81,16 +81,6 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
 
     useRegisteredMap(mapRef, mapReady, registerMap)
 
-    const keyboardCameraControlsEnabled = trackManagementKeyboardCustodyWindowId === null
-
-    const interactionsEnabled = useMapViewInteractions(
-        mapRef,
-        mapReady,
-        mapInteractionsEnabled,
-        mapStyle,
-        keyboardCameraControlsEnabled,
-    )
-
     const {
         currentContextMenuElement,
         openBearingRangeContextMenu,
@@ -165,6 +155,16 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         trackManagementWindows,
         bringTrackManagementWindowToFront,
     })
+
+    const keyboardCameraControlsEnabled = trackManagementKeyboardCustodyWindowId === null
+
+    const interactionsEnabled = useMapViewInteractions(
+        mapRef,
+        mapReady,
+        mapInteractionsEnabled,
+        mapStyle,
+        keyboardCameraControlsEnabled,
+    )
 
     const handleDropTrack = useCallback((track) => {
         const trackId = track.trackId ?? track.id
