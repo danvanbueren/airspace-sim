@@ -62,6 +62,12 @@ function normalizeCapturedKey(event) {
     return key
 }
 
+function toFiniteNumber(value, fallbackValue) {
+    const numericValue = Array.isArray(value) ? value[0] : value
+    const parsed = Number(numericValue)
+    return Number.isFinite(parsed) ? parsed : fallbackValue
+}
+
 export default function SettingsModalKeybindsPage() {
     const {
         controlBindings, updateControlBindings, resetControlBindings,
@@ -84,7 +90,8 @@ export default function SettingsModalKeybindsPage() {
     const updateKeyboardCameraNumber = useCallback((bindingKey, nextValue) => {
         updateControlBindings((currentBindings) => ({
             ...currentBindings, keyboardCamera: {
-                ...currentBindings.keyboardCamera, [bindingKey]: Number(nextValue),
+                ...currentBindings.keyboardCamera,
+                [bindingKey]: toFiniteNumber(nextValue, currentBindings.keyboardCamera[bindingKey]),
             },
         }))
     }, [updateControlBindings])
@@ -92,7 +99,8 @@ export default function SettingsModalKeybindsPage() {
     const updateBearingRangeBinding = useCallback((bindingKey, nextValue) => {
         updateControlBindings((currentBindings) => ({
             ...currentBindings, bearingRangeTool: {
-                ...currentBindings.bearingRangeTool, [bindingKey]: Number(nextValue),
+                ...currentBindings.bearingRangeTool,
+                [bindingKey]: toFiniteNumber(nextValue, currentBindings.bearingRangeTool[bindingKey]),
             },
         }))
     }, [updateControlBindings])
@@ -100,7 +108,8 @@ export default function SettingsModalKeybindsPage() {
     const updateMapCursorBinding = useCallback((bindingKey, nextValue) => {
         updateControlBindings((currentBindings) => ({
             ...currentBindings, mapCursor: {
-                ...currentBindings.mapCursor, [bindingKey]: Number(nextValue),
+                ...currentBindings.mapCursor,
+                [bindingKey]: toFiniteNumber(nextValue, currentBindings.mapCursor[bindingKey]),
             },
         }))
     }, [updateControlBindings])

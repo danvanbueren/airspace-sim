@@ -1,9 +1,9 @@
 import {alpha, Box, Card, Divider, Grid, Modal, Typography} from '@mui/material'
 import SettingsModalGenericButton from '@/app/components/panels/settings/modal/SettingsModalGenericButton'
-import SettingsModalSettingsPage from "@/app/components/panels/settings/modal/pages/SettingsModalSettingsPage";
-import SettingsModalKeybindsPage from "./pages/SettingsModalKeybindsPage";
-import SettingsModalRoadmapPage from "./pages/SettingsModalRoadmapPage";
-import SettingsModalAboutPage from "./pages/SettingsModalAboutPage";
+import SettingsModalSettingsPage from '@/app/components/panels/settings/modal/pages/SettingsModalSettingsPage'
+import SettingsModalKeybindsPage from './pages/SettingsModalKeybindsPage'
+import SettingsModalRoadmapPage from './pages/SettingsModalRoadmapPage'
+import SettingsModalAboutPage from './pages/SettingsModalAboutPage'
 
 export default function SettingsModal({open, setOpen, state = 'settings', buildData}) {
 
@@ -13,7 +13,7 @@ export default function SettingsModal({open, setOpen, state = 'settings', buildD
         left: '50%',
         transform: 'translate(-50%, -50%)',
         width: 1000,
-        minHeight: '1000',
+        minHeight: 600,
         height: '60dvh',
         backgroundColor: alpha(theme.palette.background.paper, 0.75),
         backdropFilter: 'blur(10px)',

@@ -28,43 +28,10 @@ import {
     getTrackTypeOption,
     getTrackTypeOptionsForDomain,
 } from '@/app/tools/milstd2525/trackSymbolCodes'
-
-function getTrackManagementWindowPosition(trackManagementWindow, trackManagementWindowSize, mapContainerRef) {
-    const edgePadding = 8
-    const containerWidth = mapContainerRef.current?.clientWidth ?? window.innerWidth
-    const containerHeight = mapContainerRef.current?.clientHeight ?? window.innerHeight
-    const windowWidth = trackManagementWindowSize.width || 300
-    const windowHeight = trackManagementWindowSize.height || 320
-
-    let left = trackManagementWindow.x
-    let top = trackManagementWindow.y
-
-    if (left + windowWidth > containerWidth - edgePadding)
-        left = trackManagementWindow.x - windowWidth
-
-    if (top + windowHeight > containerHeight - edgePadding)
-        top = trackManagementWindow.y - windowHeight
-
-    return {
-        left: Math.max(edgePadding, left),
-        top: Math.max(edgePadding, top),
-    }
-}
-
-function getBoundedTrackManagementWindowPosition(left, top, trackManagementWindowSize, mapContainerRef) {
-    const edgePadding = 8
-    const containerWidth = mapContainerRef.current?.clientWidth ?? window.innerWidth
-    const containerHeight = mapContainerRef.current?.clientHeight ?? window.innerHeight
-    const windowWidth = trackManagementWindowSize.width || 300
-    const windowHeight = trackManagementWindowSize.height || 320
-    const maxLeft = Math.max(edgePadding, containerWidth - windowWidth - edgePadding)
-    const maxTop = Math.max(edgePadding, containerHeight - windowHeight - edgePadding)
-
-    return {
-        x: Math.min(Math.max(edgePadding, left), maxLeft),
-        y: Math.min(Math.max(edgePadding, top), maxTop),
-    }
-}
+import {
+    getTrackManagementWindowPosition,
+    useTrackManagementWindowDrag,
+} from '@/app/hooks/map/useTrackManagementWindowDrag'
 
 function formatEnumLabel(value) {
     return value
@@ -85,7 +52,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
     const trackManagementWindowRef = useRef(null)
-    const dragStateRef = useRef(null)
     const trackManagementWindowSize = useMeasuredElementSize(
         trackManagementWindowRef,
         [trackManagementWindow, appSettings.gridReferenceSystem],
@@ -138,75 +104,23 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         onClaimKeyboardCustody?.(trackManagementWindow.id)
     }, [activateWindow, onClaimKeyboardCustody, trackManagementWindow.id])
 
-    const handleHeaderPointerDown = useCallback((event) => {
-        if (event.button !== 0) {
-            return
-        }
-
-        event.stopPropagation()
-        event.preventDefault()
-        activateWindow()
-        onClaimKeyboardCustody?.(trackManagementWindow.id)
-
-        const trackManagementWindowElement = trackManagementWindowRef.current
-        const mapContainerElement = mapContainerRef.current
-
-        if (!trackManagementWindowElement || !mapContainerElement) {
-            return
-        }
-
-        const windowRect = trackManagementWindowElement.getBoundingClientRect()
-        const containerRect = mapContainerElement.getBoundingClientRect()
-
-        dragStateRef.current = {
-            pointerId: event.pointerId,
-            offsetX: event.clientX - windowRect.left,
-            offsetY: event.clientY - windowRect.top,
-            containerLeft: containerRect.left,
-            containerTop: containerRect.top,
-        }
-
-        event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [activateWindow, mapContainerRef, onClaimKeyboardCustody, trackManagementWindow.id])
-
-    const handleHeaderPointerMove = useCallback((event) => {
-        const dragState = dragStateRef.current
-
-        if (!dragState || dragState.pointerId !== event.pointerId) {
-            return
-        }
-
-        event.preventDefault()
-
-        const left = event.clientX - dragState.containerLeft - dragState.offsetX
-        const top = event.clientY - dragState.containerTop - dragState.offsetY
-
-        onMove?.(
-            trackManagementWindow.id,
-            getBoundedTrackManagementWindowPosition(
-                left,
-                top,
-                trackManagementWindowSize,
-                mapContainerRef,
-            ),
-        )
-    }, [mapContainerRef, onMove, trackManagementWindow.id, trackManagementWindowSize])
-
-    const handleHeaderPointerUp = useCallback((event) => {
-        if (dragStateRef.current?.pointerId !== event.pointerId) {
-            return
-        }
-
-        if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId)
-        }
-
-        dragStateRef.current = null
-    }, [])
+    const {
+        handleHeaderPointerDown,
+        handleHeaderPointerMove,
+        handleHeaderPointerUp,
+    } = useTrackManagementWindowDrag({
+        mapContainerRef,
+        onMove,
+        onActivate: activateWindow,
+        onClaimKeyboardCustody,
+        windowId: trackManagementWindow.id,
+        trackManagementWindowSize,
+    })
 
     return (
         <Paper
             ref={setTrackManagementWindowRef}
+            data-track-management-window
             elevation={8}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={handleWindowPointerDown}
