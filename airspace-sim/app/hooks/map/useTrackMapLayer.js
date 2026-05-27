@@ -10,6 +10,7 @@ import {
 const TRACK_SOURCE_ID = 'tracks'
 const TRACK_LAYER_ID = 'tracks-symbols'
 const TRACK_LABEL_LAYER_ID = 'tracks-labels'
+const TRACK_HIT_TEST_PADDING = 6
 
 function normalizeTrackCoordinates(track) {
     if (Array.isArray(track.coordinates) && track.coordinates.length >= 2) {
@@ -397,6 +398,34 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         return Array.from(tracksRef.current.values())
     }, [])
 
+    const getTrackAtMapPoint = useCallback((mapPoint) => {
+        const map = mapRef.current
+
+        if (!map || !mapPoint) {
+            return null
+        }
+
+        const layers = [TRACK_LAYER_ID, TRACK_LABEL_LAYER_ID].filter((layerId) => map.getLayer(layerId))
+
+        if (layers.length === 0) {
+            return null
+        }
+
+        const {x, y} = mapPoint
+        const features = map.queryRenderedFeatures([
+            [x - TRACK_HIT_TEST_PADDING, y - TRACK_HIT_TEST_PADDING],
+            [x + TRACK_HIT_TEST_PADDING, y + TRACK_HIT_TEST_PADDING],
+        ], {layers})
+
+        const trackId = features[0]?.properties?.trackId ?? features[0]?.properties?.id
+
+        if (!trackId) {
+            return null
+        }
+
+        return tracksRef.current.get(trackId) ?? null
+    }, [mapRef])
+
     useEffect(() => {
         if (!mapReady || !mapRef.current) {
             return
@@ -551,9 +580,11 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         clearTracks,
         getTrack,
         getTracks,
+        getTrackAtMapPoint,
     }), [
         clearTracks,
         getTrack,
+        getTrackAtMapPoint,
         getTracks,
         removeTrack,
         upsertTrack,
