@@ -136,26 +136,8 @@ function ensureLineLayer(map, lineColor) {
 function updateLineSource(map, visibleLines) {
     const source = map.getSource(LINE_SOURCE_ID)
 
-    if (source) source.setData(buildFeatureCollection(visibleLines))
-}
-
-function runWhenStyleIsReady(map, callback) {
-    if (map.isStyleLoaded()) {
-        callback()
-        return undefined
-    }
-
-    const handleStyleData = () => {
-        if (!map.isStyleLoaded()) return
-
-        map.off('styledata', handleStyleData)
-        callback()
-    }
-
-    map.on('styledata', handleStyleData)
-
-    return () => {
-        map.off('styledata', handleStyleData)
+    if (source) {
+        source.setData(buildFeatureCollection(visibleLines))
     }
 }
 
@@ -205,6 +187,9 @@ export function useBearingRangeTool(mapRef, enabled, {
     const dragStartRef = useRef(null)
     const previewLineRef = useRef(null)
     const linesRef = useRef([])
+    const lineColorRef = useRef(lineColor)
+    const visibleLinesRef = useRef([])
+    const rehydrateTimeoutRef = useRef(null)
 
     const [lines, setLines] = useState([])
     const [previewLine, setPreviewLine] = useState(null)
@@ -218,6 +203,51 @@ export function useBearingRangeTool(mapRef, enabled, {
     const visibleLines = useMemo(() => {
         return previewLine ? [...lines, previewLine] : lines
     }, [lines, previewLine])
+
+    useEffect(() => {
+        lineColorRef.current = lineColor
+    }, [lineColor])
+
+    useEffect(() => {
+        visibleLinesRef.current = visibleLines
+    }, [visibleLines])
+
+    const syncLineLayer = useCallback(() => {
+        const map = mapRef.current
+
+        if (!map || !map.isStyleLoaded()) {
+            return false
+        }
+
+        ensureLineLayer(map, lineColorRef.current)
+        updateLineSource(map, visibleLinesRef.current)
+
+        return true
+    }, [mapRef])
+
+    const rehydrateLineLayer = useCallback(() => {
+        if (rehydrateTimeoutRef.current) {
+            window.clearTimeout(rehydrateTimeoutRef.current)
+            rehydrateTimeoutRef.current = null
+        }
+
+        const attemptRehydrate = () => {
+            const map = mapRef.current
+
+            if (!map) {
+                return
+            }
+
+            if (!map.isStyleLoaded()) {
+                rehydrateTimeoutRef.current = window.setTimeout(attemptRehydrate, 50)
+                return
+            }
+
+            syncLineLayer()
+        }
+
+        attemptRehydrate()
+    }, [mapRef, syncLineLayer])
 
     const setCurrentPreviewLine = useCallback((line) => {
         previewLineRef.current = line
@@ -263,25 +293,42 @@ export function useBearingRangeTool(mapRef, enabled, {
     }, [mapRef, enabled])
 
     useEffect(() => {
-        if (!enabled || !mapRef.current) return
+        if (!enabled || !mapRef.current) {
+            return
+        }
 
         const map = mapRef.current
 
-        return runWhenStyleIsReady(map, () => {
-            ensureLineLayer(map, lineColor)
-            updateLineSource(map, visibleLines)
-        })
-    }, [mapRef, enabled, lineColor])
+        const handleStyleLoad = () => {
+            rehydrateLineLayer()
+        }
+
+        rehydrateLineLayer()
+
+        map.on('style.load', handleStyleLoad)
+        map.once('idle', handleStyleLoad)
+
+        return () => {
+            map.off('style.load', handleStyleLoad)
+
+            if (rehydrateTimeoutRef.current) {
+                window.clearTimeout(rehydrateTimeoutRef.current)
+                rehydrateTimeoutRef.current = null
+            }
+        }
+    }, [mapRef, enabled, rehydrateLineLayer])
 
     useEffect(() => {
-        if (!enabled || !mapRef.current) return
+        if (!enabled || !mapRef.current) {
+            return
+        }
 
-        const map = mapRef.current
+        if (syncLineLayer()) {
+            return
+        }
 
-        if (!map.getSource(LINE_SOURCE_ID)) return
-
-        updateLineSource(map, visibleLines)
-    }, [mapRef, enabled, visibleLines])
+        rehydrateLineLayer()
+    }, [mapRef, enabled, visibleLines, lineColor, syncLineLayer, rehydrateLineLayer])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) return
