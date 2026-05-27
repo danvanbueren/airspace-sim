@@ -1,3 +1,5 @@
+import packageJson from '../package.json'
+
 export default function buildInfo() {
     // descriptors
     const projectName = 'Airspace Simulator'
@@ -11,14 +13,13 @@ export default function buildInfo() {
     const parrotSourLink = 'https://parrotsour.com/'
 
     // version info
-    const versionEdition = '2026'
-    const versionMajor = '0'
-    const versionMinor = '4'
+    const packageVersion = packageJson.version
+    const [versionEdition = '0', versionMajor = '0', versionMinor = '0'] =
+        packageVersion.split('.')
     const versionFlag = 'indev'
 
     // full version
-    const fullyQualifiedVersion =
-        versionEdition + '.' + versionMajor + '.' + versionMinor + '-' + versionFlag
+    const fullyQualifiedVersion = packageVersion + '-' + versionFlag
 
     // copyright notice
     const copyrightTitle = 'COPYRIGHT © 2026 DANIEL VAN BUEREN. ALL RIGHTS RESERVED.'
