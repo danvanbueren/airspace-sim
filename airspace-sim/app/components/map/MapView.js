@@ -13,7 +13,10 @@ import {useMapContextMenuState} from '../../hooks/map/useMapContextMenuState'
 import {useTrackManagementWindows} from '../../hooks/map/useTrackManagementWindows'
 import {useTrackManagementWindowFocusOrder} from '../../hooks/map/useTrackManagementWindowFocusOrder'
 import {useTrackMapLayer} from '../../hooks/map/useTrackMapLayer'
+import {useSensorDetectionMapLayer} from '../../hooks/map/useSensorDetectionMapLayer'
+import {useSimulationLoop} from '../../hooks/simulation/useSimulationLoop'
 import {useTrackManagementKeyboardCustody} from '../../hooks/map/useTrackManagementKeyboardCustody'
+import {useSimulation} from '../../contexts/SimulationContext'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
@@ -55,6 +58,7 @@ function createTrackFromManagementWindow(trackManagementWindow) {
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
     const {addAlarmAlert, registerMap} = useMapState()
+    const {upsertManualTrack, removeManualTrack} = useSimulation()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
@@ -80,6 +84,10 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     })
 
     useRegisteredMap(mapRef, mapReady, registerMap)
+
+    const simulationSnapshot = useSimulationLoop(mapRef, mapReady)
+
+    useSensorDetectionMapLayer(mapRef, mapReady, simulationSnapshot, mapStyle)
 
     const {
         currentContextMenuElement,
@@ -114,12 +122,18 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     }, [clearBearingRangeLines, closeContextMenu])
 
     const handleTrackCreated = useCallback((trackManagementWindow) => {
-        trackMapLayer.upsertTrack(createTrackFromManagementWindow(trackManagementWindow))
-    }, [trackMapLayer])
+        const track = createTrackFromManagementWindow(trackManagementWindow)
+
+        trackMapLayer.upsertTrack(track)
+        upsertManualTrack(track)
+    }, [trackMapLayer, upsertManualTrack])
 
     const handleTrackUpdated = useCallback((trackManagementWindow) => {
-        trackMapLayer.upsertTrack(createTrackFromManagementWindow(trackManagementWindow))
-    }, [trackMapLayer])
+        const track = createTrackFromManagementWindow(trackManagementWindow)
+
+        trackMapLayer.upsertTrack(track)
+        upsertManualTrack(track)
+    }, [trackMapLayer, upsertManualTrack])
 
     const {
         trackManagementWindows,
@@ -177,15 +191,25 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         clearKeyboardCustodyForTrack(trackId)
 
         trackMapLayer.removeTrack(trackId)
+        removeManualTrack(trackId)
         closeTrackManagementWindowsForTrack(trackId)
         closeContextMenu()
     }, [
         blurTrackWindowsForTrack,
         clearKeyboardCustodyForTrack,
         trackMapLayer,
+        removeManualTrack,
         closeTrackManagementWindowsForTrack,
         closeContextMenu,
     ])
+
+    useEffect(() => {
+        if (!simulationSnapshot?.tracks) {
+            return
+        }
+
+        trackMapLayer.replaceTracks(simulationSnapshot.tracks)
+    }, [mapStyle, simulationSnapshot, trackMapLayer])
 
     const handleCloseTrackManagementWindow = useCallback((windowId) => {
         closeTrackManagementWindowWithBlur(windowId, closeTrackManagementWindow)
@@ -193,13 +217,25 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
 
     const handleOpenTrackManagementWindow = useCallback((track, event) => {
         openTrackManagementWindow(track, event)
+        closeContextMenu()
 
+        console.log('track', track)
         const trackId = track.trackId ?? track.id
 
         if (trackId) {
             bringTrackManagementWindowToFront(`track-${trackId}`)
+            const existingWindow = trackManagementWindows.find((trackManagementWindow) => (
+                trackManagementWindow.trackId === trackId
+            ))
+
+            bringTrackManagementWindowToFront(existingWindow?.id ?? `track-${trackId}`)
         }
-    }, [openTrackManagementWindow, bringTrackManagementWindowToFront])
+    }, [
+        openTrackManagementWindow,
+        closeContextMenu,
+        trackManagementWindows,
+        bringTrackManagementWindowToFront,
+    ])
 
     openTrackManagementWindowRef.current = handleOpenTrackManagementWindow
     closeMapDismissibleTrackManagementWindowsRef.current = closeMapDismissibleTrackManagementWindows

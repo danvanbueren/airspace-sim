@@ -6,6 +6,7 @@ import {
     readCookieValue,
     writeCookieJsonValue,
 } from '@/app/tools/browser/CookieStorage'
+import {DEFAULT_SIMULATION_SETTINGS} from '@/app/simulation/constants'
 
 export const APP_SETTINGS_COOKIE_NAME = 'appSettings'
 
@@ -52,8 +53,21 @@ export const GRID_REFERENCE_SYSTEMS = {
     },
 }
 
+export const QUALITY_PRESET_OPTIONS = ['low', 'balanced', 'high']
+
 export const DEFAULT_APP_SETTINGS = {
     gridReferenceSystem: GRID_REFERENCE_SYSTEMS.dd.value,
+    ...DEFAULT_SIMULATION_SETTINGS,
+}
+
+function clampNumber(value, min, max, fallback) {
+    const number = Number(value)
+
+    if (!Number.isFinite(number)) {
+        return fallback
+    }
+
+    return Math.min(max, Math.max(min, number))
 }
 
 function normalizeSettings(settings) {
@@ -61,10 +75,38 @@ function normalizeSettings(settings) {
         ? settings.gridReferenceSystem
         : DEFAULT_APP_SETTINGS.gridReferenceSystem
 
+    const qualityPreset = QUALITY_PRESET_OPTIONS.includes(settings?.qualityPreset)
+        ? settings.qualityPreset
+        : DEFAULT_APP_SETTINGS.qualityPreset
+
     return {
         ...DEFAULT_APP_SETTINGS,
         ...settings,
         gridReferenceSystem,
+        radarRefreshMs: clampNumber(settings?.radarRefreshMs, 500, 30000, DEFAULT_APP_SETTINGS.radarRefreshMs),
+        iffRefreshMs: clampNumber(settings?.iffRefreshMs, 250, 10000, DEFAULT_APP_SETTINGS.iffRefreshMs),
+        trackUpdateHz: clampNumber(settings?.trackUpdateHz, 2, 30, DEFAULT_APP_SETTINGS.trackUpdateHz),
+        correlationThresholdNm: clampNumber(
+            settings?.correlationThresholdNm,
+            0.5,
+            50,
+            DEFAULT_APP_SETTINGS.correlationThresholdNm,
+        ),
+        maxTruthAircraftInViewport: clampNumber(
+            settings?.maxTruthAircraftInViewport,
+            10,
+            2000,
+            DEFAULT_APP_SETTINGS.maxTruthAircraftInViewport,
+        ),
+        viewportPaddingDegrees: clampNumber(
+            settings?.viewportPaddingDegrees,
+            0.1,
+            5,
+            DEFAULT_APP_SETTINGS.viewportPaddingDegrees,
+        ),
+        qualityPreset,
+        adaptivePerformanceEnabled: settings?.adaptivePerformanceEnabled !== false,
+        simulationEnabled: settings?.simulationEnabled !== false,
     }
 }
 
@@ -122,12 +164,40 @@ export function AppSettingsProvider({children, initialSettings}) {
         setAppSettings(DEFAULT_APP_SETTINGS)
     }, [])
 
+    const updateSimulationSettings = useCallback((updates) => {
+        updateAppSettings((currentSettings) => ({
+            ...currentSettings,
+            ...updates,
+        }))
+    }, [updateAppSettings])
+
+    const simulationSettings = useMemo(() => ({
+        radarRefreshMs: appSettings.radarRefreshMs,
+        iffRefreshMs: appSettings.iffRefreshMs,
+        trackUpdateHz: appSettings.trackUpdateHz,
+        correlationThresholdNm: appSettings.correlationThresholdNm,
+        qualityPreset: appSettings.qualityPreset,
+        adaptivePerformanceEnabled: appSettings.adaptivePerformanceEnabled,
+        simulationEnabled: appSettings.simulationEnabled,
+        maxTruthAircraftInViewport: appSettings.maxTruthAircraftInViewport,
+        viewportPaddingDegrees: appSettings.viewportPaddingDegrees,
+    }), [appSettings])
+
     const value = useMemo(() => ({
         appSettings,
+        simulationSettings,
         updateAppSettings,
+        updateSimulationSettings,
         setGridReferenceSystem,
         resetAppSettings,
-    }), [appSettings, updateAppSettings, setGridReferenceSystem, resetAppSettings])
+    }), [
+        appSettings,
+        simulationSettings,
+        updateAppSettings,
+        updateSimulationSettings,
+        setGridReferenceSystem,
+        resetAppSettings,
+    ])
 
     return (
         <AppSettingsContext.Provider value={value}>

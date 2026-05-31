@@ -14,6 +14,7 @@ import {
     GRID_REFERENCE_SYSTEMS,
     useAppSettings,
 } from '../../../../../contexts/AppSettingsContext'
+import SettingsModalSimulationPage from './SettingsModalSimulationPage'
 
 export default function SettingsModalSettingsPage() {
     const {
@@ -54,6 +55,8 @@ export default function SettingsModalSettingsPage() {
                     </RadioGroup>
                 </FormControl>
             </Box>
+
+            <SettingsModalSimulationPage/>
         </Stack>
     )
 }
