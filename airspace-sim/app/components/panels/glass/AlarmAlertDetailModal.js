@@ -28,7 +28,7 @@ export default function AlarmAlertDetailModal({open, message, timestamp, onClose
             onClose={onClose}
         >
             <Box sx={modalStyle}>
-                <Stack direction='row' alignItems='flex-start' spacing={1}>
+                <Stack direction='row' spacing={1} sx={{alignItems: 'flex-start'}}>
                     <Box
                         sx={{
                             flex: 1,

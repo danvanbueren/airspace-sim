@@ -1,6 +1,11 @@
 'use client'
 
 import {useCallback, useEffect, useMemo, useRef} from 'react'
+import {
+    getMouseEventButton,
+    mouseButtonMatchesBinding,
+    useControlBindings,
+} from '@/app/contexts/ControlBindingsContext'
 import {addMilStd2525IconToMap} from '../../tools/milstd2525/createMilStd2525Icon'
 import {
     getTrackSymbolCode,
@@ -254,6 +259,9 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         styleKey,
         onTrackClick,
     } = options
+
+    const {controlBindings} = useControlBindings()
+    const mapCursorBindings = controlBindings.mapCursor
 
     const onTrackClickRef = useRef(onTrackClick)
 
