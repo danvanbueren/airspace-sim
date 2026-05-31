@@ -219,7 +219,6 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         openTrackManagementWindow(track, event)
         closeContextMenu()
 
-        console.log('track', track)
         const trackId = track.trackId ?? track.id
 
         if (trackId) {
