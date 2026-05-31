@@ -16,6 +16,7 @@ import {useTrackMapLayer} from '../../hooks/map/useTrackMapLayer'
 import {useSensorDetectionMapLayer} from '../../hooks/map/useSensorDetectionMapLayer'
 import {useSimulationLoop} from '../../hooks/simulation/useSimulationLoop'
 import {useTrackManagementKeyboardCustody} from '../../hooks/map/useTrackManagementKeyboardCustody'
+import {useMapCursorState} from '../../hooks/map/useMapCursorState'
 import {useSimulation} from '../../contexts/SimulationContext'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
@@ -71,6 +72,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         initialStyle: mapStyle,
         onError: addAlarmAlert,
     })
+    const mapCursor = useMapCursorState(mapRef, mapReady && mapInteractionsEnabled)
 
     const handleMapTrackClick = useCallback((track, event) => {
         openTrackManagementWindowRef.current?.(track, event)
@@ -81,6 +83,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         showLabels: true,
         styleKey: mapStyle,
         onTrackClick: handleMapTrackClick,
+        mapCursor,
     })
 
     useRegisteredMap(mapRef, mapReady, registerMap)
@@ -109,6 +112,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     } = useBearingRangeTool(mapRef, mapReady, {
         onContextMenu: handleMapContextMenu,
         lineColor: theme.palette.mode === 'dark' ? '#fff' : '#111',
+        mapCursor,
     })
 
     const handleRemoveBearingRangeLine = useCallback((lineId) => {
@@ -177,6 +181,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         mapReady,
         mapInteractionsEnabled,
         mapStyle,
+        mapCursor,
         keyboardCameraControlsEnabled,
     )
 
