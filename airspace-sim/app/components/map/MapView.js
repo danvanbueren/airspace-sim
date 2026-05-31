@@ -193,13 +193,23 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
 
     const handleOpenTrackManagementWindow = useCallback((track, event) => {
         openTrackManagementWindow(track, event)
+        closeContextMenu()
 
         const trackId = track.trackId ?? track.id
 
         if (trackId) {
-            bringTrackManagementWindowToFront(`track-${trackId}`)
+            const existingWindow = trackManagementWindows.find((trackManagementWindow) => (
+                trackManagementWindow.trackId === trackId
+            ))
+
+            bringTrackManagementWindowToFront(existingWindow?.id ?? `track-${trackId}`)
         }
-    }, [openTrackManagementWindow, bringTrackManagementWindowToFront])
+    }, [
+        openTrackManagementWindow,
+        closeContextMenu,
+        trackManagementWindows,
+        bringTrackManagementWindowToFront,
+    ])
 
     openTrackManagementWindowRef.current = handleOpenTrackManagementWindow
     closeMapDismissibleTrackManagementWindowsRef.current = closeMapDismissibleTrackManagementWindows
