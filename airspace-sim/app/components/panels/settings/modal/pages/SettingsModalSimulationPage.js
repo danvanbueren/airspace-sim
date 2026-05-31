@@ -13,6 +13,7 @@ import {
     Typography,
 } from '@mui/material'
 import {QUALITY_PRESET_OPTIONS, useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {QUALITY_PRESETS} from '@/app/simulation/constants'
 
 export default function SettingsModalSimulationPage() {
     const {appSettings, updateSimulationSettings} = useAppSettings()
@@ -107,9 +108,15 @@ export default function SettingsModalSimulationPage() {
                 <FormLabel>Quality preset</FormLabel>
                 <Select
                     value={appSettings.qualityPreset}
-                    onChange={(event) => updateSimulationSettings({
-                        qualityPreset: event.target.value,
-                    })}
+                    onChange={(event) => {
+                        const preset = QUALITY_PRESETS[event.target.value] ?? QUALITY_PRESETS.balanced
+
+                        updateSimulationSettings({
+                            qualityPreset: event.target.value,
+                            trackUpdateHz: preset.trackUpdateHz,
+                            maxTruthAircraftInViewport: preset.maxTruthAircraftInViewport,
+                        })
+                    }}
                 >
                     {QUALITY_PRESET_OPTIONS.map((preset) => (
                         <MenuItem key={preset} value={preset}>

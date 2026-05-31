@@ -57,6 +57,24 @@ export class InAppSyntheticFeed {
         }
     }
 
+    trimToMax(maxCount) {
+        if (this.truthAircraft.size <= maxCount) {
+            return []
+        }
+
+        const removedIds = []
+        const keys = Array.from(this.truthAircraft.keys())
+        const excessCount = this.truthAircraft.size - maxCount
+
+        for (let index = keys.length - excessCount; index < keys.length; index += 1) {
+            const id = keys[index]
+            this.truthAircraft.delete(id)
+            removedIds.push(id)
+        }
+
+        return removedIds
+    }
+
     advanceTruth(deltaSeconds, bounds) {
         this.truthAircraft.forEach((truth) => {
             const speed = truth.speed ?? 0
