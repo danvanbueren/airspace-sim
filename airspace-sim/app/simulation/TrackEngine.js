@@ -72,8 +72,63 @@ export class TrackEngine {
     }
 
     setSettings(settings) {
+        const previousSettings = this.settings
         this.settings = {...this.settings, ...settings}
-        this.perf.setEnabled(settings.adaptivePerformanceEnabled !== false)
+        this.perf.setEnabled(this.settings.adaptivePerformanceEnabled !== false)
+        this.applySettingsChange(previousSettings, this.settings)
+    }
+
+    applySettingsChange(previousSettings, nextSettings) {
+        const shouldResetScanTimers = (
+            previousSettings.radarRefreshMs !== nextSettings.radarRefreshMs
+            || previousSettings.iffRefreshMs !== nextSettings.iffRefreshMs
+            || previousSettings.correlationThresholdNm !== nextSettings.correlationThresholdNm
+            || (
+                previousSettings.simulationEnabled === false
+                && nextSettings.simulationEnabled !== false
+            )
+        )
+
+        if (shouldResetScanTimers) {
+            this.lastRadarScanAt = 0
+            this.lastIffScanAt = 0
+        }
+
+        const previousMaxAircraft = this.perf.getEffectiveMaxAircraft(
+            previousSettings.maxTruthAircraftInViewport ?? 200,
+            previousSettings.qualityPreset ?? 'balanced',
+        )
+        const nextMaxAircraft = this.perf.getEffectiveMaxAircraft(
+            nextSettings.maxTruthAircraftInViewport ?? 200,
+            nextSettings.qualityPreset ?? 'balanced',
+        )
+
+        if (nextMaxAircraft < previousMaxAircraft) {
+            const removedTruthIds = this.feed.trimToMax(nextMaxAircraft)
+            this.removeTracksForTruthIds(removedTruthIds)
+        }
+
+        this.notifyListeners()
+    }
+
+    removeTracksForTruthIds(truthIds) {
+        if (!truthIds.length) {
+            return
+        }
+
+        const truthIdSet = new Set(truthIds)
+
+        for (const [trackId, track] of this.tracks.entries()) {
+            if (this.manualTracks.has(trackId)) {
+                continue
+            }
+
+            const associatedTruthId = track.callsign ?? track.id
+
+            if (truthIdSet.has(associatedTruthId)) {
+                this.tracks.delete(trackId)
+            }
+        }
     }
 
     setDisplayToggles(toggles) {
