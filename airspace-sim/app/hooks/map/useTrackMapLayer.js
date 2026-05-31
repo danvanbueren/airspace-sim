@@ -1,6 +1,11 @@
 'use client'
 
 import {useCallback, useEffect, useMemo, useRef} from 'react'
+import {
+    getMouseEventButton,
+    mouseButtonMatchesBinding,
+    useControlBindings,
+} from '../../contexts/ControlBindingsContext'
 import {addMilStd2525IconToMap} from '../../tools/milstd2525/createMilStd2525Icon'
 import {
     getTrackSymbolCode,
@@ -242,6 +247,9 @@ function addTrackLayers(map) {
 }
 
 export function useTrackMapLayer(mapRef, mapReady, options = {}) {
+    const {controlBindings} = useControlBindings()
+    const mapCursorBindings = controlBindings.mapCursor
+
     const tracksRef = useRef(new Map())
     const registeredIconIdsRef = useRef(new Set())
     const pendingIconIdsRef = useRef(new Set())
@@ -588,7 +596,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
             const track = queryTrackAtMapPoint(getMapPointFromEvent(event))
 
-            if (getTrackId(track) !== trackPress.trackId) {
+            if (!track || getTrackId(track) !== trackPress.trackId) {
                 clearTrackPress()
             }
         }
