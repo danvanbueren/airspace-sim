@@ -521,50 +521,122 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         }
 
         const map = mapRef.current
+        const canvas = map.getCanvas()
+        let trackPress = null
 
-        const handleTrackClick = (event) => {
-            const feature = event.features?.[0]
-            const trackId = feature?.properties?.trackId ?? feature?.properties?.id
+        const queryTrackAtMapPoint = (mapPoint) => {
+            const layers = [TRACK_LAYER_ID, TRACK_LABEL_LAYER_ID].filter((layerId) => map.getLayer(layerId))
+
+            if (layers.length === 0) {
+                return null
+            }
+
+            const {x, y} = mapPoint
+            const features = map.queryRenderedFeatures([
+                [x - TRACK_HIT_TEST_PADDING, y - TRACK_HIT_TEST_PADDING],
+                [x + TRACK_HIT_TEST_PADDING, y + TRACK_HIT_TEST_PADDING],
+            ], {layers})
+
+            const trackId = features[0]?.properties?.trackId ?? features[0]?.properties?.id
 
             if (!trackId) {
+                return null
+            }
+
+            return tracksRef.current.get(trackId) ?? null
+        }
+
+        const getMapPointFromEvent = (event) => {
+            const bounds = canvas.getBoundingClientRect()
+
+            return {
+                x: event.clientX - bounds.left,
+                y: event.clientY - bounds.top,
+            }
+        }
+
+        const clearTrackPress = () => {
+            trackPress = null
+        }
+
+        const handleMouseDown = (event) => {
+            if (event.shiftKey && event.button === 0) {
                 return
             }
 
-            const track = tracksRef.current.get(trackId)
+            if (!mouseButtonMatchesBinding(getMouseEventButton(event), mapCursorBindings.grabButton)) {
+                clearTrackPress()
+                return
+            }
+
+            const track = queryTrackAtMapPoint(getMapPointFromEvent(event))
 
             if (!track) {
+                clearTrackPress()
                 return
             }
 
-            event.preventDefault()
-            event.originalEvent?.stopPropagation?.()
+            trackPress = {
+                trackId: getTrackId(track),
+            }
+        }
 
-            onTrackClickRef.current?.(track, event)
+        const handleMouseMove = (event) => {
+            if (!trackPress) {
+                return
+            }
+
+            const track = queryTrackAtMapPoint(getMapPointFromEvent(event))
+
+            if (getTrackId(track) !== trackPress.trackId) {
+                clearTrackPress()
+            }
+        }
+
+        const handleMouseUp = (event) => {
+            if (!trackPress) {
+                return
+            }
+
+            if (!mouseButtonMatchesBinding(getMouseEventButton(event), mapCursorBindings.grabButton)) {
+                clearTrackPress()
+                return
+            }
+
+            const mapPoint = getMapPointFromEvent(event)
+            const track = queryTrackAtMapPoint(mapPoint)
+            const pressedTrackId = trackPress.trackId
+
+            clearTrackPress()
+
+            if (!track || getTrackId(track) !== pressedTrackId) {
+                return
+            }
+
+            onTrackClickRef.current?.(track, {
+                point: mapPoint,
+                lngLat: map.unproject([mapPoint.x, mapPoint.y]),
+                originalEvent: event,
+            })
         }
 
         const handleTrackPointerEnter = () => {
-            const canvas = map.getCanvas()
-
             canvas.dataset.cursorOverride = 'pointer'
             canvas.style.cursor = 'pointer'
         }
 
         const handleTrackPointerLeave = () => {
-            const canvas = map.getCanvas()
-
             delete canvas.dataset.cursorOverride
             canvas.style.cursor = ''
         }
 
         const registerLayerHandlers = () => {
             if (map.getLayer(TRACK_LAYER_ID)) {
-                map.on('click', TRACK_LAYER_ID, handleTrackClick)
                 map.on('mouseenter', TRACK_LAYER_ID, handleTrackPointerEnter)
                 map.on('mouseleave', TRACK_LAYER_ID, handleTrackPointerLeave)
             }
 
             if (map.getLayer(TRACK_LABEL_LAYER_ID)) {
-                map.on('click', TRACK_LABEL_LAYER_ID, handleTrackClick)
                 map.on('mouseenter', TRACK_LABEL_LAYER_ID, handleTrackPointerEnter)
                 map.on('mouseleave', TRACK_LABEL_LAYER_ID, handleTrackPointerLeave)
             }
@@ -572,13 +644,11 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
         const unregisterLayerHandlers = () => {
             if (map.getLayer(TRACK_LAYER_ID)) {
-                map.off('click', TRACK_LAYER_ID, handleTrackClick)
                 map.off('mouseenter', TRACK_LAYER_ID, handleTrackPointerEnter)
                 map.off('mouseleave', TRACK_LAYER_ID, handleTrackPointerLeave)
             }
 
             if (map.getLayer(TRACK_LABEL_LAYER_ID)) {
-                map.off('click', TRACK_LABEL_LAYER_ID, handleTrackClick)
                 map.off('mouseenter', TRACK_LABEL_LAYER_ID, handleTrackPointerEnter)
                 map.off('mouseleave', TRACK_LABEL_LAYER_ID, handleTrackPointerLeave)
             }
@@ -591,13 +661,23 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
         refreshLayerHandlers()
 
+        canvas.addEventListener('mousedown', handleMouseDown)
+        window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('mouseup', handleMouseUp)
+        window.addEventListener('blur', clearTrackPress)
+
         map.on('style.load', refreshLayerHandlers)
 
         return () => {
             map.off('style.load', refreshLayerHandlers)
             unregisterLayerHandlers()
+            canvas.removeEventListener('mousedown', handleMouseDown)
+            window.removeEventListener('mousemove', handleMouseMove)
+            window.removeEventListener('mouseup', handleMouseUp)
+            window.removeEventListener('blur', clearTrackPress)
+            clearTrackPress()
         }
-    }, [mapReady, mapRef, styleKey])
+    }, [mapReady, mapRef, styleKey, mapCursorBindings.grabButton])
 
     return useMemo(() => ({
         sourceId: TRACK_SOURCE_ID,
