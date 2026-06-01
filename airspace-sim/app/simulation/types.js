@@ -42,6 +42,7 @@
  * @property {number} lastSensorUpdateAt
  * @property {number} lastExtrapolationAt
  * @property {boolean} stale
+ * @property {string|null} truthId
  * @property {string} domain
  * @property {string} identity
  * @property {string} type

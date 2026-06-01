@@ -106,13 +106,28 @@ function getTrackIconRenderOptions(track, defaultIconSize) {
 
 function getTrackIconId(track, symbolCode, defaultIconSize) {
     const renderOptions = getTrackIconRenderOptions(track, defaultIconSize)
-    const renderOptionsHash = hashString(stableSerialize(renderOptions))
+    const iconCacheOptions = getTrackIconCacheOptions(renderOptions)
+    const renderOptionsHash = hashString(stableSerialize(iconCacheOptions))
 
     return [
         'milstd2525',
         symbolCode,
         renderOptionsHash,
     ].join(':')
+}
+
+function getTrackIconCacheOptions(renderOptions) {
+    if (renderOptions.useFamiliarIcon !== false && !renderOptions.infoFields) {
+        return {
+            size: renderOptions.size,
+            domain: renderOptions.domain,
+            identity: renderOptions.identity,
+            type: renderOptions.type,
+            useFamiliarIcon: renderOptions.useFamiliarIcon,
+        }
+    }
+
+    return renderOptions
 }
 
 function trackToFeature(track, defaultIconSize) {
