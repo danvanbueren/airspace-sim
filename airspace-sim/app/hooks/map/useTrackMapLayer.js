@@ -11,6 +11,10 @@ import {
     getTrackSymbolCode,
     getTrackSymbolOptions,
 } from '../../tools/milstd2525/trackSymbolCodes'
+import {
+    MAP_CURSOR_PRIORITIES,
+    MAP_CURSOR_REQUESTS,
+} from './useMapCursorState'
 
 const TRACK_SOURCE_ID = 'tracks'
 const TRACK_LAYER_ID = 'tracks-symbols'
@@ -261,6 +265,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         showLabels = true,
         styleKey,
         onTrackClick,
+        mapCursor,
     } = options
 
     const onTrackClickRef = useRef(onTrackClick)
@@ -629,13 +634,15 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         }
 
         const handleTrackPointerEnter = () => {
-            canvas.dataset.cursorOverride = 'pointer'
-            canvas.style.cursor = 'pointer'
+            mapCursor?.requestCursor(
+                MAP_CURSOR_REQUESTS.TRACK_HOVER,
+                'pointer',
+                MAP_CURSOR_PRIORITIES.HOVER,
+            )
         }
 
         const handleTrackPointerLeave = () => {
-            delete canvas.dataset.cursorOverride
-            canvas.style.cursor = ''
+            mapCursor?.clearCursorRequest(MAP_CURSOR_REQUESTS.TRACK_HOVER)
         }
 
         const registerLayerHandlers = () => {
@@ -684,8 +691,9 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
             window.removeEventListener('mouseup', handleMouseUp)
             window.removeEventListener('blur', clearTrackPress)
             clearTrackPress()
+            mapCursor?.clearCursorRequest(MAP_CURSOR_REQUESTS.TRACK_HOVER)
         }
-    }, [mapReady, mapRef, styleKey, mapCursorBindings.grabButton])
+    }, [mapReady, mapRef, styleKey, mapCursor, mapCursorBindings.grabButton])
 
     return useMemo(() => ({
         sourceId: TRACK_SOURCE_ID,

@@ -6,13 +6,17 @@ import {
     pressedMouseButtonsMatchBinding,
     useControlBindings,
 } from '@/app/contexts/ControlBindingsContext'
+import {
+    MAP_CURSOR_PRIORITIES,
+    MAP_CURSOR_REQUESTS,
+} from '../useMapCursorState'
 
-export function useMapCursor(mapRef, enabled) {
+export function useMapCursor(mapRef, enabled, mapCursor) {
     const {controlBindings} = useControlBindings()
     const mapCursorBindings = controlBindings.mapCursor
 
     useEffect(() => {
-        if (!mapRef.current)
+        if (!mapRef.current || !mapCursor)
             return
 
         const map = mapRef.current
@@ -21,42 +25,48 @@ export function useMapCursor(mapRef, enabled) {
         let isPointerOverMap = false
 
         if (!enabled) {
-            map.getCanvas().style.cursor = ''
+            mapCursor.clearCursorRequests([
+                MAP_CURSOR_REQUESTS.DEFAULT,
+                MAP_CURSOR_REQUESTS.MAP_ACTIVE,
+            ])
             return
         }
 
-        const getCursorOverride = () => {
-            return map.getCanvas().dataset.cursorOverride
+        const setDefaultCursorRequest = (cursor) => {
+            mapCursor.requestCursor(
+                MAP_CURSOR_REQUESTS.DEFAULT,
+                cursor,
+                MAP_CURSOR_PRIORITIES.DEFAULT,
+            )
         }
 
-        const setCursor = (cursor, {allowOverride = true} = {}) => {
-            const cursorOverride = getCursorOverride()
-
-            if (allowOverride && cursorOverride && !isDragButtonDown && !isShiftDown) {
-                map.getCanvas().style.cursor = cursorOverride
-                return
-            }
-
-            map.getCanvas().style.cursor = cursor
+        const setActiveCursorRequest = (cursor) => {
+            mapCursor.requestCursor(
+                MAP_CURSOR_REQUESTS.MAP_ACTIVE,
+                cursor,
+                MAP_CURSOR_PRIORITIES.ACTIVE,
+            )
         }
 
         const setDefaultCursor = () => {
             isDragButtonDown = false
-            setCursor(isShiftDown && isPointerOverMap ? 'nesw-resize' : 'crosshair')
+            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.MAP_ACTIVE)
+            setDefaultCursorRequest(isShiftDown && isPointerOverMap ? 'nesw-resize' : 'crosshair')
         }
 
         const setActiveCursor = () => {
             if (isShiftDown && isPointerOverMap) {
-                setCursor('nesw-resize', {allowOverride: false})
+                setActiveCursorRequest('nesw-resize')
                 return
             }
 
             if (isDragButtonDown) {
-                setCursor('grabbing', {allowOverride: false})
+                setActiveCursorRequest('grabbing')
                 return
             }
 
-            setCursor('crosshair')
+            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.MAP_ACTIVE)
+            setDefaultCursorRequest('crosshair')
         }
 
         const setCustomCursor = (event) => {
@@ -69,7 +79,7 @@ export function useMapCursor(mapRef, enabled) {
             }
 
             if (pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.pointerButton))
-                setCursor('pointer', {allowOverride: false})
+                setActiveCursorRequest('pointer')
         }
 
         const keepDragCursor = () => {
@@ -82,6 +92,7 @@ export function useMapCursor(mapRef, enabled) {
         }
         const handleMouseLeave = () => {
             isPointerOverMap = false
+            setActiveCursor()
         }
 
         const handleKeyDown = (event) => {
@@ -124,8 +135,10 @@ export function useMapCursor(mapRef, enabled) {
             window.removeEventListener('keydown', handleKeyDown)
             window.removeEventListener('keyup', handleKeyUp)
             window.removeEventListener('mouseup', setDefaultCursor)
-            delete map.getCanvas().dataset.cursorOverride
-            map.getCanvas().style.cursor = ''
+            mapCursor.clearCursorRequests([
+                MAP_CURSOR_REQUESTS.DEFAULT,
+                MAP_CURSOR_REQUESTS.MAP_ACTIVE,
+            ])
         }
-    }, [mapRef, enabled, mapCursorBindings])
+    }, [mapRef, enabled, mapCursor, mapCursorBindings])
 }

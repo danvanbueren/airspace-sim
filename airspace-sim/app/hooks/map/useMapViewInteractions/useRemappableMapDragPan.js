@@ -6,13 +6,17 @@ import {
     mouseButtonMatchesBinding,
     useControlBindings,
 } from '@/app/contexts/ControlBindingsContext'
+import {
+    MAP_CURSOR_PRIORITIES,
+    MAP_CURSOR_REQUESTS,
+} from '../useMapCursorState'
 
-export function useRemappableMapDragPan(mapRef, enabled) {
+export function useRemappableMapDragPan(mapRef, enabled, mapCursor) {
     const {controlBindings} = useControlBindings()
     const mapCursorBindings = controlBindings.mapCursor
 
     useEffect(() => {
-        if (!mapRef.current) return
+        if (!mapRef.current || !mapCursor) return
 
         const map = mapRef.current
         const canvas = map.getCanvas()
@@ -20,7 +24,10 @@ export function useRemappableMapDragPan(mapRef, enabled) {
         map.dragPan.disable()
         map.boxZoom.enable()
 
-        if (!enabled) return
+        if (!enabled) {
+            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.DRAG_PAN)
+            return
+        }
 
         let isDragging = false
         let lastPoint = null
@@ -39,7 +46,11 @@ export function useRemappableMapDragPan(mapRef, enabled) {
                 y: event.clientY,
             }
 
-            canvas.style.cursor = 'grabbing'
+            mapCursor.requestCursor(
+                MAP_CURSOR_REQUESTS.DRAG_PAN,
+                'grabbing',
+                MAP_CURSOR_PRIORITIES.ACTIVE,
+            )
         }
 
         const handleMouseMove = (event) => {
@@ -65,6 +76,7 @@ export function useRemappableMapDragPan(mapRef, enabled) {
         const endDrag = () => {
             isDragging = false
             lastPoint = null
+            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.DRAG_PAN)
         }
 
         canvas.addEventListener('mousedown', handleMouseDown)
@@ -79,5 +91,5 @@ export function useRemappableMapDragPan(mapRef, enabled) {
             window.removeEventListener('blur', endDrag)
             endDrag()
         }
-    }, [mapRef, enabled, mapCursorBindings.dragButton])
+    }, [mapRef, enabled, mapCursor, mapCursorBindings.dragButton])
 }
