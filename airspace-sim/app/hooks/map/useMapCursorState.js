@@ -101,11 +101,6 @@ export function useMapCursorState(mapRef, enabled) {
         }
     }, [applyCursor])
 
-    const clearAllCursorRequests = useCallback(() => {
-        cursorRequestsRef.current.clear()
-        applyCursor()
-    }, [applyCursor])
-
     useEffect(() => {
         applyCursor()
     }, [applyCursor, enabled])
@@ -126,11 +121,9 @@ export function useMapCursorState(mapRef, enabled) {
         requestCursor,
         clearCursorRequest,
         clearCursorRequests,
-        clearAllCursorRequests,
     }), [
         requestCursor,
         clearCursorRequest,
         clearCursorRequests,
-        clearAllCursorRequests,
     ])
 }
