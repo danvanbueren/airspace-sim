@@ -265,7 +265,11 @@ export class TrackEngine {
             this.settings.qualityPreset ?? 'balanced',
         )
 
-        this.feed.ensureViewportPopulation(bounds, maxAircraft)
+        const removedForViewport = this.feed.ensureViewportPopulation(bounds, maxAircraft)
+        this.removeTracksForTruthIds(removedForViewport)
+
+        const removedForMaxAircraft = this.feed.trimToMax(maxAircraft)
+        this.removeTracksForTruthIds(removedForMaxAircraft)
 
         if (!this.hasRunInitialScans) {
             this.hasRunInitialScans = true
