@@ -400,9 +400,15 @@ export function useBearingRangeTool(mapRef, enabled, {
             return linesRef.current.find((line) => line.id === lineId) ?? null
         }
 
+        const clearHoverCursor = () => {
+            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER)
+        }
+
         const updateCursor = (event) => {
-            if (dragStartRef.current)
+            if (dragStartRef.current) {
+                clearHoverCursor()
                 return
+            }
 
             const buttons = getMouseEventButtons(event)
             const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
@@ -411,8 +417,10 @@ export function useBearingRangeTool(mapRef, enabled, {
                 pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.dragButton)
                 || pressedMouseButtonsMatchBinding(buttons, bearingRangeBindings.drawButton)
                 || shiftKey
-            )
+            ) {
+                clearHoverCursor()
                 return
+            }
 
             const hoveredLine = getBearingRangeLineAtPoint(getDragPoint(event))
 
@@ -425,7 +433,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
-            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER)
+            clearHoverCursor()
         }
 
         const handleMouseDown = (event) => {
@@ -433,6 +441,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
 
             event.preventDefault()
+            clearHoverCursor()
             mapCursor.requestCursor(
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
                 BEARING_RANGE_DRAW_CURSOR,
@@ -526,7 +535,7 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const handleMouseLeave = () => {
-            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER)
+            clearHoverCursor()
         }
 
         const cancelDrag = () => {
