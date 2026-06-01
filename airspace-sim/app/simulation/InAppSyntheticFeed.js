@@ -31,7 +31,16 @@ export class InAppSyntheticFeed {
 
     ensureViewportPopulation(bounds, maxCount) {
         if (!bounds) {
-            return
+            return []
+        }
+
+        const removedIds = []
+
+        for (const [id, truth] of this.truthAircraft.entries()) {
+            if (!isPointInBounds(truth.longitude, truth.latitude, bounds)) {
+                this.truthAircraft.delete(id)
+                removedIds.push(id)
+            }
         }
 
         const random = createSeededRandom(
@@ -50,11 +59,7 @@ export class InAppSyntheticFeed {
             this.truthAircraft.set(id, createTruthAircraft(id, lng, lat, random))
         }
 
-        for (const [id, truth] of this.truthAircraft.entries()) {
-            if (!isPointInBounds(truth.longitude, truth.latitude, bounds)) {
-                this.truthAircraft.delete(id)
-            }
-        }
+        return removedIds
     }
 
     trimToMax(maxCount) {

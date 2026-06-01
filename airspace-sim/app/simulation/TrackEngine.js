@@ -21,6 +21,7 @@ function trackFromDetection(detection, truth) {
         lastSensorUpdateAt: detection.timestamp,
         lastExtrapolationAt: detection.timestamp,
         stale: false,
+        truthId: detection.truthId ?? truth?.id ?? null,
         domain: truth?.domain ?? 'air',
         identity: truth?.identity ?? 'pending',
         type: truth?.type ?? '01:110104',
@@ -112,7 +113,7 @@ export class TrackEngine {
     }
 
     removeTracksForTruthIds(truthIds) {
-        if (!truthIds.length) {
+        if (!truthIds?.length) {
             return
         }
 
@@ -123,7 +124,7 @@ export class TrackEngine {
                 continue
             }
 
-            const associatedTruthId = track.callsign ?? track.id
+            const associatedTruthId = track.truthId ?? track.callsign ?? track.id
 
             if (truthIdSet.has(associatedTruthId)) {
                 this.tracks.delete(trackId)
@@ -228,6 +229,7 @@ export class TrackEngine {
                     lastSensorUpdateAt: timestamp,
                     lastExtrapolationAt: timestamp,
                     stale: false,
+                    truthId: detection.truthId ?? existing?.truthId ?? null,
                     correlated: true,
                 })
             } else if (detection.truthId) {
@@ -265,7 +267,11 @@ export class TrackEngine {
             this.settings.qualityPreset ?? 'balanced',
         )
 
-        this.feed.ensureViewportPopulation(bounds, maxAircraft)
+        const removedForViewport = this.feed.ensureViewportPopulation(bounds, maxAircraft)
+        this.removeTracksForTruthIds(removedForViewport)
+
+        const removedForMaxAircraft = this.feed.trimToMax(maxAircraft)
+        this.removeTracksForTruthIds(removedForMaxAircraft)
 
         if (!this.hasRunInitialScans) {
             this.hasRunInitialScans = true
