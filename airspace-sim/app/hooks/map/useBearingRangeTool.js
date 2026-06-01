@@ -278,7 +278,7 @@ export function useBearingRangeTool(mapRef, enabled, {
     }, [clearPreviewLine])
 
     useEffect(() => {
-        if (!enabled || !mapRef.current || !mapCursor) return
+        if (!enabled || !mapRef.current) return
 
         const map = mapRef.current
 
