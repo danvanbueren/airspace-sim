@@ -7,10 +7,13 @@ import {
     pressedMouseButtonsMatchBinding,
     useControlBindings,
 } from '../../contexts/ControlBindingsContext'
+import {
+    MAP_CURSOR_PRIORITIES,
+    MAP_CURSOR_REQUESTS,
+} from './useMapCursorState'
 
 const LINE_SOURCE_ID = 'bearing-range-lines-source'
 const LINE_LAYER_ID = 'bearing-range-lines-layer'
-const DEFAULT_MAP_CURSOR = 'crosshair'
 const BEARING_RANGE_DRAW_CURSOR = 'pointer'
 const BEARING_RANGE_CONTEXT_MENU_CURSOR = 'context-menu'
 const PREVIEW_LINE_ID = 'bearing-range-preview-line'
@@ -177,7 +180,7 @@ function getDistancePixels(startPoint, endPoint) {
 }
 
 export function useBearingRangeTool(mapRef, enabled, {
-    onContextMenu, lineColor = '#fff',
+    onContextMenu, lineColor = '#fff', mapCursor,
 } = {},) {
     const {controlBindings} = useControlBindings()
     const mapCursorBindings = controlBindings.mapCursor
@@ -397,9 +400,15 @@ export function useBearingRangeTool(mapRef, enabled, {
             return linesRef.current.find((line) => line.id === lineId) ?? null
         }
 
+        const clearHoverCursor = () => {
+            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER)
+        }
+
         const updateCursor = (event) => {
-            if (dragStartRef.current)
+            if (dragStartRef.current) {
+                clearHoverCursor()
                 return
+            }
 
             const buttons = getMouseEventButtons(event)
             const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
@@ -408,12 +417,23 @@ export function useBearingRangeTool(mapRef, enabled, {
                 pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.dragButton)
                 || pressedMouseButtonsMatchBinding(buttons, bearingRangeBindings.drawButton)
                 || shiftKey
-            )
+            ) {
+                clearHoverCursor()
                 return
+            }
 
             const hoveredLine = getBearingRangeLineAtPoint(getDragPoint(event))
 
-            canvas.style.cursor = hoveredLine ? BEARING_RANGE_CONTEXT_MENU_CURSOR : DEFAULT_MAP_CURSOR
+            if (hoveredLine) {
+                mapCursor.requestCursor(
+                    MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
+                    BEARING_RANGE_CONTEXT_MENU_CURSOR,
+                    MAP_CURSOR_PRIORITIES.CONTEXT,
+                )
+                return
+            }
+
+            clearHoverCursor()
         }
 
         const handleMouseDown = (event) => {
@@ -421,7 +441,12 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
 
             event.preventDefault()
-            canvas.style.cursor = BEARING_RANGE_DRAW_CURSOR
+            clearHoverCursor()
+            mapCursor.requestCursor(
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
+                BEARING_RANGE_DRAW_CURSOR,
+                MAP_CURSOR_PRIORITIES.ACTIVE,
+            )
 
             dragStartRef.current = {
                 time: performance.now(), ...getDragPoint(event),
@@ -440,7 +465,11 @@ export function useBearingRangeTool(mapRef, enabled, {
             }
 
             event.preventDefault()
-            canvas.style.cursor = BEARING_RANGE_DRAW_CURSOR
+            mapCursor.requestCursor(
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
+                BEARING_RANGE_DRAW_CURSOR,
+                MAP_CURSOR_PRIORITIES.ACTIVE,
+            )
 
             const currentPoint = getDragPoint(event)
             const deltaPixels = getDistancePixels(dragStart.point, currentPoint.point)
@@ -470,6 +499,7 @@ export function useBearingRangeTool(mapRef, enabled, {
 
             dragStartRef.current = null
             setIsDrawingBearingRangeLine(false)
+            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW)
 
             const shouldOpenContextMenu = mouseButtonMatchesBinding(eventButton, bearingRangeBindings.contextMenuButton)
                 && deltaTime <= bearingRangeBindings.contextMenuMaxMs
@@ -505,14 +535,17 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const handleMouseLeave = () => {
-            canvas.style.cursor = DEFAULT_MAP_CURSOR
+            clearHoverCursor()
         }
 
         const cancelDrag = () => {
             dragStartRef.current = null
             setIsDrawingBearingRangeLine(false)
             clearPreviewLine()
-            canvas.style.cursor = DEFAULT_MAP_CURSOR
+            mapCursor.clearCursorRequests([
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
+            ])
         }
 
         canvas.addEventListener('mousedown', handleMouseDown)
@@ -529,8 +562,21 @@ export function useBearingRangeTool(mapRef, enabled, {
             canvas.removeEventListener('mouseleave', handleMouseLeave)
             canvas.removeEventListener('contextmenu', handleContextMenu)
             window.removeEventListener('blur', cancelDrag)
+            mapCursor.clearCursorRequests([
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
+            ])
         }
-    }, [mapRef, enabled, onContextMenu, clearPreviewLine, setCurrentPreviewLine, mapCursorBindings, bearingRangeBindings])
+    }, [
+        mapRef,
+        enabled,
+        onContextMenu,
+        clearPreviewLine,
+        setCurrentPreviewLine,
+        mapCursor,
+        mapCursorBindings,
+        bearingRangeBindings,
+    ])
 
     return {
         lines, isDrawingBearingRangeLine, removeBearingRangeLine, clearBearingRangeLines,
