@@ -11,12 +11,15 @@ import {
     getTrackSymbolCode,
     getTrackSymbolOptions,
 } from '../../tools/milstd2525/trackSymbolCodes'
+import {tracksToVectorFeatureCollection} from '../../simulation/trackVectorFeatures'
 import {
     MAP_CURSOR_PRIORITIES,
     MAP_CURSOR_REQUESTS,
 } from './useMapCursorState'
 
 const TRACK_SOURCE_ID = 'tracks'
+const TRACK_VECTOR_SOURCE_ID = 'tracks-vectors'
+const TRACK_VECTOR_LAYER_ID = 'tracks-vectors-lines'
 const TRACK_LAYER_ID = 'tracks-symbols'
 const TRACK_LABEL_LAYER_ID = 'tracks-labels'
 const TRACK_HIT_TEST_PADDING = 6
@@ -146,10 +149,7 @@ function trackToFeature(track, defaultIconSize) {
     const symbolCode = track.symbolCode ?? getTrackSymbolCode(track)
     const iconId = track.iconId ?? getTrackIconId(track, symbolCode, defaultIconSize)
 
-    const baseHeading = toFiniteNumber(track.heading, 0)
-    const displayHeading = track.correlated
-        ? (baseHeading + 45) % 360
-        : baseHeading
+    const displayHeading = toFiniteNumber(track.heading, 0)
 
     return {
         type: 'Feature',
@@ -212,7 +212,51 @@ function addTrackSource(map) {
     })
 }
 
+function addTrackVectorSource(map) {
+    if (map.getSource(TRACK_VECTOR_SOURCE_ID)) {
+        return
+    }
+
+    map.addSource(TRACK_VECTOR_SOURCE_ID, {
+        type: 'geojson',
+        data: {
+            type: 'FeatureCollection',
+            features: [],
+        },
+    })
+}
+
 function addTrackLayers(map) {
+    if (!map.getLayer(TRACK_VECTOR_LAYER_ID)) {
+        const vectorLayerBeforeId = map.getLayer(TRACK_LAYER_ID) ? TRACK_LAYER_ID : undefined
+
+        map.addLayer({
+            id: TRACK_VECTOR_LAYER_ID,
+            type: 'line',
+            source: TRACK_VECTOR_SOURCE_ID,
+            paint: {
+                'line-color': '#ffffff',
+                'line-width': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    4, 2,
+                    10, 3.5,
+                    16, 5,
+                ],
+                'line-opacity': [
+                    'case',
+                    ['boolean', ['get', 'stale'], false],
+                    0.45,
+                    1,
+                ],
+            },
+            layout: {
+                'line-cap': 'round',
+            },
+        }, vectorLayerBeforeId)
+    }
+
     if (!map.getLayer(TRACK_LAYER_ID)) {
         map.addLayer({
             id: TRACK_LAYER_ID,
@@ -297,6 +341,20 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         onTrackClickRef.current = onTrackClick
     }, [onTrackClick])
 
+    const applyTrackDataToMap = useCallback((map) => {
+        if (!map?.getSource(TRACK_SOURCE_ID)) {
+            return
+        }
+
+        const tracks = Array.from(tracksRef.current.values())
+        const featureCollection = createFeatureCollection(tracks, iconSize)
+
+        getSource(map)?.setData(featureCollection)
+        map.getSource(TRACK_VECTOR_SOURCE_ID)?.setData(
+            tracksToVectorFeatureCollection(tracks, map),
+        )
+    }, [iconSize])
+
     const scheduleSetData = useCallback(() => {
         if (frameRef.current) {
             return
@@ -307,16 +365,13 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
             const map = mapRef.current
 
-            if (!map || !map.getSource(TRACK_SOURCE_ID)) {
+            if (!map) {
                 return
             }
 
-            const source = getSource(map)
-            const featureCollection = createFeatureCollection(tracksRef.current, iconSize)
-
-            source?.setData(featureCollection)
+            applyTrackDataToMap(map)
         })
-    }, [iconSize, mapRef])
+    }, [applyTrackDataToMap, mapRef])
 
     const ensureTrackIcon = useCallback(async (track) => {
         const map = mapRef.current
@@ -366,6 +421,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         if (!map || !map.isStyleLoaded()) return
 
         addTrackSource(map)
+        addTrackVectorSource(map)
         addTrackLayers(map)
 
         if (!showLabels && map.getLayer(TRACK_LABEL_LAYER_ID)) {
@@ -533,11 +589,19 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
         rehydrateTrackLayer()
 
+        const handleViewChange = () => {
+            scheduleSetData()
+        }
+
         map.on('style.load', handleStyleLoad)
         map.once('idle', handleIdle)
+        map.on('move', handleViewChange)
+        map.on('zoom', handleViewChange)
 
         return () => {
             map.off('style.load', handleStyleLoad)
+            map.off('move', handleViewChange)
+            map.off('zoom', handleViewChange)
 
             if (rehydrateTimeoutRef.current) {
                 window.clearTimeout(rehydrateTimeoutRef.current)
@@ -720,6 +784,8 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
     return useMemo(() => ({
         sourceId: TRACK_SOURCE_ID,
+        vectorSourceId: TRACK_VECTOR_SOURCE_ID,
+        vectorLayerId: TRACK_VECTOR_LAYER_ID,
         layerId: TRACK_LAYER_ID,
         labelLayerId: TRACK_LABEL_LAYER_ID,
         upsertTrack,
