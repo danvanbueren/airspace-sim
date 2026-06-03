@@ -1,5 +1,4 @@
 import {TrackEngine} from './TrackEngine'
-import {InAppSyntheticFeed} from './InAppSyntheticFeed'
 
 function createMockMap(bounds) {
     return {
@@ -25,10 +24,9 @@ export function runSimulationStressHarness(options = {}) {
     const mockMap = createMockMap(bounds)
 
     const engine = new TrackEngine({
-        feed: new InAppSyntheticFeed(),
         settings: {
             simulationEnabled: true,
-            maxTruthAircraftInViewport: trackTarget,
+            maxActiveFlights: trackTarget,
             radarRefreshMs: 100,
             iffRefreshMs: 50,
             trackUpdateHz: 20,

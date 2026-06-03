@@ -1,45 +1,30 @@
-import {correlateDetections} from './correlation'
-import {extrapolatePosition} from './geo'
 import {SENSOR_TYPES} from './constants'
 import {SensorHistoryBuffer} from './SensorHistoryBuffer'
-import {InAppSyntheticFeed} from './InAppSyntheticFeed'
 import {HistoryPlaybackController} from './HistoryPlaybackController'
 import {PerfBudgetController} from './PerfBudgetController'
 import {expandBounds} from './geo'
-
-function trackFromDetection(detection, truth) {
-    const id = detection.correlatedTrackId ?? `TRK-${detection.truthId ?? detection.id}`
-
-    return {
-        id,
-        trackId: id,
-        longitude: detection.longitude,
-        latitude: detection.latitude,
-        heading: truth?.heading ?? 0,
-        speed: truth?.speed ?? null,
-        altitude: truth?.altitude ?? null,
-        lastSensorUpdateAt: detection.timestamp,
-        lastExtrapolationAt: detection.timestamp,
-        stale: false,
-        truthId: detection.truthId ?? truth?.id ?? null,
-        domain: truth?.domain ?? 'air',
-        identity: truth?.identity ?? 'pending',
-        type: truth?.type ?? '01:110104',
-        callsign: truth?.id ?? id,
-        correlated: detection.correlated,
-    }
-}
+import {FlightWorldSimulator} from './FlightWorldSimulator'
+import {SensorSimulator, createSensorSimulator} from './SensorSimulator'
+import {TrackInitiationService} from './TrackInitiationService'
+import {CorrelationService, createCorrelationService} from './CorrelationService'
+import {TrackStore} from './TrackStore'
+import {trackFromManualInput} from './trackFromDetection'
+import {mergeProximityClusters} from './trackMerge'
 
 export class TrackEngine {
     constructor(options = {}) {
-        this.feed = options.feed ?? new InAppSyntheticFeed()
+        this.flightWorld = options.flightWorld ?? new FlightWorldSimulator()
+        this.sensorSimulator = options.sensorSimulator ?? createSensorSimulator()
+        this.trackInitiation = options.trackInitiation ?? new TrackInitiationService({
+            flightWorld: this.flightWorld,
+        })
+        this.correlation = options.correlation ?? createCorrelationService()
+        this.trackStore = options.trackStore ?? new TrackStore()
         this.settings = options.settings ?? {}
         this.historyBuffers = {
             [SENSOR_TYPES.RADAR]: new SensorHistoryBuffer(),
             [SENSOR_TYPES.IFF]: new SensorHistoryBuffer(),
         }
-        this.tracks = new Map()
-        this.manualTracks = new Map()
         this.playbackController = new HistoryPlaybackController({
             onStep: (sensorType, cycleIndex) => {
                 this.historyPlaybackState = this.historyPlaybackState ?? {}
@@ -60,6 +45,10 @@ export class TrackEngine {
         this.lastTrackTickAt = 0
         this.activeDisplayToggles = []
         this.hasRunInitialScans = false
+        this.mapOverlayVisibility = {
+            airports: true,
+            airRoutes: true,
+        }
     }
 
     subscribe(listener) {
@@ -95,45 +84,37 @@ export class TrackEngine {
             this.lastIffScanAt = 0
         }
 
-        const previousMaxAircraft = this.perf.getEffectiveMaxAircraft(
-            previousSettings.maxTruthAircraftInViewport ?? 200,
-            previousSettings.qualityPreset ?? 'balanced',
-        )
-        const nextMaxAircraft = this.perf.getEffectiveMaxAircraft(
-            nextSettings.maxTruthAircraftInViewport ?? 200,
-            nextSettings.qualityPreset ?? 'balanced',
-        )
+        const previousMaxFlights = this.getMaxActiveFlights(previousSettings)
+        const nextMaxFlights = this.getMaxActiveFlights(nextSettings)
 
-        if (nextMaxAircraft < previousMaxAircraft) {
-            const removedTruthIds = this.feed.trimToMax(nextMaxAircraft)
-            this.removeTracksForTruthIds(removedTruthIds)
+        if (previousMaxFlights !== nextMaxFlights) {
+            this.flightWorld.setMaxActiveFlights(nextMaxFlights)
         }
+
+        this.trackInitiation.plotAssociationThresholdNm = (
+            nextSettings.plotAssociationThresholdNm ?? 3
+        )
 
         this.notifyListeners()
     }
 
-    removeTracksForTruthIds(truthIds) {
-        if (!truthIds?.length) {
-            return
-        }
+    getMaxActiveFlights(settings = this.settings) {
+        const baseMax = settings.maxActiveFlights
+            ?? settings.maxTruthAircraftInViewport
+            ?? 1200
 
-        const truthIdSet = new Set(truthIds)
-
-        for (const [trackId, track] of this.tracks.entries()) {
-            if (this.manualTracks.has(trackId)) {
-                continue
-            }
-
-            const associatedTruthId = track.truthId ?? track.callsign ?? track.id
-
-            if (truthIdSet.has(associatedTruthId)) {
-                this.tracks.delete(trackId)
-            }
-        }
+        return this.perf.getEffectiveMaxAircraft(
+            baseMax,
+            settings.qualityPreset ?? 'balanced',
+        )
     }
 
     setDisplayToggles(toggles) {
         this.activeDisplayToggles = toggles
+        this.mapOverlayVisibility = {
+            airports: toggles.includes('AIRPORTS'),
+            airRoutes: toggles.includes('AIR_ROUTES'),
+        }
         this.playbackController.stopAll()
         this.syncPlayback()
         this.notifyListeners()
@@ -152,28 +133,48 @@ export class TrackEngine {
     }
 
     upsertManualTrack(track) {
+        this.trackStore.upsertManualTrack(trackFromManualInput(track))
+        this.notifyListeners()
+    }
+
+    removeManualTrack(trackId) {
+        this.trackStore.removeTrack(trackId)
+        this.notifyListeners()
+    }
+
+    dropTrack(trackId) {
+        this.trackStore.dropTrack(trackId)
+        this.notifyListeners()
+    }
+
+    setTrackCorrelationMode(trackId, mode) {
+        this.trackStore.setCorrelationMode(trackId, mode)
+        this.notifyListeners()
+    }
+
+    updateTrack(track) {
         const id = track.trackId ?? track.id
 
         if (!id) {
             return
         }
 
-        this.manualTracks.set(id, {
+        const userUpdates = {
             ...track,
-            id,
-            trackId: id,
-            lastExtrapolationAt: Date.now(),
-            lastSensorUpdateAt: Date.now(),
-            stale: false,
-        })
+            userDirected: true,
+            lastUserEditAt: Date.now(),
+        }
 
-        this.tracks.set(id, this.manualTracks.get(id))
-        this.notifyListeners()
-    }
+        if (this.trackStore.isManual(id)) {
+            this.trackStore.upsertManualTrack(userUpdates)
+        } else {
+            this.trackStore.updateTrack(id, userUpdates)
 
-    removeManualTrack(trackId) {
-        this.manualTracks.delete(trackId)
-        this.tracks.delete(trackId)
+            if (track.correlationMode) {
+                this.trackStore.setCorrelationMode(id, track.correlationMode)
+            }
+        }
+
         this.notifyListeners()
     }
 
@@ -203,45 +204,52 @@ export class TrackEngine {
     }
 
     runSensorScan(sensorType, timestamp, bounds) {
-        const rawDetections = this.feed.scan({bounds, timestamp, sensorType})
-        const trackList = Array.from(this.tracks.values())
-        const correlated = correlateDetections(
-            rawDetections,
-            trackList,
-            this.settings.correlationThresholdNm ?? 5,
+        this.trackInitiation.plotAssociationThresholdNm = (
+            this.settings.plotAssociationThresholdNm ?? 3
         )
 
-        const truthById = new Map(this.feed.getTruthStates().map((truth) => [truth.id, truth]))
-
-        correlated.forEach((detection) => {
-            const truth = detection.truthId ? truthById.get(detection.truthId) : null
-
-            if (detection.correlated && detection.correlatedTrackId) {
-                const existing = this.tracks.get(detection.correlatedTrackId)
-
-                this.tracks.set(detection.correlatedTrackId, {
-                    ...(existing ?? trackFromDetection(detection, truth)),
-                    longitude: detection.longitude,
-                    latitude: detection.latitude,
-                    heading: truth?.heading ?? existing?.heading ?? 0,
-                    speed: truth?.speed ?? existing?.speed ?? null,
-                    altitude: truth?.altitude ?? existing?.altitude ?? null,
-                    lastSensorUpdateAt: timestamp,
-                    lastExtrapolationAt: timestamp,
-                    stale: false,
-                    truthId: detection.truthId ?? existing?.truthId ?? null,
-                    correlated: true,
-                })
-            } else if (detection.truthId) {
-                const track = trackFromDetection(detection, truth)
-                this.tracks.set(track.id, track)
-            }
+        const aircraftInBounds = this.flightWorld.getAircraftInBounds(bounds)
+        const rawDetections = this.sensorSimulator.scan({
+            aircraftInBounds,
+            timestamp,
+            sensorType,
         })
+
+        const proximityNm = this.settings.plotAssociationThresholdNm ?? 3
+        const correlationNm = this.settings.correlationThresholdNm ?? 5
+
+        const correlatedDetections = this.correlation.apply(
+            rawDetections,
+            this.trackStore,
+            correlationNm,
+            timestamp,
+        )
+
+        mergeProximityClusters(this.trackStore, proximityNm, timestamp)
+
+        this.trackInitiation.absorbPlotsNearCorrelatedDetections(
+            correlatedDetections,
+            proximityNm,
+        )
+
+        const uncorrelatedDetections = correlatedDetections.filter(
+            (detection) => !detection.correlated,
+        )
+
+        this.trackInitiation.ingest(
+            sensorType,
+            uncorrelatedDetections,
+            timestamp,
+            this.trackStore,
+            {proximityNm},
+        )
+
+        mergeProximityClusters(this.trackStore, proximityNm, timestamp)
 
         this.historyBuffers[sensorType].push({
             sensorType,
             receivedAt: timestamp,
-            detections: correlated,
+            detections: correlatedDetections,
         })
 
         this.playbackController.stop(sensorType)
@@ -262,20 +270,12 @@ export class TrackEngine {
             return this.getSnapshot()
         }
 
-        const maxAircraft = this.perf.getEffectiveMaxAircraft(
-            this.settings.maxTruthAircraftInViewport ?? 200,
-            this.settings.qualityPreset ?? 'balanced',
-        )
+        const maxFlights = this.getMaxActiveFlights()
 
-        const removedForViewport = this.feed.ensureViewportPopulation(bounds, maxAircraft)
-        this.removeTracksForTruthIds(removedForViewport)
-
-        const removedForMaxAircraft = this.feed.trimToMax(maxAircraft)
-        this.removeTracksForTruthIds(removedForMaxAircraft)
-
-        if (!this.hasRunInitialScans) {
-            this.hasRunInitialScans = true
-            this.forceSensorScans(timestamp, bounds)
+        if (!this.flightWorld.initialized) {
+            this.flightWorld.initialize(maxFlights)
+        } else {
+            this.flightWorld.setMaxActiveFlights(maxFlights)
         }
 
         const deltaSeconds = this.lastTrackTickAt
@@ -283,11 +283,16 @@ export class TrackEngine {
             : 0
 
         if (deltaSeconds > 0 && !this.perf.shouldSkipSimulationStep()) {
-            this.feed.advanceTruth(deltaSeconds, bounds)
-            this.extrapolateTracks(timestamp, deltaSeconds)
+            this.flightWorld.advance(deltaSeconds)
+            this.trackStore.extrapolate(timestamp, deltaSeconds, this.settings)
         }
 
         this.lastTrackTickAt = timestamp
+
+        if (!this.hasRunInitialScans) {
+            this.hasRunInitialScans = true
+            this.forceSensorScans(timestamp, bounds)
+        }
 
         const radarInterval = this.settings.radarRefreshMs ?? 4000
         const iffInterval = this.settings.iffRefreshMs ?? 1000
@@ -305,41 +310,6 @@ export class TrackEngine {
         this.notifyListeners()
 
         return this.getSnapshot()
-    }
-
-    extrapolateTracks(timestamp, deltaSeconds) {
-        this.tracks.forEach((track, id) => {
-            if (!Number.isFinite(track.speed) || track.speed <= 0) {
-                return
-            }
-
-            const position = extrapolatePosition(
-                track.longitude,
-                track.latitude,
-                track.heading ?? 0,
-                track.speed,
-                deltaSeconds,
-            )
-
-            const staleThresholdMs = Math.max(
-                (this.settings.radarRefreshMs ?? 4000) * 2,
-                (this.settings.iffRefreshMs ?? 1000) * 4,
-            )
-
-            const updatedTrack = {
-                ...track,
-                longitude: position.lng,
-                latitude: position.lat,
-                lastExtrapolationAt: timestamp,
-                stale: timestamp - (track.lastSensorUpdateAt ?? timestamp) > staleThresholdMs,
-            }
-
-            this.tracks.set(id, updatedTrack)
-
-            if (this.manualTracks.has(id)) {
-                this.manualTracks.set(id, updatedTrack)
-            }
-        })
     }
 
     getDisplayDetections(sensorType) {
@@ -368,16 +338,20 @@ export class TrackEngine {
 
     getSnapshot() {
         return {
-            tracks: Array.from(this.tracks.values()),
+            tracks: this.trackStore.getAllTracks(),
             radar: this.getDisplayDetections(SENSOR_TYPES.RADAR),
             iff: this.getDisplayDetections(SENSOR_TYPES.IFF),
             perf: this.perf.getStats(),
+            airports: this.flightWorld.getAirports(),
+            airRoutes: this.flightWorld.getRoutes(),
+            mapOverlayVisibility: this.mapOverlayVisibility,
         }
     }
 
     dispose() {
         this.playbackController.dispose()
-        this.feed.dispose?.()
+        this.flightWorld.dispose?.()
+        this.trackInitiation.clear()
         this.listeners.clear()
     }
 }

@@ -29,6 +29,8 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             speed: '',
             altitude: '',
             infoFields: false,
+            correlationMode: 'active',
+            source: 'manual',
             dismissOnMapClick: true,
         }
 
@@ -108,6 +110,8 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     speed: track.speed ?? '',
                     altitude: track.altitude ?? '',
                     infoFields: Boolean(track.infoFields),
+                    correlationMode: track.correlationMode ?? 'active',
+                    source: track.source ?? 'auto',
                     dismissOnMapClick: false,
                 },
             ]

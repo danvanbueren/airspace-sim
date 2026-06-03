@@ -8,12 +8,16 @@ export const SENSOR_DISPLAY_TOGGLES = {
     IFF_HISTORY: 'IFF_HISTORY',
     RADAR_CURRENT: 'RADAR_CURRENT',
     RADAR_HISTORY: 'RADAR_HISTORY',
+    AIRPORTS: 'AIRPORTS',
+    AIR_ROUTES: 'AIR_ROUTES',
 }
 
 export const SENSOR_HISTORY_CYCLE_COUNT = 6
 
 export const HISTORY_PLAYBACK_STEP_MS = 200
 export const HISTORY_PLAYBACK_NEWEST_DWELL_MS = 3000
+
+export const TRACK_INITIATION_HIT_COUNT = 3
 
 export const SENSOR_COLORS = {
     [SENSOR_TYPES.RADAR]: '#ffb300',
@@ -25,24 +29,29 @@ export const DEFAULT_SIMULATION_SETTINGS = {
     iffRefreshMs: 1000,
     trackUpdateHz: 10,
     correlationThresholdNm: 5,
+    plotAssociationThresholdNm: 3,
     qualityPreset: 'balanced',
     adaptivePerformanceEnabled: true,
     simulationEnabled: true,
-    maxTruthAircraftInViewport: 200,
+    maxActiveFlights: 1200,
     viewportPaddingDegrees: 0.5,
 }
 
 export const QUALITY_PRESETS = {
     low: {
         trackUpdateHz: 5,
-        maxTruthAircraftInViewport: 50,
+        maxActiveFlights: 400,
     },
     balanced: {
         trackUpdateHz: 10,
-        maxTruthAircraftInViewport: 200,
+        maxActiveFlights: 800,
     },
     high: {
-        trackUpdateHz: 15,
-        maxTruthAircraftInViewport: 500,
+        trackUpdateHz: 12,
+        maxActiveFlights: 1200,
+    },
+    global_dense: {
+        trackUpdateHz: 10,
+        maxActiveFlights: 1500,
     },
 }

@@ -18,6 +18,15 @@ import {useSimulationLoop} from '../../hooks/simulation/useSimulationLoop'
 import {useTrackManagementKeyboardCustody} from '../../hooks/map/useTrackManagementKeyboardCustody'
 import {useMapCursorState} from '../../hooks/map/useMapCursorState'
 import {useSimulation} from '../../contexts/SimulationContext'
+import {useAppSettings} from '../../contexts/AppSettingsContext'
+import {useSensorDisplay} from '../../contexts/SensorDisplayContext'
+import {useAirportMapLayer} from '../../hooks/map/useAirportMapLayer'
+import {useAirRouteMapLayer} from '../../hooks/map/useAirRouteMapLayer'
+import {
+    filterTracksByBounds,
+    getExpandedMapBounds,
+} from '../../simulation/mapViewportUtils'
+import {SENSOR_DISPLAY_TOGGLES} from '../../simulation/constants'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
@@ -53,13 +62,17 @@ function createTrackFromManagementWindow(trackManagementWindow) {
         altitude: parseOptionalNumber(trackManagementWindow.altitude),
         infoFields: Boolean(trackManagementWindow.infoFields),
         callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
+        correlationMode: trackManagementWindow.correlationMode ?? 'active',
+        source: trackManagementWindow.source ?? 'manual',
     }
 }
 
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
     const {addAlarmAlert, registerMap} = useMapState()
-    const {upsertManualTrack, removeManualTrack} = useSimulation()
+    const {upsertManualTrack, dropTrack, updateTrack} = useSimulation()
+    const {simulationSettings} = useAppSettings()
+    const {isToggleActive} = useSensorDisplay()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
@@ -91,6 +104,19 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const simulationSnapshot = useSimulationLoop(mapRef, mapReady)
 
     useSensorDetectionMapLayer(mapRef, mapReady, simulationSnapshot, mapStyle)
+
+    useAirportMapLayer(mapRef, mapReady, {
+        airports: simulationSnapshot?.airports,
+        visible: isToggleActive(SENSOR_DISPLAY_TOGGLES.AIRPORTS),
+        styleKey: mapStyle,
+    })
+
+    useAirRouteMapLayer(mapRef, mapReady, {
+        routes: simulationSnapshot?.airRoutes,
+        airports: simulationSnapshot?.airports,
+        visible: isToggleActive(SENSOR_DISPLAY_TOGGLES.AIR_ROUTES),
+        styleKey: mapStyle,
+    })
 
     const {
         currentContextMenuElement,
@@ -136,8 +162,13 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         const track = createTrackFromManagementWindow(trackManagementWindow)
 
         trackMapLayer.upsertTrack(track)
-        upsertManualTrack(track)
-    }, [trackMapLayer, upsertManualTrack])
+
+        if (track.source === 'manual') {
+            upsertManualTrack(track)
+        } else {
+            updateTrack(track)
+        }
+    }, [trackMapLayer, updateTrack, upsertManualTrack])
 
     const {
         trackManagementWindows,
@@ -196,25 +227,50 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         clearKeyboardCustodyForTrack(trackId)
 
         trackMapLayer.removeTrack(trackId)
-        removeManualTrack(trackId)
+        dropTrack(trackId)
         closeTrackManagementWindowsForTrack(trackId)
         closeContextMenu()
     }, [
         blurTrackWindowsForTrack,
         clearKeyboardCustodyForTrack,
         trackMapLayer,
-        removeManualTrack,
+        dropTrack,
         closeTrackManagementWindowsForTrack,
         closeContextMenu,
     ])
 
     useEffect(() => {
-        if (!simulationSnapshot?.tracks) {
+        const map = mapRef.current
+
+        if (!mapReady || !map || !simulationSnapshot?.tracks) {
             return
         }
 
-        trackMapLayer.replaceTracks(simulationSnapshot.tracks)
-    }, [mapStyle, simulationSnapshot, trackMapLayer])
+        const padding = simulationSettings.viewportPaddingDegrees ?? 0.5
+
+        const syncVisibleTracks = () => {
+            const bounds = getExpandedMapBounds(map, padding)
+            const visibleTracks = filterTracksByBounds(simulationSnapshot.tracks, bounds)
+
+            trackMapLayer.replaceTracks(visibleTracks)
+        }
+
+        syncVisibleTracks()
+        map.on('move', syncVisibleTracks)
+        map.on('zoom', syncVisibleTracks)
+
+        return () => {
+            map.off('move', syncVisibleTracks)
+            map.off('zoom', syncVisibleTracks)
+        }
+    }, [
+        mapReady,
+        mapRef,
+        mapStyle,
+        simulationSnapshot,
+        simulationSettings.viewportPaddingDegrees,
+        trackMapLayer,
+    ])
 
     const handleCloseTrackManagementWindow = useCallback((windowId) => {
         closeTrackManagementWindowWithBlur(windowId, closeTrackManagementWindow)

@@ -53,7 +53,7 @@ export const GRID_REFERENCE_SYSTEMS = {
     },
 }
 
-export const QUALITY_PRESET_OPTIONS = ['low', 'balanced', 'high']
+export const QUALITY_PRESET_OPTIONS = ['low', 'balanced', 'high', 'global_dense']
 
 export const DEFAULT_APP_SETTINGS = {
     gridReferenceSystem: GRID_REFERENCE_SYSTEMS.dd.value,
@@ -92,11 +92,17 @@ function normalizeSettings(settings) {
             50,
             DEFAULT_APP_SETTINGS.correlationThresholdNm,
         ),
-        maxTruthAircraftInViewport: clampNumber(
-            settings?.maxTruthAircraftInViewport,
+        maxActiveFlights: clampNumber(
+            settings?.maxActiveFlights ?? settings?.maxTruthAircraftInViewport,
             10,
-            2000,
-            DEFAULT_APP_SETTINGS.maxTruthAircraftInViewport,
+            2500,
+            DEFAULT_APP_SETTINGS.maxActiveFlights,
+        ),
+        plotAssociationThresholdNm: clampNumber(
+            settings?.plotAssociationThresholdNm,
+            0.5,
+            20,
+            DEFAULT_APP_SETTINGS.plotAssociationThresholdNm,
         ),
         viewportPaddingDegrees: clampNumber(
             settings?.viewportPaddingDegrees,
@@ -179,7 +185,9 @@ export function AppSettingsProvider({children, initialSettings}) {
         qualityPreset: appSettings.qualityPreset,
         adaptivePerformanceEnabled: appSettings.adaptivePerformanceEnabled,
         simulationEnabled: appSettings.simulationEnabled,
-        maxTruthAircraftInViewport: appSettings.maxTruthAircraftInViewport,
+        maxActiveFlights: appSettings.maxActiveFlights,
+        maxTruthAircraftInViewport: appSettings.maxActiveFlights,
+        plotAssociationThresholdNm: appSettings.plotAssociationThresholdNm,
         viewportPaddingDegrees: appSettings.viewportPaddingDegrees,
     }), [appSettings])
 

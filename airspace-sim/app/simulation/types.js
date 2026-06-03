@@ -1,4 +1,8 @@
 /**
+ * @typedef {'active'|'extrapolated'|'suspend'} TrackCorrelationMode
+ */
+
+/**
  * @typedef {Object} TruthAircraftState
  * @property {string} id
  * @property {number} longitude
@@ -16,7 +20,6 @@
  * @property {number} timestamp
  * @property {number} longitude
  * @property {number} latitude
- * @property {string|null} truthId
  * @property {string|null} correlatedTrackId
  * @property {boolean} correlated
  * @property {number} [quality]
@@ -42,11 +45,17 @@
  * @property {number} lastSensorUpdateAt
  * @property {number} lastExtrapolationAt
  * @property {boolean} stale
- * @property {string|null} truthId
  * @property {string} domain
  * @property {string} identity
  * @property {string} type
  * @property {string} callsign
+ * @property {'auto'|'manual'} [source]
+ * @property {import('./constants').SENSOR_TYPES[keyof import('./constants').SENSOR_TYPES]} [initiatedBy]
+ * @property {TrackCorrelationMode} [correlationMode]
+ * @property {boolean} [correlated]
+ * @property {string} [plotId]
+ * @property {boolean} [userDirected]
+ * @property {number} [lastUserEditAt]
  */
 
 export {}

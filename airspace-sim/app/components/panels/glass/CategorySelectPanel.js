@@ -1,10 +1,19 @@
 'use client'
 
-import { Divider, Grid, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import {Divider, Grid, ToggleButton, ToggleButtonGroup} from '@mui/material'
 import BasicGlassPanel from './BasicGlassPanel'
 import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
 
-const AVAILABLE_TOGGLES = ['IFF_CURRENT', 'IFF_HISTORY', '-', 'RADAR_CURRENT', 'RADAR_HISTORY', '-']
+const AVAILABLE_TOGGLES = [
+    'IFF_CURRENT',
+    'IFF_HISTORY',
+    '-',
+    'RADAR_CURRENT',
+    'RADAR_HISTORY',
+    '-',
+    'AIRPORTS',
+    'AIR_ROUTES',
+]
 
 export default function CategorySelectPanel() {
     const {activeToggles, setActiveDisplayToggles} = useSensorDisplay()

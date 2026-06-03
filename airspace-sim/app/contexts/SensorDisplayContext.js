@@ -5,8 +5,15 @@ import {SENSOR_DISPLAY_TOGGLES} from '@/app/simulation/constants'
 
 const SensorDisplayContext = createContext(null)
 
+const DEFAULT_ACTIVE_TOGGLES = [
+    SENSOR_DISPLAY_TOGGLES.IFF_CURRENT,
+    SENSOR_DISPLAY_TOGGLES.IFF_HISTORY,
+    SENSOR_DISPLAY_TOGGLES.RADAR_CURRENT,
+    SENSOR_DISPLAY_TOGGLES.RADAR_HISTORY,
+]
+
 export function SensorDisplayProvider({children}) {
-    const [activeToggles, setActiveToggles] = useState(['IFF_CURRENT', 'IFF_HISTORY', 'RADAR_CURRENT', 'RADAR_HISTORY'])
+    const [activeToggles, setActiveToggles] = useState(DEFAULT_ACTIVE_TOGGLES)
 
     const setActiveDisplayToggles = useCallback((toggles) => {
         setActiveToggles(toggles.filter((toggle) => toggle !== '-'))

@@ -1,23 +1,28 @@
 import {SENSOR_COLORS, SENSOR_TYPES} from './constants'
 import {offsetLngLat} from './geo'
+import {getTrackIconScaleForZoom} from './mapViewportUtils'
 
-/** Screen-space half-length so lines look the same at all latitudes on Web Mercator. */
-const LINE_HALF_LENGTH_PIXELS = 14
+/** Screen-space half-length at reference zoom (matches track icon baseline near z10). */
+const BASE_LINE_HALF_LENGTH_PIXELS = 14
 
 /** Fallback ground distance when map projection is unavailable. */
-const LINE_HALF_LENGTH_NM = 0.25
+const BASE_LINE_HALF_LENGTH_NM = 0.25
 
-function isVerticalOrientation(detection, sensorType) {
-    if (sensorType === SENSOR_TYPES.RADAR) {
-        return !detection.correlated
-    }
+function lineHalfLengthPixels(zoom) {
+    return BASE_LINE_HALF_LENGTH_PIXELS * getTrackIconScaleForZoom(zoom)
+}
 
+function lineHalfLengthNm(zoom) {
+    return BASE_LINE_HALF_LENGTH_NM * getTrackIconScaleForZoom(zoom)
+}
+
+function isVerticalOrientation(detection) {
     return Boolean(detection.correlated)
 }
 
 function lineCoordinatesFromMap(map, longitude, latitude, vertical) {
     const center = map.project([longitude, latitude])
-    const halfLength = LINE_HALF_LENGTH_PIXELS
+    const halfLength = lineHalfLengthPixels(map.getZoom())
 
     const startPixel = vertical
         ? {x: center.x, y: center.y - halfLength}
@@ -35,10 +40,12 @@ function lineCoordinatesFromMap(map, longitude, latitude, vertical) {
     ]
 }
 
-function lineCoordinatesFromGround(longitude, latitude, vertical) {
+function lineCoordinatesFromGround(longitude, latitude, vertical, zoom) {
+    const halfLengthNm = lineHalfLengthNm(zoom)
+
     if (vertical) {
-        const north = offsetLngLat(longitude, latitude, 0, LINE_HALF_LENGTH_NM)
-        const south = offsetLngLat(longitude, latitude, 180, LINE_HALF_LENGTH_NM)
+        const north = offsetLngLat(longitude, latitude, 0, halfLengthNm)
+        const south = offsetLngLat(longitude, latitude, 180, halfLengthNm)
 
         return [
             [longitude, south.lat],
@@ -46,8 +53,8 @@ function lineCoordinatesFromGround(longitude, latitude, vertical) {
         ]
     }
 
-    const east = offsetLngLat(longitude, latitude, 90, LINE_HALF_LENGTH_NM)
-    const west = offsetLngLat(longitude, latitude, 270, LINE_HALF_LENGTH_NM)
+    const east = offsetLngLat(longitude, latitude, 90, halfLengthNm)
+    const west = offsetLngLat(longitude, latitude, 270, halfLengthNm)
 
     return [
         [west.lng, latitude],
@@ -56,15 +63,17 @@ function lineCoordinatesFromGround(longitude, latitude, vertical) {
 }
 
 export function detectionLineCoordinates(map, longitude, latitude, vertical) {
+    const zoom = map?.getZoom?.()
+
     if (map?.project && map?.unproject) {
         return lineCoordinatesFromMap(map, longitude, latitude, vertical)
     }
 
-    return lineCoordinatesFromGround(longitude, latitude, vertical)
+    return lineCoordinatesFromGround(longitude, latitude, vertical, zoom)
 }
 
 export function detectionToLineFeature(detection, sensorType, layerKind, map) {
-    const vertical = isVerticalOrientation(detection, sensorType)
+    const vertical = isVerticalOrientation(detection)
     const {longitude, latitude} = detection
     const coordinates = detectionLineCoordinates(map, longitude, latitude, vertical)
 

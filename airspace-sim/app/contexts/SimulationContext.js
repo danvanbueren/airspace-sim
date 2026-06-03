@@ -45,6 +45,11 @@ export function SimulationProvider({children}) {
         getEngine: () => engineRef.current,
         upsertManualTrack: (track) => engineRef.current?.upsertManualTrack(track),
         removeManualTrack: (trackId) => engineRef.current?.removeManualTrack(trackId),
+        dropTrack: (trackId) => engineRef.current?.dropTrack(trackId),
+        setTrackCorrelationMode: (trackId, mode) => (
+            engineRef.current?.setTrackCorrelationMode(trackId, mode)
+        ),
+        updateTrack: (track) => engineRef.current?.updateTrack(track),
     }), [])
 
     return (

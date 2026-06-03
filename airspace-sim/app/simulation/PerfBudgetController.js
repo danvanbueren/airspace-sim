@@ -72,9 +72,11 @@ export class PerfBudgetController {
 
     getEffectiveMaxAircraft(baseMax, qualityPreset) {
         const preset = QUALITY_PRESETS[qualityPreset] ?? QUALITY_PRESETS.balanced
-        const presetMax = preset.maxTruthAircraftInViewport ?? baseMax
+        const presetMax = preset.maxActiveFlights
+            ?? preset.maxTruthAircraftInViewport
+            ?? baseMax
 
-        return Math.max(10, Math.round(Math.min(baseMax, presetMax) * this.loadFactor))
+        return Math.max(10, Math.round(Math.min(baseMax, presetMax)))
     }
 
     getStats() {

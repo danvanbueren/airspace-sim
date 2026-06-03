@@ -4,7 +4,37 @@ Airspace Simulator is a non-secure browser-based simulator for practicing comman
 
 This project is personal. It is not owned, operated, sponsored, or endorsed by any government entity. The repository is unclassified and should only contain unclassified, non-sensitive, non-operational information.
 
-See [#context](#context) for more detail about the goal and backstory of this application.
+## Table of Contents
+
+- [Get Started](#get-started)
+  - [Developers](#developers)
+  - [Testers](#testers)
+- [Repository Structure](#repository-structure)
+- [Tech Stack](#tech-stack)
+- [Scripts](#scripts)
+- [Application Architecture](#application-architecture)
+  - [UI shell and providers](#ui-shell-and-providers)
+  - [Map workspace](#map-workspace)
+  - [Operator workflows](#operator-workflows)
+  - [Settings and persistence](#settings-and-persistence)
+- [Simulation Architecture](#simulation-architecture)
+  - [Design goals](#design-goals)
+  - [Module overview](#module-overview)
+  - [Tick pipeline](#tick-pipeline)
+  - [Per-sensor scan pipeline](#per-sensor-scan-pipeline)
+  - [Flight world](#flight-world)
+  - [Sensor simulation](#sensor-simulation)
+  - [Correlation](#correlation)
+  - [Track initiation (automatic)](#track-initiation-automatic)
+  - [Track merge and deduplication](#track-merge-and-deduplication)
+  - [Manual tracks](#manual-tracks)
+  - [Map display (Category Select Panel)](#map-display-category-select-panel)
+  - [Settings reference (Simulation page)](#settings-reference-simulation-page)
+  - [Development utilities](#development-utilities)
+- [Roadmap](#roadmap)
+- [Context](#context)
+  - [Current Capabilities](#current-capabilities)
+  - [Safety and Data Policy](#safety-and-data-policy)
 
 ## Get Started
 
@@ -15,8 +45,10 @@ See [#context](#context) for more detail about the goal and backstory of this ap
 
 ```bash
 git clone https://github.com/<your-github-username>/airspace-sim.git
-cd airspace-sim
+cd airspace-sim/airspace-sim
 ```
+
+The Next.js application and `package.json` live in the nested `airspace-sim/` directory inside the repository root.
 
 3. Install dependencies:
 
@@ -46,7 +78,7 @@ To run the app locally:
 
 ```bash
 git clone https://github.com/danvanbueren/airspace-sim.git
-cd airspace-sim
+cd airspace-sim/airspace-sim
 npm install
 npm run dev
 ```
@@ -81,10 +113,13 @@ airspace-sim/
 |   |   +-- map/             # Map view, context menu, and cursor coordinate overlay.
 |   |   +-- panels/          # Glass panels, settings toolbelt, settings modal pages.
 |   |   +-- windows/         # Floating workflow windows such as track management.
-|   +-- contexts/            # React contexts for map state, theme, app settings, and controls.
+|   +-- contexts/            # React contexts for map state, theme, app settings, simulation.
+|   +-- data/                # Curated airports and air routes (static JSON).
 |   +-- hooks/
 |   |   +-- global/          # Global interaction guards, measurement hooks, error forwarding.
-|   |   +-- map/             # Map setup, controls, track layers, bearing/range tools.
+|   |   +-- map/             # Map setup, controls, track/sensor/airport layers, bearing/range tools.
+|   |   +-- simulation/      # Simulation tick loop (requestAnimationFrame).
+|   +-- simulation/          # Track engine, flight world, sensor, initiation, correlation, merge.
 |   +-- tools/
 |   |   +-- browser/         # Browser storage helpers.
 |   |   +-- external/        # External service helpers.
@@ -102,8 +137,10 @@ airspace-sim/
 +-- next.config.mjs          # Next.js configuration.
 +-- package-lock.json        # Locked dependency versions.
 +-- package.json             # Project scripts and dependencies.
-+-- README.md                # Project documentation.
++-- README.md                # Short pointer to the root README.
 ```
+
+Paths above are relative to the `airspace-sim/` application directory inside this repository.
 
 ## Tech Stack
 
@@ -139,19 +176,225 @@ npm run start
 
 Starts the production server after a successful build.
 
+## Application Architecture
+
+The simulator UI is a Next.js client application. Simulation state is produced in JavaScript modules under `app/simulation/` and consumed by MapLibre hooks under `app/hooks/map/`. The two sides meet in `MapView` and `SimulationContext`.
+
+### UI shell and providers
+
+[`app/layout.js`](airspace-sim/app/layout.js) wraps the app with providers (outermost to innermost):
+
+| Provider | Role |
+|----------|------|
+| `MapStateProvider` | Registered map instance, alarm alerts |
+| `CustomThemeContext` | Light/dark theme (cookie-backed) |
+| `AppSettingsProvider` | Grid reference system, simulation tuning (cookie-backed) |
+| `ControlBindingsProvider` | Keyboard/mouse bindings (cookie-backed) |
+| `SensorDisplayProvider` | Category Select Panel toggle state |
+| `SimulationProvider` | Singleton `TrackEngine`, manual track APIs |
+
+[`app/page.js`](airspace-sim/app/page.js) composes the main shell: classification bars, glass panels (Category Select, settings toolbelt), and the full-screen map.
+
+### Map workspace
+
+[`MapView`](airspace-sim/app/components/map/MapView.js) owns the MapLibre instance and wires:
+
+- **Simulation loop** — [`useSimulationLoop`](airspace-sim/app/hooks/simulation/useSimulationLoop.js) calls `TrackEngine.tick()` on a throttled `requestAnimationFrame` schedule.
+- **Track layer** — [`useTrackMapLayer`](airspace-sim/app/hooks/map/useTrackMapLayer.js) renders MIL-STD-2525 symbols; only tracks inside the expanded viewport are drawn, with icon size scaled by zoom.
+- **Sensor layers** — [`useSensorDetectionMapLayer`](airspace-sim/app/hooks/map/useSensorDetectionMapLayer.js) renders radar/IFF tick marks; geometry is recomputed on pan/zoom so tick size stays proportional to zoom.
+- **Overlays** — [`useAirportMapLayer`](airspace-sim/app/hooks/map/useAirportMapLayer.js) and [`useAirRouteMapLayer`](airspace-sim/app/hooks/map/useAirRouteMapLayer.js) for optional airport/route context.
+- **Interactions** — Map pan/zoom, context menu, bearing/range lines, track pick, and floating track management windows.
+
+Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles/) (Voyager for light mode, Dark Matter for dark mode).
+
+### Operator workflows
+
+| Workflow | Entry point | Engine API |
+|----------|-------------|------------|
+| Initiate manual track | Map context menu → Initiate Track | `upsertManualTrack` |
+| Edit track | Click symbol or context menu → Track Management window | `updateTrack` / `upsertManualTrack` (sets `userDirected`) |
+| Correlation mode | Track Management window dropdown | `setTrackCorrelationMode` |
+| Drop track | Context menu on existing track | `dropTrack` |
+| Bearing/range | Context menu on map | Local map tool (not part of simulation engine) |
+| Sensor/history visibility | Category Select Panel | Display toggles only (no sim logic) |
+
+Manual track edits are marked `userDirected` so they take priority when tracks merge (see [Track merge and deduplication](#track-merge-and-deduplication)).
+
+### Settings and persistence
+
+Settings opened from the toolbelt modal are stored in the `appSettings` cookie via [`AppSettingsContext`](airspace-sim/app/contexts/AppSettingsContext.js). Simulation-related fields are passed to `TrackEngine` as `simulationSettings`. Keybinds and theme use separate cookies.
+
+## Simulation Architecture
+
+The in-app simulation is intentionally split into **four core systems** (flight world, sensor simulation, track initiation, correlation), plus **track merge/deduplication** and a thin orchestrator. Each module has a single responsibility; crossing those boundaries (for example, creating tracks inside the sensor layer) is avoided so behavior stays predictable and testable.
+
+### Design goals
+
+- **Stable world state** — Flights exist globally on realistic routes. Panning and zooming do not respawn aircraft in the viewport.
+- **Sensor data is simulated, not authoritative** — Radar and IFF returns are noisy measurements derived from the flight world. They do not directly reveal ground-truth identities to track logic.
+- **Tracks are operator artifacts** — Automatic tracks appear only after repeated sensor evidence. Correlation is a separate step that links returns to existing tracks.
+- **Rendering is not simulation** — The map may hide off-screen tracks and scale icon and sensor tick size by zoom without changing what the engine stores.
+- **Two distance knobs** — **Correlation threshold** (default 5 NM) controls which active track receives a return. **Plot association threshold** (default 3 NM) controls plot trails, initiation blocking near existing tracks, and merge clustering.
+
+### Module overview
+
+| Module | File(s) | Responsibility | Must not |
+|--------|---------|----------------|----------|
+| **Flight world** | `FlightWorldSimulator.js`, `flightWorldUtils.js`, `app/data/airports.json`, `app/data/airRoutes.json` | Persistent global aircraft on weighted city-pair routes; advance positions every tick | Emit sensor returns, create tracks, correlate |
+| **Sensor simulation** | `SensorSimulator.js`, `sensorNoise.js` | Produce radar/IFF detections (with drop/noise) for aircraft inside the current scan bounds | Create or update tracks, correlate, delete aircraft by viewport |
+| **Track initiation** | `TrackInitiationService.js`, `PlotAssociationStore.js` | Per-sensor plot trails; promote to a firm track after 3 associated hits | Mark detections correlated, use ground-truth IDs |
+| **Correlation** | `CorrelationService.js`, `correlation.js` | Match detections to existing tracks (mode-aware nearest neighbor) | Create tracks, advance the flight world |
+| **Track merge** | `trackMerge.js` | Collapse duplicate active tracks near the same contact; merge properties with user-priority rules | Run sensor scans, create plots |
+| **Orchestrator** | `TrackEngine.js` | Fixed tick order, settings, sensor history buffers, snapshots | Inline business logic from the modules above |
+
+Supporting pieces include `TrackStore.js` (firm track state, extrapolation, and merge), `PerfBudgetController.js` (slows update rate under load without trimming the global fleet), `mapViewportUtils.js` (shared zoom scale and viewport bounds filtering for display), and `detectionFeatures.js` (sensor tick geometry for MapLibre).
+
+### Tick pipeline
+
+On each simulation step, `TrackEngine.tick()` runs this sequence:
+
+1. **`flightWorld.advance(delta)`** — Move all active flights along their route polylines (great-circle segments). On route completion, assign a new weighted route; aircraft IDs stay stable (`FLT-{n}`).
+2. **`trackStore.extrapolate(delta)`** — Advance firm track positions according to each track’s correlation mode.
+3. **Sensor scans (on interval)** — When radar or IFF refresh elapses, run the [per-sensor scan pipeline](#per-sensor-scan-pipeline) below.
+4. **`getSnapshot()`** — Expose tracks, sensor cycles, airports/routes, and overlay visibility to the map hooks.
+
+World motion and track extrapolation run every tick. Sensor processing runs at radar/IFF refresh rates, not necessarily every tick.
+
+```mermaid
+flowchart TB
+  subgraph tick [Engine tick]
+    World[flightWorld.advance]
+    Extrap[trackStore.extrapolate]
+    Scan[runSensorScan on interval]
+    World --> Extrap --> Scan
+  end
+  subgraph display [Map display only]
+    Snap[getSnapshot]
+    Cull[Viewport filter]
+    Map[MapLibre layers]
+    Snap --> Cull --> Map
+  end
+  Scan --> Snap
+```
+
+### Per-sensor scan pipeline
+
+Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Correlation always runs **before** initiation so existing active tracks can claim returns first.
+
+1. **`sensorSimulator.scan`** — Raw detections for aircraft inside expanded map bounds.
+2. **`correlation.apply`** — Nearest **active** track within **Correlation threshold (NM)** (default 5 NM) receives the return; position updates from sensor.
+3. **`mergeProximityClusters`** — Active tracks within **Plot association threshold (NM)** (default 3 NM) of each other merge into one (see [Track merge](#track-merge-and-deduplication)).
+4. **`absorbPlotsNearCorrelatedDetections`** — Plot trails near correlated returns are closed so parallel radar/IFF plots do not spawn duplicate tracks.
+5. **`trackInitiation.ingest` (uncorrelated only)** — Update plots and promote after 3 hits; skip returns near existing active tracks within the plot association threshold.
+6. **`mergeProximityClusters` again** — Collapse duplicates created in the same scan.
+7. **History buffer** — Store annotated detections for current/history display.
+
+### Flight world
+
+- **Data** — `app/data/airports.json` (major airports and regional strips) and `app/data/airRoutes.json` (origin/destination pairs with traffic `weight`).
+- **Fleet size** — Controlled by **Max active flights (global)** in Settings → Simulation (`maxActiveFlights`). Quality presets cap the target count (`low` 400, `balanced` 800, `high` 1200, `global_dense` 1500). Under adaptive performance, the engine may **lower tick rate** but does **not** delete flights to match the viewport.
+- **Traffic distribution** — New flights pick routes by weight, not by where the map is centered, so empty regions do not accumulate spurious traffic.
+
+### Sensor simulation
+
+- **Scan intervals** — Configurable radar and IFF refresh intervals (defaults 4 s and 1 s).
+- **Detections** — Each return includes position, sensor type, timestamp, and quality. Public detections do **not** carry a ground-truth `truthId`; initiation and correlation work from geometry and time only.
+- **Noise** — Per-sensor drop probability and position error (`sensorNoise.js`), seeded from aircraft id and scan time for repeatable behavior.
+- **Display** — Tick marks use screen-space length scaled by the same zoom curve as track icons (`getTrackIconScaleForZoom` in `mapViewportUtils.js`), so returns stay small when zoomed out. Line stroke width also scales down at low zoom.
+
+### Correlation
+
+- Runs **before** automatic initiation on every sensor scan.
+- Only tracks with **`correlationMode: 'active'`** are correlation targets.
+- Nearest track within **Correlation threshold (NM)** wins (default 5 NM).
+- Matched detections are marked `correlated: true` and update the track position from the sensor return.
+- Returns already correlated are not passed to initiation.
+
+**Track correlation modes** (editable in the Track Management window):
+
+| Mode | Behavior |
+|------|----------|
+| `active` | Default. Correlates to nearby sensor returns; sensor updates position. |
+| `extrapolated` | Ignores sensor correlation; position advances by extrapolation only. |
+| `suspend` | Speed forced to 0; no correlation; holds position. |
+
+Manual tracks default to `active`. Auto tracks opened in the track window can switch modes without becoming manual tracks.
+
+### Track initiation (automatic)
+
+- **Separate plot stores** for radar and IFF (independent 3-hit trails per sensor).
+- Each scan, **uncorrelated** returns associate to the nearest plot within **Plot association threshold (NM)** (default 3 NM).
+- Returns within that distance of an **active** track are ignored for plot counting, so existing tracks can claim contacts before new plots form.
+- After **3** consistent hits on the same plot (`TRACK_INITIATION_HIT_COUNT`), a firm track is created with `source: 'auto'` and `initiatedBy` set to the sensor type, unless an active track is already within the plot association threshold.
+- New auto tracks start **uncorrelated**; the next scan’s correlation step links sensor returns and sets `correlated: true` when successful.
+- **Dropping a track** removes it from the track store only; sensor plots and returns continue. The same contact can initiate again after another 3-hit trail (merged-away auto track IDs are blocked from immediate re-add).
+
+### Track merge and deduplication
+
+When multiple firm tracks in **active** mode end up on the same contact (for example separate radar and IFF initiations), `mergeProximityClusters` in [`trackMerge.js`](airspace-sim/app/simulation/trackMerge.js) combines them:
+
+- **Cluster rule** — Active tracks within **Plot association threshold (NM)** (default 3 NM) of each other form a merge group. Merge runs after correlation and again after initiation each scan.
+- **Survivor priority** — Manual track → `userDirected` track (operator-edited) → track with the most recent sensor update.
+- **Property merge** — User-directed field values win on conflict; otherwise the survivor’s values are kept and empty fields are filled from the merged track. Position favors the track with the newer `lastSensorUpdateAt` when applicable.
+- **Removal** — Non-survivor tracks are deleted; merged auto track IDs are recorded so initiation does not immediately recreate the same symbol.
+
+Operator edits from the Track Management window set `userDirected` and `lastUserEditAt`, which flow into merge decisions.
+
+### Manual tracks
+
+- **Initiate Track** (map context menu) creates a manual track via `upsertManualTrack`.
+- Manual updates go through the same track store and set `userDirected` so merges respect operator intent.
+- Auto tracks opened in the track window can be edited via `updateTrack` without becoming manual tracks.
+- Correlation mode changes apply via `updateTrack` / `setTrackCorrelationMode`.
+- **Drop Track** calls `dropTrack` for both manual and automatic tracks.
+
+### Map display (Category Select Panel)
+
+Sensor and overlay visibility are display-only toggles:
+
+| Toggle | Layer |
+|--------|--------|
+| `IFF_CURRENT` / `IFF_HISTORY` | IFF sensor lines (current scan / history playback) |
+| `RADAR_CURRENT` / `RADAR_HISTORY` | Radar sensor lines |
+| `AIRPORTS` | Airport and airstrip points |
+| `AIR_ROUTES` | Common route polylines |
+
+**Sensor line symbology**
+
+- **Uncorrelated** — Short horizontal line (amber radar, green IFF).
+- **Correlated** — Short vertical line (same colors).
+- Tick length and stroke width scale with map zoom (aligned with track icon scaling).
+
+**Track symbols**
+
+- MIL-STD-2525 icons for firm tracks; icon size scales with map zoom via MapLibre `icon-size` interpolation (smaller when zoomed out).
+- Only tracks inside the expanded viewport are sent to the map layer; the engine snapshot still holds all firm tracks globally.
+
+### Settings reference (Simulation page)
+
+| Setting | Role |
+|---------|------|
+| Radar / IFF refresh (ms) | Sensor scan cadence |
+| Track update rate (Hz) | Simulation tick rate (may be reduced by adaptive performance) |
+| Correlation threshold (NM) | Max distance to link a return to an active track |
+| Plot association threshold (NM) | Plot trail association, initiation blocking near active tracks, and merge cluster distance (default 3 NM) |
+| Max active flights (global) | Target fleet size |
+| Quality preset | Applies preset Hz and fleet caps |
+| Adaptive performance balancing | Reduces tick rate under frame pressure; does not cull the fleet by viewport |
+
+### Development utilities
+
+In development builds, the stress harness is exposed on `window.__airspaceSimStressHarness` (see `app/simulation/stressHarness.js`) for timing benchmarks.
+
 ## Roadmap
 
 Near-term and exploratory work includes:
 
-- Improve static and extrapolated track behavior.
-- Add reference point creation and management.
-- Build simulated radar and IFF sensor feeds from phantom track data.
-- Correlate moving target indicators with sensor data.
-- Create tools for pre-built training scenarios.
-- Automate generation of recurring tactical pictures.
-- Build end-to-end control loops for mission practice.
-- Add automated picture call calculations inspired by ParrotSour workflows.
-- Continue evaluating what additional fuel, weapons, timeline, and mission-planning concepts can be represented safely with unclassified simulated data.
+- Reference point creation and management.
+- Pre-built training scenarios and recurring tactical picture templates.
+- End-to-end control loops for mission practice.
+- Automated picture call calculations inspired by ParrotSour workflows.
+- Additional fuel, weapons, timeline, and mission-planning concepts represented with unclassified simulated data only.
 
 ## Context
 
@@ -164,13 +407,19 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - Bearing/range measurement and map annotation tools.
 - Multiple grid reference formats used in operational discussions.
 - Scenario construction for repeatable training events.
-- Future sensor, radar, IFF, and tactical picture automation experiments using simulated data only.
+- Sensor, radar, IFF, and track automation experiments using simulated data only (see [Simulation Architecture](#simulation-architecture)).
 
 ### Current Capabilities
 
 - Full-screen map workspace with light and dark map styles.
-- Track initiation and editing from the map context menu.
-- MIL-STD-2525-style symbol rendering for simulated tracks.
+- **Global flight simulation** on weighted air routes between curated airports (no viewport-random spawning).
+- **Separated sensor, initiation, and correlation pipeline** (see [Simulation Architecture](#simulation-architecture)).
+- Simulated **radar and IFF** returns with history playback and Category Select Panel toggles.
+- **Correlation before initiation** on each sensor scan, with **track merge** to prevent duplicate symbols on the same contact.
+- **Automatic track initiation** after three per-sensor plot updates on uncorrelated returns only.
+- Manual track initiation and editing from the map context menu, with correlation mode (active / extrapolated / suspend).
+- MIL-STD-2525-style symbol rendering for tracks, with zoom-dependent icon scale.
+- Optional **airport** and **air route** overlay layers.
 - Bearing/range drawing, context menus, and line removal controls.
 - Cursor coordinate overlay with selectable grid reference systems.
 - Supported coordinate displays include DD, DDM, DMS, GARS, Geohash, GEOREF, Killbox-style GARS, and MGRS.

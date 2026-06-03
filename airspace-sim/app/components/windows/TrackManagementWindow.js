@@ -28,6 +28,13 @@ import {
     getTrackTypeOption,
     getTrackTypeOptionsForDomain,
 } from '@/app/tools/milstd2525/trackSymbolCodes'
+import {TRACK_CORRELATION_MODES} from '@/app/simulation/trackFromDetection'
+
+const CORRELATION_MODE_OPTIONS = [
+    {value: TRACK_CORRELATION_MODES.ACTIVE, label: 'Active correlation'},
+    {value: TRACK_CORRELATION_MODES.EXTRAPOLATED, label: 'Extrapolated'},
+    {value: TRACK_CORRELATION_MODES.SUSPEND, label: 'Suspend'},
+]
 import {
     getTrackManagementWindowPosition,
     useTrackManagementWindowDrag,
@@ -208,6 +215,24 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 </Box>
 
                 <Divider/>
+
+                <FormControl size='small' fullWidth>
+                    <InputLabel id={`${trackManagementWindow.id}-correlation-mode-label`}>
+                        Correlation mode
+                    </InputLabel>
+                    <Select
+                        labelId={`${trackManagementWindow.id}-correlation-mode-label`}
+                        label='Correlation mode'
+                        value={trackManagementWindow.correlationMode ?? TRACK_CORRELATION_MODES.ACTIVE}
+                        onChange={(event) => updateField('correlationMode', event.target.value)}
+                    >
+                        {CORRELATION_MODE_OPTIONS.map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                                {option.label}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
 
                 <TextField
                     label='Callsign'

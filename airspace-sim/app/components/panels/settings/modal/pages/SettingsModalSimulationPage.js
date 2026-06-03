@@ -32,7 +32,7 @@ export default function SettingsModalSimulationPage() {
                 </Typography>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
                     Configure sensor refresh rates, track update frequency, correlation range,
-                    and adaptive performance behavior.
+                    global flight density, and adaptive performance behavior.
                 </Typography>
 
                 <FormControlLabel
@@ -95,12 +95,20 @@ export default function SettingsModalSimulationPage() {
                     slotProps={{htmlInput: {min: 0.5, max: 50, step: 0.5}}}
                 />
                 <TextField
-                    label='Max aircraft in viewport'
+                    label='Plot association threshold (NM)'
                     type='number'
                     size='small'
-                    value={appSettings.maxTruthAircraftInViewport}
-                    onChange={updateNumericField('maxTruthAircraftInViewport')}
-                    slotProps={{htmlInput: {min: 10, max: 2000, step: 10}}}
+                    value={appSettings.plotAssociationThresholdNm}
+                    onChange={updateNumericField('plotAssociationThresholdNm')}
+                    slotProps={{htmlInput: {min: 0.5, max: 20, step: 0.5}}}
+                />
+                <TextField
+                    label='Max active flights (global)'
+                    type='number'
+                    size='small'
+                    value={appSettings.maxActiveFlights}
+                    onChange={updateNumericField('maxActiveFlights')}
+                    slotProps={{htmlInput: {min: 10, max: 2500, step: 50}}}
                 />
             </Stack>
 
@@ -114,7 +122,8 @@ export default function SettingsModalSimulationPage() {
                         updateSimulationSettings({
                             qualityPreset: event.target.value,
                             trackUpdateHz: preset.trackUpdateHz,
-                            maxTruthAircraftInViewport: preset.maxTruthAircraftInViewport,
+                            maxActiveFlights: preset.maxActiveFlights
+                                ?? preset.maxTruthAircraftInViewport,
                         })
                     }}
                 >

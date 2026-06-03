@@ -220,7 +220,15 @@ function addTrackLayers(map) {
             source: TRACK_SOURCE_ID,
             layout: {
                 'icon-image': ['get', 'icon'],
-                'icon-size': 1,
+                'icon-size': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    4,
+                    0.35,
+                    10,
+                    1,
+                ],
                 'icon-allow-overlap': true,
                 'icon-ignore-placement': true,
                 'icon-rotation-alignment': 'map',
