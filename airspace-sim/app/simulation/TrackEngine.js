@@ -204,7 +204,11 @@ export class TrackEngine {
 
     runSensorScan(sensorType, timestamp, bounds) {
         const rawDetections = this.feed.scan({bounds, timestamp, sensorType})
-        const trackList = Array.from(this.tracks.values())
+        const trackList = Array.from(this.tracks.values()).filter((track) => {
+            const trackId = track.trackId ?? track.id
+
+            return !this.manualTracks.has(trackId)
+        })
         const correlated = correlateDetections(
             rawDetections,
             trackList,
@@ -216,10 +220,17 @@ export class TrackEngine {
         correlated.forEach((detection) => {
             const truth = detection.truthId ? truthById.get(detection.truthId) : null
 
-            if (detection.correlated && detection.correlatedTrackId) {
-                const existing = this.tracks.get(detection.correlatedTrackId)
+            const correlatedTrackId = detection.correlatedTrackId
+            const canUpdateCorrelatedTrack = (
+                detection.correlated
+                && correlatedTrackId
+                && !this.manualTracks.has(correlatedTrackId)
+            )
 
-                this.tracks.set(detection.correlatedTrackId, {
+            if (canUpdateCorrelatedTrack) {
+                const existing = this.tracks.get(correlatedTrackId)
+
+                this.tracks.set(correlatedTrackId, {
                     ...(existing ?? trackFromDetection(detection, truth)),
                     longitude: detection.longitude,
                     latitude: detection.latitude,
