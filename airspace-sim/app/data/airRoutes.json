@@ -1,95 +1,656 @@
 [
   {
-    "id": "NA-TRANSCON-1",
-    "origin": "KJFK",
-    "destination": "KLAX",
-    "waypoints": ["KORD", "KDEN"],
-    "weight": 5
-  },
-  {
-    "id": "NA-TRANSCON-2",
-    "origin": "KLAX",
-    "destination": "KJFK",
-    "waypoints": ["KDEN", "KORD"],
-    "weight": 5
-  },
-  {
-    "id": "NA-PACIFIC-NORTH",
-    "origin": "KSEA",
-    "destination": "RJTT",
-    "waypoints": ["PANC"],
-    "weight": 3
-  },
-  {
-    "id": "NA-PACIFIC-CENTRAL",
-    "origin": "KLAX",
-    "destination": "RJTT",
-    "waypoints": ["PHNL"],
-    "weight": 3
-  },
-  {
-    "id": "PACIFIC-SOUTH",
-    "origin": "YSSY",
-    "destination": "KLAX",
-    "waypoints": ["PHNL"],
-    "weight": 3
-  },
-  {
-    "id": "NAT-WESTBOUND",
-    "origin": "EGLL",
-    "destination": "KJFK",
-    "waypoints": ["CYYZ"],
-    "weight": 4
-  },
-  {
-    "id": "NAT-EASTBOUND",
+    "id": "KJFK-EGLL",
     "origin": "KJFK",
     "destination": "EGLL",
-    "waypoints": ["CYYZ"],
-    "weight": 4
+    "weight": 12
   },
   {
-    "id": "EUROPE-SHUTTLE",
-    "origin": "EGLL",
+    "id": "KJFK-LFPG",
+    "origin": "KJFK",
     "destination": "LFPG",
-    "weight": 2
+    "weight": 10
   },
   {
-    "id": "EU-MIDEAST",
-    "origin": "LFPG",
-    "destination": "OMDB",
-    "weight": 3
+    "id": "KJFK-EDDF",
+    "origin": "KJFK",
+    "destination": "EDDF",
+    "weight": 9
   },
   {
-    "id": "MIDEAST-ASIA",
-    "origin": "OMDB",
-    "destination": "ZBAA",
-    "weight": 3
+    "id": "KLAX-RJTT",
+    "origin": "KLAX",
+    "destination": "RJTT",
+    "weight": 11
   },
   {
-    "id": "ASIA-PACIFIC",
-    "origin": "ZBAA",
-    "destination": "YSSY",
-    "waypoints": ["RJTT"],
-    "weight": 2
+    "id": "KLAX-VHHH",
+    "origin": "KLAX",
+    "destination": "VHHH",
+    "weight": 10
   },
   {
-    "id": "SOUTH-AMERICA-NORTH",
-    "origin": "SBGR",
-    "destination": "KATL",
-    "weight": 2
-  },
-  {
-    "id": "NORTH-AMERICA-HUB",
+    "id": "KATL-KORD",
     "origin": "KATL",
     "destination": "KORD",
+    "weight": 8
+  },
+  {
+    "id": "KORD-KLAX",
+    "origin": "KORD",
+    "destination": "KLAX",
+    "weight": 9
+  },
+  {
+    "id": "KJFK-KLAX",
+    "origin": "KJFK",
+    "destination": "KLAX",
+    "weight": 10
+  },
+  {
+    "id": "EGLL-OMDB",
+    "origin": "EGLL",
+    "destination": "OMDB",
+    "weight": 9
+  },
+  {
+    "id": "EGLL-VHHH",
+    "origin": "EGLL",
+    "destination": "VHHH",
+    "weight": 8
+  },
+  {
+    "id": "LFPG-RJTT",
+    "origin": "LFPG",
+    "destination": "RJTT",
+    "weight": 8
+  },
+  {
+    "id": "EDDF-RJTT",
+    "origin": "EDDF",
+    "destination": "RJTT",
+    "weight": 7
+  },
+  {
+    "id": "EHAM-WSSS",
+    "origin": "EHAM",
+    "destination": "WSSS",
+    "weight": 8
+  },
+  {
+    "id": "RJTT-RKSI",
+    "origin": "RJTT",
+    "destination": "RKSI",
+    "weight": 9
+  },
+  {
+    "id": "RKSI-ZSPD",
+    "origin": "RKSI",
+    "destination": "ZSPD",
+    "weight": 8
+  },
+  {
+    "id": "ZSPD-VHHH",
+    "origin": "ZSPD",
+    "destination": "VHHH",
+    "weight": 9
+  },
+  {
+    "id": "VHHH-WSSS",
+    "origin": "VHHH",
+    "destination": "WSSS",
+    "weight": 10
+  },
+  {
+    "id": "WSSS-VIDP",
+    "origin": "WSSS",
+    "destination": "VIDP",
+    "weight": 7
+  },
+  {
+    "id": "VIDP-OMDB",
+    "origin": "VIDP",
+    "destination": "OMDB",
+    "weight": 8
+  },
+  {
+    "id": "OMDB-EGLL",
+    "origin": "OMDB",
+    "destination": "EGLL",
+    "weight": 9
+  },
+  {
+    "id": "OMDB-LFPG",
+    "origin": "OMDB",
+    "destination": "LFPG",
+    "weight": 8
+  },
+  {
+    "id": "OTHH-EGLL",
+    "origin": "OTHH",
+    "destination": "EGLL",
+    "weight": 7
+  },
+  {
+    "id": "KJFK-CYYZ",
+    "origin": "KJFK",
+    "destination": "CYYZ",
+    "weight": 8
+  },
+  {
+    "id": "CYYZ-EGLL",
+    "origin": "CYYZ",
+    "destination": "EGLL",
+    "weight": 7
+  },
+  {
+    "id": "KSFO-RJTT",
+    "origin": "KSFO",
+    "destination": "RJTT",
+    "weight": 8
+  },
+  {
+    "id": "KSEA-RJTT",
+    "origin": "KSEA",
+    "destination": "RJTT",
+    "weight": 6
+  },
+  {
+    "id": "KDFW-KLAX",
+    "origin": "KDFW",
+    "destination": "KLAX",
+    "weight": 7
+  },
+  {
+    "id": "KDEN-KORD",
+    "origin": "KDEN",
+    "destination": "KORD",
+    "weight": 6
+  },
+  {
+    "id": "KMIA-EGLL",
+    "origin": "KMIA",
+    "destination": "EGLL",
+    "weight": 6
+  },
+  {
+    "id": "KBOS-EGLL",
+    "origin": "KBOS",
+    "destination": "EGLL",
+    "weight": 6
+  },
+  {
+    "id": "YSSY-KLAX",
+    "origin": "YSSY",
+    "destination": "KLAX",
+    "weight": 7
+  },
+  {
+    "id": "YSSY-WSSS",
+    "origin": "YSSY",
+    "destination": "WSSS",
+    "weight": 8
+  },
+  {
+    "id": "YMML-WSSS",
+    "origin": "YMML",
+    "destination": "WSSS",
+    "weight": 6
+  },
+  {
+    "id": "NZAA-YSSY",
+    "origin": "NZAA",
+    "destination": "YSSY",
+    "weight": 7
+  },
+  {
+    "id": "NZAA-KLAX",
+    "origin": "NZAA",
+    "destination": "KLAX",
+    "weight": 6
+  },
+  {
+    "id": "SBGR-KMIA",
+    "origin": "SBGR",
+    "destination": "KMIA",
+    "weight": 7
+  },
+  {
+    "id": "SBGR-EGLL",
+    "origin": "SBGR",
+    "destination": "EGLL",
+    "weight": 6
+  },
+  {
+    "id": "SKBO-KMIA",
+    "origin": "SKBO",
+    "destination": "KMIA",
+    "weight": 5
+  },
+  {
+    "id": "SCEL-KMIA",
+    "origin": "SCEL",
+    "destination": "KMIA",
+    "weight": 5
+  },
+  {
+    "id": "MMMX-KDFW",
+    "origin": "MMMX",
+    "destination": "KDFW",
+    "weight": 6
+  },
+  {
+    "id": "MMMX-KLAX",
+    "origin": "MMMX",
+    "destination": "KLAX",
+    "weight": 7
+  },
+  {
+    "id": "CYVR-RJTT",
+    "origin": "CYVR",
+    "destination": "RJTT",
+    "weight": 6
+  },
+  {
+    "id": "CYVR-EGLL",
+    "origin": "CYVR",
+    "destination": "EGLL",
+    "weight": 5
+  },
+  {
+    "id": "CYYZ-LFPG",
+    "origin": "CYYZ",
+    "destination": "LFPG",
+    "weight": 6
+  },
+  {
+    "id": "KATL-KMIA",
+    "origin": "KATL",
+    "destination": "KMIA",
+    "weight": 7
+  },
+  {
+    "id": "KATL-KDFW",
+    "origin": "KATL",
+    "destination": "KDFW",
+    "weight": 6
+  },
+  {
+    "id": "KDFW-KORD",
+    "origin": "KDFW",
+    "destination": "KORD",
+    "weight": 6
+  },
+  {
+    "id": "KSFO-KLAX",
+    "origin": "KSFO",
+    "destination": "KLAX",
+    "weight": 8
+  },
+  {
+    "id": "KLAS-KLAX",
+    "origin": "KLAS",
+    "destination": "KLAX",
+    "weight": 7
+  },
+  {
+    "id": "KPHX-KLAX",
+    "origin": "KPHX",
+    "destination": "KLAX",
+    "weight": 6
+  },
+  {
+    "id": "KIAH-KATL",
+    "origin": "KIAH",
+    "destination": "KATL",
+    "weight": 6
+  },
+  {
+    "id": "KMSP-KORD",
+    "origin": "KMSP",
+    "destination": "KORD",
+    "weight": 5
+  },
+  {
+    "id": "KCLT-KJFK",
+    "origin": "KCLT",
+    "destination": "KJFK",
+    "weight": 6
+  },
+  {
+    "id": "KEWR-EGLL",
+    "origin": "KEWR",
+    "destination": "EGLL",
+    "weight": 8
+  },
+  {
+    "id": "KPHL-KORD",
+    "origin": "KPHL",
+    "destination": "KORD",
+    "weight": 5
+  },
+  {
+    "id": "LEMD-EGLL",
+    "origin": "LEMD",
+    "destination": "EGLL",
+    "weight": 7
+  },
+  {
+    "id": "LIRF-EGLL",
+    "origin": "LIRF",
+    "destination": "EGLL",
+    "weight": 6
+  },
+  {
+    "id": "LSZH-EGLL",
+    "origin": "LSZH",
+    "destination": "EGLL",
+    "weight": 6
+  },
+  {
+    "id": "EDDM-EGLL",
+    "origin": "EDDM",
+    "destination": "EGLL",
+    "weight": 6
+  },
+  {
+    "id": "LTFM-EGLL",
+    "origin": "LTFM",
+    "destination": "EGLL",
+    "weight": 7
+  },
+  {
+    "id": "LTFM-OMDB",
+    "origin": "LTFM",
+    "destination": "OMDB",
+    "weight": 8
+  },
+  {
+    "id": "HECA-OMDB",
+    "origin": "HECA",
+    "destination": "OMDB",
+    "weight": 6
+  },
+  {
+    "id": "FACT-FAOR",
+    "origin": "FACT",
+    "destination": "FAOR",
+    "weight": 5
+  },
+  {
+    "id": "FAOR-OMDB",
+    "origin": "FAOR",
+    "destination": "OMDB",
+    "weight": 6
+  },
+  {
+    "id": "DNMM-EGLL",
+    "origin": "DNMM",
+    "destination": "EGLL",
+    "weight": 5
+  },
+  {
+    "id": "RJBB-RJTT",
+    "origin": "RJBB",
+    "destination": "RJTT",
+    "weight": 7
+  },
+  {
+    "id": "ZBAA-ZSPD",
+    "origin": "ZBAA",
+    "destination": "ZSPD",
+    "weight": 8
+  },
+  {
+    "id": "ZBAA-VHHH",
+    "origin": "ZBAA",
+    "destination": "VHHH",
+    "weight": 9
+  },
+  {
+    "id": "ZGGG-VHHH",
+    "origin": "ZGGG",
+    "destination": "VHHH",
+    "weight": 7
+  },
+  {
+    "id": "VTBS-WSSS",
+    "origin": "VTBS",
+    "destination": "WSSS",
+    "weight": 8
+  },
+  {
+    "id": "WIII-WSSS",
+    "origin": "WIII",
+    "destination": "WSSS",
+    "weight": 7
+  },
+  {
+    "id": "RPLL-WSSS",
+    "origin": "RPLL",
+    "destination": "WSSS",
+    "weight": 6
+  },
+  {
+    "id": "UUEE-EDDF",
+    "origin": "UUEE",
+    "destination": "EDDF",
+    "weight": 6
+  },
+  {
+    "id": "UUEE-EGLL",
+    "origin": "UUEE",
+    "destination": "EGLL",
+    "weight": 5
+  },
+  {
+    "id": "ESSA-EGLL",
+    "origin": "ESSA",
+    "destination": "EGLL",
+    "weight": 5
+  },
+  {
+    "id": "ENGM-EGLL",
+    "origin": "ENGM",
+    "destination": "EGLL",
+    "weight": 5
+  },
+  {
+    "id": "EFHK-EGLL",
+    "origin": "EFHK",
+    "destination": "EGLL",
+    "weight": 5
+  },
+  {
+    "id": "BIKF-EGLL",
+    "origin": "BIKF",
+    "destination": "EGLL",
     "weight": 4
   },
   {
-    "id": "CANADA-WEST",
-    "origin": "CYYZ",
+    "id": "PANC-KSEA",
+    "origin": "PANC",
     "destination": "KSEA",
-    "waypoints": ["KDEN"],
-    "weight": 2
+    "weight": 5
+  },
+  {
+    "id": "PANC-RJTT",
+    "origin": "PANC",
+    "destination": "RJTT",
+    "weight": 4
+  },
+  {
+    "id": "PAFA-PANC",
+    "origin": "PAFA",
+    "destination": "PANC",
+    "weight": 3
+  },
+  {
+    "id": "YBBN-YSSY",
+    "origin": "YBBN",
+    "destination": "YSSY",
+    "weight": 6
+  },
+  {
+    "id": "YPPH-WSSS",
+    "origin": "YPPH",
+    "destination": "WSSS",
+    "weight": 5
+  },
+  {
+    "id": "VOBL-VIDP",
+    "origin": "VOBL",
+    "destination": "VIDP",
+    "weight": 6
+  },
+  {
+    "id": "VABB-VIDP",
+    "origin": "VABB",
+    "destination": "VIDP",
+    "weight": 7
+  },
+  {
+    "id": "OOMS-OMDB",
+    "origin": "OOMS",
+    "destination": "OMDB",
+    "weight": 6
+  },
+  {
+    "id": "OIIE-OMDB",
+    "origin": "OIIE",
+    "destination": "OMDB",
+    "weight": 5
+  },
+  {
+    "id": "RKPK-RKSI",
+    "origin": "RKPK",
+    "destination": "RKSI",
+    "weight": 6
+  },
+  {
+    "id": "ZUUU-ZSPD",
+    "origin": "ZUUU",
+    "destination": "ZSPD",
+    "weight": 7
+  },
+  {
+    "id": "KJFK-KMIA",
+    "origin": "KJFK",
+    "destination": "KMIA",
+    "weight": 7
+  },
+  {
+    "id": "KLAX-KORD",
+    "origin": "KLAX",
+    "destination": "KORD",
+    "weight": 7
+  },
+  {
+    "id": "KLAX-KDFW",
+    "origin": "KLAX",
+    "destination": "KDFW",
+    "weight": 6
+  },
+  {
+    "id": "KORD-KJFK",
+    "origin": "KORD",
+    "destination": "KJFK",
+    "weight": 7
+  },
+  {
+    "id": "KDEN-KLAX",
+    "origin": "KDEN",
+    "destination": "KLAX",
+    "weight": 6
+  },
+  {
+    "id": "KSFO-KORD",
+    "origin": "KSFO",
+    "destination": "KORD",
+    "weight": 6
+  },
+  {
+    "id": "KSEA-KORD",
+    "origin": "KSEA",
+    "destination": "KORD",
+    "weight": 5
+  },
+  {
+    "id": "KMIA-SBGR",
+    "origin": "KMIA",
+    "destination": "SBGR",
+    "weight": 6
+  },
+  {
+    "id": "EGLL-KJFK",
+    "origin": "EGLL",
+    "destination": "KJFK",
+    "weight": 10
+  },
+  {
+    "id": "EGLL-CYYZ",
+    "origin": "EGLL",
+    "destination": "CYYZ",
+    "weight": 6
+  },
+  {
+    "id": "LFPG-KJFK",
+    "origin": "LFPG",
+    "destination": "KJFK",
+    "weight": 7
+  },
+  {
+    "id": "EDDF-KJFK",
+    "origin": "EDDF",
+    "destination": "KJFK",
+    "weight": 6
+  },
+  {
+    "id": "EHAM-KJFK",
+    "origin": "EHAM",
+    "destination": "KJFK",
+    "weight": 6
+  },
+  {
+    "id": "RJTT-KLAX",
+    "origin": "RJTT",
+    "destination": "KLAX",
+    "weight": 8
+  },
+  {
+    "id": "RJTT-KSFO",
+    "origin": "RJTT",
+    "destination": "KSFO",
+    "weight": 7
+  },
+  {
+    "id": "VHHH-KLAX",
+    "origin": "VHHH",
+    "destination": "KLAX",
+    "weight": 8
+  },
+  {
+    "id": "WSSS-EGLL",
+    "origin": "WSSS",
+    "destination": "EGLL",
+    "weight": 8
+  },
+  {
+    "id": "VIDP-EGLL",
+    "origin": "VIDP",
+    "destination": "EGLL",
+    "weight": 7
+  },
+  {
+    "id": "KDTW-KATL",
+    "origin": "KDTW",
+    "destination": "KATL",
+    "weight": 5
+  },
+  {
+    "id": "KPHX-KDFW",
+    "origin": "KPHX",
+    "destination": "KDFW",
+    "weight": 5
   }
 ]
