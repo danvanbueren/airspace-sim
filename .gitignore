@@ -38,7 +38,7 @@ Temporary Items
 
 .idea/
 venv/
-data/
+/data/
 .env
 __pycache__
 .next/

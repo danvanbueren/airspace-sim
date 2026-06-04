@@ -1,0 +1,95 @@
+[
+  {
+    "id": "NA-TRANSCON-1",
+    "origin": "KJFK",
+    "destination": "KLAX",
+    "waypoints": ["KORD", "KDEN"],
+    "weight": 5
+  },
+  {
+    "id": "NA-TRANSCON-2",
+    "origin": "KLAX",
+    "destination": "KJFK",
+    "waypoints": ["KDEN", "KORD"],
+    "weight": 5
+  },
+  {
+    "id": "NA-PACIFIC-NORTH",
+    "origin": "KSEA",
+    "destination": "RJTT",
+    "waypoints": ["PANC"],
+    "weight": 3
+  },
+  {
+    "id": "NA-PACIFIC-CENTRAL",
+    "origin": "KLAX",
+    "destination": "RJTT",
+    "waypoints": ["PHNL"],
+    "weight": 3
+  },
+  {
+    "id": "PACIFIC-SOUTH",
+    "origin": "YSSY",
+    "destination": "KLAX",
+    "waypoints": ["PHNL"],
+    "weight": 3
+  },
+  {
+    "id": "NAT-WESTBOUND",
+    "origin": "EGLL",
+    "destination": "KJFK",
+    "waypoints": ["CYYZ"],
+    "weight": 4
+  },
+  {
+    "id": "NAT-EASTBOUND",
+    "origin": "KJFK",
+    "destination": "EGLL",
+    "waypoints": ["CYYZ"],
+    "weight": 4
+  },
+  {
+    "id": "EUROPE-SHUTTLE",
+    "origin": "EGLL",
+    "destination": "LFPG",
+    "weight": 2
+  },
+  {
+    "id": "EU-MIDEAST",
+    "origin": "LFPG",
+    "destination": "OMDB",
+    "weight": 3
+  },
+  {
+    "id": "MIDEAST-ASIA",
+    "origin": "OMDB",
+    "destination": "ZBAA",
+    "weight": 3
+  },
+  {
+    "id": "ASIA-PACIFIC",
+    "origin": "ZBAA",
+    "destination": "YSSY",
+    "waypoints": ["RJTT"],
+    "weight": 2
+  },
+  {
+    "id": "SOUTH-AMERICA-NORTH",
+    "origin": "SBGR",
+    "destination": "KATL",
+    "weight": 2
+  },
+  {
+    "id": "NORTH-AMERICA-HUB",
+    "origin": "KATL",
+    "destination": "KORD",
+    "weight": 4
+  },
+  {
+    "id": "CANADA-WEST",
+    "origin": "CYYZ",
+    "destination": "KSEA",
+    "waypoints": ["KDEN"],
+    "weight": 2
+  }
+]
