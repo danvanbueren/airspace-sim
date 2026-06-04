@@ -1,0 +1,541 @@
+[
+  {
+    "icao": "KJFK",
+    "name": "New York JFK",
+    "lng": -73.7781,
+    "lat": 40.6413,
+    "class": "major"
+  },
+  {
+    "icao": "KLAX",
+    "name": "Los Angeles",
+    "lng": -118.4081,
+    "lat": 33.9425,
+    "class": "major"
+  },
+  {
+    "icao": "KORD",
+    "name": "Chicago O Hare",
+    "lng": -87.9048,
+    "lat": 41.9786,
+    "class": "major"
+  },
+  {
+    "icao": "KATL",
+    "name": "Atlanta",
+    "lng": -84.4281,
+    "lat": 33.6407,
+    "class": "major"
+  },
+  {
+    "icao": "KDEN",
+    "name": "Denver",
+    "lng": -104.6737,
+    "lat": 39.8561,
+    "class": "major"
+  },
+  {
+    "icao": "KDFW",
+    "name": "Dallas Fort Worth",
+    "lng": -97.038,
+    "lat": 32.8998,
+    "class": "major"
+  },
+  {
+    "icao": "KSFO",
+    "name": "San Francisco",
+    "lng": -122.375,
+    "lat": 37.6213,
+    "class": "major"
+  },
+  {
+    "icao": "KSEA",
+    "name": "Seattle",
+    "lng": -122.3088,
+    "lat": 47.4502,
+    "class": "major"
+  },
+  {
+    "icao": "KMIA",
+    "name": "Miami",
+    "lng": -80.2906,
+    "lat": 25.7959,
+    "class": "major"
+  },
+  {
+    "icao": "KBOS",
+    "name": "Boston",
+    "lng": -71.0052,
+    "lat": 42.3656,
+    "class": "major"
+  },
+  {
+    "icao": "EGLL",
+    "name": "London Heathrow",
+    "lng": -0.4614,
+    "lat": 51.47,
+    "class": "major"
+  },
+  {
+    "icao": "LFPG",
+    "name": "Paris CDG",
+    "lng": 2.5478,
+    "lat": 49.0097,
+    "class": "major"
+  },
+  {
+    "icao": "EDDF",
+    "name": "Frankfurt",
+    "lng": 8.5706,
+    "lat": 50.0379,
+    "class": "major"
+  },
+  {
+    "icao": "EHAM",
+    "name": "Amsterdam",
+    "lng": 4.7639,
+    "lat": 52.3105,
+    "class": "major"
+  },
+  {
+    "icao": "LEMD",
+    "name": "Madrid",
+    "lng": -3.5626,
+    "lat": 40.4983,
+    "class": "major"
+  },
+  {
+    "icao": "LIRF",
+    "name": "Rome Fiumicino",
+    "lng": 12.2389,
+    "lat": 41.8003,
+    "class": "major"
+  },
+  {
+    "icao": "LSZH",
+    "name": "Zurich",
+    "lng": 8.5481,
+    "lat": 47.4647,
+    "class": "major"
+  },
+  {
+    "icao": "EBBR",
+    "name": "Brussels",
+    "lng": 4.4844,
+    "lat": 50.9014,
+    "class": "major"
+  },
+  {
+    "icao": "EGKK",
+    "name": "London Gatwick",
+    "lng": -0.1903,
+    "lat": 51.1537,
+    "class": "major"
+  },
+  {
+    "icao": "EDDM",
+    "name": "Munich",
+    "lng": 11.775,
+    "lat": 48.3538,
+    "class": "major"
+  },
+  {
+    "icao": "RJTT",
+    "name": "Tokyo Haneda",
+    "lng": 139.7798,
+    "lat": 35.5494,
+    "class": "major"
+  },
+  {
+    "icao": "RJAA",
+    "name": "Tokyo Narita",
+    "lng": 140.3929,
+    "lat": 35.772,
+    "class": "major"
+  },
+  {
+    "icao": "RKSI",
+    "name": "Seoul Incheon",
+    "lng": 126.4505,
+    "lat": 37.4602,
+    "class": "major"
+  },
+  {
+    "icao": "ZSPD",
+    "name": "Shanghai Pudong",
+    "lng": 121.8052,
+    "lat": 31.1434,
+    "class": "major"
+  },
+  {
+    "icao": "VHHH",
+    "name": "Hong Kong",
+    "lng": 113.9147,
+    "lat": 22.308,
+    "class": "major"
+  },
+  {
+    "icao": "WSSS",
+    "name": "Singapore Changi",
+    "lng": 103.9915,
+    "lat": 1.3644,
+    "class": "major"
+  },
+  {
+    "icao": "VTBS",
+    "name": "Bangkok Suvarnabhumi",
+    "lng": 100.7501,
+    "lat": 13.69,
+    "class": "major"
+  },
+  {
+    "icao": "VIDP",
+    "name": "Delhi",
+    "lng": 77.1031,
+    "lat": 28.5562,
+    "class": "major"
+  },
+  {
+    "icao": "VABB",
+    "name": "Mumbai",
+    "lng": 72.8679,
+    "lat": 19.0887,
+    "class": "major"
+  },
+  {
+    "icao": "RJBB",
+    "name": "Osaka Kansai",
+    "lng": 135.2441,
+    "lat": 34.4347,
+    "class": "major"
+  },
+  {
+    "icao": "OMDB",
+    "name": "Dubai",
+    "lng": 55.3644,
+    "lat": 25.2532,
+    "class": "major"
+  },
+  {
+    "icao": "OTHH",
+    "name": "Doha Hamad",
+    "lng": 51.6081,
+    "lat": 25.2731,
+    "class": "major"
+  },
+  {
+    "icao": "OERK",
+    "name": "Riyadh",
+    "lng": 46.6988,
+    "lat": 24.9576,
+    "class": "major"
+  },
+  {
+    "icao": "HECA",
+    "name": "Cairo",
+    "lng": 31.4065,
+    "lat": 30.1219,
+    "class": "major"
+  },
+  {
+    "icao": "FACT",
+    "name": "Cape Town",
+    "lng": 18.6017,
+    "lat": -33.9648,
+    "class": "major"
+  },
+  {
+    "icao": "FAOR",
+    "name": "Johannesburg",
+    "lng": 28.246,
+    "lat": -26.1392,
+    "class": "major"
+  },
+  {
+    "icao": "DNMM",
+    "name": "Lagos",
+    "lng": 3.3212,
+    "lat": 6.5774,
+    "class": "major"
+  },
+  {
+    "icao": "YSSY",
+    "name": "Sydney",
+    "lng": 151.1772,
+    "lat": -33.9461,
+    "class": "major"
+  },
+  {
+    "icao": "YMML",
+    "name": "Melbourne",
+    "lng": 144.8433,
+    "lat": -37.6733,
+    "class": "major"
+  },
+  {
+    "icao": "NZAA",
+    "name": "Auckland",
+    "lng": 174.7917,
+    "lat": -37.0082,
+    "class": "major"
+  },
+  {
+    "icao": "CYYZ",
+    "name": "Toronto Pearson",
+    "lng": -79.6306,
+    "lat": 43.6777,
+    "class": "major"
+  },
+  {
+    "icao": "CYVR",
+    "name": "Vancouver",
+    "lng": -123.1815,
+    "lat": 49.1967,
+    "class": "major"
+  },
+  {
+    "icao": "MMMX",
+    "name": "Mexico City",
+    "lng": -99.0721,
+    "lat": 19.4363,
+    "class": "major"
+  },
+  {
+    "icao": "SBGR",
+    "name": "Sao Paulo Guarulhos",
+    "lng": -46.4731,
+    "lat": -23.4356,
+    "class": "major"
+  },
+  {
+    "icao": "SCEL",
+    "name": "Santiago",
+    "lng": -70.7858,
+    "lat": -33.393,
+    "class": "major"
+  },
+  {
+    "icao": "SKBO",
+    "name": "Bogota",
+    "lng": -74.1469,
+    "lat": 4.7016,
+    "class": "major"
+  },
+  {
+    "icao": "SPJC",
+    "name": "Lima",
+    "lng": -77.1143,
+    "lat": -12.0219,
+    "class": "major"
+  },
+  {
+    "icao": "PAFA",
+    "name": "Fairbanks",
+    "lng": -147.8561,
+    "lat": 64.8151,
+    "class": "strip"
+  },
+  {
+    "icao": "PANC",
+    "name": "Anchorage",
+    "lng": -149.9962,
+    "lat": 61.1744,
+    "class": "major"
+  },
+  {
+    "icao": "BIKF",
+    "name": "Reykjavik",
+    "lng": -22.6056,
+    "lat": 63.985,
+    "class": "major"
+  },
+  {
+    "icao": "BGGH",
+    "name": "Nuuk",
+    "lng": -51.6781,
+    "lat": 64.1909,
+    "class": "strip"
+  },
+  {
+    "icao": "ENGM",
+    "name": "Oslo",
+    "lng": 11.1004,
+    "lat": 60.1939,
+    "class": "major"
+  },
+  {
+    "icao": "ESSA",
+    "name": "Stockholm Arlanda",
+    "lng": 17.9186,
+    "lat": 59.6519,
+    "class": "major"
+  },
+  {
+    "icao": "EFHK",
+    "name": "Helsinki",
+    "lng": 24.9633,
+    "lat": 60.3172,
+    "class": "major"
+  },
+  {
+    "icao": "UUEE",
+    "name": "Moscow Sheremetyevo",
+    "lng": 37.4146,
+    "lat": 55.9726,
+    "class": "major"
+  },
+  {
+    "icao": "UUDD",
+    "name": "Moscow Domodedovo",
+    "lng": 37.9065,
+    "lat": 55.4088,
+    "class": "major"
+  },
+  {
+    "icao": "ZBAA",
+    "name": "Beijing Capital",
+    "lng": 116.5975,
+    "lat": 40.0725,
+    "class": "major"
+  },
+  {
+    "icao": "ZGGG",
+    "name": "Guangzhou",
+    "lng": 113.2988,
+    "lat": 23.3924,
+    "class": "major"
+  },
+  {
+    "icao": "RPLL",
+    "name": "Manila",
+    "lng": 121.0194,
+    "lat": 14.5086,
+    "class": "major"
+  },
+  {
+    "icao": "WIII",
+    "name": "Jakarta",
+    "lng": 106.6559,
+    "lat": -6.1256,
+    "class": "major"
+  },
+  {
+    "icao": "YBBN",
+    "name": "Brisbane",
+    "lng": 153.1096,
+    "lat": -27.3842,
+    "class": "major"
+  },
+  {
+    "icao": "YPPH",
+    "name": "Perth",
+    "lng": 115.9672,
+    "lat": -31.9403,
+    "class": "major"
+  },
+  {
+    "icao": "KPHX",
+    "name": "Phoenix",
+    "lng": -112.074,
+    "lat": 33.4373,
+    "class": "major"
+  },
+  {
+    "icao": "KLAS",
+    "name": "Las Vegas",
+    "lng": -115.1523,
+    "lat": 36.084,
+    "class": "major"
+  },
+  {
+    "icao": "KDTW",
+    "name": "Detroit",
+    "lng": -83.3534,
+    "lat": 42.2162,
+    "class": "major"
+  },
+  {
+    "icao": "KIAH",
+    "name": "Houston",
+    "lng": -95.3414,
+    "lat": 29.9902,
+    "class": "major"
+  },
+  {
+    "icao": "KMSP",
+    "name": "Minneapolis",
+    "lng": -93.2218,
+    "lat": 44.8848,
+    "class": "major"
+  },
+  {
+    "icao": "KCLT",
+    "name": "Charlotte",
+    "lng": -80.9431,
+    "lat": 35.214,
+    "class": "major"
+  },
+  {
+    "icao": "KEWR",
+    "name": "Newark",
+    "lng": -74.1745,
+    "lat": 40.6895,
+    "class": "major"
+  },
+  {
+    "icao": "KPHL",
+    "name": "Philadelphia",
+    "lng": -75.2411,
+    "lat": 39.8719,
+    "class": "major"
+  },
+  {
+    "icao": "LTFM",
+    "name": "Istanbul",
+    "lng": 28.7519,
+    "lat": 41.2753,
+    "class": "major"
+  },
+  {
+    "icao": "OIIE",
+    "name": "Tehran",
+    "lng": 51.3134,
+    "lat": 35.4161,
+    "class": "major"
+  },
+  {
+    "icao": "OOMS",
+    "name": "Muscat",
+    "lng": 58.2844,
+    "lat": 23.5933,
+    "class": "major"
+  },
+  {
+    "icao": "VCBI",
+    "name": "Colombo",
+    "lng": 79.8841,
+    "lat": 7.1808,
+    "class": "strip"
+  },
+  {
+    "icao": "VOBL",
+    "name": "Bangalore",
+    "lng": 77.6682,
+    "lat": 13.1986,
+    "class": "major"
+  },
+  {
+    "icao": "ZUUU",
+    "name": "Chengdu",
+    "lng": 103.947,
+    "lat": 30.5785,
+    "class": "major"
+  },
+  {
+    "icao": "RKPK",
+    "name": "Busan",
+    "lng": 128.9389,
+    "lat": 35.1795,
+    "class": "major"
+  }
+]
