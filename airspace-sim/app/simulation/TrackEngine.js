@@ -10,6 +10,7 @@ import {CorrelationService, createCorrelationService} from './CorrelationService
 import {TrackStore} from './TrackStore'
 import {trackFromManualInput} from './trackFromDetection'
 import {mergeProximityClusters} from './trackMerge'
+import {getBoundedTrackDeltaSeconds} from './trackTiming'
 
 export class TrackEngine {
     constructor(options = {}) {
@@ -69,19 +70,24 @@ export class TrackEngine {
     }
 
     applySettingsChange(previousSettings, nextSettings) {
+        const simulationReenabled = (
+            previousSettings.simulationEnabled === false
+            && nextSettings.simulationEnabled !== false
+        )
         const shouldResetScanTimers = (
             previousSettings.radarRefreshMs !== nextSettings.radarRefreshMs
             || previousSettings.iffRefreshMs !== nextSettings.iffRefreshMs
             || previousSettings.correlationThresholdNm !== nextSettings.correlationThresholdNm
-            || (
-                previousSettings.simulationEnabled === false
-                && nextSettings.simulationEnabled !== false
-            )
+            || simulationReenabled
         )
 
         if (shouldResetScanTimers) {
             this.lastRadarScanAt = 0
             this.lastIffScanAt = 0
+        }
+
+        if (simulationReenabled) {
+            this.lastTrackTickAt = 0
         }
 
         const previousMaxFlights = this.getMaxActiveFlights(previousSettings)
@@ -278,9 +284,7 @@ export class TrackEngine {
             this.flightWorld.setMaxActiveFlights(maxFlights)
         }
 
-        const deltaSeconds = this.lastTrackTickAt
-            ? (timestamp - this.lastTrackTickAt) / 1000
-            : 0
+        const deltaSeconds = getBoundedTrackDeltaSeconds(timestamp, this.lastTrackTickAt)
 
         if (deltaSeconds > 0 && !this.perf.shouldSkipSimulationStep()) {
             this.flightWorld.advance(deltaSeconds)

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "node --experimental-default-type=module --test \"tests/**/*.test.js\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
