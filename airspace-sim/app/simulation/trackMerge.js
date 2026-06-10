@@ -1,5 +1,5 @@
-import {haversineDistanceNm} from './geo'
-import {TRACK_CORRELATION_MODES} from './trackFromDetection'
+import {haversineDistanceNm} from './geo.js'
+import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 
 const MERGE_FIELDS = [
     'callsign',
@@ -127,6 +127,20 @@ export function selectMergeSurvivor(tracks, trackStore) {
     ))[0]
 }
 
+function getAutoMergeKey(track) {
+    if (track.source !== 'auto' || typeof track.callsign !== 'string') {
+        return null
+    }
+
+    const callsign = track.callsign.trim()
+
+    if (!callsign || callsign.startsWith('TRK-')) {
+        return null
+    }
+
+    return callsign
+}
+
 export function buildMergedTrackState(survivor, merged, timestamp) {
     const mergedState = {
         ...survivor,
@@ -161,43 +175,61 @@ export function buildMergedTrackState(survivor, merged, timestamp) {
 }
 
 export function findProximityClusters(tracks, thresholdNm) {
-    const activeTracks = tracks.filter((track) => (
-        track.correlationMode === TRACK_CORRELATION_MODES.ACTIVE
-    ))
-    const clusters = []
-    const assigned = new Set()
+    const tracksByMergeKey = new Map()
 
-    activeTracks.forEach((seed) => {
-        if (assigned.has(seed.id)) {
+    tracks.forEach((track) => {
+        if (track.correlationMode !== TRACK_CORRELATION_MODES.ACTIVE) {
             return
         }
 
-        const cluster = [seed]
-        assigned.add(seed.id)
+        const mergeKey = getAutoMergeKey(track)
 
-        activeTracks.forEach((other) => {
-            if (assigned.has(other.id)) {
+        if (!mergeKey) {
+            return
+        }
+
+        const matchingTracks = tracksByMergeKey.get(mergeKey) ?? []
+        matchingTracks.push(track)
+        tracksByMergeKey.set(mergeKey, matchingTracks)
+    })
+
+    const clusters = []
+
+    tracksByMergeKey.forEach((matchingTracks) => {
+        const assigned = new Set()
+
+        matchingTracks.forEach((seed) => {
+            if (assigned.has(seed.id)) {
                 return
             }
 
-            const isNearCluster = cluster.some((member) => (
-                haversineDistanceNm(
-                    member.latitude,
-                    member.longitude,
-                    other.latitude,
-                    other.longitude,
-                ) <= thresholdNm
-            ))
+            const cluster = [seed]
+            assigned.add(seed.id)
 
-            if (isNearCluster) {
-                cluster.push(other)
-                assigned.add(other.id)
+            matchingTracks.forEach((other) => {
+                if (assigned.has(other.id)) {
+                    return
+                }
+
+                const isNearCluster = cluster.some((member) => (
+                    haversineDistanceNm(
+                        member.latitude,
+                        member.longitude,
+                        other.latitude,
+                        other.longitude,
+                    ) <= thresholdNm
+                ))
+
+                if (isNearCluster) {
+                    cluster.push(other)
+                    assigned.add(other.id)
+                }
+            })
+
+            if (cluster.length > 1) {
+                clusters.push(cluster)
             }
         })
-
-        if (cluster.length > 1) {
-            clusters.push(cluster)
-        }
     })
 
     return clusters
