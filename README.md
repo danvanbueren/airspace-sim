@@ -331,9 +331,10 @@ Manual tracks default to `active`. Auto tracks opened in the track window can sw
 
 ### Track merge and deduplication
 
-When multiple firm tracks in **active** mode end up on the same contact (for example separate radar and IFF initiations), `mergeProximityClusters` in [`trackMerge.js`](airspace-sim/app/simulation/trackMerge.js) combines them:
+When multiple firm tracks in **active** mode end up on the same contact (for example separate radar and IFF initiations, or a manual track near an auto track on the same aircraft), `mergeProximityClusters` in [`trackMerge.js`](airspace-sim/app/simulation/trackMerge.js) combines them:
 
-- **Cluster rule** — Active tracks within **Plot association threshold (NM)** (default 3 NM) of each other form a merge group. Merge runs after correlation and again after initiation each scan.
+- **Cluster rule** — Active tracks within **Plot association threshold (NM)** (default 3 NM) of each other form a merge group, including **manual and auto** tracks. Merge runs after correlation and again after initiation each scan.
+- **Identity gate** — Tracks merge only when they share the same **identity** (for example both Friendly, both Neutral). Different identities (for example Friendly vs Hostile) never merge, even when overlapping.
 - **Survivor priority** — Manual track → `userDirected` track (operator-edited) → track with the most recent sensor update.
 - **Property merge** — User-directed field values win on conflict; otherwise the survivor’s values are kept and empty fields are filled from the merged track. Position favors the track with the newer `lastSensorUpdateAt` when applicable.
 - **Removal** — Non-survivor tracks are deleted; merged auto track IDs are recorded so initiation does not immediately recreate the same symbol.
