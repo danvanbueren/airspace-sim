@@ -14,34 +14,52 @@ export function parseWholeNumberInput(value) {
     return Number.isFinite(number) ? number : ''
 }
 
-export function formatWholeNumber(value) {
-    if (value === '' || value === null || value === undefined) {
+export function normalizeHeading(value) {
+    const parsed = parseWholeNumberInput(value)
+
+    if (parsed === '') {
+        return 0
+    }
+
+    return ((parsed % 360) + 360) % 360
+}
+
+export function formatWholeNumberWithCommas(value) {
+    const parsed = parseWholeNumberInput(value)
+
+    if (parsed === '') {
         return ''
     }
 
-    const number = Math.round(Number(value))
+    return parsed.toLocaleString('en-US')
+}
 
-    return Number.isFinite(number) ? String(number) : ''
+export function formatHeadingDisplay(value) {
+    return String(normalizeHeading(value))
+}
+
+export function formatEditableWholeNumber(value) {
+    const parsed = parseWholeNumberInput(value)
+
+    return parsed === '' ? '' : String(parsed)
 }
 
 export function formatAltitudeFeet(value) {
-    const wholeNumber = formatWholeNumber(value)
-
-    if (wholeNumber === '') {
-        return ''
-    }
-
-    return Number(wholeNumber).toLocaleString('en-US')
+    return formatWholeNumberWithCommas(value)
 }
 
-export function formatTrackKinematicFields(track) {
+export function formatSpeedKnots(value) {
+    return formatWholeNumberWithCommas(value)
+}
+
+export function parseTrackKinematicFields(track) {
     return {
-        heading: formatWholeNumber(track.heading ?? 0),
+        heading: normalizeHeading(track.heading ?? 0),
         speed: track.speed === '' || track.speed === null || track.speed === undefined
             ? ''
-            : formatWholeNumber(track.speed),
+            : parseWholeNumberInput(track.speed),
         altitude: track.altitude === '' || track.altitude === null || track.altitude === undefined
             ? ''
-            : formatAltitudeFeet(track.altitude),
+            : parseWholeNumberInput(track.altitude),
     }
 }

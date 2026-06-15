@@ -32,7 +32,10 @@ import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {useMapState} from '../../contexts/MapStateContext'
-import {parseWholeNumberInput} from '../../tools/formatting/trackFieldFormatting'
+import {
+    normalizeHeading,
+    parseWholeNumberInput,
+} from '../../tools/formatting/trackFieldFormatting'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -52,7 +55,7 @@ function createTrackFromManagementWindow(trackManagementWindow) {
         domain: trackManagementWindow.domain,
         identity: trackManagementWindow.identity,
         type: trackManagementWindow.type,
-        heading: parsedHeading === '' ? 0 : parsedHeading,
+        heading: normalizeHeading(parsedHeading),
         speed: parsedSpeed === '' ? null : parsedSpeed,
         altitude: parsedAltitude === '' ? null : parsedAltitude,
         infoFields: Boolean(trackManagementWindow.infoFields),

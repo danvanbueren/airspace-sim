@@ -1,6 +1,6 @@
 'use client'
 
-import {forwardRef, useCallback, useRef} from 'react'
+import {forwardRef, useCallback, useEffect, useRef, useState} from 'react'
 import {
     Box,
     Checkbox,
@@ -22,7 +22,10 @@ import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
 import {formatCoordinatePairForGridReferenceSystem} from '@/app/tools/formatting/GridReferenceFormatting'
 import {
-    formatAltitudeFeet,
+    formatEditableWholeNumber,
+    formatHeadingDisplay,
+    formatWholeNumberWithCommas,
+    normalizeHeading,
     parseWholeNumberInput,
 } from '@/app/tools/formatting/trackFieldFormatting'
 import {
@@ -50,6 +53,38 @@ function formatEnumLabel(value) {
         .replace(/^./, (character) => character.toUpperCase())
 }
 
+function formatOptionalGroupedWholeNumber(value) {
+    if (value === '' || value === null || value === undefined) {
+        return ''
+    }
+
+    return formatWholeNumberWithCommas(value)
+}
+
+function getCommittedKinematicDisplay(field, value) {
+    if (field === 'heading') {
+        return formatHeadingDisplay(value)
+    }
+
+    return formatOptionalGroupedWholeNumber(value)
+}
+
+function getEditableKinematicDraft(field, value) {
+    if (field === 'heading') {
+        return formatHeadingDisplay(value)
+    }
+
+    return formatEditableWholeNumber(value)
+}
+
+function parseCommittedKinematicField(field, rawValue) {
+    if (field === 'heading') {
+        return normalizeHeading(rawValue)
+    }
+
+    return parseWholeNumberInput(rawValue)
+}
+
 const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             trackManagementWindow,
                                                                             mapContainerRef,
@@ -63,6 +98,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
     const trackManagementWindowRef = useRef(null)
+    const [kinematicFieldDrafts, setKinematicFieldDrafts] = useState({})
     const trackManagementWindowSize = useMeasuredElementSize(
         trackManagementWindowRef,
         [trackManagementWindow, appSettings.gridReferenceSystem],
@@ -76,6 +112,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             ref.current = element
         }
     }, [ref])
+
+    useEffect(() => {
+        setKinematicFieldDrafts({})
+    }, [trackManagementWindow.id])
 
     const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
         trackManagementWindow.lngLat.lat,
@@ -103,12 +143,44 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         onChange(trackManagementWindow.id, updates)
     }
 
-    const updateWholeNumberField = (field, rawValue) => {
-        updateField(field, parseWholeNumberInput(rawValue))
+    const beginKinematicFieldEdit = (field) => {
+        setKinematicFieldDrafts((currentDrafts) => ({
+            ...currentDrafts,
+            [field]: getEditableKinematicDraft(field, trackManagementWindow[field]),
+        }))
     }
 
-    const updateAltitudeField = (rawValue) => {
-        updateField('altitude', parseWholeNumberInput(rawValue))
+    const updateKinematicFieldDraft = (field, rawValue) => {
+        setKinematicFieldDrafts((currentDrafts) => ({
+            ...currentDrafts,
+            [field]: rawValue,
+        }))
+    }
+
+    const commitKinematicFieldDraft = (field) => {
+        const draft = kinematicFieldDrafts[field]
+
+        if (draft === undefined) {
+            return
+        }
+
+        setKinematicFieldDrafts((currentDrafts) => {
+            const nextDrafts = {...currentDrafts}
+            delete nextDrafts[field]
+            return nextDrafts
+        })
+
+        updateField(field, parseCommittedKinematicField(field, draft))
+    }
+
+    const getKinematicFieldDisplayValue = (field) => {
+        const draft = kinematicFieldDrafts[field]
+
+        if (draft !== undefined) {
+            return draft
+        }
+
+        return getCommittedKinematicDisplay(field, trackManagementWindow[field])
     }
 
     const activateWindow = useCallback(() => {
@@ -136,11 +208,20 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         trackManagementWindowSize,
     })
 
-    const altitudeDisplayValue = trackManagementWindow.altitude === ''
-        || trackManagementWindow.altitude === null
-        || trackManagementWindow.altitude === undefined
-        ? ''
-        : formatAltitudeFeet(trackManagementWindow.altitude)
+    const renderKinematicField = (field, label) => (
+        <TextField
+            key={field}
+            label={label}
+            size='small'
+            type='text'
+            inputMode='numeric'
+            value={getKinematicFieldDisplayValue(field)}
+            onFocus={() => beginKinematicFieldEdit(field)}
+            onChange={(event) => updateKinematicFieldDraft(field, event.target.value)}
+            onBlur={() => commitKinematicFieldDraft(field)}
+            fullWidth
+        />
+    )
 
     return (
         <Paper
@@ -326,46 +407,9 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     sx={{m: 0}}
                 />
 
-                <TextField
-                    label='Heading (deg)'
-                    size='small'
-                    type='number'
-                    value={trackManagementWindow.heading}
-                    onChange={(event) => updateWholeNumberField('heading', event.target.value)}
-                    slotProps={{
-                        htmlInput: {
-                            min: 0,
-                            max: 359,
-                            step: 1,
-                        },
-                    }}
-                    fullWidth
-                />
-
-                <TextField
-                    label='Speed (kts)'
-                    size='small'
-                    type='number'
-                    value={trackManagementWindow.speed}
-                    onChange={(event) => updateWholeNumberField('speed', event.target.value)}
-                    slotProps={{
-                        htmlInput: {
-                            min: 0,
-                            step: 1,
-                        },
-                    }}
-                    fullWidth
-                />
-
-                <TextField
-                    label='Altitude (ft)'
-                    size='small'
-                    type='text'
-                    inputMode='numeric'
-                    value={altitudeDisplayValue}
-                    onChange={(event) => updateAltitudeField(event.target.value)}
-                    fullWidth
-                />
+                {renderKinematicField('heading', 'Heading (deg)')}
+                {renderKinematicField('speed', 'Speed (kts)')}
+                {renderKinematicField('altitude', 'Altitude (ft)')}
             </Stack>
         </Paper>
     )
