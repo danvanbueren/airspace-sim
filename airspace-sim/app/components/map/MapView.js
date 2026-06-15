@@ -32,23 +32,18 @@ import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {useMapState} from '../../contexts/MapStateContext'
+import {parseWholeNumberInput} from '../../tools/formatting/trackFieldFormatting'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
     dark: 'map-styles/dark-matter-gl-style.json',
 }
 
-function parseOptionalNumber(value) {
-    if (value === '' || value === null || value === undefined) {
-        return null
-    }
-
-    const number = Number(value)
-
-    return Number.isFinite(number) ? number : null
-}
-
 function createTrackFromManagementWindow(trackManagementWindow) {
+    const parsedHeading = parseWholeNumberInput(trackManagementWindow.heading)
+    const parsedSpeed = parseWholeNumberInput(trackManagementWindow.speed)
+    const parsedAltitude = parseWholeNumberInput(trackManagementWindow.altitude)
+
     return {
         id: trackManagementWindow.trackId,
         trackId: trackManagementWindow.trackId,
@@ -57,9 +52,9 @@ function createTrackFromManagementWindow(trackManagementWindow) {
         domain: trackManagementWindow.domain,
         identity: trackManagementWindow.identity,
         type: trackManagementWindow.type,
-        heading: parseOptionalNumber(trackManagementWindow.heading) ?? 0,
-        speed: parseOptionalNumber(trackManagementWindow.speed),
-        altitude: parseOptionalNumber(trackManagementWindow.altitude),
+        heading: parsedHeading === '' ? 0 : parsedHeading,
+        speed: parsedSpeed === '' ? null : parsedSpeed,
+        altitude: parsedAltitude === '' ? null : parsedAltitude,
         infoFields: Boolean(trackManagementWindow.infoFields),
         callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
         correlationMode: trackManagementWindow.correlationMode ?? 'active',
