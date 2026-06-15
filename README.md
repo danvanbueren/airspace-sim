@@ -27,6 +27,11 @@ This project is personal. It is not owned, operated, sponsored, or endorsed by a
   - [Correlation](#correlation)
   - [Track initiation (automatic)](#track-initiation-automatic)
   - [Track merge and deduplication](#track-merge-and-deduplication)
+    - [Basics](#basics)
+    - [When merge happens](#when-merge-happens)
+    - [When merge never happens](#when-merge-never-happens)
+    - [Survivor selection and merged properties](#survivor-selection-and-merged-properties)
+    - [After merge](#after-merge)
   - [Manual tracks](#manual-tracks)
   - [Map display (Category Select Panel)](#map-display-category-select-panel)
   - [Settings reference (Simulation page)](#settings-reference-simulation-page)
@@ -234,7 +239,7 @@ The in-app simulation is intentionally split into **four core systems** (flight 
 - **Sensor data is simulated, not authoritative** — Radar and IFF returns are noisy measurements derived from the flight world. They do not directly reveal ground-truth identities to track logic.
 - **Tracks are operator artifacts** — Automatic tracks appear only after repeated sensor evidence. Correlation is a separate step that links returns to existing tracks.
 - **Rendering is not simulation** — The map may hide off-screen tracks and scale icon and sensor tick size by zoom without changing what the engine stores.
-- **Two distance knobs** — **Correlation threshold** (default 5 NM) controls which active track receives a return. **Plot association threshold** (default 3 NM) controls plot trails, initiation blocking near existing tracks, and merge clustering.
+- **Two distance knobs** — **Correlation threshold** (default 5 NM) controls which active track receives a return. **Plot association threshold** (default 3 NM) controls plot trails, initiation blocking near existing tracks, and the merge proximity check.
 
 ### Module overview
 
@@ -244,7 +249,7 @@ The in-app simulation is intentionally split into **four core systems** (flight 
 | **Sensor simulation** | `SensorSimulator.js`, `sensorNoise.js` | Produce radar/IFF detections (with drop/noise) for aircraft inside the current scan bounds | Create or update tracks, correlate, delete aircraft by viewport |
 | **Track initiation** | `TrackInitiationService.js`, `PlotAssociationStore.js` | Per-sensor plot trails; promote to a firm track after 3 associated hits | Mark detections correlated, use ground-truth IDs |
 | **Correlation** | `CorrelationService.js`, `correlation.js` | Match detections to existing tracks (mode-aware nearest neighbor) | Create tracks, advance the flight world |
-| **Track merge** | `trackMerge.js` | Collapse duplicate active tracks near the same contact; merge properties with user-priority rules | Run sensor scans, create plots |
+| **Track merge** | `trackMerge.js` | Collapse duplicate tracks that compete for the same sensor return; merge metadata with user-priority rules | Run sensor scans, create plots |
 | **Orchestrator** | `TrackEngine.js` | Fixed tick order, settings, sensor history buffers, snapshots | Inline business logic from the modules above |
 
 Supporting pieces include `TrackStore.js` (firm track state, extrapolation, and merge), `PerfBudgetController.js` (slows update rate under load without trimming the global fleet), `mapViewportUtils.js` (shared zoom scale and viewport bounds filtering for display), and `detectionFeatures.js` (sensor tick geometry for MapLibre).
@@ -283,11 +288,10 @@ Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Co
 
 1. **`sensorSimulator.scan`** — Raw detections for aircraft inside expanded map bounds.
 2. **`correlation.apply`** — Nearest **active** track within **Correlation threshold (NM)** (default 5 NM) receives the return; position updates from sensor.
-3. **`mergeProximityClusters`** — Active tracks within **Plot association threshold (NM)** (default 3 NM) of each other merge into one (see [Track merge](#track-merge-and-deduplication)).
+3. **`mergeTracksFromCorrelatedDetections`** — Active tracks that lost correlation to a nearby winner on the same identity merge into the survivor (see [Track merge](#track-merge-and-deduplication)).
 4. **`absorbPlotsNearCorrelatedDetections`** — Plot trails near correlated returns are closed so parallel radar/IFF plots do not spawn duplicate tracks.
 5. **`trackInitiation.ingest` (uncorrelated only)** — Update plots and promote after 3 hits; skip returns near existing active tracks within the plot association threshold.
-6. **`mergeProximityClusters` again** — Collapse duplicates created in the same scan.
-7. **History buffer** — Store annotated detections for current/history display.
+6. **History buffer** — Store annotated detections for current/history display.
 
 ### Flight world
 
@@ -331,15 +335,58 @@ Manual tracks default to `active`. Auto tracks opened in the track window can sw
 
 ### Track merge and deduplication
 
-When multiple firm tracks in **active** mode end up on the same contact (for example separate radar and IFF initiations, or a manual track near an auto track on the same aircraft), `mergeProximityClusters` in [`trackMerge.js`](airspace-sim/app/simulation/trackMerge.js) combines them:
+Track merge is a **separate step from correlation**. Correlation links sensor returns to existing tracks; merge removes **duplicate tracks** that are fighting over the **same** return. It is implemented in [`trackMerge.js`](airspace-sim/app/simulation/trackMerge.js) as `mergeTracksFromCorrelatedDetections`, called once per radar or IFF scan after correlation completes.
 
-- **Cluster rule** — Active tracks within **Plot association threshold (NM)** (default 3 NM) of each other form a merge group, including **manual and auto** tracks. Merge runs after correlation and again after initiation each scan.
-- **Identity gate** — Tracks merge only when they share the same **identity** (for example both Friendly, both Neutral). Different identities (for example Friendly vs Hostile) never merge, even when overlapping.
-- **Survivor priority** — Manual track → `userDirected` track (operator-edited) → track with the most recent sensor update.
-- **Property merge** — User-directed field values win on conflict; otherwise the survivor’s values are kept and empty fields are filled from the merged track. Position favors the track with the newer `lastSensorUpdateAt` when applicable.
-- **Removal** — Non-survivor tracks are deleted; merged auto track IDs are recorded so initiation does not immediately recreate the same symbol.
+#### Basics
 
-Operator edits from the Track Management window set `userDirected` and `lastUserEditAt`, which flow into merge decisions.
+**Problem it solves:** The same aircraft can end up with more than one firm track — for example separate radar and IFF auto-initiations, or a manual track placed near an auto track on the same contact. Without merge, those duplicates stack on the scope.
+
+**What it does:** When one track **wins** correlation to a sensor return and another nearby track **loses** (same identity, both in **Active** correlation mode), the loser is combined into a single survivor track.
+
+**What it does not do:** Merge is **not** a general “combine everything within 3 NM” rule. Two fighters in formation each correlating to their **own** return stay as two tracks. Tracks in **Extrapolated** or **Suspended** mode never participate in merge.
+
+**Who can merge:** Manual and auto tracks use the same rules. The only hard block on merge is a **different identity** (for example Friendly vs Hostile).
+
+#### When merge happens
+
+After each sensor scan:
+
+1. Correlation assigns each return to at most one **Active** track within the correlation threshold (default 5 NM).
+2. Merge looks for **Active** tracks that are within the plot association threshold (default 3 NM) of a return correlated to a **different** track, share the same identity, and did **not** correlate on that scan.
+3. The loser merges into the survivor.
+
+**Example — duplicate on one contact:** Track A (radar-initiated) and Track B (IFF-initiated) sit on the same aircraft. On the next radar scan, the return correlates to A. B is nearby, same identity, Active, but did not correlate → B merges into A.
+
+**Example — formation stays separate:** Track A and Track B are two Neutrals flying in formation. Each correlates to its own return on the same scan → neither is eligible to merge into the other.
+
+#### When merge never happens
+
+- Either track is in **Extrapolated** or **Suspended** correlation mode (only **Active** tracks merge).
+- Tracks have **different identities**.
+- Both tracks correlated to their own returns on the same scan (typical formation case).
+- Tracks are far apart — merge only considers candidates within the plot association threshold of the **winning** correlated return.
+
+#### Survivor selection and merged properties
+
+**Survivor priority** (which track ID remains):
+
+1. Manual track
+2. Operator-edited track (`userDirected`)
+3. Track with the most recent sensor update
+
+**What carries over to the survivor:**
+
+| Field | Rule |
+|-------|------|
+| Callsign, type | Most recent value; operator edits win on conflict |
+| Heading, speed, altitude | From the **correlated** track’s sensor-driven kinematics (not averaged or copied from the loser) |
+| Position | From the correlated track when it has the newer sensor update |
+
+Operator edits in the Track Management window set `userDirected` and `lastUserEditAt`, which take priority when callsign or type conflict.
+
+#### After merge
+
+The non-survivor track is deleted. Auto track IDs that were merged away are remembered so initiation does not immediately recreate the same symbol on the next scan.
 
 ### Manual tracks
 
@@ -378,7 +425,7 @@ Sensor and overlay visibility are display-only toggles:
 | Radar / IFF refresh (ms) | Sensor scan cadence |
 | Track update rate (Hz) | Simulation tick rate (may be reduced by adaptive performance) |
 | Correlation threshold (NM) | Max distance to link a return to an active track |
-| Plot association threshold (NM) | Plot trail association, initiation blocking near active tracks, and merge cluster distance (default 3 NM) |
+| Plot association threshold (NM) | Plot trail association, initiation blocking near active tracks, and merge proximity to a correlated return (default 3 NM) |
 | Max active flights (global) | Target fleet size |
 | Quality preset | Applies preset Hz and fleet caps |
 | Adaptive performance balancing | Reduces tick rate under frame pressure; does not cull the fleet by viewport |
@@ -416,7 +463,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - **Global flight simulation** on weighted air routes between curated airports (no viewport-random spawning).
 - **Separated sensor, initiation, and correlation pipeline** (see [Simulation Architecture](#simulation-architecture)).
 - Simulated **radar and IFF** returns with history playback and Category Select Panel toggles.
-- **Correlation before initiation** on each sensor scan, with **track merge** to prevent duplicate symbols on the same contact.
+- **Track merge** after correlation — collapses duplicate tracks competing for the same sensor return; formation pairs correlating separately are left alone ([details](#track-merge-and-deduplication)).
 - **Automatic track initiation** after three per-sensor plot updates on uncorrelated returns only.
 - Manual track initiation and editing from the map context menu, with correlation mode (active / extrapolated / suspend).
 - MIL-STD-2525-style symbol rendering for tracks, with zoom-dependent icon scale.

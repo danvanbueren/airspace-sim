@@ -22,6 +22,10 @@ import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
 import {formatCoordinatePairForGridReferenceSystem} from '@/app/tools/formatting/GridReferenceFormatting'
 import {
+    formatAltitudeFeet,
+    parseWholeNumberInput,
+} from '@/app/tools/formatting/trackFieldFormatting'
+import {
     TRACK_DOMAINS,
     TRACK_IDENTITY_OPTIONS,
     getDefaultTrackTypeForDomain,
@@ -29,16 +33,16 @@ import {
     getTrackTypeOptionsForDomain,
 } from '@/app/tools/milstd2525/trackSymbolCodes'
 import {TRACK_CORRELATION_MODES} from '@/app/simulation/trackFromDetection'
-
-const CORRELATION_MODE_OPTIONS = [
-    {value: TRACK_CORRELATION_MODES.ACTIVE, label: 'Active correlation'},
-    {value: TRACK_CORRELATION_MODES.EXTRAPOLATED, label: 'Extrapolated'},
-    {value: TRACK_CORRELATION_MODES.SUSPEND, label: 'Suspend'},
-]
 import {
     getTrackManagementWindowPosition,
     useTrackManagementWindowDrag,
 } from '@/app/hooks/map/useTrackManagementWindowDrag'
+
+const CORRELATION_MODE_OPTIONS = [
+    {value: TRACK_CORRELATION_MODES.ACTIVE, label: 'Active'},
+    {value: TRACK_CORRELATION_MODES.EXTRAPOLATED, label: 'Extrapolated'},
+    {value: TRACK_CORRELATION_MODES.SUSPEND, label: 'Suspended'},
+]
 
 function formatEnumLabel(value) {
     return value
@@ -99,6 +103,14 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         onChange(trackManagementWindow.id, updates)
     }
 
+    const updateWholeNumberField = (field, rawValue) => {
+        updateField(field, parseWholeNumberInput(rawValue))
+    }
+
+    const updateAltitudeField = (rawValue) => {
+        updateField('altitude', parseWholeNumberInput(rawValue))
+    }
+
     const activateWindow = useCallback(() => {
         if (trackManagementWindow.dismissOnMapClick) {
             onActivate?.(trackManagementWindow.id)
@@ -123,6 +135,12 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         windowId: trackManagementWindow.id,
         trackManagementWindowSize,
     })
+
+    const altitudeDisplayValue = trackManagementWindow.altitude === ''
+        || trackManagementWindow.altitude === null
+        || trackManagementWindow.altitude === undefined
+        ? ''
+        : formatAltitudeFeet(trackManagementWindow.altitude)
 
     return (
         <Paper
@@ -309,11 +327,11 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 />
 
                 <TextField
-                    label='Heading'
+                    label='Heading (deg)'
                     size='small'
                     type='number'
                     value={trackManagementWindow.heading}
-                    onChange={(event) => updateField('heading', event.target.value)}
+                    onChange={(event) => updateWholeNumberField('heading', event.target.value)}
                     slotProps={{
                         htmlInput: {
                             min: 0,
@@ -325,11 +343,11 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 />
 
                 <TextField
-                    label='Speed'
+                    label='Speed (kts)'
                     size='small'
                     type='number'
                     value={trackManagementWindow.speed}
-                    onChange={(event) => updateField('speed', event.target.value)}
+                    onChange={(event) => updateWholeNumberField('speed', event.target.value)}
                     slotProps={{
                         htmlInput: {
                             min: 0,
@@ -340,16 +358,12 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 />
 
                 <TextField
-                    label='Altitude'
+                    label='Altitude (ft)'
                     size='small'
-                    type='number'
-                    value={trackManagementWindow.altitude}
-                    onChange={(event) => updateField('altitude', event.target.value)}
-                    slotProps={{
-                        htmlInput: {
-                            step: 1,
-                        },
-                    }}
+                    type='text'
+                    inputMode='numeric'
+                    value={altitudeDisplayValue}
+                    onChange={(event) => updateAltitudeField(event.target.value)}
                     fullWidth
                 />
             </Stack>

@@ -6,6 +6,7 @@ import {
     TRACK_IDENTITIES,
     getDefaultTrackTypeForDomain,
 } from '../../tools/milstd2525/trackSymbolCodes'
+import {formatTrackKinematicFields} from '../../tools/formatting/trackFieldFormatting'
 
 export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTrackUpdated}) {
     const [trackManagementWindows, setTrackManagementWindows] = useState([])
@@ -92,6 +93,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             }
 
             const domain = track.domain ?? TRACK_DOMAINS.AIR
+            const kinematicFields = formatTrackKinematicFields(track)
 
             return [
                 ...currentWindows,
@@ -106,9 +108,9 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     identity: track.identity ?? TRACK_IDENTITIES.PENDING,
                     type: track.type ?? getDefaultTrackTypeForDomain(domain),
                     callsign: track.callsign ?? track.trackId ?? track.id,
-                    heading: track.heading ?? 0,
-                    speed: track.speed ?? '',
-                    altitude: track.altitude ?? '',
+                    heading: kinematicFields.heading,
+                    speed: kinematicFields.speed,
+                    altitude: kinematicFields.altitude,
                     infoFields: Boolean(track.infoFields),
                     correlationMode: track.correlationMode ?? 'active',
                     source: track.source ?? 'auto',

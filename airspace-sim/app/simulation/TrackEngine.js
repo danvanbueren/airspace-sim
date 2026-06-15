@@ -9,7 +9,7 @@ import {TrackInitiationService} from './TrackInitiationService'
 import {CorrelationService, createCorrelationService} from './CorrelationService'
 import {TrackStore} from './TrackStore'
 import {trackFromManualInput} from './trackFromDetection'
-import {mergeProximityClusters} from './trackMerge'
+import {mergeTracksFromCorrelatedDetections} from './trackMerge'
 import {getBoundedTrackDeltaSeconds} from './trackTiming'
 
 export class TrackEngine {
@@ -209,6 +209,31 @@ export class TrackEngine {
         }
     }
 
+    applyCorrelatedKinematics(correlatedDetections) {
+        correlatedDetections.forEach((detection) => {
+            if (!detection.correlated || !detection.correlatedTrackId) {
+                return
+            }
+
+            const nearest = this.flightWorld.findNearestAircraft(
+                detection.longitude,
+                detection.latitude,
+            )
+
+            const updates = {
+                correlated: true,
+            }
+
+            if (nearest) {
+                updates.heading = Math.round(nearest.heading ?? 0)
+                updates.speed = Math.round(nearest.speed ?? 0)
+                updates.altitude = Math.round(nearest.altitude ?? 0)
+            }
+
+            this.trackStore.updateTrack(detection.correlatedTrackId, updates)
+        })
+    }
+
     runSensorScan(sensorType, timestamp, bounds) {
         this.trackInitiation.plotAssociationThresholdNm = (
             this.settings.plotAssociationThresholdNm ?? 3
@@ -231,7 +256,14 @@ export class TrackEngine {
             timestamp,
         )
 
-        mergeProximityClusters(this.trackStore, proximityNm, timestamp)
+        this.applyCorrelatedKinematics(correlatedDetections)
+
+        mergeTracksFromCorrelatedDetections(
+            this.trackStore,
+            correlatedDetections,
+            proximityNm,
+            timestamp,
+        )
 
         this.trackInitiation.absorbPlotsNearCorrelatedDetections(
             correlatedDetections,
@@ -249,8 +281,6 @@ export class TrackEngine {
             this.trackStore,
             {proximityNm},
         )
-
-        mergeProximityClusters(this.trackStore, proximityNm, timestamp)
 
         this.historyBuffers[sensorType].push({
             sensorType,
