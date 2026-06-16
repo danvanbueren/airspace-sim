@@ -16,6 +16,7 @@ import {
     MAP_CURSOR_PRIORITIES,
     MAP_CURSOR_REQUESTS,
 } from './useMapCursorState'
+import {isDarkMapStyle} from '../../tools/map/mapWaterLabelPaint'
 
 const TRACK_SOURCE_ID = 'tracks'
 const TRACK_VECTOR_SOURCE_ID = 'tracks-vectors'
@@ -23,6 +24,34 @@ const TRACK_VECTOR_LAYER_ID = 'tracks-vectors-lines'
 const TRACK_LAYER_ID = 'tracks-symbols'
 const TRACK_LABEL_LAYER_ID = 'tracks-labels'
 const TRACK_HIT_TEST_PADDING = 6
+
+function getTrackLabelPaint(styleKey) {
+    if (isDarkMapStyle(styleKey)) {
+        return {
+            'text-color': '#ffffff',
+            'text-halo-color': '#000000',
+            'text-halo-width': 2,
+        }
+    }
+
+    return {
+        'text-color': '#000000',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 1.5,
+    }
+}
+
+function applyTrackLabelPaint(map, styleKey) {
+    if (!map.getLayer(TRACK_LABEL_LAYER_ID)) {
+        return
+    }
+
+    const paint = getTrackLabelPaint(styleKey)
+
+    map.setPaintProperty(TRACK_LABEL_LAYER_ID, 'text-color', paint['text-color'])
+    map.setPaintProperty(TRACK_LABEL_LAYER_ID, 'text-halo-color', paint['text-halo-color'])
+    map.setPaintProperty(TRACK_LABEL_LAYER_ID, 'text-halo-width', paint['text-halo-width'])
+}
 
 function normalizeTrackCoordinates(track) {
     if (Array.isArray(track.coordinates) && track.coordinates.length >= 2) {
@@ -317,9 +346,7 @@ function addTrackLayers(map) {
                 'text-ignore-placement': false,
             },
             paint: {
-                'text-color': '#ffffff',
-                'text-halo-color': '#000000',
-                'text-halo-width': 1.5,
+                ...getTrackLabelPaint(),
                 'text-opacity': [
                     'case',
                     ['boolean', ['get', 'stale'], false],
@@ -502,6 +529,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         addTrackSource(map)
         addTrackVectorSource(map)
         addTrackLayers(map)
+        applyTrackLabelPaint(map, styleKey)
 
         if (!showLabels && map.getLayer(TRACK_LABEL_LAYER_ID)) {
             map.setLayoutProperty(TRACK_LABEL_LAYER_ID, 'visibility', 'none')
@@ -514,7 +542,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         tracksRef.current.forEach((track) => {
             ensureTrackIcon(track)
         })
-    }, [ensureTrackIcon, mapRef, scheduleSetData, showLabels])
+    }, [ensureTrackIcon, mapRef, scheduleSetData, showLabels, styleKey])
 
     const upsertTrack = useCallback((track) => {
         const id = getTrackId(track)
