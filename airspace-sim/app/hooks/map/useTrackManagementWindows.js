@@ -6,6 +6,7 @@ import {
     TRACK_IDENTITIES,
     getDefaultTrackTypeForDomain,
 } from '../../tools/milstd2525/trackSymbolCodes'
+import {getDefaultSpecificTypeForTrackType} from '../../tools/milstd2525/trackSpecificTypes'
 import {parseTrackKinematicFields} from '../../tools/formatting/trackFieldFormatting'
 
 export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTrackUpdated}) {
@@ -25,6 +26,9 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             domain: TRACK_DOMAINS.AIR,
             identity: TRACK_IDENTITIES.PENDING,
             type: getDefaultTrackTypeForDomain(TRACK_DOMAINS.AIR),
+            specificType: getDefaultSpecificTypeForTrackType(
+                getDefaultTrackTypeForDomain(TRACK_DOMAINS.AIR),
+            ),
             callsign: trackId,
             heading: 0,
             speed: '',
@@ -55,6 +59,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     ...trackManagementWindow,
                     ...updates,
                     dismissOnMapClick: false,
+                    ...(trackManagementWindow.source === 'auto' ? {source: 'manual'} : {}),
                 }
 
                 onTrackUpdated?.(updatedTrackManagementWindow)
@@ -107,6 +112,9 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     domain,
                     identity: track.identity ?? TRACK_IDENTITIES.PENDING,
                     type: track.type ?? getDefaultTrackTypeForDomain(domain),
+                    specificType: track.specificType ?? getDefaultSpecificTypeForTrackType(
+                        track.type ?? getDefaultTrackTypeForDomain(domain),
+                    ),
                     callsign: track.callsign ?? track.trackId ?? track.id,
                     heading: kinematicFields.heading,
                     speed: kinematicFields.speed,

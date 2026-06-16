@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useRef} from 'react'
+import {useCallback, useEffect, useMemo, useRef} from 'react'
 import {createPortal} from 'react-dom'
 import {useTheme} from '@mui/material/styles'
 import {useCursorHooks} from '../../hooks/map/useCursorHooks'
@@ -55,6 +55,7 @@ function createTrackFromManagementWindow(trackManagementWindow) {
         domain: trackManagementWindow.domain,
         identity: trackManagementWindow.identity,
         type: trackManagementWindow.type,
+        specificType: trackManagementWindow.specificType ?? '',
         heading: normalizeHeading(parsedHeading),
         speed: parsedSpeed === '' ? null : parsedSpeed,
         altitude: parsedAltitude === '' ? null : parsedAltitude,
@@ -65,10 +66,44 @@ function createTrackFromManagementWindow(trackManagementWindow) {
     }
 }
 
+function createTrackUpdateFromManagementWindow(trackManagementWindow, existingTrack) {
+    const parsedHeading = parseWholeNumberInput(trackManagementWindow.heading)
+    const parsedSpeed = parseWholeNumberInput(trackManagementWindow.speed)
+    const parsedAltitude = parseWholeNumberInput(trackManagementWindow.altitude)
+
+    const update = {
+        id: trackManagementWindow.trackId,
+        trackId: trackManagementWindow.trackId,
+        longitude: existingTrack?.longitude ?? trackManagementWindow.lngLat.lng,
+        latitude: existingTrack?.latitude ?? trackManagementWindow.lngLat.lat,
+        domain: trackManagementWindow.domain,
+        identity: trackManagementWindow.identity,
+        type: trackManagementWindow.type,
+        specificType: trackManagementWindow.specificType ?? '',
+        heading: normalizeHeading(parsedHeading),
+        speed: parsedSpeed === '' ? null : parsedSpeed,
+        altitude: parsedAltitude === '' ? null : parsedAltitude,
+        infoFields: Boolean(trackManagementWindow.infoFields),
+        callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
+        correlationMode: trackManagementWindow.correlationMode ?? 'active',
+        source: existingTrack?.source === 'auto' ? 'manual' : (trackManagementWindow.source ?? 'manual'),
+        userDirected: true,
+    }
+
+    if (!existingTrack) {
+        return update
+    }
+
+    return {
+        ...existingTrack,
+        ...update,
+    }
+}
+
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
     const {addAlarmAlert, registerMap} = useMapState()
-    const {upsertManualTrack, dropTrack, updateTrack} = useSimulation()
+    const {upsertManualTrack, dropTrack} = useSimulation()
     const {simulationSettings} = useAppSettings()
     const {isToggleActive} = useSensorDisplay()
     const mapContainerRef = useRef(null)
@@ -157,16 +192,17 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     }, [trackMapLayer, upsertManualTrack])
 
     const handleTrackUpdated = useCallback((trackManagementWindow) => {
-        const track = createTrackFromManagementWindow(trackManagementWindow)
+        const trackId = trackManagementWindow.trackId
+        const existingTrack = trackMapLayer.getTrack(trackId)
+            ?? simulationSnapshot?.tracks?.find(
+                (track) => (track.trackId ?? track.id) === trackId,
+            )
 
+        const track = createTrackUpdateFromManagementWindow(trackManagementWindow, existingTrack)
+
+        upsertManualTrack(track)
         trackMapLayer.upsertTrack(track)
-
-        if (track.source === 'manual') {
-            upsertManualTrack(track)
-        } else {
-            updateTrack(track)
-        }
-    }, [trackMapLayer, updateTrack, upsertManualTrack])
+    }, [trackMapLayer, simulationSnapshot?.tracks, upsertManualTrack])
 
     const {
         trackManagementWindows,
@@ -270,6 +306,27 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         trackMapLayer,
     ])
 
+    const tracksForCallsignValidation = useMemo(() => {
+        const tracksById = new Map()
+
+        for (const track of simulationSnapshot?.tracks ?? []) {
+            const trackId = track.trackId ?? track.id
+
+            if (trackId) {
+                tracksById.set(trackId, track)
+            }
+        }
+
+        for (const trackManagementWindow of trackManagementWindows) {
+            tracksById.set(trackManagementWindow.trackId, {
+                trackId: trackManagementWindow.trackId,
+                callsign: trackManagementWindow.callsign,
+            })
+        }
+
+        return Array.from(tracksById.values())
+    }, [simulationSnapshot?.tracks, trackManagementWindows])
+
     const handleCloseTrackManagementWindow = useCallback((windowId) => {
         closeTrackManagementWindowWithBlur(windowId, closeTrackManagementWindow)
     }, [closeTrackManagementWindow, closeTrackManagementWindowWithBlur])
@@ -349,6 +406,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                     ref={(element) => registerTrackManagementWindowElement(trackManagementWindow.id, element)}
                     trackManagementWindow={trackManagementWindow}
                     mapContainerRef={mapContainerRef}
+                    tracksForCallsignValidation={tracksForCallsignValidation}
                     onChange={updateTrackManagementWindow}
                     onMove={moveTrackManagementWindow}
                     onActivate={markTrackManagementWindowPersistent}
