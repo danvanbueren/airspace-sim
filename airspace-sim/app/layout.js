@@ -20,6 +20,7 @@ import {SensorDisplayProvider} from './contexts/SensorDisplayContext'
 import {SimulationProvider} from './contexts/SimulationContext'
 
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
 
 export const dynamic = 'force-dynamic'
 
@@ -53,5 +54,6 @@ export default async function RootLayout({children}) {
     </MapStateProvider>
     </body>
     <SpeedInsights />
+    <Analytics />
     </html>)
 }
