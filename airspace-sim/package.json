@@ -1,12 +1,12 @@
 {
   "name": "airspace-sim",
-  "version": "2026.0.9",
+  "version": "2026.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --experimental-default-type=module --test \"tests/**/*.test.js\""
+    "test": "node --experimental-default-type=module --test tests/formatting tests/simulation tests/milstd2525"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
