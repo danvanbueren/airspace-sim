@@ -1796,8 +1796,8 @@
         "text-keep-upright": true
       },
       "paint": {
-        "text-color": "rgba(164, 164, 164, 1)",
-        "text-halo-color": "#181818",
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
         "text-halo-width": 1
       }
     },
@@ -1836,8 +1836,8 @@
         "text-letter-spacing": 0.1
       },
       "paint": {
-        "text-color": "rgba(109, 123, 129, 1)",
-        "text-halo-color": "rgba(0,0,0,0.7)",
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
         "text-halo-width": 1,
         "text-halo-blur": 0
       }
@@ -1870,8 +1870,8 @@
         "text-letter-spacing": 0.1
       },
       "paint": {
-        "text-color": "#3c3c3c",
-        "text-halo-color": "rgba(0,0,0,0.7)",
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
         "text-halo-width": 1,
         "text-halo-blur": 0
       }
@@ -1915,8 +1915,8 @@
         "text-rotation-alignment": "auto"
       },
       "paint": {
-        "text-color": "rgba(155, 155, 155, 1)",
-        "text-halo-color": "#181818",
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
         "text-halo-width": 1,
         "text-halo-blur": 1
       }
@@ -1957,8 +1957,8 @@
         "text-line-height": 1.2
       },
       "paint": {
-        "text-color": "#444",
-        "text-halo-color": "#181818",
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
         "text-halo-width": 1,
         "text-halo-blur": 1
       }
@@ -2832,6 +2832,6 @@
       }
     }
   ],
-  "id": "voyager",
+  "id": "dark-matter",
   "owner": "Carto"
 }
