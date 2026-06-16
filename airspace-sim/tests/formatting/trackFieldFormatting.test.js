@@ -40,9 +40,12 @@ describe('trackFieldFormatting', () => {
     })
 
     describe('display formatting', () => {
-        it('formats heading without leading zeros', () => {
-            assert.equal(formatHeadingDisplay(90), '90')
-            assert.equal(formatHeadingDisplay('090'), '90')
+        it('formats heading as three digits', () => {
+            assert.equal(formatHeadingDisplay(0), '000')
+            assert.equal(formatHeadingDisplay(50), '050')
+            assert.equal(formatHeadingDisplay(90), '090')
+            assert.equal(formatHeadingDisplay('090'), '090')
+            assert.equal(formatHeadingDisplay(359), '359')
         })
 
         it('formats editable whole numbers without leading zeros or commas', () => {
