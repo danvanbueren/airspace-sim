@@ -1,3 +1,9 @@
+import {
+    allocateNextCivilianCallsign,
+    getCallsignValidationError,
+    getTrackCallsign,
+    isAlphanumericCallsign,
+} from '../tools/formatting/callsignValidation.js'
 import {extrapolatePosition} from './geo'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection'
 import {buildMergedTrackState} from './trackMerge'
@@ -21,6 +27,42 @@ export class TrackStore {
         return Array.from(this.tracks.values())
     }
 
+    resolveCallsign(callsign, trackId, fallbackCallsign) {
+        const existing = this.tracks.get(trackId)
+        const existingCallsign = existing ? getTrackCallsign(existing) : fallbackCallsign
+        const targetCallsign = callsign ?? existingCallsign
+
+        if (!isAlphanumericCallsign(targetCallsign)) {
+            return allocateNextCivilianCallsign(
+                this.getAllTracks(),
+                trackId,
+            )
+        }
+
+        if (targetCallsign === existingCallsign) {
+            return targetCallsign
+        }
+
+        const validationError = getCallsignValidationError(
+            targetCallsign,
+            this.getAllTracks(),
+            trackId,
+        )
+
+        if (!validationError) {
+            return targetCallsign
+        }
+
+        if (isAlphanumericCallsign(existingCallsign)) {
+            return existingCallsign
+        }
+
+        return allocateNextCivilianCallsign(
+            this.getAllTracks(),
+            trackId,
+        )
+    }
+
     addTrack(track) {
         const id = track.trackId ?? track.id
 
@@ -32,6 +74,10 @@ export class TrackStore {
             ...track,
             id,
             trackId: id,
+            callsign: allocateNextCivilianCallsign(
+                this.getAllTracks(),
+                id,
+            ),
         })
     }
 
@@ -49,6 +95,14 @@ export class TrackStore {
             trackId,
         }
 
+        if (updates.callsign !== undefined) {
+            next.callsign = this.resolveCallsign(
+                updates.callsign,
+                trackId,
+                existing.callsign,
+            )
+        }
+
         if (updates.userDirected) {
             next.lastUserEditAt = updates.lastUserEditAt ?? Date.now()
         }
@@ -63,10 +117,16 @@ export class TrackStore {
             return
         }
 
+        const existing = this.tracks.get(id)
         const normalized = {
             ...track,
             id,
             trackId: id,
+            callsign: this.resolveCallsign(
+                track.callsign,
+                id,
+                existing?.callsign ?? id,
+            ),
             source: 'manual',
             userDirected: true,
             lastUserEditAt: track.lastUserEditAt ?? Date.now(),

@@ -47,13 +47,13 @@ describe('mergeTracksFromCorrelatedDetections', () => {
         const trackStore = createFakeTrackStore([
             activeTrack({
                 id: 'TRK-1',
-                callsign: 'FLT-1',
+                callsign: 'CIV01',
                 latitude: 40,
                 correlated: true,
             }),
             activeTrack({
                 id: 'TRK-2',
-                callsign: 'FLT-2',
+                callsign: 'CIV02',
                 latitude: 40.02,
                 correlated: true,
                 lastSensorUpdateAt: 1_500,
@@ -83,14 +83,14 @@ describe('mergeTracksFromCorrelatedDetections', () => {
         const trackStore = createFakeTrackStore([
             activeTrack({
                 id: 'TRK-radar-A',
-                callsign: 'FLT-A',
+                callsign: 'CIV03',
                 latitude: 40,
                 correlated: true,
                 lastSensorUpdateAt: 2_000,
             }),
             activeTrack({
                 id: 'TRK-iff-A',
-                callsign: 'FLT-B',
+                callsign: 'CIV04',
                 latitude: 40.01,
                 correlated: false,
                 lastSensorUpdateAt: 1_000,
@@ -179,7 +179,7 @@ describe('mergeTracksFromCorrelatedDetections', () => {
             }),
             activeTrack({
                 id: 'TRK-radar-A',
-                callsign: 'FLT-A',
+                callsign: 'CIV03',
                 identity: TRACK_IDENTITIES.FRIENDLY,
                 latitude: 40,
                 correlated: true,
