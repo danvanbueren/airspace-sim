@@ -69,9 +69,10 @@ npm run dev
 
 5. Open the local app URL printed by Next.js, typically [http://localhost:3000](http://localhost:3000).
 
-Before opening a pull request, make sure the app still builds:
+Before opening a pull request, make sure tests pass and the app still builds:
 
 ```bash
+npm test
 npm run build
 ```
 
@@ -88,7 +89,7 @@ npm install
 npm run dev
 ```
 
-Then open [http://localhost:3000](http://localhost:3000). Try creating tracks, dragging the map, switching settings, drawing bearing/range lines, changing keybinds, and refreshing the page to confirm persisted settings still behave as expected.
+Then open [http://localhost:3000](http://localhost:3000). Try creating tracks, editing callsigns and platform types in the Track Management window, dragging the map, switching settings, drawing bearing/range lines, changing keybinds, and refreshing the page to confirm persisted settings still behave as expected.
 
 To test a production-style local deployment:
 
@@ -114,10 +115,12 @@ Do not include classified, sensitive, operational, export-controlled, or persona
 airspace-sim/
 +-- app/
 |   +-- components/
-|   |   +-- global/          # Classification bars, commit display, and global UI pieces.
+|   |   +-- global/          # Classification bars, commit display, markdown renderer, and global UI pieces.
 |   |   +-- map/             # Map view, context menu, and cursor coordinate overlay.
 |   |   +-- panels/          # Glass panels, settings toolbelt, settings modal pages.
 |   |   +-- windows/         # Floating workflow windows such as track management.
+|   +-- constants/           # Shared UI constants (for example, z-index layering).
+|   +-- content/             # Markdown sources for in-app settings pages (for example, roadmap).
 |   +-- contexts/            # React contexts for map state, theme, app settings, simulation.
 |   +-- data/                # Curated airports and air routes (static JSON).
 |   +-- hooks/
@@ -128,14 +131,16 @@ airspace-sim/
 |   +-- tools/
 |   |   +-- browser/         # Browser storage helpers.
 |   |   +-- external/        # External service helpers.
-|   |   +-- formatting/      # Date/time and grid reference formatting.
-|   |   +-- milstd2525/      # Symbol code and icon generation helpers.
+|   |   +-- formatting/      # Date/time, grid reference, callsign, and track field formatting.
+|   |   +-- map/             # Map style paint helpers (for example, water and label theming).
+|   |   +-- milstd2525/      # Symbol codes, familiar icons, and platform-specific type catalog.
 |   +-- buildInfo.js         # Project metadata, links, version, and copyright text.
 |   +-- globals.css          # Global styles.
 |   +-- layout.js            # Root Next.js layout and providers.
 |   +-- page.js              # Main simulator shell.
 +-- public/
 |   +-- map-styles/          # Local MapLibre style JSON files.
++-- tests/                   # Node test runner suites (formatting, simulation, milstd2525).
 +-- AGENTS.md                # Workspace guidance for AI coding agents.
 +-- CLAUDE.md                # Pointer to shared agent guidance.
 +-- jsconfig.json            # JavaScript path alias configuration.
@@ -154,7 +159,9 @@ Paths above are relative to the `airspace-sim/` application directory inside thi
 - [Material UI](https://mui.com/material-ui/) ([docs](https://mui.com/material-ui/getting-started/)) provides the UI component library used for panels, buttons, forms, modals, typography, alerts, and layout.
 - [Emotion](https://emotion.sh/docs/introduction) ([docs](https://emotion.sh/docs/introduction)) supports Material UI styling.
 - [MapLibre GL JS](https://maplibre.org/projects/gl-js/) ([docs](https://maplibre.org/maplibre-gl-js/docs/)) renders the interactive map and map layers.
-- [milsymbol](https://www.spatialillusions.com/) ([docs](https://github.com/spatialillusions/milsymbol)) generates MIL-STD-2525-style tactical symbols for simulated tracks.
+- [milsymbol](https://www.spatialillusions.com/) ([docs](https://github.com/spatialillusions/milsymbol)) generates full MIL-STD-2525-style tactical symbols when familiar icons or info fields are disabled.
+- Custom familiar platform silhouettes (`createFamiliarTrackIcon.js`) provide simplified identity-colored icons for common air, surface, and subsurface tracks.
+- [react-markdown](https://github.com/remarkjs/react-markdown) with [remark-gfm](https://github.com/remarkjs/remark-gfm) renders the in-app roadmap page from markdown.
 - [mgrs](https://www.npmjs.com/package/mgrs) ([package docs](https://github.com/proj4js/mgrs)) converts coordinates into MGRS.
 - [Fontsource Roboto](https://fontsource.org/fonts/roboto) ([docs](https://fontsource.org/docs/getting-started/introduction)) supplies the Roboto font used by Material UI.
 - [npm](https://www.npmjs.com/) ([docs](https://docs.npmjs.com/)) manages dependencies and local scripts.
@@ -181,6 +188,12 @@ npm run start
 
 Starts the production server after a successful build.
 
+```bash
+npm test
+```
+
+Runs the Node test runner over `tests/formatting`, `tests/simulation`, and `tests/milstd2525`.
+
 ## Application Architecture
 
 The simulator UI is a Next.js client application. Simulation state is produced in JavaScript modules under `app/simulation/` and consumed by MapLibre hooks under `app/hooks/map/`. The two sides meet in `MapView` and `SimulationContext`.
@@ -191,37 +204,39 @@ The simulator UI is a Next.js client application. Simulation state is produced i
 
 | Provider | Role |
 |----------|------|
-| `MapStateProvider` | Registered map instance, alarm alerts |
+| `MapStateProvider` | Registered map instance, alarm alerts, fixed-function zoom controls |
 | `CustomThemeContext` | Light/dark theme (cookie-backed) |
 | `AppSettingsProvider` | Grid reference system, simulation tuning (cookie-backed) |
 | `ControlBindingsProvider` | Keyboard/mouse bindings (cookie-backed) |
 | `SensorDisplayProvider` | Category Select Panel toggle state |
 | `SimulationProvider` | Singleton `TrackEngine`, manual track APIs |
 
-[`app/page.js`](airspace-sim/app/page.js) composes the main shell: classification bars, glass panels (Category Select, settings toolbelt), and the full-screen map.
+[`app/page.js`](airspace-sim/app/page.js) composes the main shell: classification bars, glass panels (Category Select, Fixed Function, alarm alerts, settings toolbelt), a dedicated map overlay layer for floating track windows, and the full-screen map.
 
 ### Map workspace
 
 [`MapView`](airspace-sim/app/components/map/MapView.js) owns the MapLibre instance and wires:
 
 - **Simulation loop** — [`useSimulationLoop`](airspace-sim/app/hooks/simulation/useSimulationLoop.js) calls `TrackEngine.tick()` on a throttled `requestAnimationFrame` schedule.
-- **Track layer** — [`useTrackMapLayer`](airspace-sim/app/hooks/map/useTrackMapLayer.js) renders MIL-STD-2525 symbols; only tracks inside the expanded viewport are drawn, with icon size scaled by zoom.
+- **Track layer** — [`useTrackMapLayer`](airspace-sim/app/hooks/map/useTrackMapLayer.js) renders familiar platform silhouettes (default) or full MIL-STD-2525 symbols when info fields are enabled; draws callsign labels and heading/velocity vectors; only tracks inside the expanded viewport are drawn, with icon and vector size scaled by zoom.
 - **Sensor layers** — [`useSensorDetectionMapLayer`](airspace-sim/app/hooks/map/useSensorDetectionMapLayer.js) renders radar/IFF tick marks; geometry is recomputed on pan/zoom so tick size stays proportional to zoom.
 - **Overlays** — [`useAirportMapLayer`](airspace-sim/app/hooks/map/useAirportMapLayer.js) and [`useAirRouteMapLayer`](airspace-sim/app/hooks/map/useAirRouteMapLayer.js) for optional airport/route context.
-- **Interactions** — Map pan/zoom, context menu, bearing/range lines, track pick, and floating track management windows.
+- **Interactions** — Map pan/zoom, context menu (with inline grid-reference picker), bearing/range lines, track pick, draggable track management windows with keyboard custody and focus stacking, and map-click dismissal of transient windows.
 
-Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles/) (Voyager for light mode, Dark Matter for dark mode).
+Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles/) (Voyager for light mode, Dark Matter for dark mode). Water-feature and track label colors are adjusted at runtime for readability in each theme.
 
 ### Operator workflows
 
 | Workflow | Entry point | Engine API |
 |----------|-------------|------------|
 | Initiate manual track | Map context menu → Initiate Track | `upsertManualTrack` |
-| Edit track | Click symbol or context menu → Track Management window | `updateTrack` / `upsertManualTrack` (sets `userDirected`) |
-| Correlation mode | Track Management window dropdown | `setTrackCorrelationMode` |
+| Edit track (including correlation mode) | Click symbol or context menu → Track Management window | `upsertManualTrack` (sets `userDirected`; converts auto tracks to manual) |
 | Drop track | Context menu on existing track | `dropTrack` |
 | Bearing/range | Context menu on map | Local map tool (not part of simulation engine) |
 | Sensor/history visibility | Category Select Panel | Display toggles only (no sim logic) |
+| Map zoom | Fixed Function Panel → Zoom In / Zoom Out | `MapStateProvider` zoom helpers (display only) |
+
+The Track Management window edits callsign (alphanumeric, unique across tracks), domain, identity, MIL-STD type, platform-specific type (searchable catalog), optional symbol info fields, heading, speed, altitude, and correlation mode. Invalid or duplicate callsigns are rejected in the UI and track store. Any committed edit from the window routes through `upsertManualTrack`, including correlation mode changes.
 
 Manual track edits are marked `userDirected` so they take priority when tracks merge (see [Track merge and deduplication](#track-merge-and-deduplication)).
 
@@ -252,7 +267,7 @@ The in-app simulation is intentionally split into **four core systems** (flight 
 | **Track merge** | `trackMerge.js` | Collapse duplicate tracks that compete for the same sensor return; merge metadata with user-priority rules | Run sensor scans, create plots |
 | **Orchestrator** | `TrackEngine.js` | Fixed tick order, settings, sensor history buffers, snapshots | Inline business logic from the modules above |
 
-Supporting pieces include `TrackStore.js` (firm track state, extrapolation, and merge), `PerfBudgetController.js` (slows update rate under load without trimming the global fleet), `mapViewportUtils.js` (shared zoom scale and viewport bounds filtering for display), and `detectionFeatures.js` (sensor tick geometry for MapLibre).
+Supporting pieces include `TrackStore.js` (firm track state, callsign validation, extrapolation, and merge), `PerfBudgetController.js` (slows update rate under load without trimming the global fleet), `mapViewportUtils.js` (shared zoom scale and viewport bounds filtering for display), `trackVectorFeatures.js` (heading/velocity vector geometry for MapLibre), `HistoryPlaybackController.js` (sensor history playback stepping), `detectionFeatures.js` (sensor tick geometry for MapLibre), and `SensorFeedAdapter.js` / `RemoteFeedAdapter.js` (stubs for future external sensor feeds).
 
 ### Tick pipeline
 
@@ -263,7 +278,7 @@ On each simulation step, `TrackEngine.tick()` runs this sequence:
 3. **Sensor scans (on interval)** — When radar or IFF refresh elapses, run the [per-sensor scan pipeline](#per-sensor-scan-pipeline) below.
 4. **`getSnapshot()`** — Expose tracks, sensor cycles, airports/routes, and overlay visibility to the map hooks.
 
-World motion and track extrapolation run every tick. Sensor processing runs at radar/IFF refresh rates, not necessarily every tick.
+World motion and track extrapolation run every tick when the simulation engine is enabled. Sensor processing runs at radar/IFF refresh rates, not necessarily every tick. Disabling **Enable simulation engine** in Settings → Simulation pauses flight-world motion, extrapolation, and sensor scans while leaving existing tracks on the map.
 
 ```mermaid
 flowchart TB
@@ -322,7 +337,7 @@ Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Co
 | `extrapolated` | Ignores sensor correlation; position advances by extrapolation only. |
 | `suspend` | Speed forced to 0; no correlation; holds position. |
 
-Manual tracks default to `active`. Auto tracks opened in the track window can switch modes without becoming manual tracks.
+Manual tracks default to `active`. Opening an auto track in the Track Management window and committing any edit converts it to a manual track via `upsertManualTrack`.
 
 ### Track initiation (automatic)
 
@@ -378,11 +393,12 @@ After each sensor scan:
 
 | Field | Rule |
 |-------|------|
-| Callsign, type | Most recent value; operator edits win on conflict |
+| Callsign, type | Most recent value; operator edits (non-auto-generated callsigns) win on conflict |
+| Domain, identity, specific type, info fields, correlation mode, symbol options | Operator-edited values win; otherwise survivor keeps its existing value |
 | Heading, speed, altitude | From the **correlated** track’s sensor-driven kinematics (not averaged or copied from the loser) |
 | Position | From the correlated track when it has the newer sensor update |
 
-Operator edits in the Track Management window set `userDirected` and `lastUserEditAt`, which take priority when callsign or type conflict.
+Operator edits in the Track Management window set `userDirected` and `lastUserEditAt`, which take priority when symbol metadata conflicts. Auto-generated callsigns (`CIV##`, `TRK-*`, `FLT-*`) do not count as operator callsign edits during merge.
 
 #### After merge
 
@@ -392,8 +408,8 @@ The non-survivor track is deleted. Auto track IDs that were merged away are reme
 
 - **Initiate Track** (map context menu) creates a manual track via `upsertManualTrack`.
 - Manual updates go through the same track store and set `userDirected` so merges respect operator intent.
-- Auto tracks opened in the track window can be edited via `updateTrack` without becoming manual tracks.
-- Correlation mode changes apply via `updateTrack` / `setTrackCorrelationMode`.
+- Callsigns must be alphanumeric and unique; invalid entries fall back to the next available `CIV##` callsign (`callsignValidation.js`).
+- Editing an auto track in the Track Management window converts it to a manual track.
 - **Drop Track** calls `dropTrack` for both manual and automatic tracks.
 
 ### Map display (Category Select Panel)
@@ -415,13 +431,17 @@ Sensor and overlay visibility are display-only toggles:
 
 **Track symbols**
 
-- MIL-STD-2525 icons for firm tracks; icon size scales with map zoom via MapLibre `icon-size` interpolation (smaller when zoomed out).
+- Familiar platform silhouettes (identity-colored, type-aware) render by default; enabling **Show symbol info fields** switches to full MIL-STD-2525 icons via milsymbol.
+- Platform-specific type options come from the curated catalog under `app/tools/milstd2525/trackPlatformCatalog/`.
+- Callsign labels and heading/velocity vectors render alongside each firm track; vector length scales with speed and zoom.
+- Icon, label, and vector size scale with map zoom via MapLibre interpolation (smaller when zoomed out).
 - Only tracks inside the expanded viewport are sent to the map layer; the engine snapshot still holds all firm tracks globally.
 
 ### Settings reference (Simulation page)
 
 | Setting | Role |
 |---------|------|
+| Enable simulation engine | Pauses or resumes flight-world motion, extrapolation, and sensor scans |
 | Radar / IFF refresh (ms) | Sensor scan cadence |
 | Track update rate (Hz) | Simulation tick rate (may be reduced by adaptive performance) |
 | Correlation threshold (NM) | Max distance to link a return to an active track |
@@ -444,6 +464,8 @@ Near-term and exploratory work includes:
 - Automated picture call calculations inspired by ParrotSour workflows.
 - Additional fuel, weapons, timeline, and mission-planning concepts represented with unclassified simulated data only.
 
+The in-app **Settings → Roadmap** page (`app/content/settings-roadmap.md`) is the live checklist with completed items and commit links.
+
 ## Context
 
 Airspace Simulator is a spiritual successor to John McCarthy's [ParrotSour](https://parrotsour.com/), with a focus on making command and control practice more approachable in a modern web application. The long-term goal is to provide a training sandbox where aircrew, operators, controllers, students, and hobbyist developers can rehearse airspace management concepts without relying on classified systems or operational data.
@@ -459,20 +481,23 @@ The mission is to build a practical, extensible, and transparent simulator that 
 
 ### Current Capabilities
 
-- Full-screen map workspace with light and dark map styles.
-- **Global flight simulation** on weighted air routes between curated airports (no viewport-random spawning).
+- Full-screen map workspace with light and dark map styles and theme-aware water/label paint.
+- Glass panels for category select, fixed-function controls (zoom in/out), alarm alerts, and settings.
+- **Global flight simulation** on weighted air routes between curated airports (no viewport-random spawning); can be paused via **Enable simulation engine**.
 - **Separated sensor, initiation, and correlation pipeline** (see [Simulation Architecture](#simulation-architecture)).
 - Simulated **radar and IFF** returns with history playback and Category Select Panel toggles.
 - **Track merge** after correlation — collapses duplicate tracks competing for the same sensor return; formation pairs correlating separately are left alone ([details](#track-merge-and-deduplication)).
 - **Automatic track initiation** after three per-sensor plot updates on uncorrelated returns only.
-- Manual track initiation and editing from the map context menu, with correlation mode (active / extrapolated / suspend).
-- MIL-STD-2525-style symbol rendering for tracks, with zoom-dependent icon scale.
+- Manual track initiation and editing from the map context menu, with correlation mode (active / extrapolated / suspend); editing an auto track converts it to manual.
+- Track Management window with domain, identity, MIL-STD type, searchable platform-specific type, callsign validation, and optional symbol info fields.
+- Familiar platform silhouettes with MIL-STD-2525 fallback, callsign labels, and speed-scaled heading vectors on the map.
 - Optional **airport** and **air route** overlay layers.
 - Bearing/range drawing, context menus, and line removal controls.
 - Cursor coordinate overlay with selectable grid reference systems.
 - Supported coordinate displays include DD, DDM, DMS, GARS, Geohash, GEOREF, Killbox-style GARS, and MGRS.
 - Configurable keyboard and mouse controls persisted in browser cookies.
-- In-app settings, keybinds, about, and roadmap pages.
+- In-app settings, keybinds, about, and markdown-backed roadmap pages.
+- Node test suites for formatting, simulation, and symbol helpers (`npm test`).
 - Error forwarding into an in-app alert panel for easier testing feedback.
 
 ### Safety and Data Policy
