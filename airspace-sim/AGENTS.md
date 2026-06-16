@@ -17,3 +17,24 @@ Prioritize readability and standardized best practices throughout the codebase. 
 Avoid excessively long components, hooks, or files. Split large front-end components into smaller focused components, and move reusable component logic into separate hook files when that improves readability. Prefer clear file boundaries over large files that mix rendering, state management, data shaping, and side effects.
 
 Use React context where it fits the domain and reduces long prop chains through intermediate components. Keep context values focused and stable; do not introduce context for state that is only used by a narrow parent-child pair.
+
+## README Documentation
+
+The repository root [`README.md`](../README.md) is the primary user-facing documentation. Treat it as part of every change, not a separate follow-up task.
+
+Whenever you add, remove, rename, or materially change code, validate whether the root README still accurately describes the project. Update it in the same work session when anything is out of date or missing. Do not leave README drift for a later pass.
+
+At minimum, review and update the README when your change affects:
+
+- **Repository structure** — new, moved, or removed directories and files; update the tree and path descriptions.
+- **Business logic and workflows** — simulation behavior, operator flows, settings, persistence, merge/correlation/initiation rules, or API boundaries between UI and engine.
+- **Architecture explanations** — provider layout, tick pipeline, module responsibilities, or how components and hooks connect.
+- **Setup and operations** — scripts, dependencies, environment assumptions, build/test commands, or how to run the app.
+- **Capabilities and roadmap** — user-visible features, toggles, panels, or planned work that should be discoverable without reading source.
+
+When updating the README:
+
+- Keep the existing tone, structure, and level of detail; extend sections in place rather than duplicating content.
+- Prefer accurate, concise prose over listing every file touched.
+- If a change is internal-only with no user or contributor impact, briefly confirm the README is still correct; no edit is required.
+- The short [`airspace-sim/README.md`](README.md) should continue to point to the root README; update it only if the application directory role or quick-start steps change.
