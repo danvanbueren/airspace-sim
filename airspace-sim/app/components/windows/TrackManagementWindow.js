@@ -9,6 +9,7 @@ import {
     FormControlLabel,
     IconButton,
     InputLabel,
+    ListSubheader,
     MenuItem,
     Paper,
     Select,
@@ -29,12 +30,21 @@ import {
     parseWholeNumberInput,
 } from '@/app/tools/formatting/trackFieldFormatting'
 import {
+    getCallsignValidationError,
+    sanitizeCallsignInput,
+} from '@/app/tools/formatting/callsignValidation'
+import {
     TRACK_DOMAINS,
     TRACK_IDENTITY_OPTIONS,
     getDefaultTrackTypeForDomain,
     getTrackTypeOption,
     getTrackTypeOptionsForDomain,
 } from '@/app/tools/milstd2525/trackSymbolCodes'
+import {
+    getDefaultSpecificTypeForTrackType,
+    getSpecificTypeOptionsForTrackType,
+    normalizeSpecificType,
+} from '@/app/tools/milstd2525/trackSpecificTypes'
 import {TRACK_CORRELATION_MODES} from '@/app/simulation/trackFromDetection'
 import {
     getTrackManagementWindowPosition,
@@ -85,9 +95,108 @@ function parseCommittedKinematicField(field, rawValue) {
     return parseWholeNumberInput(rawValue)
 }
 
+function blurTextInputOnEnter(event) {
+    if (event.key !== 'Enter') {
+        return
+    }
+
+    event.preventDefault()
+    event.currentTarget.blur()
+}
+
+const TEXT_INPUT_ENTER_BLUR_SLOT_PROPS = {
+    htmlInput: {
+        onKeyDown: blurTextInputOnEnter,
+    },
+}
+
+function filterOptionsBySearch(options, searchQuery) {
+    const normalizedQuery = searchQuery.trim().toLowerCase()
+
+    if (!normalizedQuery) {
+        return options
+    }
+
+    return options.filter((option) => (
+        option.label.toLowerCase().includes(normalizedQuery)
+        || String(option.value).toLowerCase().includes(normalizedQuery)
+    ))
+}
+
+function SearchableSelect({
+    label,
+    labelId,
+    value,
+    options,
+    onChange,
+    disabled = false,
+    emptyResultsLabel = 'No matching options',
+    zIndex,
+}) {
+    const [searchQuery, setSearchQuery] = useState('')
+    const filteredOptions = filterOptionsBySearch(options, searchQuery)
+
+    const handleClose = () => {
+        setSearchQuery('')
+    }
+
+    return (
+        <FormControl size='small' fullWidth disabled={disabled}>
+            <InputLabel id={labelId}>
+                {label}
+            </InputLabel>
+            <Select
+                labelId={labelId}
+                label={label}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                onClose={handleClose}
+                MenuProps={{
+                    autoFocus: false,
+                    disableAutoFocusItem: true,
+                    slotProps: {
+                        paper: {
+                            sx: {
+                                maxHeight: 320,
+                                zIndex: (zIndex ?? 1300) + 1,
+                            },
+                        },
+                    },
+                }}
+            >
+                <ListSubheader sx={{lineHeight: 1, px: 1.5, pt: 1, pb: 1}}>
+                    <TextField
+                        size='small'
+                        placeholder={`Search ${label.toLowerCase()}...`}
+                        fullWidth
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        onKeyDown={(event) => event.stopPropagation()}
+                        onClick={(event) => event.stopPropagation()}
+                    />
+                </ListSubheader>
+                {filteredOptions.length === 0 ? (
+                    <MenuItem disabled dense sx={{opacity: 1}}>
+                        <Typography variant='body2' color='text.secondary'>
+                            {emptyResultsLabel}
+                        </Typography>
+                    </MenuItem>
+                ) : (
+                    filteredOptions.map((option) => (
+                        <MenuItem key={option.value || 'unspecified'} value={option.value}>
+                            {option.label}
+                        </MenuItem>
+                    ))
+                )}
+            </Select>
+        </FormControl>
+    )
+}
+
 const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             trackManagementWindow,
                                                                             mapContainerRef,
+                                                                            tracksForCallsignValidation = [],
                                                                             onChange,
                                                                             onMove,
                                                                             onActivate,
@@ -99,6 +208,8 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     const {appSettings} = useAppSettings()
     const trackManagementWindowRef = useRef(null)
     const [kinematicFieldDrafts, setKinematicFieldDrafts] = useState({})
+    const [callsignDraft, setCallsignDraft] = useState(null)
+    const [callsignError, setCallsignError] = useState(null)
     const trackManagementWindowSize = useMeasuredElementSize(
         trackManagementWindowRef,
         [trackManagementWindow, appSettings.gridReferenceSystem],
@@ -115,7 +226,15 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
 
     useEffect(() => {
         setKinematicFieldDrafts({})
+        setCallsignDraft(null)
+        setCallsignError(null)
     }, [trackManagementWindow.id])
+
+    useEffect(() => {
+        if (callsignDraft === null) {
+            setCallsignError(null)
+        }
+    }, [trackManagementWindow.callsign, callsignDraft])
 
     const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
         trackManagementWindow.lngLat.lat,
@@ -128,6 +247,11 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         trackManagementWindow.type,
         trackManagementWindow.domain,
     )?.value ?? getDefaultTrackTypeForDomain(trackManagementWindow.domain)
+    const availableSpecificTypes = getSpecificTypeOptionsForTrackType(selectedTrackType)
+    const selectedSpecificType = normalizeSpecificType(
+        trackManagementWindow.specificType,
+        selectedTrackType,
+    )
 
     const updateField = (field, value) => {
         const updates = {
@@ -138,6 +262,11 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             const existingTypeOption = getTrackTypeOption(trackManagementWindow.type, value)
 
             updates.type = existingTypeOption?.value ?? getDefaultTrackTypeForDomain(value)
+            updates.specificType = getDefaultSpecificTypeForTrackType(updates.type)
+        }
+
+        if (field === 'type') {
+            updates.specificType = getDefaultSpecificTypeForTrackType(value)
         }
 
         onChange(trackManagementWindow.id, updates)
@@ -183,6 +312,32 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         return getCommittedKinematicDisplay(field, trackManagementWindow[field])
     }
 
+    const handleCallsignChange = (event) => {
+        const sanitized = sanitizeCallsignInput(event.target.value)
+        const error = getCallsignValidationError(
+            sanitized,
+            tracksForCallsignValidation,
+            trackManagementWindow.trackId,
+        )
+
+        setCallsignDraft(sanitized)
+        setCallsignError(error)
+
+        if (!error) {
+            updateField('callsign', sanitized)
+            setCallsignDraft(null)
+        }
+    }
+
+    const handleCallsignBlur = () => {
+        if (callsignError) {
+            setCallsignDraft(null)
+            setCallsignError(null)
+        }
+    }
+
+    const displayCallsign = callsignDraft ?? trackManagementWindow.callsign
+
     const activateWindow = useCallback(() => {
         if (trackManagementWindow.dismissOnMapClick) {
             onActivate?.(trackManagementWindow.id)
@@ -219,6 +374,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             onFocus={() => beginKinematicFieldEdit(field)}
             onChange={(event) => updateKinematicFieldDraft(field, event.target.value)}
             onBlur={() => commitKinematicFieldDraft(field)}
+            slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
             fullWidth
         />
     )
@@ -336,8 +492,12 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 <TextField
                     label='Callsign'
                     size='small'
-                    value={trackManagementWindow.callsign}
-                    onChange={(event) => updateField('callsign', event.target.value)}
+                    value={displayCallsign}
+                    onChange={handleCallsignChange}
+                    onBlur={handleCallsignBlur}
+                    slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
+                    error={Boolean(callsignError)}
+                    helperText={callsignError ?? 'Letters and numbers only.'}
                     fullWidth
                 />
 
@@ -377,23 +537,26 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     </Select>
                 </FormControl>
 
-                <FormControl size='small' fullWidth disabled={availableTrackTypes.length === 0}>
-                    <InputLabel id={`${trackManagementWindow.id}-type-label`}>
-                        Type
-                    </InputLabel>
-                    <Select
-                        labelId={`${trackManagementWindow.id}-type-label`}
-                        label='Type'
-                        value={selectedTrackType}
-                        onChange={(event) => updateField('type', event.target.value)}
-                    >
-                        {availableTrackTypes.map((trackTypeOption) => (
-                            <MenuItem key={trackTypeOption.value} value={trackTypeOption.value}>
-                                {trackTypeOption.label}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                <SearchableSelect
+                    label='Type'
+                    labelId={`${trackManagementWindow.id}-type-label`}
+                    value={selectedTrackType}
+                    options={availableTrackTypes}
+                    onChange={(value) => updateField('type', value)}
+                    disabled={availableTrackTypes.length === 0}
+                    emptyResultsLabel='No matching types'
+                    zIndex={zIndex}
+                />
+
+                <SearchableSelect
+                    label='Specific Type'
+                    labelId={`${trackManagementWindow.id}-specific-type-label`}
+                    value={selectedSpecificType}
+                    options={availableSpecificTypes}
+                    onChange={(value) => updateField('specificType', value)}
+                    emptyResultsLabel='No matching platforms'
+                    zIndex={zIndex}
+                />
 
                 <FormControlLabel
                     control={(
