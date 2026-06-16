@@ -35,7 +35,7 @@ export function formatWholeNumberWithCommas(value) {
 }
 
 export function formatHeadingDisplay(value) {
-    return String(normalizeHeading(value))
+    return String(normalizeHeading(value)).padStart(3, '0')
 }
 
 export function formatEditableWholeNumber(value) {
