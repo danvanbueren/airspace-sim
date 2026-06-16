@@ -119,6 +119,20 @@ function getTrackIconId(track, symbolCode, defaultIconSize) {
     ].join(':')
 }
 
+function parseMilStd2525IconId(iconId) {
+    if (typeof iconId !== 'string') {
+        return null
+    }
+
+    const [prefix, symbolCode] = iconId.split(':')
+
+    if (prefix !== 'milstd2525' || !symbolCode) {
+        return null
+    }
+
+    return {symbolCode}
+}
+
 function getTrackIconCacheOptions(renderOptions) {
     if (renderOptions.useFamiliarIcon !== false && !renderOptions.infoFields) {
         return {
@@ -415,6 +429,71 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         }
     }, [iconSize, mapRef, scheduleSetData])
 
+    const ensureTrackIconById = useCallback(async (iconId) => {
+        const map = mapRef.current
+
+        if (!map) {
+            return
+        }
+
+        if (registeredIconIdsRef.current.has(iconId) || pendingIconIdsRef.current.has(iconId)) {
+            return
+        }
+
+        if (map.hasImage(iconId)) {
+            registeredIconIdsRef.current.add(iconId)
+            return
+        }
+
+        const parsedIcon = parseMilStd2525IconId(iconId)
+
+        if (!parsedIcon) {
+            return
+        }
+
+        let matchingTrack = null
+
+        tracksRef.current.forEach((track) => {
+            if (matchingTrack) {
+                return
+            }
+
+            const trackSymbolCode = track.symbolCode ?? getTrackSymbolCode(track)
+            const trackIconId = track.iconId ?? getTrackIconId(track, trackSymbolCode, iconSize)
+
+            if (trackIconId === iconId) {
+                matchingTrack = {
+                    ...track,
+                    symbolCode: trackSymbolCode,
+                    iconId: trackIconId,
+                }
+            }
+        })
+
+        const symbolCode = matchingTrack?.symbolCode ?? parsedIcon.symbolCode
+        const renderOptions = matchingTrack
+            ? getTrackIconRenderOptions(matchingTrack, iconSize)
+            : {size: iconSize}
+
+        pendingIconIdsRef.current.add(iconId)
+
+        try {
+            const addedIcon = await addMilStd2525IconToMap(
+                map,
+                iconId,
+                symbolCode,
+                renderOptions,
+            )
+
+            if (addedIcon) {
+                registeredIconIdsRef.current.add(iconId)
+                scheduleSetData()
+            }
+        } finally {
+            pendingIconIdsRef.current.delete(iconId)
+        }
+    }, [iconSize, mapRef, scheduleSetData])
+
     const ensureTrackLayer = useCallback(() => {
         const map = mapRef.current
 
@@ -587,6 +666,14 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
             rehydrateTrackLayer()
         }
 
+        const handleStyleImageMissing = (event) => {
+            if (!event?.id) {
+                return
+            }
+
+            ensureTrackIconById(event.id)
+        }
+
         rehydrateTrackLayer()
 
         const handleViewChange = () => {
@@ -595,11 +682,13 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
         map.on('style.load', handleStyleLoad)
         map.once('idle', handleIdle)
+        map.on('styleimagemissing', handleStyleImageMissing)
         map.on('move', handleViewChange)
         map.on('zoom', handleViewChange)
 
         return () => {
             map.off('style.load', handleStyleLoad)
+            map.off('styleimagemissing', handleStyleImageMissing)
             map.off('move', handleViewChange)
             map.off('zoom', handleViewChange)
 
@@ -613,7 +702,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
                 frameRef.current = null
             }
         }
-    }, [ensureTrackLayer, mapReady, mapRef, styleKey])
+    }, [ensureTrackIconById, ensureTrackLayer, mapReady, mapRef, styleKey])
 
     useEffect(() => {
         if (!mapReady || !mapRef.current) {
