@@ -27,77 +27,19 @@ import {
     getExpandedMapBounds,
 } from '../../simulation/mapViewportUtils'
 import {SENSOR_DISPLAY_TOGGLES} from '../../simulation/constants'
+import {
+    createTrackFromManagementWindow,
+    createTrackUpdateFromManagementWindow,
+} from '../../tools/map/trackManagementTrack'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {useMapState} from '../../contexts/MapStateContext'
-import {
-    normalizeHeading,
-    parseWholeNumberInput,
-} from '../../tools/formatting/trackFieldFormatting'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
     dark: 'map-styles/dark-matter-gl-style.json',
-}
-
-function createTrackFromManagementWindow(trackManagementWindow) {
-    const parsedHeading = parseWholeNumberInput(trackManagementWindow.heading)
-    const parsedSpeed = parseWholeNumberInput(trackManagementWindow.speed)
-    const parsedAltitude = parseWholeNumberInput(trackManagementWindow.altitude)
-
-    return {
-        id: trackManagementWindow.trackId,
-        trackId: trackManagementWindow.trackId,
-        longitude: trackManagementWindow.lngLat.lng,
-        latitude: trackManagementWindow.lngLat.lat,
-        domain: trackManagementWindow.domain,
-        identity: trackManagementWindow.identity,
-        type: trackManagementWindow.type,
-        specificType: trackManagementWindow.specificType ?? '',
-        heading: normalizeHeading(parsedHeading),
-        speed: parsedSpeed === '' ? null : parsedSpeed,
-        altitude: parsedAltitude === '' ? null : parsedAltitude,
-        infoFields: Boolean(trackManagementWindow.infoFields),
-        callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
-        correlationMode: trackManagementWindow.correlationMode ?? 'active',
-        source: trackManagementWindow.source ?? 'manual',
-    }
-}
-
-function createTrackUpdateFromManagementWindow(trackManagementWindow, existingTrack) {
-    const parsedHeading = parseWholeNumberInput(trackManagementWindow.heading)
-    const parsedSpeed = parseWholeNumberInput(trackManagementWindow.speed)
-    const parsedAltitude = parseWholeNumberInput(trackManagementWindow.altitude)
-
-    const update = {
-        id: trackManagementWindow.trackId,
-        trackId: trackManagementWindow.trackId,
-        longitude: existingTrack?.longitude ?? trackManagementWindow.lngLat.lng,
-        latitude: existingTrack?.latitude ?? trackManagementWindow.lngLat.lat,
-        domain: trackManagementWindow.domain,
-        identity: trackManagementWindow.identity,
-        type: trackManagementWindow.type,
-        specificType: trackManagementWindow.specificType ?? '',
-        heading: normalizeHeading(parsedHeading),
-        speed: parsedSpeed === '' ? null : parsedSpeed,
-        altitude: parsedAltitude === '' ? null : parsedAltitude,
-        infoFields: Boolean(trackManagementWindow.infoFields),
-        callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
-        correlationMode: trackManagementWindow.correlationMode ?? 'active',
-        source: existingTrack?.source === 'auto' ? 'manual' : (trackManagementWindow.source ?? 'manual'),
-        userDirected: true,
-    }
-
-    if (!existingTrack) {
-        return update
-    }
-
-    return {
-        ...existingTrack,
-        ...update,
-    }
 }
 
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
@@ -191,14 +133,18 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         upsertManualTrack(track)
     }, [trackMapLayer, upsertManualTrack])
 
-    const handleTrackUpdated = useCallback((trackManagementWindow) => {
+    const handleTrackUpdated = useCallback((trackManagementWindow, changedFields) => {
         const trackId = trackManagementWindow.trackId
         const existingTrack = trackMapLayer.getTrack(trackId)
             ?? simulationSnapshot?.tracks?.find(
                 (track) => (track.trackId ?? track.id) === trackId,
             )
 
-        const track = createTrackUpdateFromManagementWindow(trackManagementWindow, existingTrack)
+        const track = createTrackUpdateFromManagementWindow(
+            trackManagementWindow,
+            existingTrack,
+            changedFields,
+        )
 
         upsertManualTrack(track)
         trackMapLayer.upsertTrack(track)
