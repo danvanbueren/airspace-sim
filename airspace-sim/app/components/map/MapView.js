@@ -55,7 +55,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const closeMapDismissibleTrackManagementWindowsRef = useRef(null)
     const mapStyle = MAP_STYLES[theme.palette.mode]
 
-    const {mapRef, mapReady} = useMapLibreMap({
+    const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
         mapContainerRef,
         initialStyle: mapStyle,
         onError: addAlarmAlert,
@@ -192,6 +192,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         mapReady,
         mapInteractionsEnabled,
         mapStyle,
+        mapCreationStyle,
         mapCursor,
         keyboardCameraControlsEnabled,
     )
