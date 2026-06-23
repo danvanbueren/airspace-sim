@@ -1,6 +1,6 @@
 'use client'
 
-import {forwardRef, useCallback, useEffect, useRef, useState} from 'react'
+import {forwardRef, useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {
     Box,
     Checkbox,
@@ -132,12 +132,17 @@ function SearchableSelect({
     disabled = false,
     emptyResultsLabel = 'No matching options',
     zIndex,
+    onFocus,
+    onBlur,
+    onOpen,
+    onClose,
 }) {
     const [searchQuery, setSearchQuery] = useState('')
     const filteredOptions = filterOptionsBySearch(options, searchQuery)
 
     const handleClose = () => {
         setSearchQuery('')
+        onClose?.()
     }
 
     return (
@@ -150,7 +155,10 @@ function SearchableSelect({
                 label={label}
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
+                onOpen={onOpen}
                 onClose={handleClose}
+                onFocus={onFocus}
+                onBlur={onBlur}
                 MenuProps={{
                     autoFocus: false,
                     disableAutoFocusItem: true,
@@ -202,6 +210,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             onActivate,
                                                                             onClaimKeyboardCustody,
                                                                             onClose,
+                                                                            onSkipLiveFieldsChange,
                                                                             hasKeyboardCustody = false,
                                                                             zIndex,
                                                                         }, ref) {
@@ -210,6 +219,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     const [kinematicFieldDrafts, setKinematicFieldDrafts] = useState({})
     const [callsignDraft, setCallsignDraft] = useState(null)
     const [callsignError, setCallsignError] = useState(null)
+    const [focusedFields, setFocusedFields] = useState(() => new Set())
     const trackManagementWindowSize = useMeasuredElementSize(
         trackManagementWindowRef,
         [trackManagementWindow, appSettings.gridReferenceSystem],
@@ -228,7 +238,54 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         setKinematicFieldDrafts({})
         setCallsignDraft(null)
         setCallsignError(null)
+        setFocusedFields(new Set())
     }, [trackManagementWindow.id])
+
+    const skipLiveFields = useMemo(() => {
+        const fields = new Set(focusedFields)
+
+        for (const field of Object.keys(kinematicFieldDrafts)) {
+            fields.add(field)
+        }
+
+        if (callsignDraft !== null) {
+            fields.add('callsign')
+        }
+
+        return fields
+    }, [callsignDraft, focusedFields, kinematicFieldDrafts])
+
+    useEffect(() => {
+        onSkipLiveFieldsChange?.(trackManagementWindow.id, skipLiveFields)
+    }, [onSkipLiveFieldsChange, skipLiveFields, trackManagementWindow.id])
+
+    useEffect(() => () => {
+        onSkipLiveFieldsChange?.(trackManagementWindow.id, new Set())
+    }, [onSkipLiveFieldsChange, trackManagementWindow.id])
+
+    const handleFieldFocus = useCallback((field) => {
+        setFocusedFields((currentFields) => {
+            if (currentFields.has(field)) {
+                return currentFields
+            }
+
+            const nextFields = new Set(currentFields)
+            nextFields.add(field)
+            return nextFields
+        })
+    }, [])
+
+    const handleFieldBlur = useCallback((field) => {
+        setFocusedFields((currentFields) => {
+            if (!currentFields.has(field)) {
+                return currentFields
+            }
+
+            const nextFields = new Set(currentFields)
+            nextFields.delete(field)
+            return nextFields
+        })
+    }, [])
 
     useEffect(() => {
         if (callsignDraft === null) {
@@ -371,9 +428,15 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             type='text'
             inputMode='numeric'
             value={getKinematicFieldDisplayValue(field)}
-            onFocus={() => beginKinematicFieldEdit(field)}
+            onFocus={() => {
+                handleFieldFocus(field)
+                beginKinematicFieldEdit(field)
+            }}
             onChange={(event) => updateKinematicFieldDraft(field, event.target.value)}
-            onBlur={() => commitKinematicFieldDraft(field)}
+            onBlur={() => {
+                commitKinematicFieldDraft(field)
+                handleFieldBlur(field)
+            }}
             slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
             fullWidth
         />
@@ -480,6 +543,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         label='Correlation mode'
                         value={trackManagementWindow.correlationMode ?? TRACK_CORRELATION_MODES.ACTIVE}
                         onChange={(event) => updateField('correlationMode', event.target.value)}
+                        onOpen={() => handleFieldFocus('correlationMode')}
+                        onClose={() => handleFieldBlur('correlationMode')}
+                        onFocus={() => handleFieldFocus('correlationMode')}
+                        onBlur={() => handleFieldBlur('correlationMode')}
                     >
                         {CORRELATION_MODE_OPTIONS.map((option) => (
                             <MenuItem key={option.value} value={option.value}>
@@ -494,7 +561,11 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     size='small'
                     value={displayCallsign}
                     onChange={handleCallsignChange}
-                    onBlur={handleCallsignBlur}
+                    onFocus={() => handleFieldFocus('callsign')}
+                    onBlur={() => {
+                        handleCallsignBlur()
+                        handleFieldBlur('callsign')
+                    }}
                     slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
                     error={Boolean(callsignError)}
                     helperText={callsignError ?? 'Letters and numbers only.'}
@@ -510,6 +581,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         label='Domain'
                         value={trackManagementWindow.domain}
                         onChange={(event) => updateField('domain', event.target.value)}
+                        onOpen={() => handleFieldFocus('domain')}
+                        onClose={() => handleFieldBlur('domain')}
+                        onFocus={() => handleFieldFocus('domain')}
+                        onBlur={() => handleFieldBlur('domain')}
                     >
                         {Object.values(TRACK_DOMAINS).map((domain) => (
                             <MenuItem key={domain} value={domain}>
@@ -528,6 +603,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         label='Identity'
                         value={trackManagementWindow.identity}
                         onChange={(event) => updateField('identity', event.target.value)}
+                        onOpen={() => handleFieldFocus('identity')}
+                        onClose={() => handleFieldBlur('identity')}
+                        onFocus={() => handleFieldFocus('identity')}
+                        onBlur={() => handleFieldBlur('identity')}
                     >
                         {TRACK_IDENTITY_OPTIONS.map((identityOption) => (
                             <MenuItem key={identityOption.value} value={identityOption.value}>
@@ -546,6 +625,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     disabled={availableTrackTypes.length === 0}
                     emptyResultsLabel='No matching types'
                     zIndex={zIndex}
+                    onOpen={() => handleFieldFocus('type')}
+                    onClose={() => handleFieldBlur('type')}
+                    onFocus={() => handleFieldFocus('type')}
+                    onBlur={() => handleFieldBlur('type')}
                 />
 
                 <SearchableSelect
@@ -556,6 +639,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     onChange={(value) => updateField('specificType', value)}
                     emptyResultsLabel='No matching platforms'
                     zIndex={zIndex}
+                    onOpen={() => handleFieldFocus('specificType')}
+                    onClose={() => handleFieldBlur('specificType')}
+                    onFocus={() => handleFieldFocus('specificType')}
+                    onBlur={() => handleFieldBlur('specificType')}
                 />
 
                 <FormControlLabel
@@ -563,6 +650,8 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         <Checkbox
                             checked={Boolean(trackManagementWindow.infoFields)}
                             onChange={(event) => updateField('infoFields', event.target.checked)}
+                            onFocus={() => handleFieldFocus('infoFields')}
+                            onBlur={() => handleFieldBlur('infoFields')}
                             size='small'
                         />
                     )}

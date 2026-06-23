@@ -53,6 +53,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const contextMenuRef = useRef(null)
     const openTrackManagementWindowRef = useRef(null)
     const closeMapDismissibleTrackManagementWindowsRef = useRef(null)
+    const skipLiveFieldsByWindowIdRef = useRef({})
     const mapStyle = MAP_STYLES[theme.palette.mode]
 
     const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
@@ -160,6 +161,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
         closeTrackManagementWindowsForTrack,
+        syncTrackManagementWindowsFromLiveTracks,
     } = useTrackManagementWindows({
         onInitiateTrack: closeContextMenu,
         onTrackCreated: handleTrackCreated,
@@ -251,6 +253,28 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         simulationSnapshot,
         simulationSettings.viewportPaddingDegrees,
         trackMapLayer,
+    ])
+
+    const handleSkipLiveFieldsChange = useCallback((windowId, skipFields) => {
+        skipLiveFieldsByWindowIdRef.current = {
+            ...skipLiveFieldsByWindowIdRef.current,
+            [windowId]: skipFields,
+        }
+    }, [])
+
+    useEffect(() => {
+        if (!simulationSnapshot?.tracks?.length || trackManagementWindows.length === 0) {
+            return
+        }
+
+        syncTrackManagementWindowsFromLiveTracks(
+            simulationSnapshot.tracks,
+            skipLiveFieldsByWindowIdRef.current,
+        )
+    }, [
+        simulationSnapshot?.tracks,
+        syncTrackManagementWindowsFromLiveTracks,
+        trackManagementWindows.length,
     ])
 
     const tracksForCallsignValidation = useMemo(() => {
@@ -359,6 +383,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                     onActivate={markTrackManagementWindowPersistent}
                     onClaimKeyboardCustody={claimTrackManagementKeyboardCustody}
                     onClose={handleCloseTrackManagementWindow}
+                    onSkipLiveFieldsChange={handleSkipLiveFieldsChange}
                     hasKeyboardCustody={trackManagementKeyboardCustodyWindowId === trackManagementWindow.id}
                     zIndex={getWindowZIndex(trackManagementWindow.id)}
                 />
