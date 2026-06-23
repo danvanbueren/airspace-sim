@@ -6,6 +6,7 @@ import {
     expandTrackManagementWindowSkipLiveFields,
     getTrackManagementWindowLiveUpdatesFromTrack,
     mergeLiveTracksForManagementWindowSync,
+    mergeUserDirectedLayerTrackOverSimulation,
     syncTrackManagementWindowsFromTracks,
 } from '../../app/tools/map/trackManagementTrack.js'
 
@@ -126,6 +127,7 @@ describe('track management track updates', () => {
         assert.equal(updated.heading, 90)
         assert.equal(updated.speed, 470)
         assert.equal(updated.altitude, 13_000)
+        assert.deepEqual(updated.lastManagementEditFields, ['heading'])
     })
 })
 
@@ -318,6 +320,55 @@ describe('track management window live sync', () => {
         assert.equal(mergedTracks.length, 1)
         assert.equal(mergedTracks[0].callsign, 'VIP01')
         assert.equal(mergedTracks[0].domain, 'LAND')
+    })
+
+    it('keeps live simulation kinematics after metadata-only edits', () => {
+        const mergedTrack = mergeUserDirectedLayerTrackOverSimulation(
+            existingTrack({
+                heading: 180,
+                speed: 500,
+                altitude: 15_000,
+                longitude: -76.2,
+                latitude: 41.1,
+            }),
+            existingTrack({
+                callsign: 'VIP01',
+                heading: 45,
+                speed: 420,
+                altitude: 12_000,
+                longitude: -75,
+                latitude: 40,
+                userDirected: true,
+                lastManagementEditFields: ['callsign'],
+            }),
+        )
+
+        assert.equal(mergedTrack.callsign, 'VIP01')
+        assert.equal(mergedTrack.heading, 180)
+        assert.equal(mergedTrack.speed, 500)
+        assert.equal(mergedTrack.altitude, 15_000)
+        assert.equal(mergedTrack.longitude, -76.2)
+        assert.equal(mergedTrack.latitude, 41.1)
+    })
+
+    it('preserves user-edited kinematics from the map layer', () => {
+        const mergedTrack = mergeUserDirectedLayerTrackOverSimulation(
+            existingTrack({
+                heading: 120,
+                speed: 470,
+                altitude: 13_000,
+            }),
+            existingTrack({
+                heading: 90,
+                speed: 470,
+                altitude: 13_000,
+                userDirected: true,
+                lastManagementEditFields: ['heading'],
+            }),
+        )
+
+        assert.equal(mergedTrack.heading, 90)
+        assert.equal(mergedTrack.speed, 470)
     })
 
     it('keeps simulation tracks for open auto tracks without manual edits', () => {

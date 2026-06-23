@@ -33,6 +33,27 @@ export const TRACK_MANAGEMENT_COUPLED_LIVE_SKIP_FIELDS = {
     type: ['specificType'],
 }
 
+const USER_DIRECTED_LAYER_METADATA_FIELDS = [
+    'domain',
+    'identity',
+    'type',
+    'specificType',
+    'callsign',
+    'infoFields',
+    'correlationMode',
+    'source',
+    'userDirected',
+    'lastUserEditAt',
+]
+
+const LIVE_KINEMATIC_TRACK_FIELDS = [
+    'longitude',
+    'latitude',
+    'heading',
+    'speed',
+    'altitude',
+]
+
 export function expandTrackManagementWindowSkipLiveFields(
     focusedFields,
     kinematicFieldDrafts = {},
@@ -61,6 +82,25 @@ export function shouldPreferMapLayerTrackForLiveSync(layerTrack) {
     return Boolean(layerTrack?.userDirected || layerTrack?.source === 'manual')
 }
 
+export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layerTrack) {
+    const merged = {...simulationTrack}
+    const lastEditedFields = new Set(layerTrack.lastManagementEditFields ?? [])
+
+    for (const field of USER_DIRECTED_LAYER_METADATA_FIELDS) {
+        if (field in layerTrack) {
+            merged[field] = layerTrack[field]
+        }
+    }
+
+    for (const field of LIVE_KINEMATIC_TRACK_FIELDS) {
+        if (lastEditedFields.has(field) && field in layerTrack) {
+            merged[field] = layerTrack[field]
+        }
+    }
+
+    return merged
+}
+
 export function mergeLiveTracksForManagementWindowSync(
     simulationTracks,
     openTrackManagementWindows,
@@ -87,7 +127,9 @@ export function mergeLiveTracksForManagementWindowSync(
 
         tracksById.set(
             trackManagementWindow.trackId,
-            existingTrack ? {...existingTrack, ...layerTrack} : layerTrack,
+            existingTrack
+                ? mergeUserDirectedLayerTrackOverSimulation(existingTrack, layerTrack)
+                : layerTrack,
         )
     }
 
@@ -275,6 +317,9 @@ export function createTrackUpdateFromManagementWindow(
         correlationMode: trackManagementWindow.correlationMode ?? 'active',
         source: existingTrack?.source === 'auto' ? 'manual' : (trackManagementWindow.source ?? 'manual'),
         userDirected: true,
+        lastManagementEditFields: changedFields
+            ? Array.from(getChangedFieldSet(changedFields))
+            : undefined,
     }
 
     if (!existingTrack) {
