@@ -117,8 +117,10 @@ export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layer
         }
     }
 
-    merged.lastManagementEditFields = layerTrack.lastManagementEditFields
-        ?? simulationTrack.lastManagementEditFields
+    merged.lastManagementEditFields = accumulateManagementEditFields(
+        simulationTrack.lastManagementEditFields,
+        layerTrack.lastManagementEditFields,
+    )
 
     return merged
 }
@@ -168,6 +170,19 @@ function getChangedFieldSet(changedFields) {
     }
 
     return new Set(changedFields)
+}
+
+export function accumulateManagementEditFields(existingFields, changedFields) {
+    const accumulatedFields = new Set(existingFields ?? [])
+    const changedFieldSet = getChangedFieldSet(changedFields)
+
+    if (changedFieldSet) {
+        for (const field of changedFieldSet) {
+            accumulatedFields.add(field)
+        }
+    }
+
+    return accumulatedFields.size > 0 ? Array.from(accumulatedFields) : undefined
 }
 
 function shouldUseWindowKinematicField(field, changedFieldSet, existingTrack) {
@@ -342,9 +357,10 @@ export function createTrackUpdateFromManagementWindow(
         correlationMode: trackManagementWindow.correlationMode ?? 'active',
         source: existingTrack?.source === 'auto' ? 'manual' : (trackManagementWindow.source ?? 'manual'),
         userDirected: true,
-        lastManagementEditFields: changedFields
-            ? Array.from(getChangedFieldSet(changedFields))
-            : undefined,
+        lastManagementEditFields: accumulateManagementEditFields(
+            existingTrack?.lastManagementEditFields,
+            changedFields,
+        ),
     }
 
     if (!existingTrack) {

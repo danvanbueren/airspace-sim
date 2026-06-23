@@ -3,8 +3,8 @@ import {describe, it} from 'node:test'
 import {
     createTrackFromManagementWindow,
     createTrackUpdateFromManagementWindow,
-    expandTrackManagementWindowSkipLiveFields,
     expandSkipFieldsWithCommittedManagementEdits,
+    expandTrackManagementWindowSkipLiveFields,
     getTrackManagementWindowLiveUpdatesFromTrack,
     mergeLiveTracksForManagementWindowSync,
     mergeUserDirectedLayerTrackOverSimulation,
@@ -129,6 +129,34 @@ describe('track management track updates', () => {
         assert.equal(updated.speed, 470)
         assert.equal(updated.altitude, 13_000)
         assert.deepEqual(updated.lastManagementEditFields, ['heading'])
+    })
+
+    it('accumulates committed fields across successive edits', () => {
+        const afterHeadingEdit = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                heading: '090',
+            }),
+            existingTrack({
+                heading: 120,
+            }),
+            ['heading'],
+        )
+
+        const afterCallsignEdit = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                heading: 90,
+                callsign: 'VIP01',
+            }),
+            afterHeadingEdit,
+            ['callsign'],
+        )
+
+        assert.deepEqual(
+            afterCallsignEdit.lastManagementEditFields.sort(),
+            ['callsign', 'heading'],
+        )
+        assert.equal(afterCallsignEdit.heading, 90)
+        assert.equal(afterCallsignEdit.callsign, 'VIP01')
     })
 })
 
@@ -437,5 +465,67 @@ describe('track management window live sync', () => {
         assert.equal(syncedWindows[0].heading, 90)
         assert.equal(syncedWindows[0].speed, 500)
         assert.equal(syncedWindows[0].altitude, 15_000)
+    })
+
+    it('preserves earlier committed fields after a later edit', () => {
+        const openWindow = {
+            id: 'track-AUTO-1',
+            trackId: 'AUTO-1',
+            x: 100,
+            y: 200,
+            lngLat: {
+                lng: -75,
+                lat: 40,
+            },
+            line: null,
+            domain: 'AIR',
+            identity: 'NEUTRAL',
+            type: '01:110104',
+            specificType: 'F-16',
+            callsign: 'VIP01',
+            heading: 90,
+            speed: 420,
+            altitude: 12_000,
+            infoFields: false,
+            correlationMode: 'active',
+            source: 'manual',
+            dismissOnMapClick: false,
+        }
+
+        const syncedWindows = syncTrackManagementWindowsFromTracks(
+            [openWindow],
+            [existingTrack({
+                callsign: 'CIV01',
+                heading: 180,
+                speed: 500,
+                altitude: 15_000,
+                userDirected: true,
+                lastManagementEditFields: ['heading', 'callsign'],
+            })],
+        )
+
+        assert.equal(syncedWindows[0].heading, 90)
+        assert.equal(syncedWindows[0].callsign, 'VIP01')
+        assert.equal(syncedWindows[0].speed, 500)
+        assert.equal(syncedWindows[0].altitude, 15_000)
+    })
+
+    it('unions committed edit fields when merging simulation and layer tracks', () => {
+        const mergedTrack = mergeUserDirectedLayerTrackOverSimulation(
+            existingTrack({
+                heading: 180,
+                lastManagementEditFields: ['heading'],
+            }),
+            existingTrack({
+                callsign: 'VIP01',
+                userDirected: true,
+                lastManagementEditFields: ['callsign'],
+            }),
+        )
+
+        assert.deepEqual(
+            mergedTrack.lastManagementEditFields.sort(),
+            ['callsign', 'heading'],
+        )
     })
 })
