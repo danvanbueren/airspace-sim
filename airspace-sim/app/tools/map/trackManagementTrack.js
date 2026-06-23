@@ -26,6 +26,8 @@ export const TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS = [
     'correlationMode',
 ]
 
+export const TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS = 1000
+
 function getChangedFieldSet(changedFields) {
     if (!changedFields) {
         return null

@@ -236,7 +236,7 @@ Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles
 | Sensor/history visibility | Category Select Panel | Display toggles only (no sim logic) |
 | Map zoom | Fixed Function Panel → Zoom In / Zoom Out | `MapStateProvider` zoom helpers (display only) |
 
-The Track Management window edits callsign (alphanumeric, unique across tracks), domain, identity, MIL-STD type, platform-specific type (searchable catalog), optional symbol info fields, heading, speed, altitude, and correlation mode. While a window is open, displayed fields refresh from the live simulation each tick; a field pauses live updates while it is focused for editing. Invalid or duplicate callsigns are rejected in the UI and track store. Any committed edit from the window routes through `upsertManualTrack`, including correlation mode changes.
+The Track Management window edits callsign (alphanumeric, unique across tracks), domain, identity, MIL-STD type, platform-specific type (searchable catalog), optional symbol info fields, heading, speed, altitude, and correlation mode. While a window is open, displayed fields refresh from the live simulation about once per second; a field pauses live updates while it is focused for editing. Invalid or duplicate callsigns are rejected in the UI and track store. Any committed edit from the window routes through `upsertManualTrack`, including correlation mode changes.
 
 Manual track edits are marked `userDirected` so they take priority when tracks merge (see [Track merge and deduplication](#track-merge-and-deduplication)).
 

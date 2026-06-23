@@ -30,6 +30,7 @@ import {SENSOR_DISPLAY_TOGGLES} from '../../simulation/constants'
 import {
     createTrackFromManagementWindow,
     createTrackUpdateFromManagementWindow,
+    TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
 } from '../../tools/map/trackManagementTrack'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
@@ -54,6 +55,8 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const openTrackManagementWindowRef = useRef(null)
     const closeMapDismissibleTrackManagementWindowsRef = useRef(null)
     const skipLiveFieldsByWindowIdRef = useRef({})
+    const liveTracksRef = useRef([])
+    const syncTrackManagementWindowsFromLiveTracksRef = useRef(null)
     const mapStyle = MAP_STYLES[theme.palette.mode]
 
     const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
@@ -263,19 +266,42 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     }, [])
 
     useEffect(() => {
-        if (!simulationSnapshot?.tracks?.length || trackManagementWindows.length === 0) {
+        liveTracksRef.current = simulationSnapshot?.tracks ?? []
+    }, [simulationSnapshot?.tracks])
+
+    useEffect(() => {
+        syncTrackManagementWindowsFromLiveTracksRef.current = syncTrackManagementWindowsFromLiveTracks
+    }, [syncTrackManagementWindowsFromLiveTracks])
+
+    useEffect(() => {
+        if (trackManagementWindows.length === 0) {
             return
         }
 
-        syncTrackManagementWindowsFromLiveTracks(
-            simulationSnapshot.tracks,
-            skipLiveFieldsByWindowIdRef.current,
+        const syncOpenWindows = () => {
+            const tracks = liveTracksRef.current
+
+            if (!tracks.length) {
+                return
+            }
+
+            syncTrackManagementWindowsFromLiveTracksRef.current?.(
+                tracks,
+                skipLiveFieldsByWindowIdRef.current,
+            )
+        }
+
+        syncOpenWindows()
+
+        const intervalId = window.setInterval(
+            syncOpenWindows,
+            TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
         )
-    }, [
-        simulationSnapshot?.tracks,
-        syncTrackManagementWindowsFromLiveTracks,
-        trackManagementWindows.length,
-    ])
+
+        return () => {
+            window.clearInterval(intervalId)
+        }
+    }, [trackManagementWindows.length])
 
     const tracksForCallsignValidation = useMemo(() => {
         const tracksById = new Map()
