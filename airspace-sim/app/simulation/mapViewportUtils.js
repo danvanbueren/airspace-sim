@@ -1,4 +1,4 @@
-import {expandBounds} from './geo'
+import {expandBounds, isPointInBounds} from './geo'
 
 export function getExpandedMapBounds(map, paddingDegrees = 0.5) {
     if (!map?.getBounds) {
@@ -20,8 +20,6 @@ export function filterTracksByBounds(tracks, bounds) {
         return tracks ?? []
     }
 
-    const {west, south, east, north} = bounds
-
     return tracks.filter((track) => {
         const lng = track.longitude ?? track.coordinates?.[0]
         const lat = track.latitude ?? track.coordinates?.[1]
@@ -30,7 +28,7 @@ export function filterTracksByBounds(tracks, bounds) {
             return false
         }
 
-        return lng >= west && lng <= east && lat >= south && lat <= north
+        return isPointInBounds(lng, lat, bounds)
     })
 }
 

@@ -26,14 +26,56 @@ export function correlateDetection(detection, tracks, thresholdNm) {
 }
 
 export function correlateDetections(detections, tracks, thresholdNm) {
-    return detections.map((detection) => {
-        const result = correlateDetection(detection, tracks, thresholdNm)
+    const candidates = []
+
+    detections.forEach((detection, detectionIndex) => {
+        tracks.forEach((track) => {
+            const distance = haversineDistanceNm(
+                detection.latitude,
+                detection.longitude,
+                track.latitude,
+                track.longitude,
+            )
+
+            if (distance <= thresholdNm) {
+                candidates.push({
+                    detectionIndex,
+                    trackId: track.id,
+                    distanceNm: distance,
+                })
+            }
+        })
+    })
+
+    candidates.sort((a, b) => {
+        if (a.distanceNm !== b.distanceNm) {
+            return a.distanceNm - b.distanceNm
+        }
+
+        return a.detectionIndex - b.detectionIndex
+    })
+
+    const assignedDetections = new Map()
+    const assignedTrackIds = new Set()
+
+    candidates.forEach((candidate) => {
+        if (assignedDetections.has(candidate.detectionIndex)
+            || assignedTrackIds.has(candidate.trackId)) {
+            return
+        }
+
+        assignedDetections.set(candidate.detectionIndex, candidate)
+        assignedTrackIds.add(candidate.trackId)
+    })
+
+    return detections.map((detection, detectionIndex) => {
+        const result = assignedDetections.get(detectionIndex)
 
         return {
             ...detection,
-            correlatedTrackId: result.trackId,
-            correlated: result.correlated,
-            correlationDistanceNm: result.distanceNm,
+            correlatedTrackId: result?.trackId ?? null,
+            correlated: Boolean(result),
+            correlationDistanceNm: result?.distanceNm ?? null,
         }
     })
 }
