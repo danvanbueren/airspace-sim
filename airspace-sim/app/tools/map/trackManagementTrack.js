@@ -28,6 +28,35 @@ export const TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS = [
 
 export const TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS = 1000
 
+export const TRACK_MANAGEMENT_COUPLED_LIVE_SKIP_FIELDS = {
+    domain: ['type', 'specificType'],
+    type: ['specificType'],
+}
+
+export function expandTrackManagementWindowSkipLiveFields(
+    focusedFields,
+    kinematicFieldDrafts = {},
+    callsignDraft = null,
+) {
+    const fields = new Set(focusedFields)
+
+    for (const field of Object.keys(kinematicFieldDrafts)) {
+        fields.add(field)
+    }
+
+    if (callsignDraft !== null) {
+        fields.add('callsign')
+    }
+
+    for (const field of focusedFields) {
+        for (const coupledField of TRACK_MANAGEMENT_COUPLED_LIVE_SKIP_FIELDS[field] ?? []) {
+            fields.add(coupledField)
+        }
+    }
+
+    return fields
+}
+
 function getChangedFieldSet(changedFields) {
     if (!changedFields) {
         return null

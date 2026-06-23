@@ -3,6 +3,7 @@ import {describe, it} from 'node:test'
 import {
     createTrackFromManagementWindow,
     createTrackUpdateFromManagementWindow,
+    expandTrackManagementWindowSkipLiveFields,
     getTrackManagementWindowLiveUpdatesFromTrack,
     syncTrackManagementWindowsFromTracks,
 } from '../../app/tools/map/trackManagementTrack.js'
@@ -239,5 +240,58 @@ describe('track management window live sync', () => {
         assert.equal(syncedWindows[0].heading, 45)
         assert.equal(syncedWindows[0].speed, 420)
         assert.equal(syncedWindows[0].altitude, 15_000)
+    })
+
+    it('expands skip fields for coupled select edits', () => {
+        assert.deepEqual(
+            [...expandTrackManagementWindowSkipLiveFields(new Set(['domain']))].sort(),
+            ['domain', 'specificType', 'type'],
+        )
+        assert.deepEqual(
+            [...expandTrackManagementWindowSkipLiveFields(new Set(['type']))].sort(),
+            ['specificType', 'type'],
+        )
+    })
+
+    it('skips coupled fields while domain is being edited', () => {
+        const openWindow = {
+            id: 'track-AUTO-1',
+            trackId: 'AUTO-1',
+            x: 100,
+            y: 200,
+            lngLat: {
+                lng: -75,
+                lat: 40,
+            },
+            line: null,
+            domain: 'AIR',
+            identity: 'NEUTRAL',
+            type: '01:110104',
+            specificType: 'F-16',
+            callsign: 'CIV01',
+            heading: 45,
+            speed: 420,
+            altitude: 12_000,
+            infoFields: false,
+            correlationMode: 'active',
+            source: 'auto',
+            dismissOnMapClick: false,
+        }
+
+        const syncedWindows = syncTrackManagementWindowsFromTracks(
+            [openWindow],
+            [existingTrack({
+                domain: 'LAND',
+                type: '01:120101',
+                specificType: 'M1A2',
+            })],
+            {
+                'track-AUTO-1': expandTrackManagementWindowSkipLiveFields(new Set(['domain'])),
+            },
+        )
+
+        assert.equal(syncedWindows[0].domain, 'AIR')
+        assert.equal(syncedWindows[0].type, '01:110104')
+        assert.equal(syncedWindows[0].specificType, 'F-16')
     })
 })
