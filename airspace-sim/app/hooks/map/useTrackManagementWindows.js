@@ -62,7 +62,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     ...(trackManagementWindow.source === 'auto' ? {source: 'manual'} : {}),
                 }
 
-                onTrackUpdated?.(updatedTrackManagementWindow)
+                onTrackUpdated?.(updatedTrackManagementWindow, Object.keys(updates))
 
                 return updatedTrackManagementWindow
             })
