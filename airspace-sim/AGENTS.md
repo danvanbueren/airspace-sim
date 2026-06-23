@@ -38,3 +38,10 @@ When updating the README:
 - Prefer accurate, concise prose over listing every file touched.
 - If a change is internal-only with no user or contributor impact, briefly confirm the README is still correct; no edit is required.
 - The short [`airspace-sim/README.md`](README.md) should continue to point to the root README; update it only if the application directory role or quick-start steps change.
+
+## Cursor Cloud specific instructions
+
+- The Next.js app and its `package.json` live in the nested `airspace-sim/` directory, not the repo root. Run all `npm` commands from `airspace-sim/` (the update script installs deps there automatically on startup).
+- Standard scripts (see `airspace-sim/package.json`): `npm run dev` (dev server on http://localhost:3000), `npm test` (Node test runner over `tests/**/*.test.js`), `npm run build`, `npm run start`.
+- There is no separate lint step: the project has no `lint` script and no ESLint config. Type checking runs as part of `npm run build` (`next build` reports `Running TypeScript`).
+- The app is fully client-side with no backend service, database, or environment variables required; just start the dev server and open the browser.
