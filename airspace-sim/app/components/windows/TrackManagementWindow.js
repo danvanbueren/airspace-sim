@@ -132,8 +132,6 @@ function SearchableSelect({
     disabled = false,
     emptyResultsLabel = 'No matching options',
     zIndex,
-    onFocus,
-    onBlur,
     onOpen,
     onClose,
 }) {
@@ -157,8 +155,6 @@ function SearchableSelect({
                 onChange={(event) => onChange(event.target.value)}
                 onOpen={onOpen}
                 onClose={handleClose}
-                onFocus={onFocus}
-                onBlur={onBlur}
                 MenuProps={{
                     autoFocus: false,
                     disableAutoFocusItem: true,
@@ -545,8 +541,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         onChange={(event) => updateField('correlationMode', event.target.value)}
                         onOpen={() => handleFieldFocus('correlationMode')}
                         onClose={() => handleFieldBlur('correlationMode')}
-                        onFocus={() => handleFieldFocus('correlationMode')}
-                        onBlur={() => handleFieldBlur('correlationMode')}
                     >
                         {CORRELATION_MODE_OPTIONS.map((option) => (
                             <MenuItem key={option.value} value={option.value}>
@@ -583,8 +577,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         onChange={(event) => updateField('domain', event.target.value)}
                         onOpen={() => handleFieldFocus('domain')}
                         onClose={() => handleFieldBlur('domain')}
-                        onFocus={() => handleFieldFocus('domain')}
-                        onBlur={() => handleFieldBlur('domain')}
                     >
                         {Object.values(TRACK_DOMAINS).map((domain) => (
                             <MenuItem key={domain} value={domain}>
@@ -605,8 +597,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         onChange={(event) => updateField('identity', event.target.value)}
                         onOpen={() => handleFieldFocus('identity')}
                         onClose={() => handleFieldBlur('identity')}
-                        onFocus={() => handleFieldFocus('identity')}
-                        onBlur={() => handleFieldBlur('identity')}
                     >
                         {TRACK_IDENTITY_OPTIONS.map((identityOption) => (
                             <MenuItem key={identityOption.value} value={identityOption.value}>
@@ -627,8 +617,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     zIndex={zIndex}
                     onOpen={() => handleFieldFocus('type')}
                     onClose={() => handleFieldBlur('type')}
-                    onFocus={() => handleFieldFocus('type')}
-                    onBlur={() => handleFieldBlur('type')}
                 />
 
                 <SearchableSelect
@@ -641,8 +629,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     zIndex={zIndex}
                     onOpen={() => handleFieldFocus('specificType')}
                     onClose={() => handleFieldBlur('specificType')}
-                    onFocus={() => handleFieldFocus('specificType')}
-                    onBlur={() => handleFieldBlur('specificType')}
                 />
 
                 <FormControlLabel
