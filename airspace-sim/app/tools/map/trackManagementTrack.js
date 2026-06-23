@@ -33,6 +33,11 @@ export const TRACK_MANAGEMENT_COUPLED_LIVE_SKIP_FIELDS = {
     type: ['specificType'],
 }
 
+const COMMITTED_MANAGEMENT_FIELD_TO_LIVE_SKIP_FIELD = {
+    longitude: 'lngLat',
+    latitude: 'lngLat',
+}
+
 const USER_DIRECTED_LAYER_METADATA_FIELDS = [
     'domain',
     'identity',
@@ -89,8 +94,10 @@ export function expandSkipFieldsWithCommittedManagementEdits(
     const effectiveSkipFields = skipFields instanceof Set ? new Set(skipFields) : new Set(skipFields)
 
     for (const field of lastManagementEditFields) {
-        if (TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS.includes(field)) {
-            effectiveSkipFields.add(field)
+        const skipField = COMMITTED_MANAGEMENT_FIELD_TO_LIVE_SKIP_FIELD[field] ?? field
+
+        if (TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS.includes(skipField)) {
+            effectiveSkipFields.add(skipField)
         }
 
         for (const coupledField of TRACK_MANAGEMENT_COUPLED_LIVE_SKIP_FIELDS[field] ?? []) {

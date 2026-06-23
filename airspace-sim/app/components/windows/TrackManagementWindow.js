@@ -96,6 +96,19 @@ function parseCommittedKinematicField(field, rawValue) {
     return parseWholeNumberInput(rawValue)
 }
 
+function isCommittedKinematicFieldUnchanged(field, parsedValue, committedValue) {
+    if (field === 'heading') {
+        return normalizeHeading(parsedValue) === normalizeHeading(committedValue)
+    }
+
+    const normalizedParsed = parsedValue === '' ? null : parsedValue
+    const normalizedCommitted = committedValue === '' || committedValue === null || committedValue === undefined
+        ? null
+        : parseWholeNumberInput(committedValue)
+
+    return normalizedParsed === normalizedCommitted
+}
+
 function blurTextInputOnEnter(event) {
     if (event.key !== 'Enter') {
         return
@@ -357,7 +370,14 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
 
         publishSkipLiveFields(focusedFields, nextDrafts)
         setKinematicFieldDrafts(nextDrafts)
-        updateField(field, parseCommittedKinematicField(field, draft))
+
+        const parsedValue = parseCommittedKinematicField(field, draft)
+
+        if (isCommittedKinematicFieldUnchanged(field, parsedValue, trackManagementWindow[field])) {
+            return
+        }
+
+        updateField(field, parsedValue)
     }
 
     const getKinematicFieldDisplayValue = (field) => {

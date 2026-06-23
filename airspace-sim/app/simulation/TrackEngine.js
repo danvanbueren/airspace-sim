@@ -11,6 +11,7 @@ import {TrackStore} from './TrackStore'
 import {trackFromManualInput} from './trackFromDetection'
 import {mergeTracksFromCorrelatedDetections} from './trackMerge'
 import {getBoundedTrackDeltaSeconds} from './trackTiming'
+import {syncActiveTrackKinematicsFromFlightWorld} from './syncActiveTrackKinematicsFromFlightWorld'
 
 export class TrackEngine {
     constructor(options = {}) {
@@ -319,6 +320,7 @@ export class TrackEngine {
         if (deltaSeconds > 0 && !this.perf.shouldSkipSimulationStep()) {
             this.flightWorld.advance(deltaSeconds)
             this.trackStore.extrapolate(timestamp, deltaSeconds, this.settings)
+            syncActiveTrackKinematicsFromFlightWorld(this.flightWorld, this.trackStore)
         }
 
         this.lastTrackTickAt = timestamp

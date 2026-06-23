@@ -426,6 +426,13 @@ describe('track management window live sync', () => {
         )
     })
 
+    it('maps committed position fields to lngLat live-sync skips', () => {
+        assert.deepEqual(
+            [...expandSkipFieldsWithCommittedManagementEdits(new Set(), ['longitude', 'latitude'])].sort(),
+            ['lngLat'],
+        )
+    })
+
     it('does not overwrite committed kinematic edits during live sync', () => {
         const openWindow = {
             id: 'track-AUTO-1',
