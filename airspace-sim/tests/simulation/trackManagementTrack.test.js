@@ -5,6 +5,7 @@ import {
     createTrackUpdateFromManagementWindow,
     expandTrackManagementWindowSkipLiveFields,
     getTrackManagementWindowLiveUpdatesFromTrack,
+    mergeLiveTracksForManagementWindowSync,
     syncTrackManagementWindowsFromTracks,
 } from '../../app/tools/map/trackManagementTrack.js'
 
@@ -293,5 +294,48 @@ describe('track management window live sync', () => {
         assert.equal(syncedWindows[0].domain, 'AIR')
         assert.equal(syncedWindows[0].type, '01:110104')
         assert.equal(syncedWindows[0].specificType, 'F-16')
+    })
+
+    it('prefers map layer tracks for committed manual edits during live sync', () => {
+        const simulationTracks = [existingTrack({
+            callsign: 'CIV01',
+            domain: 'AIR',
+            source: 'auto',
+        })]
+        const committedTrack = existingTrack({
+            callsign: 'VIP01',
+            domain: 'LAND',
+            source: 'manual',
+            userDirected: true,
+        })
+
+        const mergedTracks = mergeLiveTracksForManagementWindowSync(
+            simulationTracks,
+            [{trackId: 'AUTO-1'}],
+            (trackId) => (trackId === 'AUTO-1' ? committedTrack : null),
+        )
+
+        assert.equal(mergedTracks.length, 1)
+        assert.equal(mergedTracks[0].callsign, 'VIP01')
+        assert.equal(mergedTracks[0].domain, 'LAND')
+    })
+
+    it('keeps simulation tracks for open auto tracks without manual edits', () => {
+        const simulationTracks = [existingTrack({
+            heading: 180,
+            source: 'auto',
+        })]
+        const layerTrack = existingTrack({
+            heading: 45,
+            source: 'auto',
+        })
+
+        const mergedTracks = mergeLiveTracksForManagementWindowSync(
+            simulationTracks,
+            [{trackId: 'AUTO-1'}],
+            () => layerTrack,
+        )
+
+        assert.equal(mergedTracks[0].heading, 180)
     })
 })

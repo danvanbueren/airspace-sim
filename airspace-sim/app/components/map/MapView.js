@@ -30,6 +30,7 @@ import {SENSOR_DISPLAY_TOGGLES} from '../../simulation/constants'
 import {
     createTrackFromManagementWindow,
     createTrackUpdateFromManagementWindow,
+    mergeLiveTracksForManagementWindowSync,
     TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
 } from '../../tools/map/trackManagementTrack'
 import MapContextMenu from './MapContextMenu'
@@ -56,6 +57,8 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const closeMapDismissibleTrackManagementWindowsRef = useRef(null)
     const skipLiveFieldsByWindowIdRef = useRef({})
     const liveTracksRef = useRef([])
+    const trackManagementWindowsRef = useRef([])
+    const trackMapLayerGetTrackRef = useRef(null)
     const syncTrackManagementWindowsFromLiveTracksRef = useRef(null)
     const mapStyle = MAP_STYLES[theme.palette.mode]
 
@@ -265,9 +268,9 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         }
     }, [])
 
-    useEffect(() => {
-        liveTracksRef.current = simulationSnapshot?.tracks ?? []
-    }, [simulationSnapshot?.tracks])
+    liveTracksRef.current = simulationSnapshot?.tracks ?? []
+    trackManagementWindowsRef.current = trackManagementWindows
+    trackMapLayerGetTrackRef.current = trackMapLayer.getTrack
 
     useEffect(() => {
         syncTrackManagementWindowsFromLiveTracksRef.current = syncTrackManagementWindowsFromLiveTracks
@@ -279,7 +282,11 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         }
 
         const syncOpenWindows = () => {
-            const tracks = liveTracksRef.current
+            const tracks = mergeLiveTracksForManagementWindowSync(
+                liveTracksRef.current,
+                trackManagementWindowsRef.current,
+                trackMapLayerGetTrackRef.current,
+            )
 
             if (!tracks.length) {
                 return

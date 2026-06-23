@@ -57,6 +57,43 @@ export function expandTrackManagementWindowSkipLiveFields(
     return fields
 }
 
+export function shouldPreferMapLayerTrackForLiveSync(layerTrack) {
+    return Boolean(layerTrack?.userDirected || layerTrack?.source === 'manual')
+}
+
+export function mergeLiveTracksForManagementWindowSync(
+    simulationTracks,
+    openTrackManagementWindows,
+    getMapLayerTrack,
+) {
+    const tracksById = new Map()
+
+    for (const track of simulationTracks) {
+        const trackId = track.trackId ?? track.id
+
+        if (trackId) {
+            tracksById.set(trackId, track)
+        }
+    }
+
+    for (const trackManagementWindow of openTrackManagementWindows) {
+        const layerTrack = getMapLayerTrack?.(trackManagementWindow.trackId)
+
+        if (!layerTrack || !shouldPreferMapLayerTrackForLiveSync(layerTrack)) {
+            continue
+        }
+
+        const existingTrack = tracksById.get(trackManagementWindow.trackId)
+
+        tracksById.set(
+            trackManagementWindow.trackId,
+            existingTrack ? {...existingTrack, ...layerTrack} : layerTrack,
+        )
+    }
+
+    return Array.from(tracksById.values())
+}
+
 function getChangedFieldSet(changedFields) {
     if (!changedFields) {
         return null
