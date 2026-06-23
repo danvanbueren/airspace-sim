@@ -1,5 +1,5 @@
-import {correlateDetection} from './correlation'
-import {TRACK_CORRELATION_MODES} from './trackFromDetection'
+import {correlateDetections} from './correlation.js'
+import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 
 export class CorrelationService {
     apply(detections, trackStore, thresholdNm, timestamp) {
@@ -7,38 +7,27 @@ export class CorrelationService {
             .getAllTracks()
             .filter((track) => track.correlationMode === TRACK_CORRELATION_MODES.ACTIVE)
 
-        return detections.map((detection) => {
-            const result = correlateDetection(detection, correlationTargets, thresholdNm)
-
-            if (!result.correlated || !result.trackId) {
-                return {
-                    ...detection,
-                    correlated: false,
-                    correlatedTrackId: null,
-                    correlationDistanceNm: null,
+        return correlateDetections(detections, correlationTargets, thresholdNm)
+            .map((detection) => {
+                if (!detection.correlated || !detection.correlatedTrackId) {
+                    return detection
                 }
-            }
 
-            const existing = trackStore.getTrack(result.trackId)
+                const existing = trackStore.getTrack(detection.correlatedTrackId)
 
-            if (existing) {
-                trackStore.updateTrack(result.trackId, {
-                    longitude: detection.longitude,
-                    latitude: detection.latitude,
-                    lastSensorUpdateAt: timestamp,
-                    lastExtrapolationAt: timestamp,
-                    stale: false,
-                    correlated: true,
-                })
-            }
+                if (existing) {
+                    trackStore.updateTrack(detection.correlatedTrackId, {
+                        longitude: detection.longitude,
+                        latitude: detection.latitude,
+                        lastSensorUpdateAt: timestamp,
+                        lastExtrapolationAt: timestamp,
+                        stale: false,
+                        correlated: true,
+                    })
+                }
 
-            return {
-                ...detection,
-                correlated: true,
-                correlatedTrackId: result.trackId,
-                correlationDistanceNm: result.distanceNm,
-            }
-        })
+                return detection
+            })
     }
 }
 

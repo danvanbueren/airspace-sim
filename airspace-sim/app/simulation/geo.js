@@ -41,6 +41,29 @@ export function extrapolatePosition(lng, lat, headingDegrees, speedKnots, deltaS
     return offsetLngLat(lng, lat, headingDegrees, distanceNm)
 }
 
+export function isLongitudeInBounds(lng, west, east) {
+    if (!Number.isFinite(lng) || !Number.isFinite(west) || !Number.isFinite(east)) {
+        return false
+    }
+
+    let normalizedEast = east
+
+    while (normalizedEast < west) {
+        normalizedEast += 360
+    }
+
+    if (normalizedEast - west >= 360) {
+        return true
+    }
+
+    const worldOffset = Math.floor((west - lng) / 360)
+    const normalizedLng = lng + (worldOffset * 360)
+
+    return [normalizedLng, normalizedLng + 360].some((candidate) => (
+        candidate >= west && candidate <= normalizedEast
+    ))
+}
+
 export function isPointInBounds(lng, lat, bounds) {
     if (!bounds) {
         return true
@@ -48,7 +71,7 @@ export function isPointInBounds(lng, lat, bounds) {
 
     const {west, south, east, north} = bounds
 
-    if (lng < west || lng > east) {
+    if (!isLongitudeInBounds(lng, west, east)) {
         return false
     }
 
