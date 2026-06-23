@@ -8,6 +8,7 @@ import {
 } from '../../tools/milstd2525/trackSymbolCodes'
 import {getDefaultSpecificTypeForTrackType} from '../../tools/milstd2525/trackSpecificTypes'
 import {parseTrackKinematicFields} from '../../tools/formatting/trackFieldFormatting'
+import {syncTrackManagementWindowsFromTracks} from '../../tools/map/trackManagementTrack'
 
 export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTrackUpdated}) {
     const [trackManagementWindows, setTrackManagementWindows] = useState([])
@@ -176,6 +177,12 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         ))
     }, [])
 
+    const syncTrackManagementWindowsFromLiveTracks = useCallback((tracks, skipFieldsByWindowId = {}) => {
+        setTrackManagementWindows((currentWindows) => (
+            syncTrackManagementWindowsFromTracks(currentWindows, tracks, skipFieldsByWindowId)
+        ))
+    }, [])
+
     return {
         trackManagementWindows,
         initiateTrack,
@@ -186,5 +193,6 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
         closeTrackManagementWindowsForTrack,
+        syncTrackManagementWindowsFromLiveTracks,
     }
 }

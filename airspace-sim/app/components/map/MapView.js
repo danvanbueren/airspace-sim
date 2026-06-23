@@ -30,6 +30,8 @@ import {SENSOR_DISPLAY_TOGGLES} from '../../simulation/constants'
 import {
     createTrackFromManagementWindow,
     createTrackUpdateFromManagementWindow,
+    mergeLiveTracksForManagementWindowSync,
+    TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
 } from '../../tools/map/trackManagementTrack'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
@@ -53,6 +55,11 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const contextMenuRef = useRef(null)
     const openTrackManagementWindowRef = useRef(null)
     const closeMapDismissibleTrackManagementWindowsRef = useRef(null)
+    const skipLiveFieldsByWindowIdRef = useRef({})
+    const liveTracksRef = useRef([])
+    const trackManagementWindowsRef = useRef([])
+    const trackMapLayerGetTrackRef = useRef(null)
+    const syncTrackManagementWindowsFromLiveTracksRef = useRef(null)
     const mapStyle = MAP_STYLES[theme.palette.mode]
 
     const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
@@ -160,6 +167,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
         closeTrackManagementWindowsForTrack,
+        syncTrackManagementWindowsFromLiveTracks,
     } = useTrackManagementWindows({
         onInitiateTrack: closeContextMenu,
         onTrackCreated: handleTrackCreated,
@@ -252,6 +260,55 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         simulationSettings.viewportPaddingDegrees,
         trackMapLayer,
     ])
+
+    const handleSkipLiveFieldsChange = useCallback((windowId, skipFields) => {
+        skipLiveFieldsByWindowIdRef.current = {
+            ...skipLiveFieldsByWindowIdRef.current,
+            [windowId]: skipFields,
+        }
+    }, [])
+
+    liveTracksRef.current = simulationSnapshot?.tracks ?? []
+    trackManagementWindowsRef.current = trackManagementWindows
+    trackMapLayerGetTrackRef.current = trackMapLayer.getTrack
+
+    useEffect(() => {
+        syncTrackManagementWindowsFromLiveTracksRef.current = syncTrackManagementWindowsFromLiveTracks
+    }, [syncTrackManagementWindowsFromLiveTracks])
+
+    useEffect(() => {
+        if (trackManagementWindows.length === 0) {
+            return
+        }
+
+        const syncOpenWindows = () => {
+            const tracks = mergeLiveTracksForManagementWindowSync(
+                liveTracksRef.current,
+                trackManagementWindowsRef.current,
+                trackMapLayerGetTrackRef.current,
+            )
+
+            if (!tracks.length) {
+                return
+            }
+
+            syncTrackManagementWindowsFromLiveTracksRef.current?.(
+                tracks,
+                skipLiveFieldsByWindowIdRef.current,
+            )
+        }
+
+        syncOpenWindows()
+
+        const intervalId = window.setInterval(
+            syncOpenWindows,
+            TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
+        )
+
+        return () => {
+            window.clearInterval(intervalId)
+        }
+    }, [trackManagementWindows.length])
 
     const tracksForCallsignValidation = useMemo(() => {
         const tracksById = new Map()
@@ -359,6 +416,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                     onActivate={markTrackManagementWindowPersistent}
                     onClaimKeyboardCustody={claimTrackManagementKeyboardCustody}
                     onClose={handleCloseTrackManagementWindow}
+                    onSkipLiveFieldsChange={handleSkipLiveFieldsChange}
                     hasKeyboardCustody={trackManagementKeyboardCustodyWindowId === trackManagementWindow.id}
                     zIndex={getWindowZIndex(trackManagementWindow.id)}
                 />
