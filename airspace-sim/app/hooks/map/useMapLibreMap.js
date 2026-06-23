@@ -52,5 +52,5 @@ export function useMapLibreMap({mapContainerRef, initialStyle, onError}) {
         }
     }, [mapContainerRef])
 
-    return {mapRef, mapReady}
+    return {mapRef, mapReady, mapCreationStyle: initialStyleRef.current}
 }

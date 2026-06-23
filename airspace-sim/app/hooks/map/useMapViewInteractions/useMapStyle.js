@@ -43,8 +43,10 @@ function scheduleWaterLabelPaint(map, handleStyleLoad) {
     }
 }
 
-export function useMapStyle(mapRef, style) {
-    const previousStyleRef = useRef(style)
+export function useMapStyle(mapRef, style, mapCreationStyle) {
+    const appliedStyleRef = useRef(null)
+    const pendingStyleRef = useRef(null)
+    const mapInstanceRef = useRef(null)
 
     useEffect(() => {
         const map = mapRef.current
@@ -53,28 +55,60 @@ export function useMapStyle(mapRef, style) {
             return
         }
 
+        if (mapInstanceRef.current !== map) {
+            mapInstanceRef.current = map
+            appliedStyleRef.current = mapCreationStyle
+            pendingStyleRef.current = null
+        }
+
         const handleStyleLoad = () => {
             applyWaterLabelPaint(map, style)
         }
 
-        if (previousStyleRef.current === style) {
+        if (appliedStyleRef.current === style) {
             return scheduleWaterLabelPaint(map, handleStyleLoad)
         }
 
-        previousStyleRef.current = style
+        let cancelled = false
+        let confirmStyleApplied = null
 
         const applyStyleChange = () => {
-            map.on('style.load', handleStyleLoad)
+            if (cancelled || appliedStyleRef.current === style || pendingStyleRef.current === style) {
+                return
+            }
+
+            pendingStyleRef.current = style
+
+            confirmStyleApplied = () => {
+                if (cancelled || pendingStyleRef.current !== style) {
+                    return
+                }
+
+                appliedStyleRef.current = style
+                pendingStyleRef.current = null
+                handleStyleLoad()
+            }
+
+            map.on('style.load', confirmStyleApplied)
             map.setStyle(style)
-            map.once('idle', handleStyleLoad)
+            map.once('idle', confirmStyleApplied)
         }
 
         const cleanupReadyWait = whenStyleReady(map, applyStyleChange)
 
         return () => {
+            cancelled = true
+
+            if (pendingStyleRef.current === style) {
+                pendingStyleRef.current = null
+            }
+
             cleanupReadyWait()
-            map.off('style.load', handleStyleLoad)
-            map.off('idle', handleStyleLoad)
+
+            if (confirmStyleApplied) {
+                map.off('style.load', confirmStyleApplied)
+                map.off('idle', confirmStyleApplied)
+            }
         }
-    }, [mapRef, style])
+    }, [mapRef, style, mapCreationStyle])
 }
