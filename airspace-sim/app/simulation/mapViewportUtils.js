@@ -1,4 +1,4 @@
-import {expandBounds, isPointInBounds} from './geo'
+import {expandBounds, isPointInBounds} from './geo.js'
 
 export function getExpandedMapBounds(map, paddingDegrees = 0.5) {
     if (!map?.getBounds) {

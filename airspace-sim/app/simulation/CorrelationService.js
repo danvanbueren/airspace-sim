@@ -1,5 +1,5 @@
-import {correlateDetections} from './correlation'
-import {TRACK_CORRELATION_MODES} from './trackFromDetection'
+import {correlateDetections} from './correlation.js'
+import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 
 export class CorrelationService {
     apply(detections, trackStore, thresholdNm, timestamp) {

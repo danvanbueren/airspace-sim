@@ -4,9 +4,9 @@ import {
     getTrackCallsign,
     isAlphanumericCallsign,
 } from '../tools/formatting/callsignValidation.js'
-import {extrapolatePosition} from './geo'
-import {TRACK_CORRELATION_MODES} from './trackFromDetection'
-import {buildMergedTrackState} from './trackMerge'
+import {extrapolatePosition} from './geo.js'
+import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
+import {buildMergedTrackState} from './trackMerge.js'
 
 export class TrackStore {
     constructor() {

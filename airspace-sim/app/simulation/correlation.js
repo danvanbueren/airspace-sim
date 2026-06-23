@@ -1,4 +1,4 @@
-import {haversineDistanceNm} from './geo'
+import {haversineDistanceNm} from './geo.js'
 
 export function correlateDetection(detection, tracks, thresholdNm) {
     let bestTrackId = null
