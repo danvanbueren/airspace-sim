@@ -70,7 +70,7 @@ export function useMapStyle(mapRef, style, mapCreationStyle) {
         }
 
         let cancelled = false
-        let confirmStyleApplied = null
+        let cleanupConfirm = null
 
         const applyStyleChange = () => {
             if (cancelled || appliedStyleRef.current === style || pendingStyleRef.current === style) {
@@ -78,20 +78,17 @@ export function useMapStyle(mapRef, style, mapCreationStyle) {
             }
 
             pendingStyleRef.current = style
+            map.setStyle(style)
 
-            confirmStyleApplied = () => {
-                if (cancelled || pendingStyleRef.current !== style) {
+            cleanupConfirm = whenStyleReady(map, () => {
+                if (cancelled || pendingStyleRef.current !== style || !map.isStyleLoaded()) {
                     return
                 }
 
                 appliedStyleRef.current = style
                 pendingStyleRef.current = null
                 handleStyleLoad()
-            }
-
-            map.on('style.load', confirmStyleApplied)
-            map.setStyle(style)
-            map.once('idle', confirmStyleApplied)
+            })
         }
 
         const cleanupReadyWait = whenStyleReady(map, applyStyleChange)
@@ -104,11 +101,7 @@ export function useMapStyle(mapRef, style, mapCreationStyle) {
             }
 
             cleanupReadyWait()
-
-            if (confirmStyleApplied) {
-                map.off('style.load', confirmStyleApplied)
-                map.off('idle', confirmStyleApplied)
-            }
+            cleanupConfirm?.()
         }
     }, [mapRef, style, mapCreationStyle])
 }
