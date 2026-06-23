@@ -302,7 +302,7 @@ flowchart TB
 Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Correlation always runs **before** initiation so existing active tracks can claim returns first.
 
 1. **`sensorSimulator.scan`** — Raw detections for aircraft inside expanded map bounds.
-2. **`correlation.apply`** — Nearest **active** track within **Correlation threshold (NM)** (default 5 NM) receives the return; position updates from sensor.
+2. **`correlation.apply`** — Nearest available **active** track within **Correlation threshold (NM)** (default 5 NM) receives the return; a track can claim at most one return per scan, and position updates from sensor.
 3. **`mergeTracksFromCorrelatedDetections`** — Active tracks that lost correlation to a nearby winner on the same identity merge into the survivor (see [Track merge](#track-merge-and-deduplication)).
 4. **`absorbPlotsNearCorrelatedDetections`** — Plot trails near correlated returns are closed so parallel radar/IFF plots do not spawn duplicate tracks.
 5. **`trackInitiation.ingest` (uncorrelated only)** — Update plots and promote after 3 hits; skip returns near existing active tracks within the plot association threshold.
@@ -325,7 +325,7 @@ Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Co
 
 - Runs **before** automatic initiation on every sensor scan.
 - Only tracks with **`correlationMode: 'active'`** are correlation targets.
-- Nearest track within **Correlation threshold (NM)** wins (default 5 NM).
+- Nearest available track within **Correlation threshold (NM)** wins (default 5 NM), with one-to-one assignment so a single track cannot consume multiple returns from the same scan.
 - Matched detections are marked `correlated: true` and update the track position from the sensor return.
 - Returns already correlated are not passed to initiation.
 
