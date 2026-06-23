@@ -82,6 +82,25 @@ export function shouldPreferMapLayerTrackForLiveSync(layerTrack) {
     return Boolean(layerTrack?.userDirected || layerTrack?.source === 'manual')
 }
 
+export function expandSkipFieldsWithCommittedManagementEdits(
+    skipFields,
+    lastManagementEditFields = [],
+) {
+    const effectiveSkipFields = skipFields instanceof Set ? new Set(skipFields) : new Set(skipFields)
+
+    for (const field of lastManagementEditFields) {
+        if (TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS.includes(field)) {
+            effectiveSkipFields.add(field)
+        }
+
+        for (const coupledField of TRACK_MANAGEMENT_COUPLED_LIVE_SKIP_FIELDS[field] ?? []) {
+            effectiveSkipFields.add(coupledField)
+        }
+    }
+
+    return effectiveSkipFields
+}
+
 export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layerTrack) {
     const merged = {...simulationTrack}
     const lastEditedFields = new Set(layerTrack.lastManagementEditFields ?? [])
@@ -97,6 +116,9 @@ export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layer
             merged[field] = layerTrack[field]
         }
     }
+
+    merged.lastManagementEditFields = layerTrack.lastManagementEditFields
+        ?? simulationTrack.lastManagementEditFields
 
     return merged
 }
@@ -252,7 +274,10 @@ export function syncTrackManagementWindowsFromTracks(
         }
 
         const liveUpdates = getTrackManagementWindowLiveUpdatesFromTrack(liveTrack)
-        const skipFields = skipFieldsByWindowId[trackManagementWindow.id] ?? new Set()
+        const skipFields = expandSkipFieldsWithCommittedManagementEdits(
+            skipFieldsByWindowId[trackManagementWindow.id] ?? new Set(),
+            liveTrack.lastManagementEditFields,
+        )
         const mergedWindow = mergeTrackManagementWindowLiveUpdates(
             trackManagementWindow,
             liveUpdates,

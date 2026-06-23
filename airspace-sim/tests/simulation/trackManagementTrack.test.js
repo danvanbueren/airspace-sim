@@ -4,6 +4,7 @@ import {
     createTrackFromManagementWindow,
     createTrackUpdateFromManagementWindow,
     expandTrackManagementWindowSkipLiveFields,
+    expandSkipFieldsWithCommittedManagementEdits,
     getTrackManagementWindowLiveUpdatesFromTrack,
     mergeLiveTracksForManagementWindowSync,
     mergeUserDirectedLayerTrackOverSimulation,
@@ -388,5 +389,53 @@ describe('track management window live sync', () => {
         )
 
         assert.equal(mergedTracks[0].heading, 180)
+    })
+
+    it('expands skip fields for committed management edits', () => {
+        assert.deepEqual(
+            [...expandSkipFieldsWithCommittedManagementEdits(new Set(), ['heading', 'domain'])].sort(),
+            ['domain', 'heading', 'specificType', 'type'],
+        )
+    })
+
+    it('does not overwrite committed kinematic edits during live sync', () => {
+        const openWindow = {
+            id: 'track-AUTO-1',
+            trackId: 'AUTO-1',
+            x: 100,
+            y: 200,
+            lngLat: {
+                lng: -75,
+                lat: 40,
+            },
+            line: null,
+            domain: 'AIR',
+            identity: 'NEUTRAL',
+            type: '01:110104',
+            specificType: 'F-16',
+            callsign: 'CIV01',
+            heading: 90,
+            speed: 420,
+            altitude: 12_000,
+            infoFields: false,
+            correlationMode: 'active',
+            source: 'manual',
+            dismissOnMapClick: false,
+        }
+
+        const syncedWindows = syncTrackManagementWindowsFromTracks(
+            [openWindow],
+            [existingTrack({
+                heading: 180,
+                speed: 500,
+                altitude: 15_000,
+                userDirected: true,
+                lastManagementEditFields: ['heading'],
+            })],
+        )
+
+        assert.equal(syncedWindows[0].heading, 90)
+        assert.equal(syncedWindows[0].speed, 500)
+        assert.equal(syncedWindows[0].altitude, 15_000)
     })
 })
