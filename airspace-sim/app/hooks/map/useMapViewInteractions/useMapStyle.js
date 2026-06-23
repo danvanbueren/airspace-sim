@@ -1,15 +1,46 @@
 import {useEffect, useRef} from 'react'
 import {applyWaterLabelPaint} from '../../../tools/map/mapWaterLabelPaint'
 
-function scheduleWaterLabelPaint(map, style, handleStyleLoad) {
+function whenStyleReady(map, callback) {
+    if (map.isStyleLoaded()) {
+        callback()
+        return () => {}
+    }
+
+    const tryReady = () => {
+        if (!map.isStyleLoaded()) {
+            return
+        }
+
+        map.off('styledata', tryReady)
+        map.off('idle', tryReady)
+        callback()
+    }
+
+    map.on('styledata', tryReady)
+    map.on('idle', tryReady)
+
+    return () => {
+        map.off('styledata', tryReady)
+        map.off('idle', tryReady)
+    }
+}
+
+function scheduleWaterLabelPaint(map, handleStyleLoad) {
     map.on('style.load', handleStyleLoad)
+
+    const cleanupReadyWait = map.isStyleLoaded()
+        ? () => {}
+        : whenStyleReady(map, handleStyleLoad)
 
     if (map.isStyleLoaded()) {
         handleStyleLoad()
-        return
     }
 
-    map.once('idle', handleStyleLoad)
+    return () => {
+        map.off('style.load', handleStyleLoad)
+        cleanupReadyWait()
+    }
 }
 
 export function useMapStyle(mapRef, style) {
@@ -27,11 +58,7 @@ export function useMapStyle(mapRef, style) {
         }
 
         if (previousStyleRef.current === style) {
-            scheduleWaterLabelPaint(map, style, handleStyleLoad)
-
-            return () => {
-                map.off('style.load', handleStyleLoad)
-            }
+            return scheduleWaterLabelPaint(map, handleStyleLoad)
         }
 
         previousStyleRef.current = style
@@ -42,19 +69,12 @@ export function useMapStyle(mapRef, style) {
             map.once('idle', handleStyleLoad)
         }
 
-        if (!map.isStyleLoaded()) {
-            map.once('load', applyStyleChange)
-
-            return () => {
-                map.off('load', applyStyleChange)
-                map.off('style.load', handleStyleLoad)
-            }
-        }
-
-        applyStyleChange()
+        const cleanupReadyWait = whenStyleReady(map, applyStyleChange)
 
         return () => {
+            cleanupReadyWait()
             map.off('style.load', handleStyleLoad)
+            map.off('idle', handleStyleLoad)
         }
     }, [mapRef, style])
 }
