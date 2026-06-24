@@ -11,6 +11,8 @@ import {TrackStore} from './TrackStore'
 import {trackFromManualInput} from './trackFromDetection'
 import {mergeTracksFromCorrelatedDetections} from './trackMerge'
 import {getBoundedTrackDeltaSeconds} from './trackTiming'
+import {syncActiveTrackKinematicsFromFlightWorld} from './syncActiveTrackKinematicsFromFlightWorld'
+import {isCorrelationHoldActive} from './correlationHold'
 
 export class TrackEngine {
     constructor(options = {}) {
@@ -143,6 +145,10 @@ export class TrackEngine {
         this.notifyListeners()
     }
 
+    getTrack(trackId) {
+        return this.trackStore.getTrack(trackId)
+    }
+
     removeManualTrack(trackId) {
         this.trackStore.removeTrack(trackId)
         this.notifyListeners()
@@ -209,9 +215,18 @@ export class TrackEngine {
         }
     }
 
-    applyCorrelatedKinematics(correlatedDetections) {
+    applyCorrelatedKinematics(correlatedDetections, timestamp = Date.now()) {
         correlatedDetections.forEach((detection) => {
             if (!detection.correlated || !detection.correlatedTrackId) {
+                return
+            }
+
+            const existing = this.trackStore.getTrack(detection.correlatedTrackId)
+
+            if (isCorrelationHoldActive(existing, timestamp)) {
+                this.trackStore.updateTrack(detection.correlatedTrackId, {
+                    correlated: true,
+                })
                 return
             }
 
@@ -256,7 +271,7 @@ export class TrackEngine {
             timestamp,
         )
 
-        this.applyCorrelatedKinematics(correlatedDetections)
+        this.applyCorrelatedKinematics(correlatedDetections, timestamp)
 
         mergeTracksFromCorrelatedDetections(
             this.trackStore,
@@ -319,6 +334,7 @@ export class TrackEngine {
         if (deltaSeconds > 0 && !this.perf.shouldSkipSimulationStep()) {
             this.flightWorld.advance(deltaSeconds)
             this.trackStore.extrapolate(timestamp, deltaSeconds, this.settings)
+            syncActiveTrackKinematicsFromFlightWorld(this.flightWorld, this.trackStore, timestamp)
         }
 
         this.lastTrackTickAt = timestamp
@@ -380,6 +396,10 @@ export class TrackEngine {
             airRoutes: this.flightWorld.getRoutes(),
             mapOverlayVisibility: this.mapOverlayVisibility,
         }
+    }
+
+    getSimulationTimestamp() {
+        return this.lastTrackTickAt || Date.now()
     }
 
     dispose() {

@@ -10,6 +10,7 @@ import {
     loadAirRouteCatalog,
     positionAlongRoute,
 } from './flightWorldUtils'
+import {updateAircraftKinematics} from './flightWorldKinematics'
 
 export class FlightWorldSimulator {
     constructor() {
@@ -77,13 +78,20 @@ export class FlightWorldSimulator {
         const random = createBootstrapRandom('advance', Math.floor(Date.now() / 1000))
 
         this.aircraft.forEach((aircraft, id) => {
-            const speed = aircraft.speed ?? 0
-            const distanceNm = (speed * deltaSeconds) / 3600
-            let progressNm = (aircraft.progressNm ?? 0) + distanceNm
             let current = aircraft
+            const routeHeading = headingAlongRoute(
+                current.polyline,
+                current.segmentLengths,
+                current.totalRouteNm,
+                current.progressNm ?? 0,
+            )
+            const kinematics = updateAircraftKinematics(current, routeHeading, deltaSeconds)
+            const speed = kinematics.speed ?? 0
+            const distanceNm = (speed * deltaSeconds) / 3600
+            let progressNm = (current.progressNm ?? 0) + distanceNm
 
-            if (progressNm >= aircraft.totalRouteNm) {
-                current = assignNewRoute(aircraft, this.pickRoute, this.airportByIcao, random)
+            if (progressNm >= current.totalRouteNm) {
+                current = assignNewRoute(current, this.pickRoute, this.airportByIcao, random)
                 progressNm = Math.min(distanceNm, current.totalRouteNm * 0.05)
             }
 
@@ -93,11 +101,16 @@ export class FlightWorldSimulator {
                 current.totalRouteNm,
                 progressNm,
             )
-            const heading = headingAlongRoute(
+            const nextRouteHeading = headingAlongRoute(
                 current.polyline,
                 current.segmentLengths,
                 current.totalRouteNm,
                 progressNm,
+            )
+            const nextKinematics = updateAircraftKinematics(
+                {...current, progressNm},
+                nextRouteHeading,
+                deltaSeconds,
             )
 
             this.aircraft.set(id, {
@@ -105,7 +118,8 @@ export class FlightWorldSimulator {
                 progressNm,
                 longitude: position.lng,
                 latitude: position.lat,
-                heading,
+                routeHeading: nextRouteHeading,
+                ...nextKinematics,
             })
         })
     }

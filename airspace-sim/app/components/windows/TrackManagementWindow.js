@@ -58,10 +58,22 @@ const CORRELATION_MODE_OPTIONS = [
     {value: TRACK_CORRELATION_MODES.SUSPEND, label: 'Suspended'},
 ]
 
+const KINEMATIC_FOCUS_FIELDS = ['heading', 'speed', 'altitude']
+
 function formatEnumLabel(value) {
     return value
         .replace(/([A-Z])/g, ' $1')
         .replace(/^./, (character) => character.toUpperCase())
+}
+
+function isTrackManagementInteractiveTarget(target) {
+    if (!(target instanceof Element)) {
+        return false
+    }
+
+    return Boolean(target.closest(
+        'input, textarea, select, button, label, [role="combobox"], [role="listbox"], [role="option"], [role="checkbox"], .MuiInputBase-root, .MuiFormControl-root, .MuiCheckbox-root, .MuiFormControlLabel-root, .MuiIconButton-root',
+    ))
 }
 
 function formatOptionalGroupedWholeNumber(value) {
@@ -94,6 +106,19 @@ function parseCommittedKinematicField(field, rawValue) {
     }
 
     return parseWholeNumberInput(rawValue)
+}
+
+function isCommittedKinematicFieldUnchanged(field, parsedValue, committedValue) {
+    if (field === 'heading') {
+        return normalizeHeading(parsedValue) === normalizeHeading(committedValue)
+    }
+
+    const normalizedParsed = parsedValue === '' ? null : parsedValue
+    const normalizedCommitted = committedValue === '' || committedValue === null || committedValue === undefined
+        ? null
+        : parseWholeNumberInput(committedValue)
+
+    return normalizedParsed === normalizedCommitted
 }
 
 function blurTextInputOnEnter(event) {
@@ -216,7 +241,9 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     const [kinematicFieldDrafts, setKinematicFieldDrafts] = useState({})
     const [callsignDraft, setCallsignDraft] = useState(null)
     const [callsignError, setCallsignError] = useState(null)
-    const [focusedFields, setFocusedFields] = useState(() => new Set())
+    const kinematicFieldDraftsRef = useRef({})
+    const callsignDraftRef = useRef(null)
+    const focusedFieldsRef = useRef(new Set())
     const trackManagementWindowSize = useMeasuredElementSize(
         trackManagementWindowRef,
         [trackManagementWindow, appSettings.gridReferenceSystem],
@@ -232,17 +259,19 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     }, [ref])
 
     useEffect(() => {
+        kinematicFieldDraftsRef.current = {}
+        callsignDraftRef.current = null
+        focusedFieldsRef.current = new Set()
         setKinematicFieldDrafts({})
         setCallsignDraft(null)
         setCallsignError(null)
-        setFocusedFields(new Set())
         onSkipLiveFieldsChange?.(trackManagementWindow.id, new Set())
     }, [onSkipLiveFieldsChange, trackManagementWindow.id])
 
     const publishSkipLiveFields = useCallback((
-        nextFocusedFields = focusedFields,
-        nextKinematicDrafts = kinematicFieldDrafts,
-        nextCallsignDraft = callsignDraft,
+        nextFocusedFields = focusedFieldsRef.current,
+        nextKinematicDrafts = kinematicFieldDraftsRef.current,
+        nextCallsignDraft = callsignDraftRef.current,
     ) => {
         onSkipLiveFieldsChange?.(
             trackManagementWindow.id,
@@ -252,39 +281,33 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 nextCallsignDraft,
             ),
         )
-    }, [
-        callsignDraft,
-        focusedFields,
-        kinematicFieldDrafts,
-        onSkipLiveFieldsChange,
-        trackManagementWindow.id,
-    ])
+    }, [onSkipLiveFieldsChange, trackManagementWindow.id])
 
     useEffect(() => () => {
         onSkipLiveFieldsChange?.(trackManagementWindow.id, new Set())
     }, [onSkipLiveFieldsChange, trackManagementWindow.id])
 
     const handleFieldFocus = useCallback((field) => {
-        if (focusedFields.has(field)) {
+        if (focusedFieldsRef.current.has(field)) {
             return
         }
 
-        const nextFocusedFields = new Set(focusedFields)
+        const nextFocusedFields = new Set(focusedFieldsRef.current)
         nextFocusedFields.add(field)
+        focusedFieldsRef.current = nextFocusedFields
         publishSkipLiveFields(nextFocusedFields)
-        setFocusedFields(nextFocusedFields)
-    }, [focusedFields, publishSkipLiveFields])
+    }, [publishSkipLiveFields])
 
     const handleFieldBlur = useCallback((field) => {
-        if (!focusedFields.has(field)) {
+        if (!focusedFieldsRef.current.has(field)) {
             return
         }
 
-        const nextFocusedFields = new Set(focusedFields)
+        const nextFocusedFields = new Set(focusedFieldsRef.current)
         nextFocusedFields.delete(field)
+        focusedFieldsRef.current = nextFocusedFields
         publishSkipLiveFields(nextFocusedFields)
-        setFocusedFields(nextFocusedFields)
-    }, [focusedFields, publishSkipLiveFields])
+    }, [publishSkipLiveFields])
 
     useEffect(() => {
         if (callsignDraft === null) {
@@ -328,36 +351,90 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         onChange(trackManagementWindow.id, updates)
     }
 
-    const beginKinematicFieldEdit = (field) => {
-        const nextDrafts = {
-            ...kinematicFieldDrafts,
-            [field]: getEditableKinematicDraft(field, trackManagementWindow[field]),
-        }
+    const handleKinematicFieldBlur = (field) => {
+        const draft = kinematicFieldDraftsRef.current[field]
+        const nextDrafts = {...kinematicFieldDraftsRef.current}
+        delete nextDrafts[field]
 
-        publishSkipLiveFields(focusedFields, nextDrafts)
+        const nextFocusedFields = new Set(focusedFieldsRef.current)
+        nextFocusedFields.delete(field)
+
+        focusedFieldsRef.current = nextFocusedFields
+        kinematicFieldDraftsRef.current = nextDrafts
+        publishSkipLiveFields(nextFocusedFields, nextDrafts)
         setKinematicFieldDrafts(nextDrafts)
-    }
-
-    const updateKinematicFieldDraft = (field, rawValue) => {
-        setKinematicFieldDrafts((currentDrafts) => ({
-            ...currentDrafts,
-            [field]: rawValue,
-        }))
-    }
-
-    const commitKinematicFieldDraft = (field) => {
-        const draft = kinematicFieldDrafts[field]
 
         if (draft === undefined) {
             return
         }
 
-        const nextDrafts = {...kinematicFieldDrafts}
-        delete nextDrafts[field]
+        const parsedValue = parseCommittedKinematicField(field, draft)
 
-        publishSkipLiveFields(focusedFields, nextDrafts)
+        if (isCommittedKinematicFieldUnchanged(field, parsedValue, trackManagementWindow[field])) {
+            return
+        }
+
+        updateField(field, parsedValue)
+    }
+
+    const blurActiveKinematicFields = (exceptField = null) => {
+        for (const field of KINEMATIC_FOCUS_FIELDS) {
+            if (field === exceptField) {
+                continue
+            }
+
+            if (focusedFieldsRef.current.has(field) || field in kinematicFieldDraftsRef.current) {
+                handleKinematicFieldBlur(field)
+            }
+        }
+    }
+
+    const handleKinematicFieldFocus = (field) => {
+        blurActiveKinematicFields(field)
+
+        const nextFocusedFields = new Set(focusedFieldsRef.current)
+        nextFocusedFields.add(field)
+
+        const nextDrafts = {
+            ...kinematicFieldDraftsRef.current,
+            [field]: getEditableKinematicDraft(field, trackManagementWindow[field]),
+        }
+
+        focusedFieldsRef.current = nextFocusedFields
+        kinematicFieldDraftsRef.current = nextDrafts
+        publishSkipLiveFields(nextFocusedFields, nextDrafts)
         setKinematicFieldDrafts(nextDrafts)
-        updateField(field, parseCommittedKinematicField(field, draft))
+    }
+
+    const updateKinematicFieldDraft = (field, rawValue) => {
+        const nextDrafts = {
+            ...kinematicFieldDraftsRef.current,
+            [field]: rawValue,
+        }
+
+        kinematicFieldDraftsRef.current = nextDrafts
+        setKinematicFieldDrafts(nextDrafts)
+    }
+
+    const handleSelectOpen = (field) => {
+        blurActiveKinematicFields()
+        handleFieldFocus(field)
+    }
+
+    const handleNonKinematicFieldFocus = (field) => {
+        blurActiveKinematicFields()
+        handleFieldFocus(field)
+    }
+
+    const releaseActiveFieldFocus = () => {
+        blurActiveKinematicFields()
+
+        const activeElement = document.activeElement
+
+        if (activeElement instanceof HTMLElement
+            && trackManagementWindowRef.current?.contains(activeElement)) {
+            activeElement.blur()
+        }
     }
 
     const getKinematicFieldDisplayValue = (field) => {
@@ -379,21 +456,24 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         )
 
         if (!error) {
-            publishSkipLiveFields(focusedFields, kinematicFieldDrafts, null)
+            callsignDraftRef.current = null
+            publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, null)
             setCallsignDraft(null)
             setCallsignError(null)
             updateField('callsign', sanitized)
             return
         }
 
-        publishSkipLiveFields(focusedFields, kinematicFieldDrafts, sanitized)
+        callsignDraftRef.current = sanitized
+        publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, sanitized)
         setCallsignDraft(sanitized)
         setCallsignError(error)
     }
 
     const handleCallsignBlur = () => {
         if (callsignError) {
-            publishSkipLiveFields(focusedFields, kinematicFieldDrafts, null)
+            callsignDraftRef.current = null
+            publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, null)
             setCallsignDraft(null)
             setCallsignError(null)
         }
@@ -407,11 +487,16 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         }
     }, [onActivate, trackManagementWindow.dismissOnMapClick, trackManagementWindow.id])
 
-    const handleWindowPointerDown = useCallback((event) => {
+    const handleWindowPointerDown = (event) => {
         event.stopPropagation()
+
+        if (!isTrackManagementInteractiveTarget(event.target)) {
+            releaseActiveFieldFocus()
+        }
+
         activateWindow()
         onClaimKeyboardCustody?.(trackManagementWindow.id)
-    }, [activateWindow, onClaimKeyboardCustody, trackManagementWindow.id])
+    }
 
     const {
         handleHeaderPointerDown,
@@ -435,13 +520,11 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             inputMode='numeric'
             value={getKinematicFieldDisplayValue(field)}
             onFocus={() => {
-                handleFieldFocus(field)
-                beginKinematicFieldEdit(field)
+                handleKinematicFieldFocus(field)
             }}
             onChange={(event) => updateKinematicFieldDraft(field, event.target.value)}
             onBlur={() => {
-                commitKinematicFieldDraft(field)
-                handleFieldBlur(field)
+                handleKinematicFieldBlur(field)
             }}
             slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
             fullWidth
@@ -473,7 +556,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             })}
         >
             <Box
-                onPointerDown={handleHeaderPointerDown}
+                onPointerDown={(event) => {
+                    releaseActiveFieldFocus()
+                    handleHeaderPointerDown(event)
+                }}
                 onPointerMove={handleHeaderPointerMove}
                 onPointerUp={handleHeaderPointerUp}
                 onPointerCancel={handleHeaderPointerUp}
@@ -549,7 +635,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         label='Correlation mode'
                         value={trackManagementWindow.correlationMode ?? TRACK_CORRELATION_MODES.ACTIVE}
                         onChange={(event) => updateField('correlationMode', event.target.value)}
-                        onOpen={() => handleFieldFocus('correlationMode')}
+                        onOpen={() => handleSelectOpen('correlationMode')}
                         onClose={() => handleFieldBlur('correlationMode')}
                     >
                         {CORRELATION_MODE_OPTIONS.map((option) => (
@@ -565,7 +651,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     size='small'
                     value={displayCallsign}
                     onChange={handleCallsignChange}
-                    onFocus={() => handleFieldFocus('callsign')}
+                    onFocus={() => handleNonKinematicFieldFocus('callsign')}
                     onBlur={() => {
                         handleCallsignBlur()
                         handleFieldBlur('callsign')
@@ -585,7 +671,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         label='Domain'
                         value={trackManagementWindow.domain}
                         onChange={(event) => updateField('domain', event.target.value)}
-                        onOpen={() => handleFieldFocus('domain')}
+                        onOpen={() => handleSelectOpen('domain')}
                         onClose={() => handleFieldBlur('domain')}
                     >
                         {Object.values(TRACK_DOMAINS).map((domain) => (
@@ -605,7 +691,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         label='Identity'
                         value={trackManagementWindow.identity}
                         onChange={(event) => updateField('identity', event.target.value)}
-                        onOpen={() => handleFieldFocus('identity')}
+                        onOpen={() => handleSelectOpen('identity')}
                         onClose={() => handleFieldBlur('identity')}
                     >
                         {TRACK_IDENTITY_OPTIONS.map((identityOption) => (
@@ -625,7 +711,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     disabled={availableTrackTypes.length === 0}
                     emptyResultsLabel='No matching types'
                     zIndex={zIndex}
-                    onOpen={() => handleFieldFocus('type')}
+                    onOpen={() => handleSelectOpen('type')}
                     onClose={() => handleFieldBlur('type')}
                 />
 
@@ -637,7 +723,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     onChange={(value) => updateField('specificType', value)}
                     emptyResultsLabel='No matching platforms'
                     zIndex={zIndex}
-                    onOpen={() => handleFieldFocus('specificType')}
+                    onOpen={() => handleSelectOpen('specificType')}
                     onClose={() => handleFieldBlur('specificType')}
                 />
 
@@ -646,7 +732,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         <Checkbox
                             checked={Boolean(trackManagementWindow.infoFields)}
                             onChange={(event) => updateField('infoFields', event.target.checked)}
-                            onFocus={() => handleFieldFocus('infoFields')}
+                            onFocus={() => handleNonKinematicFieldFocus('infoFields')}
                             onBlur={() => handleFieldBlur('infoFields')}
                             size='small'
                         />

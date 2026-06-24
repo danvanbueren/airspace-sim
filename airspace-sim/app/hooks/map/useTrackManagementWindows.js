@@ -177,9 +177,18 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         ))
     }, [])
 
-    const syncTrackManagementWindowsFromLiveTracks = useCallback((tracks, skipFieldsByWindowId = {}) => {
+    const syncTrackManagementWindowsFromLiveTracks = useCallback((
+        tracks,
+        skipFieldsByWindowId = {},
+        evaluationTime = Date.now(),
+    ) => {
         setTrackManagementWindows((currentWindows) => (
-            syncTrackManagementWindowsFromTracks(currentWindows, tracks, skipFieldsByWindowId)
+            syncTrackManagementWindowsFromTracks(
+                currentWindows,
+                tracks,
+                skipFieldsByWindowId,
+                evaluationTime,
+            )
         ))
     }, [])
 

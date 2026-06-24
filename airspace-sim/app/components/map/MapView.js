@@ -47,7 +47,7 @@ const MAP_STYLES = {
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
     const {addAlarmAlert, registerMap} = useMapState()
-    const {upsertManualTrack, dropTrack} = useSimulation()
+    const {upsertManualTrack, dropTrack, getTrack, getSimulationTimestamp} = useSimulation()
     const {simulationSettings} = useAppSettings()
     const {isToggleActive} = useSensorDisplay()
     const mapContainerRef = useRef(null)
@@ -142,20 +142,18 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
 
     const handleTrackUpdated = useCallback((trackManagementWindow, changedFields) => {
         const trackId = trackManagementWindow.trackId
-        const existingTrack = trackMapLayer.getTrack(trackId)
-            ?? simulationSnapshot?.tracks?.find(
-                (track) => (track.trackId ?? track.id) === trackId,
-            )
+        const existingTrack = getTrack(trackId) ?? trackMapLayer.getTrack(trackId)
 
         const track = createTrackUpdateFromManagementWindow(
             trackManagementWindow,
             existingTrack,
             changedFields,
+            getSimulationTimestamp(),
         )
 
         upsertManualTrack(track)
         trackMapLayer.upsertTrack(track)
-    }, [trackMapLayer, simulationSnapshot?.tracks, upsertManualTrack])
+    }, [getSimulationTimestamp, getTrack, trackMapLayer, upsertManualTrack])
 
     const {
         trackManagementWindows,
@@ -261,12 +259,33 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         trackMapLayer,
     ])
 
+    const syncOpenManagementWindows = useCallback(() => {
+        const evaluationTime = getSimulationTimestamp()
+        const tracks = mergeLiveTracksForManagementWindowSync(
+            liveTracksRef.current,
+            trackManagementWindowsRef.current,
+            trackMapLayerGetTrackRef.current,
+            evaluationTime,
+        )
+
+        if (!tracks.length) {
+            return
+        }
+
+        syncTrackManagementWindowsFromLiveTracksRef.current?.(
+            tracks,
+            skipLiveFieldsByWindowIdRef.current,
+            evaluationTime,
+        )
+    }, [getSimulationTimestamp])
+
     const handleSkipLiveFieldsChange = useCallback((windowId, skipFields) => {
         skipLiveFieldsByWindowIdRef.current = {
             ...skipLiveFieldsByWindowIdRef.current,
             [windowId]: skipFields,
         }
-    }, [])
+        syncOpenManagementWindows()
+    }, [syncOpenManagementWindows])
 
     liveTracksRef.current = simulationSnapshot?.tracks ?? []
     trackManagementWindowsRef.current = trackManagementWindows
@@ -281,34 +300,17 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
             return
         }
 
-        const syncOpenWindows = () => {
-            const tracks = mergeLiveTracksForManagementWindowSync(
-                liveTracksRef.current,
-                trackManagementWindowsRef.current,
-                trackMapLayerGetTrackRef.current,
-            )
-
-            if (!tracks.length) {
-                return
-            }
-
-            syncTrackManagementWindowsFromLiveTracksRef.current?.(
-                tracks,
-                skipLiveFieldsByWindowIdRef.current,
-            )
-        }
-
-        syncOpenWindows()
+        syncOpenManagementWindows()
 
         const intervalId = window.setInterval(
-            syncOpenWindows,
+            syncOpenManagementWindows,
             TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
         )
 
         return () => {
             window.clearInterval(intervalId)
         }
-    }, [trackManagementWindows.length])
+    }, [syncOpenManagementWindows, trackManagementWindows.length])
 
     const tracksForCallsignValidation = useMemo(() => {
         const tracksById = new Map()

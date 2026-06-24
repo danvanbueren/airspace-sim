@@ -5,6 +5,7 @@ import {
     isAlphanumericCallsign,
 } from '../tools/formatting/callsignValidation.js'
 import {extrapolatePosition} from './geo.js'
+import {isCorrelationHoldActive, resolveExpiredCorrelationHold} from './correlationHold.js'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 import {buildMergedTrackState} from './trackMerge.js'
 
@@ -190,12 +191,24 @@ export class TrackStore {
         )
 
         this.tracks.forEach((track, id) => {
+            const resolvedTrack = resolveExpiredCorrelationHold(track, timestamp)
+
+            if (resolvedTrack !== track) {
+                this.tracks.set(id, resolvedTrack)
+            }
+        })
+
+        this.tracks.forEach((track, id) => {
             if (track.correlationMode === TRACK_CORRELATION_MODES.SUSPEND) {
                 this.tracks.set(id, {
                     ...track,
                     speed: 0,
                     lastExtrapolationAt: timestamp,
                 })
+                return
+            }
+
+            if (isCorrelationHoldActive(track, timestamp)) {
                 return
             }
 

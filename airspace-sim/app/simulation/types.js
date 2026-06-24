@@ -56,6 +56,9 @@
  * @property {string} [plotId]
  * @property {boolean} [userDirected]
  * @property {number} [lastUserEditAt]
+ * @property {number} [lastUserKinematicEditAt]
+ * @property {string[]} [lastUserKinematicEditFields]
+ * @property {string[]} [lastManagementEditFields]
  */
 
 export {}

@@ -9,6 +9,7 @@ import {
     getDefaultTrackTypeForDomain,
 } from '../milstd2525/trackSymbolCodes.js'
 import {getDefaultSpecificTypeForTrackType} from '../milstd2525/trackSpecificTypes.js'
+import {applyUserKinematicEditHold, getAuthoritativeManagementEditFields, isCorrelationHoldActive, resolveExpiredCorrelationHold} from '../../simulation/correlationHold.js'
 
 const KINEMATIC_FIELDS = new Set(['heading', 'speed', 'altitude'])
 
@@ -31,6 +32,11 @@ export const TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS = 1000
 export const TRACK_MANAGEMENT_COUPLED_LIVE_SKIP_FIELDS = {
     domain: ['type', 'specificType'],
     type: ['specificType'],
+}
+
+const COMMITTED_MANAGEMENT_FIELD_TO_LIVE_SKIP_FIELD = {
+    longitude: 'lngLat',
+    latitude: 'lngLat',
 }
 
 const USER_DIRECTED_LAYER_METADATA_FIELDS = [
@@ -85,12 +91,19 @@ export function shouldPreferMapLayerTrackForLiveSync(layerTrack) {
 export function expandSkipFieldsWithCommittedManagementEdits(
     skipFields,
     lastManagementEditFields = [],
+    track = null,
+    now = Date.now(),
 ) {
     const effectiveSkipFields = skipFields instanceof Set ? new Set(skipFields) : new Set(skipFields)
+    const committedFields = track
+        ? getAuthoritativeManagementEditFields(track, now)
+        : lastManagementEditFields
 
-    for (const field of lastManagementEditFields) {
-        if (TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS.includes(field)) {
-            effectiveSkipFields.add(field)
+    for (const field of committedFields) {
+        const skipField = COMMITTED_MANAGEMENT_FIELD_TO_LIVE_SKIP_FIELD[field] ?? field
+
+        if (TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS.includes(skipField)) {
+            effectiveSkipFields.add(skipField)
         }
 
         for (const coupledField of TRACK_MANAGEMENT_COUPLED_LIVE_SKIP_FIELDS[field] ?? []) {
@@ -101,9 +114,10 @@ export function expandSkipFieldsWithCommittedManagementEdits(
     return effectiveSkipFields
 }
 
-export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layerTrack) {
+export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layerTrack, now = Date.now()) {
     const merged = {...simulationTrack}
-    const lastEditedFields = new Set(layerTrack.lastManagementEditFields ?? [])
+    const layerEditFields = new Set(layerTrack.lastManagementEditFields ?? [])
+    const holdActive = isCorrelationHoldActive(simulationTrack, now)
 
     for (const field of USER_DIRECTED_LAYER_METADATA_FIELDS) {
         if (field in layerTrack) {
@@ -111,16 +125,20 @@ export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layer
         }
     }
 
-    for (const field of LIVE_KINEMATIC_TRACK_FIELDS) {
-        if (lastEditedFields.has(field) && field in layerTrack) {
-            merged[field] = layerTrack[field]
+    if (holdActive) {
+        for (const field of LIVE_KINEMATIC_TRACK_FIELDS) {
+            if (layerEditFields.has(field) && field in layerTrack) {
+                merged[field] = layerTrack[field]
+            }
         }
     }
 
-    merged.lastManagementEditFields = accumulateManagementEditFields(
-        simulationTrack.lastManagementEditFields,
-        layerTrack.lastManagementEditFields,
-    )
+    merged.lastManagementEditFields = holdActive
+        ? accumulateManagementEditFields(
+            simulationTrack.lastManagementEditFields,
+            layerTrack.lastManagementEditFields,
+        )
+        : simulationTrack.lastManagementEditFields
 
     return merged
 }
@@ -129,6 +147,7 @@ export function mergeLiveTracksForManagementWindowSync(
     simulationTracks,
     openTrackManagementWindows,
     getMapLayerTrack,
+    evaluationTime = Date.now(),
 ) {
     const tracksById = new Map()
 
@@ -152,7 +171,7 @@ export function mergeLiveTracksForManagementWindowSync(
         tracksById.set(
             trackManagementWindow.trackId,
             existingTrack
-                ? mergeUserDirectedLayerTrackOverSimulation(existingTrack, layerTrack)
+                ? mergeUserDirectedLayerTrackOverSimulation(existingTrack, layerTrack, evaluationTime)
                 : layerTrack,
         )
     }
@@ -264,6 +283,7 @@ export function syncTrackManagementWindowsFromTracks(
     trackManagementWindows,
     tracks,
     skipFieldsByWindowId = {},
+    evaluationTime = Date.now(),
 ) {
     if (trackManagementWindows.length === 0 || tracks.length === 0) {
         return trackManagementWindows
@@ -292,6 +312,8 @@ export function syncTrackManagementWindowsFromTracks(
         const skipFields = expandSkipFieldsWithCommittedManagementEdits(
             skipFieldsByWindowId[trackManagementWindow.id] ?? new Set(),
             liveTrack.lastManagementEditFields,
+            liveTrack,
+            evaluationTime,
         )
         const mergedWindow = mergeTrackManagementWindowLiveUpdates(
             trackManagementWindow,
@@ -341,6 +363,7 @@ export function createTrackUpdateFromManagementWindow(
     trackManagementWindow,
     existingTrack,
     changedFields,
+    evaluationTime = Date.now(),
 ) {
     const update = {
         id: trackManagementWindow.trackId,
@@ -358,17 +381,23 @@ export function createTrackUpdateFromManagementWindow(
         source: existingTrack?.source === 'auto' ? 'manual' : (trackManagementWindow.source ?? 'manual'),
         userDirected: true,
         lastManagementEditFields: accumulateManagementEditFields(
-            existingTrack?.lastManagementEditFields,
+            getAuthoritativeManagementEditFields(existingTrack, evaluationTime),
             changedFields,
         ),
     }
 
     if (!existingTrack) {
-        return update
+        return resolveExpiredCorrelationHold(
+            applyUserKinematicEditHold(update, existingTrack, changedFields),
+            evaluationTime,
+        )
     }
 
-    return {
-        ...existingTrack,
-        ...update,
-    }
+    return resolveExpiredCorrelationHold(
+        applyUserKinematicEditHold({
+            ...existingTrack,
+            ...update,
+        }, existingTrack, changedFields),
+        evaluationTime,
+    )
 }

@@ -129,6 +129,8 @@ describe('track management track updates', () => {
         assert.equal(updated.speed, 470)
         assert.equal(updated.altitude, 13_000)
         assert.deepEqual(updated.lastManagementEditFields, ['heading'])
+        assert.ok(updated.lastUserKinematicEditAt > 0)
+        assert.deepEqual(updated.lastUserKinematicEditFields, ['heading'])
     })
 
     it('accumulates committed fields across successive edits', () => {
@@ -157,6 +159,50 @@ describe('track management track updates', () => {
         )
         assert.equal(afterCallsignEdit.heading, 90)
         assert.equal(afterCallsignEdit.callsign, 'VIP01')
+    })
+
+    it('preserves prior kinematic commits when metadata edits merge from fresh engine track', () => {
+        const staleSnapshotTrack = existingTrack({
+            heading: 120,
+            callsign: 'CIV01',
+        })
+
+        const freshEngineTrack = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                heading: '090',
+            }),
+            staleSnapshotTrack,
+            ['heading'],
+        )
+
+        const mergedFromStaleSnapshot = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                heading: 90,
+                callsign: 'VIP01',
+            }),
+            staleSnapshotTrack,
+            ['callsign'],
+        )
+
+        const mergedFromFreshEngine = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                heading: 90,
+                callsign: 'VIP01',
+            }),
+            freshEngineTrack,
+            ['callsign'],
+        )
+
+        assert.equal(mergedFromStaleSnapshot.heading, 120)
+        assert.deepEqual(mergedFromStaleSnapshot.lastManagementEditFields, ['callsign'])
+
+        assert.equal(mergedFromFreshEngine.heading, 90)
+        assert.equal(mergedFromFreshEngine.callsign, 'VIP01')
+        assert.deepEqual(
+            mergedFromFreshEngine.lastManagementEditFields.sort(),
+            ['callsign', 'heading'],
+        )
+        assert.ok(mergedFromFreshEngine.lastUserKinematicEditAt > 0)
     })
 })
 
@@ -381,11 +427,13 @@ describe('track management window live sync', () => {
     })
 
     it('preserves user-edited kinematics from the map layer', () => {
+        const now = 10_000
         const mergedTrack = mergeUserDirectedLayerTrackOverSimulation(
             existingTrack({
                 heading: 120,
                 speed: 470,
                 altitude: 13_000,
+                lastUserKinematicEditAt: now - 1_000,
             }),
             existingTrack({
                 heading: 90,
@@ -393,11 +441,39 @@ describe('track management window live sync', () => {
                 altitude: 13_000,
                 userDirected: true,
                 lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: now - 1_000,
             }),
+            now,
         )
 
         assert.equal(mergedTrack.heading, 90)
         assert.equal(mergedTrack.speed, 470)
+    })
+
+    it('does not revive expired kinematic skip fields from stale layer tracks', () => {
+        const now = 20_000
+        const mergedTrack = mergeUserDirectedLayerTrackOverSimulation(
+            existingTrack({
+                heading: 180,
+                speed: 500,
+                altitude: 15_000,
+                lastManagementEditFields: ['callsign'],
+                lastUserKinematicEditAt: 5_000,
+            }),
+            existingTrack({
+                heading: 90,
+                speed: 420,
+                altitude: 12_000,
+                userDirected: true,
+                lastManagementEditFields: ['heading', 'callsign'],
+                lastUserKinematicEditAt: 5_000,
+            }),
+            now,
+        )
+
+        assert.equal(mergedTrack.heading, 180)
+        assert.equal(mergedTrack.speed, 500)
+        assert.deepEqual(mergedTrack.lastManagementEditFields, ['callsign'])
     })
 
     it('keeps simulation tracks for open auto tracks without manual edits', () => {
@@ -420,10 +496,87 @@ describe('track management window live sync', () => {
     })
 
     it('expands skip fields for committed management edits', () => {
+        const now = 10_000
+
         assert.deepEqual(
-            [...expandSkipFieldsWithCommittedManagementEdits(new Set(), ['heading', 'domain'])].sort(),
+            [...expandSkipFieldsWithCommittedManagementEdits(
+                new Set(),
+                ['heading', 'domain'],
+                {
+                    lastManagementEditFields: ['heading', 'domain'],
+                    lastUserKinematicEditAt: now - 1_000,
+                },
+                now,
+            )].sort(),
             ['domain', 'heading', 'specificType', 'type'],
         )
+    })
+
+    it('ignores expired kinematic fields when expanding live-sync skip fields', () => {
+        const now = 20_000
+
+        assert.deepEqual(
+            [...expandSkipFieldsWithCommittedManagementEdits(
+                new Set(),
+                ['heading', 'callsign'],
+                {
+                    lastManagementEditFields: ['heading', 'callsign'],
+                    lastUserKinematicEditAt: 5_000,
+                },
+                now,
+            )].sort(),
+            ['callsign'],
+        )
+    })
+
+    it('maps committed position fields to lngLat live-sync skips', () => {
+        assert.deepEqual(
+            [...expandSkipFieldsWithCommittedManagementEdits(new Set(), ['longitude', 'latitude'])].sort(),
+            ['lngLat'],
+        )
+    })
+
+    it('does not revive expired kinematic skip fields on metadata-only updates', () => {
+        const updated = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                callsign: 'VIP01',
+            }),
+            existingTrack({
+                callsign: 'CIV01',
+                lastManagementEditFields: ['heading', 'callsign'],
+                lastUserKinematicEditAt: 5_000,
+            }),
+            ['callsign'],
+        )
+
+        assert.deepEqual(updated.lastManagementEditFields, ['callsign'])
+        assert.equal(updated.lastUserKinematicEditAt, undefined)
+        assert.equal(updated.lastUserKinematicEditFields, undefined)
+    })
+
+    it('evaluates existing hold expiry using simulation time', () => {
+        const editAt = 10_000
+
+        const updated = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                callsign: 'VIP01',
+            }),
+            existingTrack({
+                callsign: 'CIV01',
+                lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: editAt,
+                lastUserKinematicEditFields: ['heading'],
+            }),
+            ['callsign'],
+            editAt + 5_000,
+        )
+
+        assert.deepEqual(
+            updated.lastManagementEditFields.sort(),
+            ['callsign', 'heading'],
+        )
+        assert.equal(updated.lastUserKinematicEditAt, editAt)
+        assert.deepEqual(updated.lastUserKinematicEditFields, ['heading'])
     })
 
     it('does not overwrite committed kinematic edits during live sync', () => {
@@ -459,7 +612,54 @@ describe('track management window live sync', () => {
                 altitude: 15_000,
                 userDirected: true,
                 lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: Date.now() - 1_000,
             })],
+        )
+
+        assert.equal(syncedWindows[0].heading, 90)
+        assert.equal(syncedWindows[0].speed, 500)
+        assert.equal(syncedWindows[0].altitude, 15_000)
+    })
+
+    it('evaluates live-sync skip fields using simulation time', () => {
+        const editAt = 10_000
+        const evaluationTime = editAt + 5_000
+        const openWindow = {
+            id: 'track-AUTO-1',
+            trackId: 'AUTO-1',
+            x: 100,
+            y: 200,
+            lngLat: {
+                lng: -75,
+                lat: 40,
+            },
+            line: null,
+            domain: 'AIR',
+            identity: 'NEUTRAL',
+            type: '01:110104',
+            specificType: 'F-16',
+            callsign: 'CIV01',
+            heading: 90,
+            speed: 420,
+            altitude: 12_000,
+            infoFields: false,
+            correlationMode: 'active',
+            source: 'auto',
+            dismissOnMapClick: false,
+        }
+
+        const syncedWindows = syncTrackManagementWindowsFromTracks(
+            [openWindow],
+            [existingTrack({
+                heading: 180,
+                speed: 500,
+                altitude: 15_000,
+                lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: editAt,
+                lastUserKinematicEditFields: ['heading'],
+            })],
+            {},
+            evaluationTime,
         )
 
         assert.equal(syncedWindows[0].heading, 90)
@@ -501,6 +701,7 @@ describe('track management window live sync', () => {
                 altitude: 15_000,
                 userDirected: true,
                 lastManagementEditFields: ['heading', 'callsign'],
+                lastUserKinematicEditAt: Date.now() - 1_000,
             })],
         )
 
@@ -511,16 +712,20 @@ describe('track management window live sync', () => {
     })
 
     it('unions committed edit fields when merging simulation and layer tracks', () => {
+        const now = 10_000
         const mergedTrack = mergeUserDirectedLayerTrackOverSimulation(
             existingTrack({
                 heading: 180,
                 lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: now - 1_000,
             }),
             existingTrack({
                 callsign: 'VIP01',
                 userDirected: true,
                 lastManagementEditFields: ['callsign'],
+                lastUserKinematicEditAt: now - 1_000,
             }),
+            now,
         )
 
         assert.deepEqual(
