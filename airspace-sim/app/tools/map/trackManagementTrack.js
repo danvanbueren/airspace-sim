@@ -26,6 +26,8 @@ export const TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS = [
     'infoFields',
     'correlationMode',
     'attentionFlags',
+    'iffMode3Code',
+    'iffMode3UpdatedAt',
 ]
 
 export const TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS = 1000
@@ -259,6 +261,8 @@ export function getTrackManagementWindowLiveUpdatesFromTrack(track) {
         infoFields: Boolean(track.infoFields),
         correlationMode: track.correlationMode ?? 'active',
         attentionFlags: Array.isArray(track.attentionFlags) ? track.attentionFlags : [],
+        iffMode3Code: track.iffMode3Code ?? null,
+        iffMode3UpdatedAt: track.iffMode3UpdatedAt ?? null,
     }
 }
 
@@ -335,6 +339,10 @@ export function syncTrackManagementWindowsFromTracks(
 
                 return previousFlags.length !== nextFlags.length
                     || previousFlags.some((flag, index) => flag !== nextFlags[index])
+            }
+
+            if (field === 'iffMode3Code' || field === 'iffMode3UpdatedAt') {
+                return mergedWindow[field] !== trackManagementWindow[field]
             }
 
             return mergedWindow[field] !== trackManagementWindow[field]

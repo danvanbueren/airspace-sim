@@ -1,6 +1,7 @@
 import airportsData from '@/app/data/airports.json'
 import airRoutesData from '@/app/data/airRoutes.json'
 import {haversineDistanceNm} from './geo'
+import {assignMode3Code} from './iffMode3'
 import {createSeededRandom} from './sensorNoise'
 import {TRACK_DOMAINS, TRACK_IDENTITIES, TRACK_TYPES} from '@/app/tools/milstd2525/trackSymbolCodes'
 
@@ -197,9 +198,11 @@ export function createFlightAircraft(id, route, airportByIcao, random) {
     const cruiseAltitude = isMilitary
         ? 15_000 + Math.floor(random() * 20_000)
         : 28_000 + Math.floor(random() * 12_000)
+    const mode3Code = assignMode3Code(random)
 
     return {
         id,
+        trafficKind: 'commercial',
         routeId: route.id,
         origin: route.origin,
         destination: route.destination,
@@ -222,6 +225,7 @@ export function createFlightAircraft(id, route, airportByIcao, random) {
         domain: TRACK_DOMAINS.AIR,
         identity: isMilitary ? TRACK_IDENTITIES.UNKNOWN : TRACK_IDENTITIES.NEUTRAL,
         type: TRACK_TYPES.FIGHTER,
+        mode3Code,
     }
 }
 
@@ -251,6 +255,7 @@ export function assignNewRoute(aircraft, pickRoute, airportByIcao, random) {
         routeHeading: next.routeHeading ?? next.heading,
         profile: next.profile,
         identity: next.identity,
+        mode3Code: aircraft.mode3Code ?? next.mode3Code,
     }
 }
 

@@ -26,7 +26,14 @@ function inferAlertSignalId(message) {
 }
 
 export function useAlarmAlertActions() {
-    const mapState = useMapState()
+    const {
+        addAlarmAlert,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        clearEmergencyAlarmRaised,
+        sweepInactiveEmergencyAlarmKeys,
+        ...mapState
+    } = useMapState()
     const {appSettings} = useAppSettings()
     const inhibitedAlerts = appSettings.inhibitedAlerts ?? []
 
@@ -41,14 +48,20 @@ export function useAlarmAlertActions() {
         const signalId = normalizedInput?.signalId ?? MISC_SIGNAL_ID
 
         if (inhibitedAlerts.includes(signalId)) {
-            return
+            return false
         }
 
-        mapState.addAlarmAlert(normalizedInput)
-    }, [inhibitedAlerts, mapState])
+        addAlarmAlert(normalizedInput)
+        return true
+    }, [addAlarmAlert, inhibitedAlerts])
 
     return {
         ...mapState,
+        addAlarmAlert,
         raiseAlarmAlert,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        clearEmergencyAlarmRaised,
+        sweepInactiveEmergencyAlarmKeys,
     }
 }

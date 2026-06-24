@@ -11,6 +11,8 @@
  * @property {number} speed
  * @property {number} [altitude]
  * @property {string} [profile]
+ * @property {string} [mode3Code]
+ * @property {'commercial'|'generalAviation'} [trafficKind]
  */
 
 /**
@@ -24,6 +26,7 @@
  * @property {boolean} correlated
  * @property {number} [quality]
  * @property {number|null} [correlationDistanceNm]
+ * @property {string} [mode3Code]
  */
 
 /**
@@ -63,6 +66,8 @@
  * @property {number} [dropRiskAt] Timestamp when invisible DROP-RISK auto-drop countdown started
  * @property {number} [dropAt] Timestamp when visible DROP attention phase started
  * @property {boolean} [dropProtect] When true, prevents automatic drop of uncorrelated tracks
+ * @property {string|null} [iffMode3Code] Last correlated IFF Mode 3 code (sensor-derived)
+ * @property {number|null} [iffMode3UpdatedAt] Timestamp of last IFF code correlation
  */
 
 export {}

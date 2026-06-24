@@ -47,6 +47,10 @@ export class PlotAssociationStore {
             plot.lastSeenAt = timestamp
             plot.lastDetectionId = detection.id
 
+            if (detection.mode3Code) {
+                plot.mode3Code = detection.mode3Code
+            }
+
             if (plot.hitCount >= initiationHitCount && !plot.promoted) {
                 plot.promoted = true
                 promotedTracks.push({
@@ -56,6 +60,7 @@ export class PlotAssociationStore {
                     latitude: detection.latitude,
                     timestamp,
                     lastDetectionId: detection.id,
+                    mode3Code: detection.mode3Code ?? plot.mode3Code ?? null,
                 })
             }
         })

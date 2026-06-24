@@ -1,13 +1,15 @@
 'use client'
 
-import {useMemo, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import BasicGlassPanel from './BasicGlassPanel'
 import AlarmAlertDetailModal from './AlarmAlertDetailModal'
 import {Box, Button, Divider, Grid, IconButton, Stack, Typography} from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import GpsFixedIcon from '@mui/icons-material/GpsFixed'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
-import {getSignalLabel} from '@/app/simulation/signalDefinitions'
+import {useSimulation} from '@/app/contexts/SimulationContext'
+import {getSignalLabel, isIffEmergencyAlertSignalId} from '@/app/simulation/signalDefinitions'
 import {formatDateTimeGroup} from '@/app/tools/formatting/DateTime'
 
 const ALARM_ALERT_PREVIEW_MAX_LENGTH = 120
@@ -20,8 +22,26 @@ function truncateAlarmAlertMessage(message, maxLength = ALARM_ALERT_PREVIEW_MAX_
     return `${message.slice(0, maxLength)}...`
 }
 
+function focusAlertTrack(alert, {getTrack, flyToTrack, flyToCoordinates}) {
+    if (!isIffEmergencyAlertSignalId(alert.signalId)) {
+        return
+    }
+
+    const liveTrack = alert.trackId ? getTrack(alert.trackId) : null
+
+    if (liveTrack) {
+        flyToTrack(liveTrack)
+        return
+    }
+
+    if (Number.isFinite(alert.longitude) && Number.isFinite(alert.latitude)) {
+        flyToCoordinates(alert.longitude, alert.latitude)
+    }
+}
+
 export default function AlarmAlertPanel() {
-    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts} = useAlarmAlertActions()
+    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts, flyToTrack, flyToCoordinates} = useAlarmAlertActions()
+    const {getTrack} = useSimulation()
     const {appSettings} = useAppSettings()
     const [openAlert, setOpenAlert] = useState(null)
 
@@ -31,21 +51,37 @@ export default function AlarmAlertPanel() {
         return alarmAlertQueue.filter((alert) => !inhibitedAlerts.has(alert.signalId))
     }, [alarmAlertQueue, appSettings.inhibitedAlerts])
 
+    useEffect(() => {
+        if (!openAlert?.id) {
+            return
+        }
+
+        const stillVisible = visibleAlerts.some((alert) => alert.id === openAlert.id)
+
+        if (!stillVisible) {
+            setOpenAlert(null)
+        }
+    }, [openAlert?.id, visibleAlerts])
+
     const closeDetailModal = () => setOpenAlert(null)
 
-    const deleteDetailAlert = () => {
+    const focusTrackHandlers = {getTrack, flyToTrack, flyToCoordinates}
+
+    const handleModalFocusTrack = () => {
         if (!openAlert) {
             return
         }
 
-        const indexToDelete = alarmAlertQueue.findIndex(
-            (alert) => alert.timestamp === openAlert.timestamp && alert.message === openAlert.message,
-        )
+        focusAlertTrack(openAlert, focusTrackHandlers)
+        closeDetailModal()
+    }
 
-        if (indexToDelete !== -1) {
-            deleteAlarmAlert(indexToDelete)
+    const deleteDetailAlert = () => {
+        if (!openAlert?.id) {
+            return
         }
 
+        deleteAlarmAlert(openAlert.id)
         setOpenAlert(null)
     }
 
@@ -60,8 +96,10 @@ export default function AlarmAlertPanel() {
             message={openAlert?.message ?? ''}
             timestamp={openAlert?.timestamp}
             signalLabel={openAlert?.signalLabel}
+            showTrackFocus={openAlert ? isIffEmergencyAlertSignalId(openAlert.signalId) : false}
             onClose={closeDetailModal}
             onDelete={deleteDetailAlert}
+            onFocusTrack={handleModalFocusTrack}
         />
         {visibleAlerts.length > 0 && (
         <BasicGlassPanel dense>
@@ -111,9 +149,28 @@ export default function AlarmAlertPanel() {
                         END OF ALERTS
                     </Typography>
 
-                    {visibleAlerts.map((alert, index) => (
+                    {visibleAlerts.map((alert) => {
+                        const showTrackFocus = isIffEmergencyAlertSignalId(alert.signalId)
+
+                        const handleFocusTrack = (event) => {
+                            event.stopPropagation()
+                            focusAlertTrack(alert, focusTrackHandlers)
+                        }
+
+                        const openDetailModal = () => setOpenAlert({
+                            id: alert.id,
+                            message: alert.message,
+                            timestamp: alert.timestamp,
+                            signalId: alert.signalId,
+                            signalLabel: getSignalLabel(alert.signalId),
+                            trackId: alert.trackId ?? null,
+                            longitude: alert.longitude ?? null,
+                            latitude: alert.latitude ?? null,
+                        })
+
+                        return (
                         <Box
-                            key={`${alert.timestamp}-${index}`}
+                            key={alert.id}
                         >
                             <Divider
                                 sx={{m: 1, mt: 0,}}
@@ -134,21 +191,13 @@ export default function AlarmAlertPanel() {
                                             pt: 1,
                                             cursor: 'pointer',
                                         }}
-                                        onClick={() => setOpenAlert({
-                                            message: alert.message,
-                                            timestamp: alert.timestamp,
-                                            signalLabel: getSignalLabel(alert.signalId),
-                                        })}
+                                        onClick={openDetailModal}
                                         role='button'
                                         tabIndex={0}
                                         onKeyDown={(event) => {
                                             if (event.key === 'Enter' || event.key === ' ') {
                                                 event.preventDefault()
-                                                setOpenAlert({
-                                                    message: alert.message,
-                                                    timestamp: alert.timestamp,
-                                                    signalLabel: getSignalLabel(alert.signalId),
-                                                })
+                                                openDetailModal()
                                             }
                                         }}
                                     >
@@ -192,15 +241,23 @@ export default function AlarmAlertPanel() {
                                         alignContent: 'center',
                                     }}
                                 >
+                                    {showTrackFocus ? (
+                                        <IconButton
+                                            edge="start"
+                                            size="small"
+                                            aria-label="center map on track"
+                                            onClick={handleFocusTrack}
+                                        >
+                                            <GpsFixedIcon fontSize="small"/>
+                                        </IconButton>
+                                    ) : null}
                                     <IconButton
                                         edge="end"
                                         size="small"
                                         aria-label="delete alarm"
-                                        onClick={() => {
-                                            const queueIndex = alarmAlertQueue.indexOf(alert)
-                                            if (queueIndex !== -1) {
-                                                deleteAlarmAlert(queueIndex)
-                                            }
+                                        onClick={(event) => {
+                                            event.stopPropagation()
+                                            deleteAlarmAlert(alert.id)
                                         }}
                                     >
                                         <DeleteIcon fontSize="small"/>
@@ -208,7 +265,8 @@ export default function AlarmAlertPanel() {
                                 </Grid>
                             </Grid>
                         </Box>
-                    ))}
+                        )
+                    })}
                 </Stack>
             </Box>
         </BasicGlassPanel>

@@ -1,12 +1,14 @@
 'use client'
 
-import {createContext, useCallback, useContext, useMemo, useState} from 'react'
+import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react'
 import {
     getSignalDefinition,
     MISC_SIGNAL_ID,
 } from '@/app/simulation/signalDefinitions'
 
 const MapStateContext = createContext(null)
+
+export const ALARM_TRACK_FOCUS_ZOOM = 10
 
 function normalizeAlarmAlertMessage(message) {
     if (message instanceof Error) {
@@ -39,6 +41,11 @@ function normalizeAlertInput(input) {
         return {
             signalId,
             message: normalizeAlarmAlertMessage(message),
+            trackId: input.trackId ?? null,
+            longitude: input.longitude ?? null,
+            latitude: input.latitude ?? null,
+            raisedAt: input.raisedAt ?? null,
+            alarmKey: input.alarmKey ?? null,
         }
     }
 
@@ -48,25 +55,88 @@ function normalizeAlertInput(input) {
     }
 }
 
+function toAlertTimestamp(raisedAt) {
+    if (raisedAt instanceof Date) {
+        return raisedAt
+    }
+
+    if (typeof raisedAt === 'number' && Number.isFinite(raisedAt)) {
+        return new Date(raisedAt)
+    }
+
+    return new Date()
+}
+
 export function MapStateProvider({children}) {
     const [alarmAlertQueue, setAlarmAlertQueue] = useState([])
     const [map, setMap] = useState(null)
+    const nextAlertIdRef = useRef(1)
+    const raisedEmergencyAlarmKeysRef = useRef(new Set())
+    const emergencyAlarmLastSeenRef = useRef(new Map())
+
+    const isEmergencyAlarmRaised = useCallback((alarmKey) => (
+        raisedEmergencyAlarmKeysRef.current.has(alarmKey)
+    ), [])
+
+    const markEmergencyAlarmRaised = useCallback((alarmKey) => {
+        if (alarmKey) {
+            raisedEmergencyAlarmKeysRef.current.add(alarmKey)
+        }
+    }, [])
+
+    const clearEmergencyAlarmRaised = useCallback((alarmKey) => {
+        if (alarmKey) {
+            raisedEmergencyAlarmKeysRef.current.delete(alarmKey)
+        }
+    }, [])
+
+    const sweepInactiveEmergencyAlarmKeys = useCallback((activeKeys, evaluationTime, graceMs) => {
+        const lastSeen = emergencyAlarmLastSeenRef.current
+
+        for (const key of activeKeys) {
+            lastSeen.set(key, evaluationTime)
+        }
+
+        for (const key of [...raisedEmergencyAlarmKeysRef.current]) {
+            if (activeKeys.has(key)) {
+                continue
+            }
+
+            const lastSeenTime = lastSeen.get(key)
+
+            if (lastSeenTime === undefined || evaluationTime - lastSeenTime > graceMs) {
+                raisedEmergencyAlarmKeysRef.current.delete(key)
+                lastSeen.delete(key)
+            }
+        }
+    }, [])
 
     const addAlarmAlert = useCallback((input) => {
         const normalizedAlert = normalizeAlertInput(input)
+        const id = nextAlertIdRef.current
+        nextAlertIdRef.current += 1
 
         setAlarmAlertQueue((currentQueue) => [
             ...currentQueue,
             {
-                timestamp: new Date(),
+                id,
+                timestamp: toAlertTimestamp(normalizedAlert.raisedAt),
                 signalId: normalizedAlert.signalId,
                 message: normalizedAlert.message,
+                trackId: normalizedAlert.trackId ?? null,
+                longitude: normalizedAlert.longitude ?? null,
+                latitude: normalizedAlert.latitude ?? null,
+                alarmKey: normalizedAlert.alarmKey ?? null,
             },
         ])
+
+        return id
     }, [])
 
-    const deleteAlarmAlert = useCallback((indexToDelete) => {
-        setAlarmAlertQueue((currentQueue) => currentQueue.filter((_, index) => index !== indexToDelete))
+    const deleteAlarmAlert = useCallback((alertId) => {
+        setAlarmAlertQueue((currentQueue) => (
+            currentQueue.filter((entry) => entry.id !== alertId)
+        ))
     }, [])
 
     const clearAlarmAlerts = useCallback(() => {
@@ -76,6 +146,28 @@ export function MapStateProvider({children}) {
     const registerMap = useCallback((mapInstance) => {
         setMap(mapInstance)
     }, [])
+
+    const flyToCoordinates = useCallback((longitude, latitude, zoom = ALARM_TRACK_FOCUS_ZOOM) => {
+        if (!map || !Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+            return false
+        }
+
+        map.flyTo({
+            center: [longitude, latitude],
+            zoom,
+            essential: true,
+        })
+
+        return true
+    }, [map])
+
+    const flyToTrack = useCallback((track) => {
+        if (!track) {
+            return false
+        }
+
+        return flyToCoordinates(track.longitude, track.latitude)
+    }, [flyToCoordinates])
 
     const zoomIn = useCallback(() => {
         map?.zoomIn()
@@ -90,20 +182,32 @@ export function MapStateProvider({children}) {
         addAlarmAlert,
         deleteAlarmAlert,
         clearAlarmAlerts,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        clearEmergencyAlarmRaised,
+        sweepInactiveEmergencyAlarmKeys,
         map,
         registerMap,
         zoomIn,
         zoomOut,
+        flyToCoordinates,
+        flyToTrack,
         getAlertSignalLabel: (signalId) => getSignalDefinition(signalId).label,
     }), [
         alarmAlertQueue,
         addAlarmAlert,
         deleteAlarmAlert,
         clearAlarmAlerts,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        clearEmergencyAlarmRaised,
+        sweepInactiveEmergencyAlarmKeys,
         map,
         registerMap,
         zoomIn,
         zoomOut,
+        flyToCoordinates,
+        flyToTrack,
     ])
 
     return (

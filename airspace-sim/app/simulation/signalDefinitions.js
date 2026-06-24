@@ -30,6 +30,34 @@ export const SIGNAL_DEFINITIONS = {
         description: 'Uncorrelated track scheduled for automatic removal.',
         priority: 5,
     },
+    IFF_EMER: {
+        id: 'IFF_EMER',
+        kind: SIGNAL_KIND.ATTENTION,
+        label: 'EMER',
+        description: 'Track correlated to IFF Mode 3 code 7700 (emergency).',
+        priority: 2,
+    },
+    IFF_NORDO: {
+        id: 'IFF_NORDO',
+        kind: SIGNAL_KIND.ATTENTION,
+        label: 'NORDO',
+        description: 'Track correlated to IFF Mode 3 code 7600 (radio failure).',
+        priority: 3,
+    },
+    IFF_HIJ: {
+        id: 'IFF_HIJ',
+        kind: SIGNAL_KIND.ATTENTION,
+        label: 'HIJ',
+        description: 'Track correlated to IFF Mode 3 code 7500 (unlawful interference).',
+        priority: 1,
+    },
+    IFF_STALE: {
+        id: 'IFF_STALE',
+        kind: SIGNAL_KIND.ATTENTION,
+        label: 'STALE',
+        description: 'IFF Mode 3 code has not refreshed within the stale threshold.',
+        priority: 8,
+    },
     STALE: {
         id: 'STALE',
         kind: SIGNAL_KIND.ATTENTION,
@@ -64,6 +92,27 @@ export const SIGNAL_DEFINITIONS = {
         label: 'Map Error',
         description: 'MapLibre map load or runtime errors.',
         priority: 10,
+    },
+    IFF_EMER_ALERT: {
+        id: 'IFF_EMER_ALERT',
+        kind: SIGNAL_KIND.ALERT,
+        label: 'IFF Emergency',
+        description: 'Track correlated to IFF Mode 3 code 7700 (general emergency).',
+        priority: 1,
+    },
+    IFF_NORDO_ALERT: {
+        id: 'IFF_NORDO_ALERT',
+        kind: SIGNAL_KIND.ALERT,
+        label: 'IFF NORDO',
+        description: 'Track correlated to IFF Mode 3 code 7600 (radio communication failure).',
+        priority: 2,
+    },
+    IFF_HIJ_ALERT: {
+        id: 'IFF_HIJ_ALERT',
+        kind: SIGNAL_KIND.ALERT,
+        label: 'IFF Hijack',
+        description: 'Track correlated to IFF Mode 3 code 7500 (unlawful interference).',
+        priority: 3,
     },
     BROWSER_ERROR: {
         id: 'BROWSER_ERROR',
@@ -116,6 +165,20 @@ export const ATTENTION_SIGNAL_IDS = Object.values(SIGNAL_DEFINITIONS)
 export const ALERT_SIGNAL_IDS = Object.values(SIGNAL_DEFINITIONS)
     .filter((definition) => definition.kind === SIGNAL_KIND.ALERT)
     .map((definition) => definition.id)
+
+export const IFF_EMERGENCY_ALERT_SIGNAL_IDS = [
+    'IFF_EMER_ALERT',
+    'IFF_NORDO_ALERT',
+    'IFF_HIJ_ALERT',
+]
+
+/**
+ * @param {string} signalId
+ * @returns {boolean}
+ */
+export function isIffEmergencyAlertSignalId(signalId) {
+    return IFF_EMERGENCY_ALERT_SIGNAL_IDS.includes(signalId)
+}
 
 /**
  * @param {string} signalId

@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useMemo, useRef} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {createPortal} from 'react-dom'
 import {useTheme} from '@mui/material/styles'
 import {useCursorHooks} from '../../hooks/map/useCursorHooks'
@@ -15,6 +15,7 @@ import {useTrackManagementWindowFocusOrder} from '../../hooks/map/useTrackManage
 import {useTrackMapLayer} from '../../hooks/map/useTrackMapLayer'
 import {useSensorDetectionMapLayer} from '../../hooks/map/useSensorDetectionMapLayer'
 import {useSimulationLoop} from '../../hooks/simulation/useSimulationLoop'
+import {useIffEmergencyAlarms} from '../../hooks/simulation/useIffEmergencyAlarms'
 import {useTrackManagementKeyboardCustody} from '../../hooks/map/useTrackManagementKeyboardCustody'
 import {useMapCursorState} from '../../hooks/map/useMapCursorState'
 import {useSimulation} from '../../contexts/SimulationContext'
@@ -90,6 +91,13 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     useRegisteredMap(mapRef, mapReady, registerMap)
 
     const simulationSnapshot = useSimulationLoop(mapRef, mapReady)
+    const [mapVisibleTracks, setMapVisibleTracks] = useState([])
+
+    useIffEmergencyAlarms(
+        simulationSnapshot?.tracks ?? [],
+        getSimulationTimestamp(),
+        simulationSettings.iffRefreshMs ?? 1000,
+    )
 
     useSensorDetectionMapLayer(mapRef, mapReady, simulationSnapshot, mapStyle)
 
@@ -269,6 +277,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
             const bounds = getExpandedMapBounds(map, padding)
             const visibleTracks = filterTracksByBounds(simulationSnapshot.tracks, bounds)
 
+            setMapVisibleTracks(visibleTracks)
             trackMapLayer.replaceTracks(visibleTracks)
         }
 
@@ -451,6 +460,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                     onSkipLiveFieldsChange={handleSkipLiveFieldsChange}
                     hasKeyboardCustody={trackManagementKeyboardCustodyWindowId === trackManagementWindow.id}
                     zIndex={getWindowZIndex(trackManagementWindow.id)}
+                    evaluationTime={getSimulationTimestamp()}
                 />
             ))}
 
@@ -494,8 +504,9 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
             <TrackAttentionOverlay
                 mapRef={mapRef}
                 mapReady={mapReady}
-                tracks={simulationSnapshot?.tracks ?? []}
+                tracks={mapVisibleTracks}
                 evaluationTime={getSimulationTimestamp()}
+                iffRefreshMs={simulationSettings.iffRefreshMs ?? 1000}
             />
 
             {mapOverlayLayer

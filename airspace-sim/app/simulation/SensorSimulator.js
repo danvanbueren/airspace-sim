@@ -1,3 +1,4 @@
+import {SENSOR_TYPES} from './constants'
 import {applySensorNoise} from './sensorNoise'
 import {isPointInBounds} from './geo'
 
@@ -26,6 +27,9 @@ export class SensorSimulator {
                 correlatedTrackId: null,
                 correlated: false,
                 quality: noisy.quality,
+                ...(sensorType === SENSOR_TYPES.IFF && aircraft.mode3Code
+                    ? {mode3Code: aircraft.mode3Code}
+                    : {}),
             })
 
             detectionIndex += 1

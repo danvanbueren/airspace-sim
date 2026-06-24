@@ -1,38 +1,55 @@
+import {SENSOR_TYPES} from './constants.js'
 import {correlateDetections} from './correlation.js'
+import {
+    applyIffCorrelationFields,
+    clearSeparatedIffTrackCodes,
+    correlateIffDetections,
+} from './iffCorrelation.js'
 import {isCorrelationHoldActive} from './correlationHold.js'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 
 export class CorrelationService {
-    apply(detections, trackStore, thresholdNm, timestamp) {
+    apply(detections, trackStore, thresholdNm, timestamp, sensorType) {
         const correlationTargets = trackStore
             .getAllTracks()
             .filter((track) => track.correlationMode === TRACK_CORRELATION_MODES.ACTIVE)
 
-        return correlateDetections(detections, correlationTargets, thresholdNm)
-            .map((detection) => {
-                if (!detection.correlated || !detection.correlatedTrackId) {
-                    return detection
-                }
+        const correlatedDetections = sensorType === SENSOR_TYPES.IFF
+            ? correlateIffDetections(detections, correlationTargets, thresholdNm)
+            : correlateDetections(detections, correlationTargets, thresholdNm)
 
-                const existing = trackStore.getTrack(detection.correlatedTrackId)
+        correlatedDetections.forEach((detection) => {
+            if (!detection.correlated || !detection.correlatedTrackId) {
+                return
+            }
 
-                if (existing && !isCorrelationHoldActive(existing, timestamp)) {
-                    trackStore.updateTrack(detection.correlatedTrackId, {
-                        longitude: detection.longitude,
-                        latitude: detection.latitude,
-                        lastSensorUpdateAt: timestamp,
-                        lastExtrapolationAt: timestamp,
-                        stale: false,
-                        correlated: true,
-                    })
-                } else if (existing) {
-                    trackStore.updateTrack(detection.correlatedTrackId, {
-                        correlated: true,
-                    })
-                }
+            const existing = trackStore.getTrack(detection.correlatedTrackId)
 
-                return detection
+            if (existing && !isCorrelationHoldActive(existing, timestamp)) {
+                trackStore.updateTrack(detection.correlatedTrackId, {
+                    longitude: detection.longitude,
+                    latitude: detection.latitude,
+                    lastSensorUpdateAt: timestamp,
+                    lastExtrapolationAt: timestamp,
+                    stale: false,
+                    correlated: true,
+                })
+            } else if (existing) {
+                trackStore.updateTrack(detection.correlatedTrackId, {
+                    correlated: true,
+                })
+            }
+        })
+
+        if (sensorType === SENSOR_TYPES.IFF) {
+            applyIffCorrelationFields(trackStore, correlatedDetections, timestamp)
+            clearSeparatedIffTrackCodes(trackStore, detections, thresholdNm, {
+                correlatedDetections,
+                timestamp,
             })
+        }
+
+        return correlatedDetections
     }
 }
 

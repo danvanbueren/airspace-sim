@@ -305,6 +305,7 @@ export class TrackEngine {
             this.trackStore,
             correlationNm,
             timestamp,
+            sensorType,
         )
 
         this.applyCorrelatedKinematics(correlatedDetections, timestamp)
@@ -431,6 +432,7 @@ export class TrackEngine {
             tracks: enrichTracksWithAttentionFlags(
                 this.trackStore.getAllTracks(),
                 evaluationTime,
+                this.settings.iffRefreshMs ?? 1000,
             ),
             radar: this.getDisplayDetections(SENSOR_TYPES.RADAR),
             iff: this.getDisplayDetections(SENSOR_TYPES.IFF),

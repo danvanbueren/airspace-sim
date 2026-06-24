@@ -1,11 +1,19 @@
+import {formatMode3Code} from './iffMode3.js'
+
 export const TRACK_CORRELATION_MODES = {
     ACTIVE: 'active',
     EXTRAPOLATED: 'extrapolated',
     SUSPEND: 'suspend',
 }
 
-export function trackFromInitiation({plotId, sensorType, longitude, latitude, timestamp, flightWorld}) {
-    const nearest = flightWorld?.findNearestAircraft?.(longitude, latitude)
+export function trackFromInitiation({plotId, sensorType, longitude, latitude, timestamp, flightWorld, mode3Code}) {
+    const normalizedMode3Code = mode3Code ? formatMode3Code(mode3Code) : null
+    const nearest = normalizedMode3Code
+        ? (
+            flightWorld?.findAircraftByMode3Code?.(normalizedMode3Code, 15, longitude, latitude)
+            ?? flightWorld?.findNearestAircraft?.(longitude, latitude)
+        )
+        : flightWorld?.findNearestAircraft?.(longitude, latitude)
     const id = `TRK-${sensorType}-${plotId}`
 
     return {
@@ -29,6 +37,10 @@ export function trackFromInitiation({plotId, sensorType, longitude, latitude, ti
         correlated: false,
         userDirected: false,
         plotId,
+        ...(normalizedMode3Code ? {
+            iffMode3Code: normalizedMode3Code,
+            iffMode3UpdatedAt: timestamp,
+        } : {}),
     }
 }
 
