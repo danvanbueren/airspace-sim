@@ -29,6 +29,14 @@ export function isTrackInAutoDropPhase(track) {
 
 /**
  * @param {import('./types.js').TrackState} track
+ * @returns {boolean}
+ */
+export function shouldShowDropAttention(track) {
+    return isTrackEligibleForAutoDrop(track) && isTrackInAutoDropPhase(track)
+}
+
+/**
+ * @param {import('./types.js').TrackState} track
  * @returns {Object}
  */
 export function getAutoDropStateClearUpdates() {

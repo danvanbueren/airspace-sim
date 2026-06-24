@@ -17,6 +17,7 @@ import {enrichTracksWithAttentionFlags} from './trackAttentionFlags'
 import {
     getAutoDropStateClearUpdates,
     processAutoDropTracks,
+    shouldShowDropAttention,
 } from './trackAutoDrop'
 
 export class TrackEngine {
@@ -167,7 +168,7 @@ export class TrackEngine {
     recoverTrack(trackId) {
         const track = this.trackStore.getTrack(trackId)
 
-        if (!track || !track.dropAt) {
+        if (!track || !shouldShowDropAttention(track)) {
             return
         }
 

@@ -8,6 +8,7 @@ import {extrapolatePosition} from './geo.js'
 import {isCorrelationHoldActive, resolveExpiredCorrelationHold} from './correlationHold.js'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 import {buildMergedTrackState} from './trackMerge.js'
+import {getAutoDropStateClearUpdates} from './trackAutoDrop.js'
 
 export class TrackStore {
     constructor() {
@@ -121,6 +122,7 @@ export class TrackStore {
         const existing = this.tracks.get(id)
         const normalized = {
             ...track,
+            ...getAutoDropStateClearUpdates(),
             id,
             trackId: id,
             callsign: this.resolveCallsign(

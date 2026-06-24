@@ -9,6 +9,7 @@ import {
     isTrackInAutoDropPhase,
     processAutoDropTracks,
     shouldAutoDropTrack,
+    shouldShowDropAttention,
 } from '../../app/simulation/trackAutoDrop.js'
 import {deriveAttentionFlagsFromTrackState} from '../../app/simulation/trackAttentionFlags.js'
 
@@ -139,5 +140,39 @@ describe('trackAutoDrop', () => {
         const flags = deriveAttentionFlagsFromTrackState(createTrack({dropAt: 5000}))
 
         assert.ok(flags.includes('DROP'))
+    })
+
+    it('does not derive DROP attention for ineligible tracks with stale dropAt', () => {
+        const flags = deriveAttentionFlagsFromTrackState(createTrack({
+            dropAt: 5000,
+            source: 'manual',
+        }))
+
+        assert.ok(!flags.includes('DROP'))
+    })
+
+    it('shows DROP attention only when auto-drop is still eligible', () => {
+        assert.equal(shouldShowDropAttention(createTrack({dropAt: 5000})), true)
+        assert.equal(shouldShowDropAttention(createTrack({dropAt: 5000, source: 'manual'})), false)
+        assert.equal(shouldShowDropAttention(createTrack({dropAt: 5000, dropProtect: true})), false)
+    })
+
+    it('clears stale auto-drop timestamps when a track is upserted as manual', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(createTrack({
+            dropRiskAt: 1000,
+            dropAt: 6000,
+        }))
+
+        trackStore.upsertManualTrack(createTrack({
+            source: 'manual',
+            userDirected: true,
+        }))
+
+        const manualTrack = trackStore.getTrack('TRK-test')
+
+        assert.equal(manualTrack.source, 'manual')
+        assert.equal(manualTrack.dropAt, undefined)
+        assert.equal(manualTrack.dropRiskAt, undefined)
     })
 })

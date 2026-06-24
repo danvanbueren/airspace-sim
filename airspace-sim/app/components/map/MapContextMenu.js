@@ -18,7 +18,7 @@ import {
     formatCoordinatePairForGridReferenceSystem,
     getGridReferenceSystemDisplayName,
 } from '@/app/tools/formatting/GridReferenceFormatting'
-import {isTrackInAutoDropPhase} from '@/app/simulation/trackAutoDrop'
+import {shouldShowDropAttention} from '@/app/simulation/trackAutoDrop'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
 function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef) {
@@ -62,7 +62,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     const hasBearingRangeLine = Boolean(elementContainer.line)
     const track = elementContainer.track ?? null
     const hasTrack = Boolean(track)
-    const showRecoverTrack = hasTrack && isTrackInAutoDropPhase(track)
+    const showRecoverTrack = hasTrack && shouldShowDropAttention(track)
     const dropProtectEnabled = Boolean(track?.dropProtect)
     const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
         elementContainer.lngLat.lat,
