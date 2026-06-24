@@ -88,6 +88,7 @@ export default function TrackAttentionOverlay({
                 track,
                 evaluationTime,
                 inhibitedAttentionIds,
+                iffRefreshMs ?? appSettings.iffRefreshMs ?? 1000,
             )
 
             if (flagIds.length === 0) {

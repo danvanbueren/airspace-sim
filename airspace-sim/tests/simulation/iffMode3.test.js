@@ -213,6 +213,27 @@ describe('iffCorrelation', () => {
         assert.equal(correlated[0].correlatedTrackId, 'TRK-NEAR')
     })
 
+    it('does not overwrite stored Mode 3 codes through general IFF matching', () => {
+        const detections = [
+            {
+                id: 'iff-emer',
+                sensorType: SENSOR_TYPES.IFF,
+                mode3Code: '7700',
+                latitude: 40,
+                longitude: -75,
+            },
+        ]
+
+        const tracks = [
+            activeTrack({id: 'TRK-STORED', latitude: 40, iffMode3Code: '1200'}),
+            activeTrack({id: 'TRK-EMPTY', latitude: 40.001}),
+        ]
+
+        const correlated = correlateIffDetections(detections, tracks, 5)
+
+        assert.equal(correlated[0].correlatedTrackId, 'TRK-EMPTY')
+    })
+
     it('updates track IFF fields from correlated detections', () => {
         const trackStore = new TrackStore()
         trackStore.addTrack(activeTrack({id: 'TRK-1'}))

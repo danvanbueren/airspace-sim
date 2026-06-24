@@ -121,6 +121,10 @@ export function correlateIffDetections(detections, tracks, thresholdNm) {
             return
         }
 
+        if (trackCode && detectionCode && trackCode !== detectionCode) {
+            return
+        }
+
         generalCandidates.push(candidate)
     })
 

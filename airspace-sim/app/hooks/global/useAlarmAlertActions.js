@@ -41,10 +41,11 @@ export function useAlarmAlertActions() {
         const signalId = normalizedInput?.signalId ?? MISC_SIGNAL_ID
 
         if (inhibitedAlerts.includes(signalId)) {
-            return
+            return false
         }
 
         mapState.addAlarmAlert(normalizedInput)
+        return true
     }, [inhibitedAlerts, mapState])
 
     return {

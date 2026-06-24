@@ -49,14 +49,17 @@ export function useIffEmergencyAlarms(tracks, evaluationTime, iffRefreshMs) {
                 return
             }
 
-            raisedAlarmKeysRef.current.add(alarmKey)
-            raiseAlarmAlert({
+            const raised = raiseAlarmAlert({
                 signalId,
                 message: buildIffEmergencyAlarmMessage(track, mode3Code),
                 trackId,
                 longitude: track.longitude,
                 latitude: track.latitude,
             })
+
+            if (raised) {
+                raisedAlarmKeysRef.current.add(alarmKey)
+            }
         })
 
         raisedAlarmKeysRef.current.forEach((key) => {
