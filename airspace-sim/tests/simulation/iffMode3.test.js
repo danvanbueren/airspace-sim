@@ -2,9 +2,11 @@ import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {
     assignMode3Code,
+    buildIffEmergencyAlarmMessage,
     formatMode3Code,
     getEmergencyAlertSignalId,
     getEmergencyAttentionFlagId,
+    getEmergencySquawkLabel,
     isEmergencyMode3Code,
     isIffMode3Stale,
     isValidMode3Code,
@@ -70,6 +72,17 @@ describe('iffMode3', () => {
         assert.equal(getEmergencyAlertSignalId('7700'), 'IFF_EMER_ALERT')
         assert.ok(isEmergencyMode3Code('7500'))
         assert.ok(!isEmergencyMode3Code('1200'))
+    })
+
+    it('builds concise emergency alarm messages', () => {
+        const track = activeTrack({callsign: 'UAL123', id: 'TRK-1'})
+
+        assert.equal(getEmergencySquawkLabel('7700'), 'EMERGENCY')
+        assert.equal(getEmergencySquawkLabel('7600'), 'NORDO')
+        assert.equal(getEmergencySquawkLabel('7500'), 'HIJACK')
+        assert.equal(buildIffEmergencyAlarmMessage(track, '7700'), 'Track (UAL123) squawking EMERGENCY')
+        assert.equal(buildIffEmergencyAlarmMessage(track, '7600'), 'Track (UAL123) squawking NORDO')
+        assert.equal(buildIffEmergencyAlarmMessage(track, '7500'), 'Track (UAL123) squawking HIJACK')
     })
 
     it('derives stale IFF attention when refresh ages out', () => {

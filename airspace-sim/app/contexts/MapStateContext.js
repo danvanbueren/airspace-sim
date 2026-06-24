@@ -8,6 +8,8 @@ import {
 
 const MapStateContext = createContext(null)
 
+export const ALARM_TRACK_FOCUS_ZOOM = 10
+
 function normalizeAlarmAlertMessage(message) {
     if (message instanceof Error) {
         return message.stack || message.message || String(message)
@@ -39,6 +41,9 @@ function normalizeAlertInput(input) {
         return {
             signalId,
             message: normalizeAlarmAlertMessage(message),
+            trackId: input.trackId ?? null,
+            longitude: input.longitude ?? null,
+            latitude: input.latitude ?? null,
         }
     }
 
@@ -61,6 +66,9 @@ export function MapStateProvider({children}) {
                 timestamp: new Date(),
                 signalId: normalizedAlert.signalId,
                 message: normalizedAlert.message,
+                trackId: normalizedAlert.trackId ?? null,
+                longitude: normalizedAlert.longitude ?? null,
+                latitude: normalizedAlert.latitude ?? null,
             },
         ])
     }, [])
@@ -76,6 +84,31 @@ export function MapStateProvider({children}) {
     const registerMap = useCallback((mapInstance) => {
         setMap(mapInstance)
     }, [])
+
+    const flyToCoordinates = useCallback((longitude, latitude, zoom = ALARM_TRACK_FOCUS_ZOOM) => {
+        if (!map || !Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+            return false
+        }
+
+        map.flyTo({
+            center: [longitude, latitude],
+            zoom,
+            essential: true,
+        })
+
+        return true
+    }, [map])
+
+    const flyToTrack = useCallback((track) => {
+        if (!track) {
+            return false
+        }
+
+        const longitude = track.longitude
+        const latitude = track.latitude
+
+        return flyToCoordinates(longitude, latitude)
+    }, [flyToCoordinates])
 
     const zoomIn = useCallback(() => {
         map?.zoomIn()
@@ -94,6 +127,8 @@ export function MapStateProvider({children}) {
         registerMap,
         zoomIn,
         zoomOut,
+        flyToCoordinates,
+        flyToTrack,
         getAlertSignalLabel: (signalId) => getSignalDefinition(signalId).label,
     }), [
         alarmAlertQueue,
@@ -104,6 +139,8 @@ export function MapStateProvider({children}) {
         registerMap,
         zoomIn,
         zoomOut,
+        flyToCoordinates,
+        flyToTrack,
     ])
 
     return (

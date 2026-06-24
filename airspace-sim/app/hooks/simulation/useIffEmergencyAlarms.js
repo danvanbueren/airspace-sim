@@ -3,20 +3,12 @@
 import {useEffect, useRef} from 'react'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import {
+    buildIffEmergencyAlarmMessage,
     formatMode3Code,
     getEmergencyAlertSignalId,
-    getMode3DisplayLabel,
     isEmergencyMode3Code,
     isIffMode3Stale,
 } from '@/app/simulation/iffMode3'
-import {getSignalLabel} from '@/app/simulation/signalDefinitions'
-
-function buildEmergencyAlarmMessage(track, mode3Code) {
-    const trackId = track.trackId ?? track.id
-    const callsign = track.callsign ?? trackId
-
-    return `${getSignalLabel(getEmergencyAlertSignalId(mode3Code))}: Track ${trackId} (${callsign}) correlated to IFF Mode 3 ${getMode3DisplayLabel(mode3Code)}`
-}
 
 /**
  * Raise alarm alerts when tracks correlate to emergency IFF Mode 3 codes.
@@ -60,7 +52,10 @@ export function useIffEmergencyAlarms(tracks, evaluationTime, iffRefreshMs) {
             raisedAlarmKeysRef.current.add(alarmKey)
             raiseAlarmAlert({
                 signalId,
-                message: buildEmergencyAlarmMessage(track, mode3Code),
+                message: buildIffEmergencyAlarmMessage(track, mode3Code),
+                trackId,
+                longitude: track.longitude,
+                latitude: track.latitude,
             })
         })
 

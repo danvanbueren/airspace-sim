@@ -87,6 +87,40 @@ export function getEmergencyAlertSignalId(code) {
 }
 
 /**
+ * @param {string|null|undefined} code
+ * @returns {'EMERGENCY'|'NORDO'|'HIJACK'|null}
+ */
+export function getEmergencySquawkLabel(code) {
+    const normalized = formatMode3Code(code)
+
+    if (normalized === '7700') {
+        return 'EMERGENCY'
+    }
+
+    if (normalized === '7600') {
+        return 'NORDO'
+    }
+
+    if (normalized === '7500') {
+        return 'HIJACK'
+    }
+
+    return null
+}
+
+/**
+ * @param {import('./types.js').TrackState} track
+ * @param {string|null|undefined} mode3Code
+ * @returns {string}
+ */
+export function buildIffEmergencyAlarmMessage(track, mode3Code) {
+    const callsign = track.callsign ?? track.trackId ?? track.id
+    const squawkLabel = getEmergencySquawkLabel(mode3Code)
+
+    return `Track (${callsign}) squawking ${squawkLabel ?? 'EMERGENCY'}`
+}
+
+/**
  * @param {() => number} random
  * @returns {string}
  */

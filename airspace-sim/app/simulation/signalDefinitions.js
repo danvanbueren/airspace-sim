@@ -166,6 +166,20 @@ export const ALERT_SIGNAL_IDS = Object.values(SIGNAL_DEFINITIONS)
     .filter((definition) => definition.kind === SIGNAL_KIND.ALERT)
     .map((definition) => definition.id)
 
+export const IFF_EMERGENCY_ALERT_SIGNAL_IDS = [
+    'IFF_EMER_ALERT',
+    'IFF_NORDO_ALERT',
+    'IFF_HIJ_ALERT',
+]
+
+/**
+ * @param {string} signalId
+ * @returns {boolean}
+ */
+export function isIffEmergencyAlertSignalId(signalId) {
+    return IFF_EMERGENCY_ALERT_SIGNAL_IDS.includes(signalId)
+}
+
 /**
  * @param {string} signalId
  * @returns {SignalDefinition}

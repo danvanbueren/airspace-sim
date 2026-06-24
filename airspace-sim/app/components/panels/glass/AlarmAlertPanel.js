@@ -5,9 +5,11 @@ import BasicGlassPanel from './BasicGlassPanel'
 import AlarmAlertDetailModal from './AlarmAlertDetailModal'
 import {Box, Button, Divider, Grid, IconButton, Stack, Typography} from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import GpsFixedIcon from '@mui/icons-material/GpsFixed'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
-import {getSignalLabel} from '@/app/simulation/signalDefinitions'
+import {useSimulation} from '@/app/contexts/SimulationContext'
+import {getSignalLabel, isIffEmergencyAlertSignalId} from '@/app/simulation/signalDefinitions'
 import {formatDateTimeGroup} from '@/app/tools/formatting/DateTime'
 
 const ALARM_ALERT_PREVIEW_MAX_LENGTH = 120
@@ -21,7 +23,8 @@ function truncateAlarmAlertMessage(message, maxLength = ALARM_ALERT_PREVIEW_MAX_
 }
 
 export default function AlarmAlertPanel() {
-    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts} = useAlarmAlertActions()
+    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts, flyToTrack, flyToCoordinates} = useAlarmAlertActions()
+    const {getTrack} = useSimulation()
     const {appSettings} = useAppSettings()
     const [openAlert, setOpenAlert] = useState(null)
 
@@ -111,7 +114,29 @@ export default function AlarmAlertPanel() {
                         END OF ALERTS
                     </Typography>
 
-                    {visibleAlerts.map((alert, index) => (
+                    {visibleAlerts.map((alert, index) => {
+                        const showTrackFocus = isIffEmergencyAlertSignalId(alert.signalId)
+
+                        const handleFocusTrack = (event) => {
+                            event.stopPropagation()
+
+                            if (!showTrackFocus) {
+                                return
+                            }
+
+                            const liveTrack = alert.trackId ? getTrack(alert.trackId) : null
+
+                            if (liveTrack) {
+                                flyToTrack(liveTrack)
+                                return
+                            }
+
+                            if (Number.isFinite(alert.longitude) && Number.isFinite(alert.latitude)) {
+                                flyToCoordinates(alert.longitude, alert.latitude)
+                            }
+                        }
+
+                        return (
                         <Box
                             key={`${alert.timestamp}-${index}`}
                         >
@@ -192,11 +217,22 @@ export default function AlarmAlertPanel() {
                                         alignContent: 'center',
                                     }}
                                 >
+                                    {showTrackFocus ? (
+                                        <IconButton
+                                            edge="start"
+                                            size="small"
+                                            aria-label="center map on track"
+                                            onClick={handleFocusTrack}
+                                        >
+                                            <GpsFixedIcon fontSize="small"/>
+                                        </IconButton>
+                                    ) : null}
                                     <IconButton
                                         edge="end"
                                         size="small"
                                         aria-label="delete alarm"
-                                        onClick={() => {
+                                        onClick={(event) => {
+                                            event.stopPropagation()
                                             const queueIndex = alarmAlertQueue.indexOf(alert)
                                             if (queueIndex !== -1) {
                                                 deleteAlarmAlert(queueIndex)
@@ -208,7 +244,8 @@ export default function AlarmAlertPanel() {
                                 </Grid>
                             </Grid>
                         </Box>
-                    ))}
+                        )
+                    })}
                 </Stack>
             </Box>
         </BasicGlassPanel>
