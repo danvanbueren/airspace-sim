@@ -227,21 +227,5 @@ export function isIffMode3Stale(track, evaluationTime = Date.now(), iffRefreshMs
 export function getMode3DisplayLabel(code) {
     const normalized = formatMode3Code(code)
 
-    if (!normalized) {
-        return '—'
-    }
-
-    if (normalized === '7700') {
-        return `${normalized} (Emergency)`
-    }
-
-    if (normalized === '7600') {
-        return `${normalized} (NORDO)`
-    }
-
-    if (normalized === '7500') {
-        return `${normalized} (Hijack)`
-    }
-
-    return normalized
+    return normalized || '—'
 }
