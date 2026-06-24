@@ -229,7 +229,9 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     const [kinematicFieldDrafts, setKinematicFieldDrafts] = useState({})
     const [callsignDraft, setCallsignDraft] = useState(null)
     const [callsignError, setCallsignError] = useState(null)
-    const [focusedFields, setFocusedFields] = useState(() => new Set())
+    const kinematicFieldDraftsRef = useRef({})
+    const callsignDraftRef = useRef(null)
+    const focusedFieldsRef = useRef(new Set())
     const trackManagementWindowSize = useMeasuredElementSize(
         trackManagementWindowRef,
         [trackManagementWindow, appSettings.gridReferenceSystem],
@@ -245,17 +247,19 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     }, [ref])
 
     useEffect(() => {
+        kinematicFieldDraftsRef.current = {}
+        callsignDraftRef.current = null
+        focusedFieldsRef.current = new Set()
         setKinematicFieldDrafts({})
         setCallsignDraft(null)
         setCallsignError(null)
-        setFocusedFields(new Set())
         onSkipLiveFieldsChange?.(trackManagementWindow.id, new Set())
     }, [onSkipLiveFieldsChange, trackManagementWindow.id])
 
     const publishSkipLiveFields = useCallback((
-        nextFocusedFields = focusedFields,
-        nextKinematicDrafts = kinematicFieldDrafts,
-        nextCallsignDraft = callsignDraft,
+        nextFocusedFields = focusedFieldsRef.current,
+        nextKinematicDrafts = kinematicFieldDraftsRef.current,
+        nextCallsignDraft = callsignDraftRef.current,
     ) => {
         onSkipLiveFieldsChange?.(
             trackManagementWindow.id,
@@ -265,39 +269,33 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 nextCallsignDraft,
             ),
         )
-    }, [
-        callsignDraft,
-        focusedFields,
-        kinematicFieldDrafts,
-        onSkipLiveFieldsChange,
-        trackManagementWindow.id,
-    ])
+    }, [onSkipLiveFieldsChange, trackManagementWindow.id])
 
     useEffect(() => () => {
         onSkipLiveFieldsChange?.(trackManagementWindow.id, new Set())
     }, [onSkipLiveFieldsChange, trackManagementWindow.id])
 
     const handleFieldFocus = useCallback((field) => {
-        if (focusedFields.has(field)) {
+        if (focusedFieldsRef.current.has(field)) {
             return
         }
 
-        const nextFocusedFields = new Set(focusedFields)
+        const nextFocusedFields = new Set(focusedFieldsRef.current)
         nextFocusedFields.add(field)
+        focusedFieldsRef.current = nextFocusedFields
         publishSkipLiveFields(nextFocusedFields)
-        setFocusedFields(nextFocusedFields)
-    }, [focusedFields, publishSkipLiveFields])
+    }, [publishSkipLiveFields])
 
     const handleFieldBlur = useCallback((field) => {
-        if (!focusedFields.has(field)) {
+        if (!focusedFieldsRef.current.has(field)) {
             return
         }
 
-        const nextFocusedFields = new Set(focusedFields)
+        const nextFocusedFields = new Set(focusedFieldsRef.current)
         nextFocusedFields.delete(field)
+        focusedFieldsRef.current = nextFocusedFields
         publishSkipLiveFields(nextFocusedFields)
-        setFocusedFields(nextFocusedFields)
-    }, [focusedFields, publishSkipLiveFields])
+    }, [publishSkipLiveFields])
 
     useEffect(() => {
         if (callsignDraft === null) {
@@ -341,34 +339,43 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         onChange(trackManagementWindow.id, updates)
     }
 
-    const beginKinematicFieldEdit = (field) => {
+    const handleKinematicFieldFocus = (field) => {
+        const nextFocusedFields = new Set(focusedFieldsRef.current)
+        nextFocusedFields.add(field)
+
         const nextDrafts = {
-            ...kinematicFieldDrafts,
+            ...kinematicFieldDraftsRef.current,
             [field]: getEditableKinematicDraft(field, trackManagementWindow[field]),
         }
 
-        publishSkipLiveFields(focusedFields, nextDrafts)
+        focusedFieldsRef.current = nextFocusedFields
+        kinematicFieldDraftsRef.current = nextDrafts
+        publishSkipLiveFields(nextFocusedFields, nextDrafts)
         setKinematicFieldDrafts(nextDrafts)
     }
 
     const updateKinematicFieldDraft = (field, rawValue) => {
-        setKinematicFieldDrafts((currentDrafts) => ({
-            ...currentDrafts,
+        const nextDrafts = {
+            ...kinematicFieldDraftsRef.current,
             [field]: rawValue,
-        }))
+        }
+
+        kinematicFieldDraftsRef.current = nextDrafts
+        setKinematicFieldDrafts(nextDrafts)
     }
 
     const handleKinematicFieldBlur = (field) => {
-        const draft = kinematicFieldDrafts[field]
-        const nextDrafts = {...kinematicFieldDrafts}
+        const draft = kinematicFieldDraftsRef.current[field]
+        const nextDrafts = {...kinematicFieldDraftsRef.current}
         delete nextDrafts[field]
 
-        const nextFocusedFields = new Set(focusedFields)
+        const nextFocusedFields = new Set(focusedFieldsRef.current)
         nextFocusedFields.delete(field)
 
+        focusedFieldsRef.current = nextFocusedFields
+        kinematicFieldDraftsRef.current = nextDrafts
         publishSkipLiveFields(nextFocusedFields, nextDrafts)
         setKinematicFieldDrafts(nextDrafts)
-        setFocusedFields(nextFocusedFields)
 
         if (draft === undefined) {
             return
@@ -402,21 +409,24 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         )
 
         if (!error) {
-            publishSkipLiveFields(focusedFields, kinematicFieldDrafts, null)
+            callsignDraftRef.current = null
+            publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, null)
             setCallsignDraft(null)
             setCallsignError(null)
             updateField('callsign', sanitized)
             return
         }
 
-        publishSkipLiveFields(focusedFields, kinematicFieldDrafts, sanitized)
+        callsignDraftRef.current = sanitized
+        publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, sanitized)
         setCallsignDraft(sanitized)
         setCallsignError(error)
     }
 
     const handleCallsignBlur = () => {
         if (callsignError) {
-            publishSkipLiveFields(focusedFields, kinematicFieldDrafts, null)
+            callsignDraftRef.current = null
+            publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, null)
             setCallsignDraft(null)
             setCallsignError(null)
         }
@@ -458,8 +468,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             inputMode='numeric'
             value={getKinematicFieldDisplayValue(field)}
             onFocus={() => {
-                handleFieldFocus(field)
-                beginKinematicFieldEdit(field)
+                handleKinematicFieldFocus(field)
             }}
             onChange={(event) => updateKinematicFieldDraft(field, event.target.value)}
             onBlur={() => {

@@ -258,12 +258,30 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         trackMapLayer,
     ])
 
+    const syncOpenManagementWindows = useCallback(() => {
+        const tracks = mergeLiveTracksForManagementWindowSync(
+            liveTracksRef.current,
+            trackManagementWindowsRef.current,
+            trackMapLayerGetTrackRef.current,
+        )
+
+        if (!tracks.length) {
+            return
+        }
+
+        syncTrackManagementWindowsFromLiveTracksRef.current?.(
+            tracks,
+            skipLiveFieldsByWindowIdRef.current,
+        )
+    }, [])
+
     const handleSkipLiveFieldsChange = useCallback((windowId, skipFields) => {
         skipLiveFieldsByWindowIdRef.current = {
             ...skipLiveFieldsByWindowIdRef.current,
             [windowId]: skipFields,
         }
-    }, [])
+        syncOpenManagementWindows()
+    }, [syncOpenManagementWindows])
 
     liveTracksRef.current = simulationSnapshot?.tracks ?? []
     trackManagementWindowsRef.current = trackManagementWindows
@@ -278,34 +296,17 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
             return
         }
 
-        const syncOpenWindows = () => {
-            const tracks = mergeLiveTracksForManagementWindowSync(
-                liveTracksRef.current,
-                trackManagementWindowsRef.current,
-                trackMapLayerGetTrackRef.current,
-            )
-
-            if (!tracks.length) {
-                return
-            }
-
-            syncTrackManagementWindowsFromLiveTracksRef.current?.(
-                tracks,
-                skipLiveFieldsByWindowIdRef.current,
-            )
-        }
-
-        syncOpenWindows()
+        syncOpenManagementWindows()
 
         const intervalId = window.setInterval(
-            syncOpenWindows,
+            syncOpenManagementWindows,
             TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
         )
 
         return () => {
             window.clearInterval(intervalId)
         }
-    }, [trackManagementWindows.length])
+    }, [syncOpenManagementWindows, trackManagementWindows.length])
 
     const tracksForCallsignValidation = useMemo(() => {
         const tracksById = new Map()
