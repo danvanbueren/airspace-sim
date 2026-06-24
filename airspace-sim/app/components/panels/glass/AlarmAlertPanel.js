@@ -22,6 +22,23 @@ function truncateAlarmAlertMessage(message, maxLength = ALARM_ALERT_PREVIEW_MAX_
     return `${message.slice(0, maxLength)}...`
 }
 
+function focusAlertTrack(alert, {getTrack, flyToTrack, flyToCoordinates}) {
+    if (!isIffEmergencyAlertSignalId(alert.signalId)) {
+        return
+    }
+
+    const liveTrack = alert.trackId ? getTrack(alert.trackId) : null
+
+    if (liveTrack) {
+        flyToTrack(liveTrack)
+        return
+    }
+
+    if (Number.isFinite(alert.longitude) && Number.isFinite(alert.latitude)) {
+        flyToCoordinates(alert.longitude, alert.latitude)
+    }
+}
+
 export default function AlarmAlertPanel() {
     const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts, flyToTrack, flyToCoordinates} = useAlarmAlertActions()
     const {getTrack} = useSimulation()
@@ -35,6 +52,17 @@ export default function AlarmAlertPanel() {
     }, [alarmAlertQueue, appSettings.inhibitedAlerts])
 
     const closeDetailModal = () => setOpenAlert(null)
+
+    const focusTrackHandlers = {getTrack, flyToTrack, flyToCoordinates}
+
+    const handleModalFocusTrack = () => {
+        if (!openAlert) {
+            return
+        }
+
+        focusAlertTrack(openAlert, focusTrackHandlers)
+        closeDetailModal()
+    }
 
     const deleteDetailAlert = () => {
         if (!openAlert) {
@@ -63,8 +91,10 @@ export default function AlarmAlertPanel() {
             message={openAlert?.message ?? ''}
             timestamp={openAlert?.timestamp}
             signalLabel={openAlert?.signalLabel}
+            showTrackFocus={openAlert ? isIffEmergencyAlertSignalId(openAlert.signalId) : false}
             onClose={closeDetailModal}
             onDelete={deleteDetailAlert}
+            onFocusTrack={handleModalFocusTrack}
         />
         {visibleAlerts.length > 0 && (
         <BasicGlassPanel dense>
@@ -119,22 +149,18 @@ export default function AlarmAlertPanel() {
 
                         const handleFocusTrack = (event) => {
                             event.stopPropagation()
-
-                            if (!showTrackFocus) {
-                                return
-                            }
-
-                            const liveTrack = alert.trackId ? getTrack(alert.trackId) : null
-
-                            if (liveTrack) {
-                                flyToTrack(liveTrack)
-                                return
-                            }
-
-                            if (Number.isFinite(alert.longitude) && Number.isFinite(alert.latitude)) {
-                                flyToCoordinates(alert.longitude, alert.latitude)
-                            }
+                            focusAlertTrack(alert, focusTrackHandlers)
                         }
+
+                        const openDetailModal = () => setOpenAlert({
+                            message: alert.message,
+                            timestamp: alert.timestamp,
+                            signalId: alert.signalId,
+                            signalLabel: getSignalLabel(alert.signalId),
+                            trackId: alert.trackId ?? null,
+                            longitude: alert.longitude ?? null,
+                            latitude: alert.latitude ?? null,
+                        })
 
                         return (
                         <Box
@@ -159,21 +185,13 @@ export default function AlarmAlertPanel() {
                                             pt: 1,
                                             cursor: 'pointer',
                                         }}
-                                        onClick={() => setOpenAlert({
-                                            message: alert.message,
-                                            timestamp: alert.timestamp,
-                                            signalLabel: getSignalLabel(alert.signalId),
-                                        })}
+                                        onClick={openDetailModal}
                                         role='button'
                                         tabIndex={0}
                                         onKeyDown={(event) => {
                                             if (event.key === 'Enter' || event.key === ' ') {
                                                 event.preventDefault()
-                                                setOpenAlert({
-                                                    message: alert.message,
-                                                    timestamp: alert.timestamp,
-                                                    signalLabel: getSignalLabel(alert.signalId),
-                                                })
+                                                openDetailModal()
                                             }
                                         }}
                                     >

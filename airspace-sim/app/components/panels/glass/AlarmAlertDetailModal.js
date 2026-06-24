@@ -2,6 +2,7 @@
 
 import {alpha, Box, IconButton, Modal, Stack, Typography} from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
+import GpsFixedIcon from '@mui/icons-material/GpsFixed'
 import {formatDateTimeGroup} from '@/app/tools/formatting/DateTime'
 
 const modalStyle = (theme) => ({
@@ -26,8 +27,10 @@ export default function AlarmAlertDetailModal({
     message,
     timestamp,
     signalLabel,
+    showTrackFocus = false,
     onClose,
     onDelete,
+    onFocusTrack,
 }) {
     return (
         <Modal
@@ -82,14 +85,24 @@ export default function AlarmAlertDetailModal({
                             </Typography>
                         )}
                     </Box>
-                    <IconButton
-                        size='small'
-                        aria-label='delete alarm'
-                        onClick={onDelete}
-                        sx={{flexShrink: 0}}
-                    >
-                        <DeleteIcon fontSize='small'/>
-                    </IconButton>
+                    <Stack direction='row' spacing={0.5} sx={{flexShrink: 0}}>
+                        {showTrackFocus ? (
+                            <IconButton
+                                size='small'
+                                aria-label='center map on track'
+                                onClick={onFocusTrack}
+                            >
+                                <GpsFixedIcon fontSize='small'/>
+                            </IconButton>
+                        ) : null}
+                        <IconButton
+                            size='small'
+                            aria-label='delete alarm'
+                            onClick={onDelete}
+                        >
+                            <DeleteIcon fontSize='small'/>
+                        </IconButton>
+                    </Stack>
                 </Stack>
             </Box>
         </Modal>
