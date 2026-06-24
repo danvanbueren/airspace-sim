@@ -72,6 +72,7 @@ export function MapStateProvider({children}) {
     const [map, setMap] = useState(null)
     const nextAlertIdRef = useRef(1)
     const raisedEmergencyAlarmKeysRef = useRef(new Set())
+    const emergencyAlarmLastSeenRef = useRef(new Map())
 
     const isEmergencyAlarmRaised = useCallback((alarmKey) => (
         raisedEmergencyAlarmKeysRef.current.has(alarmKey)
@@ -89,10 +90,23 @@ export function MapStateProvider({children}) {
         }
     }, [])
 
-    const sweepInactiveEmergencyAlarmKeys = useCallback((activeKeys) => {
+    const sweepInactiveEmergencyAlarmKeys = useCallback((activeKeys, evaluationTime, graceMs) => {
+        const lastSeen = emergencyAlarmLastSeenRef.current
+
+        for (const key of activeKeys) {
+            lastSeen.set(key, evaluationTime)
+        }
+
         for (const key of [...raisedEmergencyAlarmKeysRef.current]) {
-            if (!activeKeys.has(key)) {
+            if (activeKeys.has(key)) {
+                continue
+            }
+
+            const lastSeenTime = lastSeen.get(key)
+
+            if (lastSeenTime === undefined || evaluationTime - lastSeenTime > graceMs) {
                 raisedEmergencyAlarmKeysRef.current.delete(key)
+                lastSeen.delete(key)
             }
         }
     }, [])
@@ -125,6 +139,7 @@ export function MapStateProvider({children}) {
 
             if (alert?.alarmKey) {
                 raisedEmergencyAlarmKeysRef.current.delete(alert.alarmKey)
+                emergencyAlarmLastSeenRef.current.delete(alert.alarmKey)
             }
 
             return currentQueue.filter((entry) => entry.id !== alertId)
@@ -133,6 +148,7 @@ export function MapStateProvider({children}) {
 
     const clearAlarmAlerts = useCallback(() => {
         raisedEmergencyAlarmKeysRef.current.clear()
+        emergencyAlarmLastSeenRef.current.clear()
         setAlarmAlertQueue([])
     }, [])
 

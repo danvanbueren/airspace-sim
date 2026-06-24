@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {
     assignMode3Code,
+    buildIffEmergencyAlarmKey,
     buildIffEmergencyAlarmMessage,
+    EMERGENCY_ALARM_DEDUP_GRACE_MS,
     formatMode3Code,
     getEmergencyAlertSignalId,
     getEmergencyAttentionFlagId,
@@ -85,6 +87,28 @@ describe('iffMode3', () => {
         assert.equal(buildIffEmergencyAlarmMessage(track, '7700'), 'Track (UAL123) squawking EMERGENCY')
         assert.equal(buildIffEmergencyAlarmMessage(track, '7600'), 'Track (UAL123) squawking NORDO')
         assert.equal(buildIffEmergencyAlarmMessage(track, '7500'), 'Track (UAL123) squawking HIJACK')
+    })
+
+    it('builds stable emergency alarm dedup keys', () => {
+        const assignedCallsignTrack = activeTrack({callsign: 'UAL123', id: 'TRK-1'})
+
+        assert.equal(buildIffEmergencyAlarmKey(assignedCallsignTrack, '7700'), '7700:UAL123')
+        assert.equal(
+            buildIffEmergencyAlarmKey(activeTrack({callsign: 'TRK-1', id: 'TRK-1'}), '7700'),
+            '7700:TRK-1',
+        )
+        assert.equal(
+            buildIffEmergencyAlarmKey(activeTrack({callsign: 'CIV01', id: 'TRK-2'}), '7500'),
+            '7500:TRK-2',
+        )
+        assert.equal(
+            buildIffEmergencyAlarmKey(activeTrack({id: 'TRK-3', callsign: undefined}), '7600'),
+            '7600:TRK-3',
+        )
+    })
+
+    it('defines a five-minute grace period before clearing inactive emergency dedup keys', () => {
+        assert.equal(EMERGENCY_ALARM_DEDUP_GRACE_MS, 300_000)
     })
 
     it('derives stale IFF attention when refresh ages out', () => {

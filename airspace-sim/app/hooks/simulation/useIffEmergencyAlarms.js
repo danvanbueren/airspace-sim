@@ -3,7 +3,9 @@
 import {useEffect} from 'react'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import {
+    buildIffEmergencyAlarmKey,
     buildIffEmergencyAlarmMessage,
+    EMERGENCY_ALARM_DEDUP_GRACE_MS,
     formatMode3Code,
     getEmergencyAlertSignalId,
     isEmergencyMode3Code,
@@ -40,7 +42,7 @@ export function useIffEmergencyAlarms(tracks, evaluationTime, iffRefreshMs) {
                 return
             }
 
-            const alarmKey = `${trackId}:${mode3Code}`
+            const alarmKey = buildIffEmergencyAlarmKey(track, mode3Code)
             activeKeys.add(alarmKey)
 
             if (isEmergencyAlarmRaised(alarmKey)) {
@@ -68,7 +70,11 @@ export function useIffEmergencyAlarms(tracks, evaluationTime, iffRefreshMs) {
             }
         })
 
-        sweepInactiveEmergencyAlarmKeys(activeKeys)
+        sweepInactiveEmergencyAlarmKeys(
+            activeKeys,
+            evaluationTime,
+            EMERGENCY_ALARM_DEDUP_GRACE_MS,
+        )
     }, [
         evaluationTime,
         iffRefreshMs,
