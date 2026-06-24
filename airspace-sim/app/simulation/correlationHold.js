@@ -37,16 +37,28 @@ function withoutKinematicManagementEditFields(fields = []) {
     return fields.filter((field) => !isKinematicOrPositionField(field))
 }
 
+export function getAuthoritativeManagementEditFields(track, now = Date.now()) {
+    const fields = track?.lastManagementEditFields ?? []
+
+    if (isCorrelationHoldActive(track, now)) {
+        return fields
+    }
+
+    return withoutKinematicManagementEditFields(fields)
+}
+
 export function resolveExpiredCorrelationHold(track, now = Date.now()) {
     if (!track || isCorrelationHoldActive(track, now)) {
         return track
     }
 
-    if (!track.lastUserKinematicEditAt && !track.lastUserKinematicEditFields?.length) {
+    const remainingEditFields = withoutKinematicManagementEditFields(track.lastManagementEditFields)
+    const hasHoldState = Boolean(track.lastUserKinematicEditAt || track.lastUserKinematicEditFields?.length)
+    const hadKinematicEditFields = (track.lastManagementEditFields?.length ?? 0) !== remainingEditFields.length
+
+    if (!hasHoldState && !hadKinematicEditFields) {
         return track
     }
-
-    const remainingEditFields = withoutKinematicManagementEditFields(track.lastManagementEditFields)
 
     return {
         ...track,

@@ -64,6 +64,33 @@ describe('syncActiveTrackKinematicsFromFlightWorld', () => {
         assert.equal(updatedTrack.altitude, 31_250)
     })
 
+    it('syncs all kinematics when hold expired despite stale management edit fields', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(activeTrack({
+            heading: 90,
+            speed: 400,
+            altitude: 30_000,
+            lastManagementEditFields: ['heading'],
+        }))
+
+        syncActiveTrackKinematicsFromFlightWorld(
+            createFlightWorld([{
+                longitude: -75,
+                latitude: 40,
+                heading: 200,
+                speed: 500,
+                altitude: 35_000,
+            }]),
+            trackStore,
+        )
+
+        const updatedTrack = trackStore.getTrack('TRK-1')
+
+        assert.equal(updatedTrack.heading, 200)
+        assert.equal(updatedTrack.speed, 500)
+        assert.equal(updatedTrack.altitude, 35_000)
+    })
+
     it('skips truth-aircraft sync while an operator kinematic hold is active', () => {
         const trackStore = new TrackStore()
         trackStore.addTrack(activeTrack({

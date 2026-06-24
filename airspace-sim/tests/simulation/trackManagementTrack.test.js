@@ -452,9 +452,36 @@ describe('track management window live sync', () => {
     })
 
     it('expands skip fields for committed management edits', () => {
+        const now = 10_000
+
         assert.deepEqual(
-            [...expandSkipFieldsWithCommittedManagementEdits(new Set(), ['heading', 'domain'])].sort(),
+            [...expandSkipFieldsWithCommittedManagementEdits(
+                new Set(),
+                ['heading', 'domain'],
+                {
+                    lastManagementEditFields: ['heading', 'domain'],
+                    lastUserKinematicEditAt: now - 1_000,
+                },
+                now,
+            )].sort(),
             ['domain', 'heading', 'specificType', 'type'],
+        )
+    })
+
+    it('ignores expired kinematic fields when expanding live-sync skip fields', () => {
+        const now = 20_000
+
+        assert.deepEqual(
+            [...expandSkipFieldsWithCommittedManagementEdits(
+                new Set(),
+                ['heading', 'callsign'],
+                {
+                    lastManagementEditFields: ['heading', 'callsign'],
+                    lastUserKinematicEditAt: 5_000,
+                },
+                now,
+            )].sort(),
+            ['callsign'],
         )
     })
 
@@ -463,6 +490,24 @@ describe('track management window live sync', () => {
             [...expandSkipFieldsWithCommittedManagementEdits(new Set(), ['longitude', 'latitude'])].sort(),
             ['lngLat'],
         )
+    })
+
+    it('does not revive expired kinematic skip fields on metadata-only updates', () => {
+        const updated = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                callsign: 'VIP01',
+            }),
+            existingTrack({
+                callsign: 'CIV01',
+                lastManagementEditFields: ['heading', 'callsign'],
+                lastUserKinematicEditAt: 5_000,
+            }),
+            ['callsign'],
+        )
+
+        assert.deepEqual(updated.lastManagementEditFields, ['callsign'])
+        assert.equal(updated.lastUserKinematicEditAt, undefined)
+        assert.equal(updated.lastUserKinematicEditFields, undefined)
     })
 
     it('does not overwrite committed kinematic edits during live sync', () => {
@@ -498,6 +543,7 @@ describe('track management window live sync', () => {
                 altitude: 15_000,
                 userDirected: true,
                 lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: Date.now() - 1_000,
             })],
         )
 
@@ -540,6 +586,7 @@ describe('track management window live sync', () => {
                 altitude: 15_000,
                 userDirected: true,
                 lastManagementEditFields: ['heading', 'callsign'],
+                lastUserKinematicEditAt: Date.now() - 1_000,
             })],
         )
 

@@ -59,4 +59,15 @@ describe('correlation hold', () => {
         assert.equal(resolved.lastUserKinematicEditFields, undefined)
         assert.equal(getCorrelationHoldUntil(resolved), 0)
     })
+
+    it('clears stale kinematic management fields even without hold timestamps', () => {
+        const track = {
+            heading: 90,
+            lastManagementEditFields: ['heading', 'callsign'],
+        }
+
+        const resolved = resolveExpiredCorrelationHold(track)
+
+        assert.deepEqual(resolved.lastManagementEditFields, ['callsign'])
+    })
 })

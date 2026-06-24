@@ -21,22 +21,11 @@ function shouldSyncTrackKinematicsFromFlightWorld(track) {
 }
 
 function getFlightWorldKinematicUpdates(track, nearestAircraft) {
-    const lastEditedFields = new Set(track.lastManagementEditFields ?? [])
-    const updates = {}
-
-    if (!lastEditedFields.has('heading')) {
-        updates.heading = Math.round(nearestAircraft.heading ?? 0)
+    return {
+        heading: Math.round(nearestAircraft.heading ?? 0),
+        speed: Math.round(nearestAircraft.speed ?? 0),
+        altitude: Math.round(nearestAircraft.altitude ?? 0),
     }
-
-    if (!lastEditedFields.has('speed')) {
-        updates.speed = Math.round(nearestAircraft.speed ?? 0)
-    }
-
-    if (!lastEditedFields.has('altitude')) {
-        updates.altitude = Math.round(nearestAircraft.altitude ?? 0)
-    }
-
-    return updates
 }
 
 function hasKinematicUpdate(track, updates) {

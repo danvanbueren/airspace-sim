@@ -142,10 +142,10 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
 
     const handleTrackUpdated = useCallback((trackManagementWindow, changedFields) => {
         const trackId = trackManagementWindow.trackId
-        const existingTrack = trackMapLayer.getTrack(trackId)
-            ?? simulationSnapshot?.tracks?.find(
-                (track) => (track.trackId ?? track.id) === trackId,
-            )
+        const simulationTrack = simulationSnapshot?.tracks?.find(
+            (track) => (track.trackId ?? track.id) === trackId,
+        )
+        const existingTrack = simulationTrack ?? trackMapLayer.getTrack(trackId)
 
         const track = createTrackUpdateFromManagementWindow(
             trackManagementWindow,

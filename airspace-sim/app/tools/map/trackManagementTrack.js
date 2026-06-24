@@ -9,7 +9,7 @@ import {
     getDefaultTrackTypeForDomain,
 } from '../milstd2525/trackSymbolCodes.js'
 import {getDefaultSpecificTypeForTrackType} from '../milstd2525/trackSpecificTypes.js'
-import {applyUserKinematicEditHold, isCorrelationHoldActive} from '../../simulation/correlationHold.js'
+import {applyUserKinematicEditHold, getAuthoritativeManagementEditFields, isCorrelationHoldActive, resolveExpiredCorrelationHold} from '../../simulation/correlationHold.js'
 
 const KINEMATIC_FIELDS = new Set(['heading', 'speed', 'altitude'])
 
@@ -91,10 +91,15 @@ export function shouldPreferMapLayerTrackForLiveSync(layerTrack) {
 export function expandSkipFieldsWithCommittedManagementEdits(
     skipFields,
     lastManagementEditFields = [],
+    track = null,
+    now = Date.now(),
 ) {
     const effectiveSkipFields = skipFields instanceof Set ? new Set(skipFields) : new Set(skipFields)
+    const committedFields = track
+        ? getAuthoritativeManagementEditFields(track, now)
+        : lastManagementEditFields
 
-    for (const field of lastManagementEditFields) {
+    for (const field of committedFields) {
         const skipField = COMMITTED_MANAGEMENT_FIELD_TO_LIVE_SKIP_FIELD[field] ?? field
 
         if (TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS.includes(skipField)) {
@@ -305,6 +310,7 @@ export function syncTrackManagementWindowsFromTracks(
         const skipFields = expandSkipFieldsWithCommittedManagementEdits(
             skipFieldsByWindowId[trackManagementWindow.id] ?? new Set(),
             liveTrack.lastManagementEditFields,
+            liveTrack,
         )
         const mergedWindow = mergeTrackManagementWindowLiveUpdates(
             trackManagementWindow,
@@ -371,17 +377,21 @@ export function createTrackUpdateFromManagementWindow(
         source: existingTrack?.source === 'auto' ? 'manual' : (trackManagementWindow.source ?? 'manual'),
         userDirected: true,
         lastManagementEditFields: accumulateManagementEditFields(
-            existingTrack?.lastManagementEditFields,
+            getAuthoritativeManagementEditFields(existingTrack),
             changedFields,
         ),
     }
 
     if (!existingTrack) {
-        return applyUserKinematicEditHold(update, existingTrack, changedFields)
+        return resolveExpiredCorrelationHold(
+            applyUserKinematicEditHold(update, existingTrack, changedFields),
+        )
     }
 
-    return applyUserKinematicEditHold({
-        ...existingTrack,
-        ...update,
-    }, existingTrack, changedFields)
+    return resolveExpiredCorrelationHold(
+        applyUserKinematicEditHold({
+            ...existingTrack,
+            ...update,
+        }, existingTrack, changedFields),
+    )
 }
