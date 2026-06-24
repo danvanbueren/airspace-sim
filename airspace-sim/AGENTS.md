@@ -38,3 +38,22 @@ When updating the README:
 - Prefer accurate, concise prose over listing every file touched.
 - If a change is internal-only with no user or contributor impact, briefly confirm the README is still correct; no edit is required.
 - The short [`airspace-sim/README.md`](README.md) should continue to point to the root README; update it only if the application directory role or quick-start steps change.
+
+## Settings Roadmap Page
+
+The in-app **Settings → Roadmap** page is backed by [`app/content/settings-roadmap.md`](app/content/settings-roadmap.md). Treat it as part of every change that affects project direction or delivered capabilities, not a separate follow-up task.
+
+Whenever you ship a user-visible feature, close out planned work, or add or reprioritize future items, validate whether the roadmap still reflects reality. Update it in the same work session when anything is out of date or missing. Do not leave roadmap drift for a later pass.
+
+At minimum, review and update the roadmap when your change affects:
+
+- **Completed work** — mark shipped items with ✅, place them under the correct month section, and link to the introducing commit.
+- **Planned or exploratory work** — add, remove, or reword **Future** items when scope, priorities, or naming change.
+- **Feature grouping or naming** — keep category prefixes (for example, `Map & scope tools`, `Tracks & symbology`) consistent with how capabilities are described elsewhere.
+
+When updating the roadmap:
+
+- Keep the existing tone, structure, and checklist format; extend sections in place rather than duplicating content.
+- Prefer accurate, concise item titles over listing every file touched.
+- If a change is internal-only with no roadmap impact, briefly confirm the page is still correct; no edit is required.
+- When the roadmap changes materially, also review the root README **Roadmap** section so the high-level summary stays aligned.
