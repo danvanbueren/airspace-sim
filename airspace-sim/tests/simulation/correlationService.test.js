@@ -6,7 +6,7 @@ import {mergeTracksFromCorrelatedDetections} from '../../app/simulation/trackMer
 import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
 import {TRACK_IDENTITIES} from '../../app/tools/milstd2525/trackSymbolCodes.js'
 
-function activeTrack(overrides) {
+function activeTrack(overrides = {}) {
     return {
         id: overrides.id,
         trackId: overrides.id,
@@ -24,8 +24,10 @@ function activeTrack(overrides) {
         type: '01:110104',
         callsign: overrides.id,
         correlationMode: TRACK_CORRELATION_MODES.ACTIVE,
-        correlated: false,
-        userDirected: false,
+        correlated: overrides.correlated ?? false,
+        userDirected: overrides.userDirected ?? false,
+        lastUserKinematicEditAt: overrides.lastUserKinematicEditAt,
+        lastUserKinematicEditFields: overrides.lastUserKinematicEditFields,
     }
 }
 
@@ -73,5 +75,31 @@ describe('CorrelationService', () => {
         assert.equal(trackStore.getAllTracks().length, 2)
         assert.ok(trackStore.getTrack('TRK-1'))
         assert.ok(trackStore.getTrack('TRK-2'))
+    })
+
+    it('does not snap correlated track position while a user kinematic hold is active', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(activeTrack({
+            id: 'TRK-1',
+            latitude: 40,
+            longitude: -75,
+            lastUserKinematicEditAt: 2_000,
+            lastUserKinematicEditFields: ['heading'],
+        }))
+
+        const correlation = new CorrelationService()
+        correlation.apply([
+            {
+                plotId: 'PLOT-1',
+                latitude: 40.002,
+                longitude: -75,
+            },
+        ], trackStore, 5, 2_500)
+
+        const track = trackStore.getTrack('TRK-1')
+
+        assert.equal(track.latitude, 40)
+        assert.equal(track.longitude, -75)
+        assert.equal(track.correlated, true)
     })
 })

@@ -1,4 +1,5 @@
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
+import {isCorrelationHoldActive} from './correlationHold.js'
 
 const LIVE_KINEMATIC_FIELDS = ['heading', 'speed', 'altitude']
 
@@ -53,6 +54,10 @@ export function syncActiveTrackKinematicsFromFlightWorld(flightWorld, trackStore
         const trackId = track.trackId ?? track.id
 
         if (!trackId || !shouldSyncTrackKinematicsFromFlightWorld(track)) {
+            continue
+        }
+
+        if (isCorrelationHoldActive(track)) {
             continue
         }
 

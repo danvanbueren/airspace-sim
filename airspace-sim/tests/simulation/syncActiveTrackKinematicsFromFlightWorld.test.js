@@ -64,11 +64,15 @@ describe('syncActiveTrackKinematicsFromFlightWorld', () => {
         assert.equal(updatedTrack.altitude, 31_250)
     })
 
-    it('preserves operator-committed kinematic fields', () => {
+    it('skips truth-aircraft sync while an operator kinematic hold is active', () => {
         const trackStore = new TrackStore()
         trackStore.addTrack(activeTrack({
             heading: 90,
+            speed: 400,
+            altitude: 30_000,
             lastManagementEditFields: ['heading'],
+            lastUserKinematicEditAt: Date.now(),
+            lastUserKinematicEditFields: ['heading'],
             userDirected: true,
         }))
 
@@ -86,8 +90,8 @@ describe('syncActiveTrackKinematicsFromFlightWorld', () => {
         const updatedTrack = trackStore.getTrack('TRK-1')
 
         assert.equal(updatedTrack.heading, 90)
-        assert.equal(updatedTrack.speed, 500)
-        assert.equal(updatedTrack.altitude, 35_000)
+        assert.equal(updatedTrack.speed, 400)
+        assert.equal(updatedTrack.altitude, 30_000)
     })
 
     it('does not update suspended tracks', () => {

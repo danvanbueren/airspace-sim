@@ -236,7 +236,7 @@ Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles
 | Sensor/history visibility | Category Select Panel | Display toggles only (no sim logic) |
 | Map zoom | Fixed Function Panel → Zoom In / Zoom Out | `MapStateProvider` zoom helpers (display only) |
 
-The Track Management window edits callsign (alphanumeric, unique across tracks), domain, identity, MIL-STD type, platform-specific type (searchable catalog), optional symbol info fields, heading, speed, altitude, and correlation mode. While a window is open, displayed fields refresh from the live simulation about once per second; a field pauses live updates while it is focused for editing. Focusing a kinematic field without changing its value does not count as an operator commit. Invalid or duplicate callsigns are rejected in the UI and track store. Any committed edit from the window routes through `upsertManualTrack`, including correlation mode changes.
+The Track Management window edits callsign (alphanumeric, unique across tracks), domain, identity, MIL-STD type, platform-specific type (searchable catalog), optional symbol info fields, heading, speed, altitude, and correlation mode. While a window is open, displayed fields refresh from the live simulation about once per second; a field pauses live updates while it is focused for editing. Focusing a kinematic field without changing its value does not count as an operator commit. Committed heading, speed, altitude, or position edits hold automatic correlation and truth-aircraft kinematic updates for about 10 seconds; after the hold expires, correlation regains control and live kinematic fields resume syncing. Invalid or duplicate callsigns are rejected in the UI and track store. Any committed edit from the window routes through `upsertManualTrack`, including correlation mode changes.
 
 Manual track edits are marked `userDirected` so they take priority when tracks merge (see [Track merge and deduplication](#track-merge-and-deduplication)).
 
@@ -273,9 +273,9 @@ Supporting pieces include `TrackStore.js` (firm track state, callsign validation
 
 On each simulation step, `TrackEngine.tick()` runs this sequence:
 
-1. **`flightWorld.advance(delta)`** — Move all active flights along their route polylines (great-circle segments). On route completion, assign a new weighted route; aircraft IDs stay stable (`FLT-{n}`).
-2. **`trackStore.extrapolate(delta)`** — Advance firm track positions according to each track’s correlation mode.
-3. **`syncActiveTrackKinematicsFromFlightWorld()`** — Refresh active track heading, speed, and altitude from the nearest truth aircraft each tick, except fields the operator committed in the Track Management window.
+1. **`flightWorld.advance(delta)`** — Move all active flights along their route polylines (great-circle segments). Each aircraft climbs after departure, cruises with minor altitude and speed variation, and descends before arrival; cruise speed increases slightly with altitude. On route completion, assign a new weighted route; aircraft IDs stay stable (`FLT-{n}`).
+2. **`trackStore.extrapolate(delta)`** — Advance firm track positions according to each track’s correlation mode. Expired operator kinematic holds are cleared here.
+3. **`syncActiveTrackKinematicsFromFlightWorld()`** — Refresh active track heading, speed, and altitude from the nearest truth aircraft each tick, except while an operator kinematic hold is active or a field was committed in the Track Management window.
 4. **Sensor scans (on interval)** — When radar or IFF refresh elapses, run the [per-sensor scan pipeline](#per-sensor-scan-pipeline) below.
 5. **`getSnapshot()`** — Expose tracks, sensor cycles, airports/routes, and overlay visibility to the map hooks.
 

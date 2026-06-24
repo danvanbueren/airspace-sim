@@ -129,6 +129,8 @@ describe('track management track updates', () => {
         assert.equal(updated.speed, 470)
         assert.equal(updated.altitude, 13_000)
         assert.deepEqual(updated.lastManagementEditFields, ['heading'])
+        assert.ok(updated.lastUserKinematicEditAt > 0)
+        assert.deepEqual(updated.lastUserKinematicEditFields, ['heading'])
     })
 
     it('accumulates committed fields across successive edits', () => {

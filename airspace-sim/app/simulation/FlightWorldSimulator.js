@@ -10,6 +10,7 @@ import {
     loadAirRouteCatalog,
     positionAlongRoute,
 } from './flightWorldUtils'
+import {updateAircraftKinematics} from './flightWorldKinematics'
 
 export class FlightWorldSimulator {
     constructor() {
@@ -99,6 +100,7 @@ export class FlightWorldSimulator {
                 current.totalRouteNm,
                 progressNm,
             )
+            const kinematics = updateAircraftKinematics(current, deltaSeconds, random)
 
             this.aircraft.set(id, {
                 ...current,
@@ -106,6 +108,7 @@ export class FlightWorldSimulator {
                 longitude: position.lng,
                 latitude: position.lat,
                 heading,
+                ...kinematics,
             })
         })
     }

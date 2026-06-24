@@ -1,4 +1,5 @@
 import {correlateDetections} from './correlation.js'
+import {isCorrelationHoldActive} from './correlationHold.js'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 
 export class CorrelationService {
@@ -15,13 +16,17 @@ export class CorrelationService {
 
                 const existing = trackStore.getTrack(detection.correlatedTrackId)
 
-                if (existing) {
+                if (existing && !isCorrelationHoldActive(existing, timestamp)) {
                     trackStore.updateTrack(detection.correlatedTrackId, {
                         longitude: detection.longitude,
                         latitude: detection.latitude,
                         lastSensorUpdateAt: timestamp,
                         lastExtrapolationAt: timestamp,
                         stale: false,
+                        correlated: true,
+                    })
+                } else if (existing) {
+                    trackStore.updateTrack(detection.correlatedTrackId, {
                         correlated: true,
                     })
                 }

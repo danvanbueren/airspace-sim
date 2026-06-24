@@ -9,6 +9,7 @@ import {
     getDefaultTrackTypeForDomain,
 } from '../milstd2525/trackSymbolCodes.js'
 import {getDefaultSpecificTypeForTrackType} from '../milstd2525/trackSpecificTypes.js'
+import {applyUserKinematicEditHold} from '../../simulation/correlationHold.js'
 
 const KINEMATIC_FIELDS = new Set(['heading', 'speed', 'altitude'])
 
@@ -371,11 +372,11 @@ export function createTrackUpdateFromManagementWindow(
     }
 
     if (!existingTrack) {
-        return update
+        return applyUserKinematicEditHold(update, existingTrack, changedFields)
     }
 
-    return {
+    return applyUserKinematicEditHold({
         ...existingTrack,
         ...update,
-    }
+    }, existingTrack, changedFields)
 }

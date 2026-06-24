@@ -12,6 +12,7 @@ import {trackFromManualInput} from './trackFromDetection'
 import {mergeTracksFromCorrelatedDetections} from './trackMerge'
 import {getBoundedTrackDeltaSeconds} from './trackTiming'
 import {syncActiveTrackKinematicsFromFlightWorld} from './syncActiveTrackKinematicsFromFlightWorld'
+import {isCorrelationHoldActive} from './correlationHold'
 
 export class TrackEngine {
     constructor(options = {}) {
@@ -210,9 +211,18 @@ export class TrackEngine {
         }
     }
 
-    applyCorrelatedKinematics(correlatedDetections) {
+    applyCorrelatedKinematics(correlatedDetections, timestamp = Date.now()) {
         correlatedDetections.forEach((detection) => {
             if (!detection.correlated || !detection.correlatedTrackId) {
+                return
+            }
+
+            const existing = this.trackStore.getTrack(detection.correlatedTrackId)
+
+            if (isCorrelationHoldActive(existing, timestamp)) {
+                this.trackStore.updateTrack(detection.correlatedTrackId, {
+                    correlated: true,
+                })
                 return
             }
 
@@ -257,7 +267,7 @@ export class TrackEngine {
             timestamp,
         )
 
-        this.applyCorrelatedKinematics(correlatedDetections)
+        this.applyCorrelatedKinematics(correlatedDetections, timestamp)
 
         mergeTracksFromCorrelatedDetections(
             this.trackStore,

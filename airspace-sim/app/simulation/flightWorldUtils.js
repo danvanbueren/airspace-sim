@@ -194,6 +194,9 @@ export function createFlightAircraft(id, route, airportByIcao, random) {
     const cruiseSpeed = isMilitary
         ? 320 + Math.floor(random() * 280)
         : 380 + Math.floor(random() * 120)
+    const cruiseAltitude = isMilitary
+        ? 15_000 + Math.floor(random() * 20_000)
+        : 28_000 + Math.floor(random() * 12_000)
 
     return {
         id,
@@ -208,9 +211,12 @@ export function createFlightAircraft(id, route, airportByIcao, random) {
         latitude: position.lat,
         heading,
         speed: cruiseSpeed,
-        altitude: isMilitary
-            ? 15000 + Math.floor(random() * 20000)
-            : 28000 + Math.floor(random() * 12000),
+        baseSpeed: cruiseSpeed,
+        cruiseAltitude,
+        altitude: cruiseAltitude,
+        fieldAltitude: 1500,
+        speedBias: Math.round((random() - 0.5) * 10),
+        speedJitter: 0,
         profile: profilePool[Math.floor(random() * profilePool.length)],
         domain: TRACK_DOMAINS.AIR,
         identity: isMilitary ? TRACK_IDENTITIES.UNKNOWN : TRACK_IDENTITIES.NEUTRAL,
@@ -235,7 +241,12 @@ export function assignNewRoute(aircraft, pickRoute, airportByIcao, random) {
         latitude: next.latitude,
         heading: next.heading,
         speed: next.speed,
+        baseSpeed: next.baseSpeed,
+        cruiseAltitude: next.cruiseAltitude,
         altitude: next.altitude,
+        fieldAltitude: next.fieldAltitude,
+        speedBias: next.speedBias,
+        speedJitter: 0,
         profile: next.profile,
         identity: next.identity,
     }
