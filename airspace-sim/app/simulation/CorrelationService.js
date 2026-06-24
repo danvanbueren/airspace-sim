@@ -43,7 +43,10 @@ export class CorrelationService {
 
         if (sensorType === SENSOR_TYPES.IFF) {
             applyIffCorrelationFields(trackStore, correlatedDetections, timestamp)
-            clearSeparatedIffTrackCodes(trackStore, detections, thresholdNm)
+            clearSeparatedIffTrackCodes(trackStore, detections, thresholdNm, {
+                correlatedDetections,
+                timestamp,
+            })
         }
 
         return correlatedDetections

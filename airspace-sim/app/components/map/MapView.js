@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useMemo, useRef} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {createPortal} from 'react-dom'
 import {useTheme} from '@mui/material/styles'
 import {useCursorHooks} from '../../hooks/map/useCursorHooks'
@@ -91,6 +91,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     useRegisteredMap(mapRef, mapReady, registerMap)
 
     const simulationSnapshot = useSimulationLoop(mapRef, mapReady)
+    const [mapVisibleTracks, setMapVisibleTracks] = useState([])
 
     useIffEmergencyAlarms(
         simulationSnapshot?.tracks ?? [],
@@ -276,6 +277,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
             const bounds = getExpandedMapBounds(map, padding)
             const visibleTracks = filterTracksByBounds(simulationSnapshot.tracks, bounds)
 
+            setMapVisibleTracks(visibleTracks)
             trackMapLayer.replaceTracks(visibleTracks)
         }
 
@@ -502,7 +504,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
             <TrackAttentionOverlay
                 mapRef={mapRef}
                 mapReady={mapReady}
-                tracks={simulationSnapshot?.tracks ?? []}
+                tracks={mapVisibleTracks}
                 evaluationTime={getSimulationTimestamp()}
                 iffRefreshMs={simulationSettings.iffRefreshMs ?? 1000}
             />

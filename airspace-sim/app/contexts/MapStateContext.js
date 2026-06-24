@@ -1,6 +1,6 @@
 'use client'
 
-import {createContext, useCallback, useContext, useMemo, useState} from 'react'
+import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react'
 import {
     getSignalDefinition,
     MISC_SIGNAL_ID,
@@ -44,6 +44,8 @@ function normalizeAlertInput(input) {
             trackId: input.trackId ?? null,
             longitude: input.longitude ?? null,
             latitude: input.latitude ?? null,
+            raisedAt: input.raisedAt ?? null,
+            alarmKey: input.alarmKey ?? null,
         }
     }
 
@@ -53,31 +55,84 @@ function normalizeAlertInput(input) {
     }
 }
 
+function toAlertTimestamp(raisedAt) {
+    if (raisedAt instanceof Date) {
+        return raisedAt
+    }
+
+    if (typeof raisedAt === 'number' && Number.isFinite(raisedAt)) {
+        return new Date(raisedAt)
+    }
+
+    return new Date()
+}
+
 export function MapStateProvider({children}) {
     const [alarmAlertQueue, setAlarmAlertQueue] = useState([])
     const [map, setMap] = useState(null)
+    const nextAlertIdRef = useRef(1)
+    const raisedEmergencyAlarmKeysRef = useRef(new Set())
+
+    const isEmergencyAlarmRaised = useCallback((alarmKey) => (
+        raisedEmergencyAlarmKeysRef.current.has(alarmKey)
+    ), [])
+
+    const markEmergencyAlarmRaised = useCallback((alarmKey) => {
+        if (alarmKey) {
+            raisedEmergencyAlarmKeysRef.current.add(alarmKey)
+        }
+    }, [])
+
+    const clearEmergencyAlarmRaised = useCallback((alarmKey) => {
+        if (alarmKey) {
+            raisedEmergencyAlarmKeysRef.current.delete(alarmKey)
+        }
+    }, [])
+
+    const sweepInactiveEmergencyAlarmKeys = useCallback((activeKeys) => {
+        for (const key of [...raisedEmergencyAlarmKeysRef.current]) {
+            if (!activeKeys.has(key)) {
+                raisedEmergencyAlarmKeysRef.current.delete(key)
+            }
+        }
+    }, [])
 
     const addAlarmAlert = useCallback((input) => {
         const normalizedAlert = normalizeAlertInput(input)
+        const id = nextAlertIdRef.current
+        nextAlertIdRef.current += 1
 
         setAlarmAlertQueue((currentQueue) => [
             ...currentQueue,
             {
-                timestamp: new Date(),
+                id,
+                timestamp: toAlertTimestamp(normalizedAlert.raisedAt),
                 signalId: normalizedAlert.signalId,
                 message: normalizedAlert.message,
                 trackId: normalizedAlert.trackId ?? null,
                 longitude: normalizedAlert.longitude ?? null,
                 latitude: normalizedAlert.latitude ?? null,
+                alarmKey: normalizedAlert.alarmKey ?? null,
             },
         ])
+
+        return id
     }, [])
 
-    const deleteAlarmAlert = useCallback((indexToDelete) => {
-        setAlarmAlertQueue((currentQueue) => currentQueue.filter((_, index) => index !== indexToDelete))
+    const deleteAlarmAlert = useCallback((alertId) => {
+        setAlarmAlertQueue((currentQueue) => {
+            const alert = currentQueue.find((entry) => entry.id === alertId)
+
+            if (alert?.alarmKey) {
+                raisedEmergencyAlarmKeysRef.current.delete(alert.alarmKey)
+            }
+
+            return currentQueue.filter((entry) => entry.id !== alertId)
+        })
     }, [])
 
     const clearAlarmAlerts = useCallback(() => {
+        raisedEmergencyAlarmKeysRef.current.clear()
         setAlarmAlertQueue([])
     }, [])
 
@@ -104,10 +159,7 @@ export function MapStateProvider({children}) {
             return false
         }
 
-        const longitude = track.longitude
-        const latitude = track.latitude
-
-        return flyToCoordinates(longitude, latitude)
+        return flyToCoordinates(track.longitude, track.latitude)
     }, [flyToCoordinates])
 
     const zoomIn = useCallback(() => {
@@ -123,6 +175,10 @@ export function MapStateProvider({children}) {
         addAlarmAlert,
         deleteAlarmAlert,
         clearAlarmAlerts,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        clearEmergencyAlarmRaised,
+        sweepInactiveEmergencyAlarmKeys,
         map,
         registerMap,
         zoomIn,
@@ -135,6 +191,10 @@ export function MapStateProvider({children}) {
         addAlarmAlert,
         deleteAlarmAlert,
         clearAlarmAlerts,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        clearEmergencyAlarmRaised,
+        sweepInactiveEmergencyAlarmKeys,
         map,
         registerMap,
         zoomIn,

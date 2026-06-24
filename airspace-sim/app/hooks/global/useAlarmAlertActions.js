@@ -26,7 +26,14 @@ function inferAlertSignalId(message) {
 }
 
 export function useAlarmAlertActions() {
-    const mapState = useMapState()
+    const {
+        addAlarmAlert,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        clearEmergencyAlarmRaised,
+        sweepInactiveEmergencyAlarmKeys,
+        ...mapState
+    } = useMapState()
     const {appSettings} = useAppSettings()
     const inhibitedAlerts = appSettings.inhibitedAlerts ?? []
 
@@ -44,12 +51,17 @@ export function useAlarmAlertActions() {
             return false
         }
 
-        mapState.addAlarmAlert(normalizedInput)
+        addAlarmAlert(normalizedInput)
         return true
-    }, [inhibitedAlerts, mapState])
+    }, [addAlarmAlert, inhibitedAlerts])
 
     return {
         ...mapState,
+        addAlarmAlert,
         raiseAlarmAlert,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        clearEmergencyAlarmRaised,
+        sweepInactiveEmergencyAlarmKeys,
     }
 }

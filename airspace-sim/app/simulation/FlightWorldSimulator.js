@@ -17,7 +17,7 @@ import {
     getGeneralAviationFleetSize,
     pickGeneralAviationAirport,
 } from './generalAviationTraffic'
-import {maintainFleetEmergencySquawks} from './iffMode3'
+import {maintainFleetEmergencySquawks, formatMode3Code} from './iffMode3'
 import {updateAircraftKinematics} from './flightWorldKinematics'
 
 export class FlightWorldSimulator {
@@ -31,6 +31,7 @@ export class FlightWorldSimulator {
         this.nextFlightIndex = 0
         this.nextGeneralAviationIndex = 0
         this.initialized = false
+        this.maxActiveFlights = 0
     }
 
     getCommercialFleetTarget(maxActiveFlights) {
@@ -94,18 +95,24 @@ export class FlightWorldSimulator {
         }
 
         const random = createBootstrapRandom(maxActiveFlights)
+        this.maxActiveFlights = maxActiveFlights
         this.rebalanceFleet(maxActiveFlights, random)
         this.initialized = true
     }
 
     setMaxActiveFlights(maxActiveFlights) {
-        const random = createBootstrapRandom(maxActiveFlights, Date.now())
+        if (this.initialized && maxActiveFlights === this.maxActiveFlights) {
+            return
+        }
+
+        const random = createBootstrapRandom(maxActiveFlights)
 
         if (!this.initialized) {
             this.initialize(maxActiveFlights)
             return
         }
 
+        this.maxActiveFlights = maxActiveFlights
         this.rebalanceFleet(maxActiveFlights, random)
     }
 
@@ -201,6 +208,37 @@ export class FlightWorldSimulator {
         let bestDistance = Infinity
 
         this.aircraft.forEach((aircraft) => {
+            const distance = haversineDistanceNm(
+                latitude,
+                longitude,
+                aircraft.latitude,
+                aircraft.longitude,
+            )
+
+            if (distance < bestDistance && distance <= maxDistanceNm) {
+                bestDistance = distance
+                best = aircraft
+            }
+        })
+
+        return best
+    }
+
+    findAircraftByMode3Code(mode3Code, maxDistanceNm = 15, longitude, latitude) {
+        const normalized = formatMode3Code(mode3Code)
+
+        if (!normalized) {
+            return null
+        }
+
+        let best = null
+        let bestDistance = Infinity
+
+        this.aircraft.forEach((aircraft) => {
+            if (formatMode3Code(aircraft.mode3Code) !== normalized) {
+                return
+            }
+
             const distance = haversineDistanceNm(
                 latitude,
                 longitude,

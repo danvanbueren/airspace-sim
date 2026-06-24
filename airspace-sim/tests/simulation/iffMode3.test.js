@@ -9,6 +9,7 @@ import {
     getEmergencySquawkLabel,
     isEmergencyMode3Code,
     isIffMode3Stale,
+    isSharedVfrMode3Code,
     isValidMode3Code,
     maintainFleetEmergencySquawks,
     MODE3_CODE_VFR_EU,
@@ -19,6 +20,7 @@ import {
     clearSeparatedIffTrackCodes,
     correlateIffDetections,
 } from '../../app/simulation/iffCorrelation.js'
+import {pickIffMergeSource} from '../../app/simulation/trackMerge.js'
 import {TrackStore} from '../../app/simulation/TrackStore.js'
 import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
 import {deriveAttentionFlagsFromTrackState} from '../../app/simulation/trackAttentionFlags.js'
@@ -97,6 +99,24 @@ describe('iffMode3', () => {
         const flags = deriveAttentionFlagsFromTrackState(track, 5_000, 1000)
 
         assert.ok(flags.includes('IFF_STALE'))
+    })
+
+    it('suppresses emergency attention flags when IFF data is stale', () => {
+        const track = {
+            iffMode3Code: '7700',
+            iffMode3UpdatedAt: 1_000,
+        }
+
+        const flags = deriveAttentionFlagsFromTrackState(track, 5_000, 1000)
+
+        assert.ok(!flags.includes('IFF_EMER'))
+        assert.ok(flags.includes('IFF_STALE'))
+    })
+
+    it('identifies shared VFR squawk codes', () => {
+        assert.ok(isSharedVfrMode3Code(MODE3_CODE_VFR_US))
+        assert.ok(isSharedVfrMode3Code(MODE3_CODE_VFR_EU))
+        assert.ok(!isSharedVfrMode3Code('4231'))
     })
 
     it('maintains between one and three fleet emergency squawks', () => {
@@ -232,6 +252,92 @@ describe('iffCorrelation', () => {
         const correlated = correlateIffDetections(detections, tracks, 5)
 
         assert.equal(correlated[0].correlatedTrackId, 'TRK-EMPTY')
+    })
+
+    it('uses proximity instead of code binding for shared VFR squawks', () => {
+        const detections = [
+            {
+                id: 'iff-vfr',
+                sensorType: SENSOR_TYPES.IFF,
+                mode3Code: MODE3_CODE_VFR_US,
+                latitude: 40,
+                longitude: -75,
+            },
+        ]
+
+        const tracks = [
+            activeTrack({id: 'TRK-NEAR', latitude: 40.001, iffMode3Code: MODE3_CODE_VFR_US}),
+            activeTrack({id: 'TRK-FAR', latitude: 40.01, iffMode3Code: MODE3_CODE_VFR_US}),
+        ]
+
+        const correlated = correlateIffDetections(detections, tracks, 5)
+
+        assert.equal(correlated[0].correlatedTrackId, 'TRK-NEAR')
+    })
+
+    it('does not clear stored codes correlated on the same scan', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(activeTrack({
+            id: 'TRK-1',
+            latitude: 40,
+            iffMode3Code: '4231',
+            iffMode3UpdatedAt: 1_000,
+        }))
+
+        const detections = [
+            {
+                id: 'iff-near',
+                mode3Code: '4231',
+                latitude: 41,
+                longitude: -75,
+                correlated: true,
+                correlatedTrackId: 'TRK-1',
+            },
+        ]
+
+        const cleared = clearSeparatedIffTrackCodes(trackStore, detections, 5, {
+            correlatedDetections: detections,
+            timestamp: 2_000,
+        })
+
+        assert.deepEqual(cleared, [])
+        assert.equal(trackStore.getTrack('TRK-1').iffMode3Code, '4231')
+    })
+
+    it('does not apply mismatched non-emergency squawks to stored tracks', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(activeTrack({
+            id: 'TRK-1',
+            iffMode3Code: '1200',
+            iffMode3UpdatedAt: 1_000,
+        }))
+
+        applyIffCorrelationFields(trackStore, [
+            {
+                correlated: true,
+                correlatedTrackId: 'TRK-1',
+                mode3Code: '3333',
+            },
+        ], 2_000)
+
+        assert.equal(trackStore.getTrack('TRK-1').iffMode3Code, '1200')
+    })
+
+    it('prefers emergency squawks when merging tracks', () => {
+        const survivor = activeTrack({
+            id: 'TRK-A',
+            iffMode3Code: '1200',
+            iffMode3UpdatedAt: 5_000,
+        })
+        const merged = activeTrack({
+            id: 'TRK-B',
+            iffMode3Code: '7700',
+            iffMode3UpdatedAt: 2_000,
+        })
+
+        const iffSource = pickIffMergeSource(survivor, merged)
+
+        assert.equal(iffSource.iffMode3Code, '7700')
     })
 
     it('updates track IFF fields from correlated detections', () => {

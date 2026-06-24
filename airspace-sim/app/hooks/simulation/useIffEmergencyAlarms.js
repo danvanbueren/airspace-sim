@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useRef} from 'react'
+import {useEffect} from 'react'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import {
     buildIffEmergencyAlarmMessage,
@@ -18,8 +18,12 @@ import {
  * @param {number} iffRefreshMs
  */
 export function useIffEmergencyAlarms(tracks, evaluationTime, iffRefreshMs) {
-    const {raiseAlarmAlert} = useAlarmAlertActions()
-    const raisedAlarmKeysRef = useRef(new Set())
+    const {
+        raiseAlarmAlert,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        sweepInactiveEmergencyAlarmKeys,
+    } = useAlarmAlertActions()
 
     useEffect(() => {
         const activeKeys = new Set()
@@ -39,7 +43,7 @@ export function useIffEmergencyAlarms(tracks, evaluationTime, iffRefreshMs) {
             const alarmKey = `${trackId}:${mode3Code}`
             activeKeys.add(alarmKey)
 
-            if (raisedAlarmKeysRef.current.has(alarmKey)) {
+            if (isEmergencyAlarmRaised(alarmKey)) {
                 return
             }
 
@@ -55,17 +59,23 @@ export function useIffEmergencyAlarms(tracks, evaluationTime, iffRefreshMs) {
                 trackId,
                 longitude: track.longitude,
                 latitude: track.latitude,
+                raisedAt: evaluationTime,
+                alarmKey,
             })
 
             if (raised) {
-                raisedAlarmKeysRef.current.add(alarmKey)
+                markEmergencyAlarmRaised(alarmKey)
             }
         })
 
-        raisedAlarmKeysRef.current.forEach((key) => {
-            if (!activeKeys.has(key)) {
-                raisedAlarmKeysRef.current.delete(key)
-            }
-        })
-    }, [evaluationTime, iffRefreshMs, raiseAlarmAlert, tracks])
+        sweepInactiveEmergencyAlarmKeys(activeKeys)
+    }, [
+        evaluationTime,
+        iffRefreshMs,
+        isEmergencyAlarmRaised,
+        markEmergencyAlarmRaised,
+        raiseAlarmAlert,
+        sweepInactiveEmergencyAlarmKeys,
+        tracks,
+    ])
 }

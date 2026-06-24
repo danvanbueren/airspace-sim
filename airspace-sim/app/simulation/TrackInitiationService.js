@@ -1,5 +1,5 @@
 import {SENSOR_TYPES} from './constants'
-import {formatMode3Code} from './iffMode3'
+import {formatMode3Code, isEmergencyMode3Code} from './iffMode3'
 import {PlotAssociationStore} from './PlotAssociationStore'
 import {trackFromInitiation} from './trackFromDetection'
 import {findNearestActiveTrack} from './trackMerge'
@@ -35,14 +35,20 @@ export class TrackInitiationService {
             timestamp,
             this.initiationHitCount,
             {
-                shouldIgnoreDetection: (detection) => Boolean(
-                    findNearestActiveTrack(
-                        activeTracks,
-                        detection.latitude,
-                        detection.longitude,
-                        proximityNm,
-                    ),
-                ),
+                shouldIgnoreDetection: (detection) => {
+                    if (isEmergencyMode3Code(detection.mode3Code)) {
+                        return false
+                    }
+
+                    return Boolean(
+                        findNearestActiveTrack(
+                            activeTracks,
+                            detection.latitude,
+                            detection.longitude,
+                            proximityNm,
+                        ),
+                    )
+                },
             },
         )
 

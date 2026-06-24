@@ -43,6 +43,18 @@ export function isEmergencyMode3Code(code) {
 }
 
 /**
+ * VFR block codes are shared by many aircraft and must not drive code-bound correlation.
+ *
+ * @param {string|null|undefined} code
+ * @returns {boolean}
+ */
+export function isSharedVfrMode3Code(code) {
+    const normalized = formatMode3Code(code)
+
+    return normalized === MODE3_CODE_VFR_US || normalized === MODE3_CODE_VFR_EU
+}
+
+/**
  * @param {string|null|undefined} code
  * @returns {string|null}
  */

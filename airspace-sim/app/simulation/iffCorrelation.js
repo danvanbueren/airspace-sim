@@ -1,5 +1,10 @@
 import {haversineDistanceNm} from './geo.js'
-import {formatMode3Code} from './iffMode3.js'
+import {isCorrelationHoldActive} from './correlationHold.js'
+import {
+    formatMode3Code,
+    isEmergencyMode3Code,
+    isSharedVfrMode3Code,
+} from './iffMode3.js'
 
 function buildCorrelationCandidates(detections, tracks, thresholdNm) {
     const candidates = []
@@ -113,7 +118,12 @@ export function correlateIffDetections(detections, tracks, thresholdNm) {
         const trackCode = formatMode3Code(candidate.trackMode3Code)
         const detectionCode = formatMode3Code(candidate.mode3Code)
 
-        if (trackCode && detectionCode && trackCode === detectionCode) {
+        if (
+            trackCode
+            && detectionCode
+            && trackCode === detectionCode
+            && !isSharedVfrMode3Code(trackCode)
+        ) {
             codeBoundCandidates.push({
                 ...candidate,
                 codeMatch: true,
@@ -182,13 +192,29 @@ export function correlateIffDetections(detections, tracks, thresholdNm) {
  * @param {import('./TrackStore.js').TrackStore} trackStore
  * @param {import('./types.js').SensorDetection[]} detections
  * @param {number} thresholdNm
+ * @param {{ correlatedDetections?: import('./types.js').SensorDetection[], timestamp?: number }} [options]
  * @returns {string[]} Track IDs cleared
  */
-export function clearSeparatedIffTrackCodes(trackStore, detections, thresholdNm) {
+export function clearSeparatedIffTrackCodes(trackStore, detections, thresholdNm, options = {}) {
+    const correlatedDetections = options.correlatedDetections ?? []
+    const timestamp = options.timestamp ?? Date.now()
+    const refreshedTrackIds = new Set(
+        correlatedDetections
+            .filter((detection) => detection.correlated && detection.correlatedTrackId && detection.mode3Code)
+            .map((detection) => detection.correlatedTrackId),
+    )
     const clearedTrackIds = []
 
     trackStore.getAllTracks().forEach((track) => {
         if (!track.iffMode3Code) {
+            return
+        }
+
+        if (isCorrelationHoldActive(track, timestamp)) {
+            return
+        }
+
+        if (refreshedTrackIds.has(track.id)) {
             return
         }
 
@@ -233,8 +259,16 @@ export function applyIffCorrelationFields(trackStore, correlatedDetections, time
             return
         }
 
+        const track = trackStore.getTrack(detection.correlatedTrackId)
+        const nextCode = formatMode3Code(detection.mode3Code)
+        const storedCode = formatMode3Code(track?.iffMode3Code)
+
+        if (storedCode && storedCode !== nextCode && !isEmergencyMode3Code(nextCode)) {
+            return
+        }
+
         trackStore.updateTrack(detection.correlatedTrackId, {
-            iffMode3Code: formatMode3Code(detection.mode3Code),
+            iffMode3Code: nextCode,
             iffMode3UpdatedAt: timestamp,
         })
     })

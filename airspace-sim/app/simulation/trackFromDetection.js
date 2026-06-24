@@ -7,9 +7,14 @@ export const TRACK_CORRELATION_MODES = {
 }
 
 export function trackFromInitiation({plotId, sensorType, longitude, latitude, timestamp, flightWorld, mode3Code}) {
-    const nearest = flightWorld?.findNearestAircraft?.(longitude, latitude)
-    const id = `TRK-${sensorType}-${plotId}`
     const normalizedMode3Code = mode3Code ? formatMode3Code(mode3Code) : null
+    const nearest = normalizedMode3Code
+        ? (
+            flightWorld?.findAircraftByMode3Code?.(normalizedMode3Code, 15, longitude, latitude)
+            ?? flightWorld?.findNearestAircraft?.(longitude, latitude)
+        )
+        : flightWorld?.findNearestAircraft?.(longitude, latitude)
+    const id = `TRK-${sensorType}-${plotId}`
 
     return {
         id,

@@ -24,13 +24,17 @@ export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.
     }
 
     if (track.iffMode3Code) {
-        const emergencyFlagId = getEmergencyAttentionFlagId(track.iffMode3Code)
+        const iffStale = isIffMode3Stale(track, evaluationTime, iffRefreshMs)
 
-        if (emergencyFlagId) {
-            flags.push(emergencyFlagId)
+        if (!iffStale) {
+            const emergencyFlagId = getEmergencyAttentionFlagId(track.iffMode3Code)
+
+            if (emergencyFlagId) {
+                flags.push(emergencyFlagId)
+            }
         }
 
-        if (isIffMode3Stale(track, evaluationTime, iffRefreshMs)) {
+        if (iffStale) {
             flags.push('IFF_STALE')
         }
     }

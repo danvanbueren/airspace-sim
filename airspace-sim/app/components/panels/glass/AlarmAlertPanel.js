@@ -1,6 +1,6 @@
 'use client'
 
-import {useMemo, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import BasicGlassPanel from './BasicGlassPanel'
 import AlarmAlertDetailModal from './AlarmAlertDetailModal'
 import {Box, Button, Divider, Grid, IconButton, Stack, Typography} from '@mui/material'
@@ -51,6 +51,18 @@ export default function AlarmAlertPanel() {
         return alarmAlertQueue.filter((alert) => !inhibitedAlerts.has(alert.signalId))
     }, [alarmAlertQueue, appSettings.inhibitedAlerts])
 
+    useEffect(() => {
+        if (!openAlert?.id) {
+            return
+        }
+
+        const stillVisible = visibleAlerts.some((alert) => alert.id === openAlert.id)
+
+        if (!stillVisible) {
+            setOpenAlert(null)
+        }
+    }, [openAlert?.id, visibleAlerts])
+
     const closeDetailModal = () => setOpenAlert(null)
 
     const focusTrackHandlers = {getTrack, flyToTrack, flyToCoordinates}
@@ -65,18 +77,11 @@ export default function AlarmAlertPanel() {
     }
 
     const deleteDetailAlert = () => {
-        if (!openAlert) {
+        if (!openAlert?.id) {
             return
         }
 
-        const indexToDelete = alarmAlertQueue.findIndex(
-            (alert) => alert.timestamp === openAlert.timestamp && alert.message === openAlert.message,
-        )
-
-        if (indexToDelete !== -1) {
-            deleteAlarmAlert(indexToDelete)
-        }
-
+        deleteAlarmAlert(openAlert.id)
         setOpenAlert(null)
     }
 
@@ -144,7 +149,7 @@ export default function AlarmAlertPanel() {
                         END OF ALERTS
                     </Typography>
 
-                    {visibleAlerts.map((alert, index) => {
+                    {visibleAlerts.map((alert) => {
                         const showTrackFocus = isIffEmergencyAlertSignalId(alert.signalId)
 
                         const handleFocusTrack = (event) => {
@@ -153,6 +158,7 @@ export default function AlarmAlertPanel() {
                         }
 
                         const openDetailModal = () => setOpenAlert({
+                            id: alert.id,
                             message: alert.message,
                             timestamp: alert.timestamp,
                             signalId: alert.signalId,
@@ -164,7 +170,7 @@ export default function AlarmAlertPanel() {
 
                         return (
                         <Box
-                            key={`${alert.timestamp}-${index}`}
+                            key={alert.id}
                         >
                             <Divider
                                 sx={{m: 1, mt: 0,}}
@@ -251,10 +257,7 @@ export default function AlarmAlertPanel() {
                                         aria-label="delete alarm"
                                         onClick={(event) => {
                                             event.stopPropagation()
-                                            const queueIndex = alarmAlertQueue.indexOf(alert)
-                                            if (queueIndex !== -1) {
-                                                deleteAlarmAlert(queueIndex)
-                                            }
+                                            deleteAlarmAlert(alert.id)
                                         }}
                                     >
                                         <DeleteIcon fontSize="small"/>
