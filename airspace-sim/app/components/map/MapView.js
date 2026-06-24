@@ -47,7 +47,7 @@ const MAP_STYLES = {
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
     const {addAlarmAlert, registerMap} = useMapState()
-    const {upsertManualTrack, dropTrack, getTrack} = useSimulation()
+    const {upsertManualTrack, dropTrack, getTrack, getSimulationTimestamp} = useSimulation()
     const {simulationSettings} = useAppSettings()
     const {isToggleActive} = useSensorDisplay()
     const mapContainerRef = useRef(null)
@@ -148,11 +148,12 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
             trackManagementWindow,
             existingTrack,
             changedFields,
+            getSimulationTimestamp(),
         )
 
         upsertManualTrack(track)
         trackMapLayer.upsertTrack(track)
-    }, [getTrack, trackMapLayer, upsertManualTrack])
+    }, [getSimulationTimestamp, getTrack, trackMapLayer, upsertManualTrack])
 
     const {
         trackManagementWindows,

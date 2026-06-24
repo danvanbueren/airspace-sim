@@ -554,6 +554,31 @@ describe('track management window live sync', () => {
         assert.equal(updated.lastUserKinematicEditFields, undefined)
     })
 
+    it('evaluates existing hold expiry using simulation time', () => {
+        const editAt = 10_000
+
+        const updated = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                callsign: 'VIP01',
+            }),
+            existingTrack({
+                callsign: 'CIV01',
+                lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: editAt,
+                lastUserKinematicEditFields: ['heading'],
+            }),
+            ['callsign'],
+            editAt + 5_000,
+        )
+
+        assert.deepEqual(
+            updated.lastManagementEditFields.sort(),
+            ['callsign', 'heading'],
+        )
+        assert.equal(updated.lastUserKinematicEditAt, editAt)
+        assert.deepEqual(updated.lastUserKinematicEditFields, ['heading'])
+    })
+
     it('does not overwrite committed kinematic edits during live sync', () => {
         const openWindow = {
             id: 'track-AUTO-1',

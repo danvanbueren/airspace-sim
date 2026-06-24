@@ -360,6 +360,7 @@ export function createTrackUpdateFromManagementWindow(
     trackManagementWindow,
     existingTrack,
     changedFields,
+    evaluationTime = Date.now(),
 ) {
     const update = {
         id: trackManagementWindow.trackId,
@@ -377,7 +378,7 @@ export function createTrackUpdateFromManagementWindow(
         source: existingTrack?.source === 'auto' ? 'manual' : (trackManagementWindow.source ?? 'manual'),
         userDirected: true,
         lastManagementEditFields: accumulateManagementEditFields(
-            getAuthoritativeManagementEditFields(existingTrack),
+            getAuthoritativeManagementEditFields(existingTrack, evaluationTime),
             changedFields,
         ),
     }
@@ -385,6 +386,7 @@ export function createTrackUpdateFromManagementWindow(
     if (!existingTrack) {
         return resolveExpiredCorrelationHold(
             applyUserKinematicEditHold(update, existingTrack, changedFields),
+            evaluationTime,
         )
     }
 
@@ -393,5 +395,6 @@ export function createTrackUpdateFromManagementWindow(
             ...existingTrack,
             ...update,
         }, existingTrack, changedFields),
+        evaluationTime,
     )
 }

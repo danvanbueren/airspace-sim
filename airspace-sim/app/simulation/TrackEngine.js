@@ -398,6 +398,10 @@ export class TrackEngine {
         }
     }
 
+    getSimulationTimestamp() {
+        return this.lastTrackTickAt || Date.now()
+    }
+
     dispose() {
         this.playbackController.dispose()
         this.flightWorld.dispose?.()

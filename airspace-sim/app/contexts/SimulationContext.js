@@ -44,6 +44,7 @@ export function SimulationProvider({children}) {
     const value = useMemo(() => ({
         getEngine: () => engineRef.current,
         getTrack: (trackId) => engineRef.current?.getTrack(trackId) ?? null,
+        getSimulationTimestamp: () => engineRef.current?.getSimulationTimestamp() ?? Date.now(),
         upsertManualTrack: (track) => engineRef.current?.upsertManualTrack(track),
         removeManualTrack: (trackId) => engineRef.current?.removeManualTrack(trackId),
         dropTrack: (trackId) => engineRef.current?.dropTrack(trackId),
