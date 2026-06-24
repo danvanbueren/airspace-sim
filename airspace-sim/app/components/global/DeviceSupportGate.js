@@ -1,13 +1,17 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {useLayoutEffect, useState} from 'react'
+import Home from '@/app/Home'
 import UnsupportedMobilePage from '@/app/components/global/UnsupportedMobilePage'
-import {isUnsupportedMobileDevice} from '@/app/utils/deviceSupport'
+import {isUnsupportedMobileDeviceClient} from '@/app/utils/deviceSupport'
 
-export default function DeviceSupportGate({initialUnsupported = false, children}) {
+export default function DeviceSupportGate() {
+    const [clientReady, setClientReady] = useState(false)
     const [resizeTick, setResizeTick] = useState(0)
 
-    useEffect(() => {
+    useLayoutEffect(() => {
+        setClientReady(true)
+
         const handleResize = () => {
             setResizeTick((tick) => tick + 1)
         }
@@ -21,9 +25,13 @@ export default function DeviceSupportGate({initialUnsupported = false, children}
 
     void resizeTick
 
-    if (isUnsupportedMobileDevice(initialUnsupported)) {
+    if (!clientReady) {
+        return null
+    }
+
+    if (isUnsupportedMobileDeviceClient()) {
         return <UnsupportedMobilePage/>
     }
 
-    return children
+    return <Home/>
 }
