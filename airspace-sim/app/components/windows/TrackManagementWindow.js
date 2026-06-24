@@ -341,31 +341,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         onChange(trackManagementWindow.id, updates)
     }
 
-    const handleKinematicFieldFocus = (field) => {
-        const nextFocusedFields = new Set(focusedFieldsRef.current)
-        nextFocusedFields.add(field)
-
-        const nextDrafts = {
-            ...kinematicFieldDraftsRef.current,
-            [field]: getEditableKinematicDraft(field, trackManagementWindow[field]),
-        }
-
-        focusedFieldsRef.current = nextFocusedFields
-        kinematicFieldDraftsRef.current = nextDrafts
-        publishSkipLiveFields(nextFocusedFields, nextDrafts)
-        setKinematicFieldDrafts(nextDrafts)
-    }
-
-    const updateKinematicFieldDraft = (field, rawValue) => {
-        const nextDrafts = {
-            ...kinematicFieldDraftsRef.current,
-            [field]: rawValue,
-        }
-
-        kinematicFieldDraftsRef.current = nextDrafts
-        setKinematicFieldDrafts(nextDrafts)
-    }
-
     const handleKinematicFieldBlur = (field) => {
         const draft = kinematicFieldDraftsRef.current[field]
         const nextDrafts = {...kinematicFieldDraftsRef.current}
@@ -392,12 +367,43 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         updateField(field, parsedValue)
     }
 
-    const blurActiveKinematicFields = () => {
+    const blurActiveKinematicFields = (exceptField = null) => {
         for (const field of KINEMATIC_FOCUS_FIELDS) {
+            if (field === exceptField) {
+                continue
+            }
+
             if (focusedFieldsRef.current.has(field) || field in kinematicFieldDraftsRef.current) {
                 handleKinematicFieldBlur(field)
             }
         }
+    }
+
+    const handleKinematicFieldFocus = (field) => {
+        blurActiveKinematicFields(field)
+
+        const nextFocusedFields = new Set(focusedFieldsRef.current)
+        nextFocusedFields.add(field)
+
+        const nextDrafts = {
+            ...kinematicFieldDraftsRef.current,
+            [field]: getEditableKinematicDraft(field, trackManagementWindow[field]),
+        }
+
+        focusedFieldsRef.current = nextFocusedFields
+        kinematicFieldDraftsRef.current = nextDrafts
+        publishSkipLiveFields(nextFocusedFields, nextDrafts)
+        setKinematicFieldDrafts(nextDrafts)
+    }
+
+    const updateKinematicFieldDraft = (field, rawValue) => {
+        const nextDrafts = {
+            ...kinematicFieldDraftsRef.current,
+            [field]: rawValue,
+        }
+
+        kinematicFieldDraftsRef.current = nextDrafts
+        setKinematicFieldDrafts(nextDrafts)
     }
 
     const handleSelectOpen = (field) => {
