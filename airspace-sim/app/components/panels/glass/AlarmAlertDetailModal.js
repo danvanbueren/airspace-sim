@@ -21,7 +21,14 @@ const modalStyle = (theme) => ({
     outline: 'none',
 })
 
-export default function AlarmAlertDetailModal({open, message, timestamp, onClose, onDelete}) {
+export default function AlarmAlertDetailModal({
+    open,
+    message,
+    timestamp,
+    signalLabel,
+    onClose,
+    onDelete,
+}) {
     return (
         <Modal
             open={open}
@@ -38,6 +45,18 @@ export default function AlarmAlertDetailModal({open, message, timestamp, onClose
                             pr: 1,
                         }}
                     >
+                        {signalLabel && (
+                            <Typography
+                                sx={{
+                                    fontFamily: 'monospace',
+                                    fontWeight: 'bold',
+                                    fontSize: 13,
+                                    mb: 1,
+                                }}
+                            >
+                                {signalLabel}
+                            </Typography>
+                        )}
                         <Typography
                             component='pre'
                             sx={{

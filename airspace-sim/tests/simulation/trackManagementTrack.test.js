@@ -231,6 +231,7 @@ describe('track management window live sync', () => {
             altitude: 28_000,
             infoFields: false,
             correlationMode: 'extrapolated',
+            attentionFlags: [],
         })
     })
 

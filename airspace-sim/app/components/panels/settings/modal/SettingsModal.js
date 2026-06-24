@@ -4,6 +4,15 @@ import SettingsModalSettingsPage from '@/app/components/panels/settings/modal/pa
 import SettingsModalKeybindsPage from './pages/SettingsModalKeybindsPage'
 import SettingsModalRoadmapPage from './pages/SettingsModalRoadmapPage'
 import SettingsModalAboutPage from './pages/SettingsModalAboutPage'
+import SettingsModalAlertsAttentionsPage from './pages/SettingsModalAlertsAttentionsPage'
+
+const SETTINGS_PAGE_TITLES = {
+    settings: 'Settings',
+    keybinds: 'Keybinds',
+    alerts: 'Alerts & Attentions',
+    roadmap: 'Roadmap',
+    about: 'About',
+}
 
 export default function SettingsModal({open, setOpen, state = 'settings', buildData}) {
 
@@ -29,6 +38,8 @@ export default function SettingsModal({open, setOpen, state = 'settings', buildD
                 return <SettingsModalSettingsPage/>
             case 'keybinds':
                 return <SettingsModalKeybindsPage/>
+            case 'alerts':
+                return <SettingsModalAlertsAttentionsPage/>
             case 'roadmap':
                 return <SettingsModalRoadmapPage/>
             case 'about':
@@ -87,7 +98,7 @@ export default function SettingsModal({open, setOpen, state = 'settings', buildD
 
                 <Grid size='grow' sx={{borderRadius: 2, height: '100%', display: 'flex', flexDirection: 'column'}}>
                     <Typography variant='h4' sx={{fontWeight: 'bold', marginBottom: 2}}>
-                        {state.charAt(0).toUpperCase() + state.slice(1)}
+                        {SETTINGS_PAGE_TITLES[state] ?? state}
                     </Typography>
                     <Box sx={{overflow: 'auto', height: '100%', paddingRight: 1}}>
                         <Card sx={{borderRadius: 2, padding: 3, minHeight: '100%'}}>

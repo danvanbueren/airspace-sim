@@ -1,0 +1,82 @@
+import {describe, it} from 'node:test'
+import assert from 'node:assert/strict'
+import {
+    filterInhibitedSignalIds,
+    getSignalDefinition,
+    getSignalLabel,
+    sortSignalIdsByPriority,
+} from '../../app/simulation/signalDefinitions.js'
+import {
+    deriveAttentionFlagsFromTrackState,
+    resolveTrackAttentionFlags,
+} from '../../app/simulation/trackAttentionFlags.js'
+import {formatAttentionDisplayLines} from '../../app/tools/map/trackAttentionDisplay.js'
+import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
+
+describe('signalDefinitions', () => {
+    it('sorts attention flags by configured priority', () => {
+        const sorted = sortSignalIdsByPriority(['EXTRAPOLATED', 'STALE', 'HOLD'])
+
+        assert.deepEqual(sorted, ['STALE', 'EXTRAPOLATED', 'HOLD'])
+    })
+
+    it('filters inhibited signal ids', () => {
+        const visible = filterInhibitedSignalIds(
+            ['STALE', 'HOLD', 'SUSPENDED'],
+            ['HOLD'],
+        )
+
+        assert.deepEqual(visible, ['STALE', 'SUSPENDED'])
+    })
+
+    it('falls back to Misc for unknown ids', () => {
+        assert.equal(getSignalDefinition('UNKNOWN').id, 'MISC')
+        assert.equal(getSignalLabel('UNKNOWN'), 'Misc')
+    })
+})
+
+describe('trackAttentionFlags', () => {
+    it('derives stale, suspended, extrapolated, and hold flags from track state', () => {
+        const flags = deriveAttentionFlagsFromTrackState({
+            stale: true,
+            correlationMode: TRACK_CORRELATION_MODES.SUSPEND,
+            lastUserKinematicEditAt: Date.now(),
+        })
+
+        assert.ok(flags.includes('STALE'))
+        assert.ok(flags.includes('SUSPENDED'))
+        assert.ok(flags.includes('HOLD'))
+    })
+
+    it('merges assigned flags with derived flags without duplicates', () => {
+        const flags = resolveTrackAttentionFlags({
+            attentionFlags: ['HOLD'],
+            stale: true,
+            correlationMode: TRACK_CORRELATION_MODES.ACTIVE,
+        })
+
+        assert.deepEqual(flags, ['STALE', 'HOLD'])
+    })
+})
+
+describe('trackAttentionDisplay', () => {
+    it('shows up to five labels when within the display limit', () => {
+        const lines = formatAttentionDisplayLines(['STALE', 'HOLD'])
+
+        assert.deepEqual(lines, ['STALE', 'HOLD'])
+    })
+
+    it('shows four labels plus overflow summary when more than five flags exist', () => {
+        const lines = formatAttentionDisplayLines([
+            'STALE',
+            'SUSPENDED',
+            'EXTRAPOLATED',
+            'HOLD',
+            'STALE',
+            'HOLD',
+        ])
+
+        assert.equal(lines.length, 5)
+        assert.equal(lines[4], '+ 2 MORE')
+    })
+})

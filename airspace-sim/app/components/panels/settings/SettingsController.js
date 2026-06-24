@@ -1,6 +1,7 @@
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu'
 import SettingsIcon from '@mui/icons-material/Settings'
 import KeyboardIcon from '@mui/icons-material/Keyboard'
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import InfoIcon from '@mui/icons-material/Info'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
@@ -43,6 +44,12 @@ export default function SettingsController({modalOpen, setModalOpen}) {
             tooltip: 'Keybinds',
             onToolbeltClick: () => openModalWithState('keybinds'),
             onModalClick: () => setModalState('keybinds')
+        }, {
+            name: 'alerts',
+            icon: <NotificationsActiveIcon/>,
+            tooltip: 'Alerts & Attentions',
+            onToolbeltClick: () => openModalWithState('alerts'),
+            onModalClick: () => setModalState('alerts')
         }, {
             name: 'roadmap',
             icon: <HistoryEduIcon/>,

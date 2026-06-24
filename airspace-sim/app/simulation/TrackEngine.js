@@ -13,6 +13,7 @@ import {mergeTracksFromCorrelatedDetections} from './trackMerge'
 import {getBoundedTrackDeltaSeconds} from './trackTiming'
 import {syncActiveTrackKinematicsFromFlightWorld} from './syncActiveTrackKinematicsFromFlightWorld'
 import {isCorrelationHoldActive} from './correlationHold'
+import {enrichTracksWithAttentionFlags} from './trackAttentionFlags'
 
 export class TrackEngine {
     constructor(options = {}) {
@@ -387,8 +388,13 @@ export class TrackEngine {
     }
 
     getSnapshot() {
+        const evaluationTime = this.lastTrackTickAt || Date.now()
+
         return {
-            tracks: this.trackStore.getAllTracks(),
+            tracks: enrichTracksWithAttentionFlags(
+                this.trackStore.getAllTracks(),
+                evaluationTime,
+            ),
             radar: this.getDisplayDetections(SENSOR_TYPES.RADAR),
             iff: this.getDisplayDetections(SENSOR_TYPES.IFF),
             perf: this.perf.getStats(),
