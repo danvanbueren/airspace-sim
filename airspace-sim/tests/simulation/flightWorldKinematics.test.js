@@ -2,8 +2,9 @@ import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {
     altitudeAlongRouteProfile,
+    getKinematicOscillation,
     getRouteProgressRatio,
-    speedForAltitude,
+    speedAlongRouteProfile,
     updateAircraftKinematics,
 } from '../../app/simulation/flightWorldKinematics.js'
 
@@ -15,7 +16,7 @@ function aircraft(overrides = {}) {
         fieldAltitude: 1500,
         baseSpeed: 430,
         speedBias: 0,
-        speedJitter: 0,
+        kinematicPhase: 0,
         ...overrides,
     }
 }
@@ -33,30 +34,50 @@ describe('flight world kinematics', () => {
         assert.ok(descent > 1500)
     })
 
-    it('increases speed with altitude and applies jitter', () => {
-        const lowAltitudeSpeed = speedForAltitude(430, 20_000, 0, 0)
-        const highAltitudeSpeed = speedForAltitude(430, 38_000, 0, 0)
-        const jitteredSpeed = speedForAltitude(430, 38_000, 0, 5)
+    it('keeps climb speeds low and increases cruise speed with altitude', () => {
+        const climbSpeed = speedAlongRouteProfile(aircraft({
+            progressNm: 20,
+        }))
+        const lowCruiseSpeed = speedAlongRouteProfile(aircraft({
+            progressNm: 500,
+            cruiseAltitude: 25_000,
+        }))
+        const highCruiseSpeed = speedAlongRouteProfile(aircraft({
+            progressNm: 500,
+            cruiseAltitude: 39_000,
+        }))
 
-        assert.ok(highAltitudeSpeed > lowAltitudeSpeed)
-        assert.equal(jitteredSpeed, highAltitudeSpeed + 5)
+        assert.ok(climbSpeed <= 310)
+        assert.ok(highCruiseSpeed > lowCruiseSpeed)
+        assert.ok(highCruiseSpeed > climbSpeed)
+    })
+
+    it('oscillates speed and heading over time', () => {
+        const first = updateAircraftKinematics(aircraft({progressNm: 500}), 90, 1)
+        const second = updateAircraftKinematics({
+            ...aircraft({progressNm: 500}),
+            kinematicPhase: first.kinematicPhase,
+        }, 90, 1)
+
+        assert.notEqual(first.speed, second.speed)
+        assert.notEqual(first.heading, second.heading)
+        assert.ok(getKinematicOscillation(aircraft(), 1).kinematicPhase > 0)
     })
 
     it('updates altitude and speed as an aircraft progresses', () => {
         const departing = updateAircraftKinematics(
             aircraft({progressNm: 20}),
+            90,
             1,
-            () => 0.1,
         )
         const cruising = updateAircraftKinematics(
             aircraft({progressNm: 500}),
+            90,
             1,
-            () => 0.9,
         )
 
         assert.ok(departing.altitude < cruising.altitude)
-        assert.ok(departing.speed > 0)
-        assert.ok(cruising.speed > 0)
+        assert.ok(departing.speed < cruising.speed)
         assert.notEqual(getRouteProgressRatio(aircraft({progressNm: 20})), 0)
     })
 })

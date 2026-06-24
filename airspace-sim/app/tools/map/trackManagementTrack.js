@@ -9,7 +9,7 @@ import {
     getDefaultTrackTypeForDomain,
 } from '../milstd2525/trackSymbolCodes.js'
 import {getDefaultSpecificTypeForTrackType} from '../milstd2525/trackSpecificTypes.js'
-import {applyUserKinematicEditHold} from '../../simulation/correlationHold.js'
+import {applyUserKinematicEditHold, isCorrelationHoldActive} from '../../simulation/correlationHold.js'
 
 const KINEMATIC_FIELDS = new Set(['heading', 'speed', 'altitude'])
 
@@ -109,9 +109,10 @@ export function expandSkipFieldsWithCommittedManagementEdits(
     return effectiveSkipFields
 }
 
-export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layerTrack) {
+export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layerTrack, now = Date.now()) {
     const merged = {...simulationTrack}
-    const lastEditedFields = new Set(layerTrack.lastManagementEditFields ?? [])
+    const layerEditFields = new Set(layerTrack.lastManagementEditFields ?? [])
+    const holdActive = isCorrelationHoldActive(simulationTrack, now)
 
     for (const field of USER_DIRECTED_LAYER_METADATA_FIELDS) {
         if (field in layerTrack) {
@@ -119,16 +120,20 @@ export function mergeUserDirectedLayerTrackOverSimulation(simulationTrack, layer
         }
     }
 
-    for (const field of LIVE_KINEMATIC_TRACK_FIELDS) {
-        if (lastEditedFields.has(field) && field in layerTrack) {
-            merged[field] = layerTrack[field]
+    if (holdActive) {
+        for (const field of LIVE_KINEMATIC_TRACK_FIELDS) {
+            if (layerEditFields.has(field) && field in layerTrack) {
+                merged[field] = layerTrack[field]
+            }
         }
     }
 
-    merged.lastManagementEditFields = accumulateManagementEditFields(
-        simulationTrack.lastManagementEditFields,
-        layerTrack.lastManagementEditFields,
-    )
+    merged.lastManagementEditFields = holdActive
+        ? accumulateManagementEditFields(
+            simulationTrack.lastManagementEditFields,
+            layerTrack.lastManagementEditFields,
+        )
+        : simulationTrack.lastManagementEditFields
 
     return merged
 }

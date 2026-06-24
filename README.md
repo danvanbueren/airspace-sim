@@ -273,7 +273,7 @@ Supporting pieces include `TrackStore.js` (firm track state, callsign validation
 
 On each simulation step, `TrackEngine.tick()` runs this sequence:
 
-1. **`flightWorld.advance(delta)`** — Move all active flights along their route polylines (great-circle segments). Each aircraft climbs after departure, cruises with minor altitude and speed variation, and descends before arrival; cruise speed increases slightly with altitude. On route completion, assign a new weighted route; aircraft IDs stay stable (`FLT-{n}`).
+1. **`flightWorld.advance(delta)`** — Move all active flights along their route polylines (great-circle segments). Each aircraft climbs after departure at reduced speed, cruises with altitude-dependent speed plus continuous heading/speed jitter, and descends before arrival. On route completion, assign a new weighted route; aircraft IDs stay stable (`FLT-{n}`).
 2. **`trackStore.extrapolate(delta)`** — Advance firm track positions according to each track’s correlation mode. Expired operator kinematic holds are cleared here.
 3. **`syncActiveTrackKinematicsFromFlightWorld()`** — Refresh active track heading, speed, and altitude from the nearest truth aircraft each tick, except while an operator kinematic hold is active or a field was committed in the Track Management window.
 4. **Sensor scans (on interval)** — When radar or IFF refresh elapses, run the [per-sensor scan pipeline](#per-sensor-scan-pipeline) below.

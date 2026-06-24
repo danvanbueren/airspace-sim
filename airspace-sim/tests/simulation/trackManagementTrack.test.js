@@ -383,11 +383,13 @@ describe('track management window live sync', () => {
     })
 
     it('preserves user-edited kinematics from the map layer', () => {
+        const now = 10_000
         const mergedTrack = mergeUserDirectedLayerTrackOverSimulation(
             existingTrack({
                 heading: 120,
                 speed: 470,
                 altitude: 13_000,
+                lastUserKinematicEditAt: now - 1_000,
             }),
             existingTrack({
                 heading: 90,
@@ -395,11 +397,39 @@ describe('track management window live sync', () => {
                 altitude: 13_000,
                 userDirected: true,
                 lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: now - 1_000,
             }),
+            now,
         )
 
         assert.equal(mergedTrack.heading, 90)
         assert.equal(mergedTrack.speed, 470)
+    })
+
+    it('does not revive expired kinematic skip fields from stale layer tracks', () => {
+        const now = 20_000
+        const mergedTrack = mergeUserDirectedLayerTrackOverSimulation(
+            existingTrack({
+                heading: 180,
+                speed: 500,
+                altitude: 15_000,
+                lastManagementEditFields: ['callsign'],
+                lastUserKinematicEditAt: 5_000,
+            }),
+            existingTrack({
+                heading: 90,
+                speed: 420,
+                altitude: 12_000,
+                userDirected: true,
+                lastManagementEditFields: ['heading', 'callsign'],
+                lastUserKinematicEditAt: 5_000,
+            }),
+            now,
+        )
+
+        assert.equal(mergedTrack.heading, 180)
+        assert.equal(mergedTrack.speed, 500)
+        assert.deepEqual(mergedTrack.lastManagementEditFields, ['callsign'])
     })
 
     it('keeps simulation tracks for open auto tracks without manual edits', () => {
@@ -520,16 +550,20 @@ describe('track management window live sync', () => {
     })
 
     it('unions committed edit fields when merging simulation and layer tracks', () => {
+        const now = 10_000
         const mergedTrack = mergeUserDirectedLayerTrackOverSimulation(
             existingTrack({
                 heading: 180,
                 lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: now - 1_000,
             }),
             existingTrack({
                 callsign: 'VIP01',
                 userDirected: true,
                 lastManagementEditFields: ['callsign'],
+                lastUserKinematicEditAt: now - 1_000,
             }),
+            now,
         )
 
         assert.deepEqual(
