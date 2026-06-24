@@ -6,7 +6,9 @@ export const AUTO_DROP_REMOVE_DELAY_MS = 10000
  * @returns {boolean}
  */
 export function isTrackEligibleForAutoDrop(track) {
-    return track.correlated !== true && !track.dropProtect
+    return track.correlated !== true
+        && track.source !== 'manual'
+        && !track.dropProtect
 }
 
 /**

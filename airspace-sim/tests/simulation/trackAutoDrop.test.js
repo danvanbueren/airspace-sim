@@ -34,10 +34,17 @@ function createTrack(overrides = {}) {
 }
 
 describe('trackAutoDrop', () => {
-    it('identifies uncorrelated tracks without drop protect as eligible', () => {
+    it('identifies uncorrelated auto tracks without drop protect as eligible', () => {
         assert.equal(isTrackEligibleForAutoDrop(createTrack()), true)
         assert.equal(isTrackEligibleForAutoDrop(createTrack({correlated: true})), false)
         assert.equal(isTrackEligibleForAutoDrop(createTrack({dropProtect: true})), false)
+        assert.equal(isTrackEligibleForAutoDrop(createTrack({source: 'manual'})), false)
+    })
+
+    it('does not start auto-drop countdown for manually initiated tracks', () => {
+        const updates = getAutoDropProgressUpdates(createTrack({source: 'manual'}), 1000)
+
+        assert.equal(updates, null)
     })
 
     it('starts invisible DROP-RISK countdown for eligible tracks', () => {
