@@ -70,6 +70,42 @@ describe('trackAutoDrop', () => {
         assert.equal(shouldAutoDropTrack(track, 1000 + AUTO_DROP_REMOVE_DELAY_MS), true)
     })
 
+    it('does not remove tracks that became ineligible after entering DROP phase', () => {
+        const expiredDropAt = 1000
+        const removalTimestamp = expiredDropAt + AUTO_DROP_REMOVE_DELAY_MS
+
+        assert.equal(
+            shouldAutoDropTrack(createTrack({dropAt: expiredDropAt, source: 'manual'}), removalTimestamp),
+            false,
+        )
+        assert.equal(
+            shouldAutoDropTrack(createTrack({dropAt: expiredDropAt, dropProtect: true}), removalTimestamp),
+            false,
+        )
+        assert.equal(
+            shouldAutoDropTrack(createTrack({dropAt: expiredDropAt, correlated: true}), removalTimestamp),
+            false,
+        )
+    })
+
+    it('clears auto-drop state instead of removing ineligible tracks at removal time', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(createTrack({
+            dropRiskAt: 1000,
+            dropAt: 1000,
+            source: 'manual',
+        }))
+
+        const removedTrackIds = processAutoDropTracks(
+            trackStore,
+            1000 + AUTO_DROP_REMOVE_DELAY_MS,
+        )
+
+        assert.deepEqual(removedTrackIds, [])
+        assert.equal(trackStore.getTrack('TRK-test').dropAt, undefined)
+        assert.equal(trackStore.getTrack('TRK-test').dropRiskAt, undefined)
+    })
+
     it('clears auto-drop state when a track becomes correlated', () => {
         const updates = getAutoDropProgressUpdates(
             createTrack({dropRiskAt: 1000, dropAt: 6000, correlated: true}),

@@ -73,7 +73,8 @@ export function getAutoDropProgressUpdates(track, timestamp) {
  * @returns {boolean}
  */
 export function shouldAutoDropTrack(track, timestamp) {
-    return isTrackInAutoDropPhase(track)
+    return isTrackEligibleForAutoDrop(track)
+        && isTrackInAutoDropPhase(track)
         && timestamp - track.dropAt >= AUTO_DROP_REMOVE_DELAY_MS
 }
 
@@ -92,16 +93,21 @@ export function processAutoDropTracks(trackStore, timestamp) {
             continue
         }
 
-        if (shouldAutoDropTrack(track, timestamp)) {
-            trackStore.dropTrack(trackId)
-            removedTrackIds.push(trackId)
-            continue
-        }
-
         const updates = getAutoDropProgressUpdates(track, timestamp)
 
         if (updates) {
             trackStore.updateTrack(trackId, updates)
+        }
+
+        const currentTrack = trackStore.getTrack(trackId)
+
+        if (!currentTrack) {
+            continue
+        }
+
+        if (shouldAutoDropTrack(currentTrack, timestamp)) {
+            trackStore.dropTrack(trackId)
+            removedTrackIds.push(trackId)
         }
     }
 
