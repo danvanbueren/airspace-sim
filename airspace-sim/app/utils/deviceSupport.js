@@ -12,6 +12,10 @@ export function isUnsupportedMobileDeviceFromDeviceType(deviceType) {
     return deviceType === 'mobile' || deviceType === 'tablet'
 }
 
+export function isUnsupportedMobileDevice(initialUnsupported = false) {
+    return initialUnsupported || isUnsupportedMobileDeviceClient()
+}
+
 export function isUnsupportedMobileDeviceClient() {
     if (typeof window === 'undefined') {
         return false

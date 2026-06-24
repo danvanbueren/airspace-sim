@@ -2,27 +2,26 @@
 
 import {useEffect, useState} from 'react'
 import UnsupportedMobilePage from '@/app/components/global/UnsupportedMobilePage'
-import {isUnsupportedMobileDeviceClient} from '@/app/utils/deviceSupport'
+import {isUnsupportedMobileDevice} from '@/app/utils/deviceSupport'
 
 export default function DeviceSupportGate({initialUnsupported = false, children}) {
-    const [unsupported, setUnsupported] = useState(initialUnsupported)
+    const [resizeTick, setResizeTick] = useState(0)
 
     useEffect(() => {
-        const updateUnsupportedState = () => {
-            setUnsupported(
-                initialUnsupported || isUnsupportedMobileDeviceClient(),
-            )
+        const handleResize = () => {
+            setResizeTick((tick) => tick + 1)
         }
 
-        updateUnsupportedState()
-        window.addEventListener('resize', updateUnsupportedState)
+        window.addEventListener('resize', handleResize)
 
         return () => {
-            window.removeEventListener('resize', updateUnsupportedState)
+            window.removeEventListener('resize', handleResize)
         }
-    }, [initialUnsupported])
+    }, [])
 
-    if (unsupported) {
+    void resizeTick
+
+    if (isUnsupportedMobileDevice(initialUnsupported)) {
         return <UnsupportedMobilePage/>
     }
 

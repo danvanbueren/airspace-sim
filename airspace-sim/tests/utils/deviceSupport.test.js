@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {
     getServerUnsupportedDevice,
+    isUnsupportedMobileDevice,
     isUnsupportedMobileDeviceFromDeviceType,
     isUnsupportedMobileDeviceFromUserAgent,
 } from '../../app/utils/deviceSupport.js'
@@ -50,6 +51,16 @@ describe('isUnsupportedMobileDeviceFromDeviceType', () => {
         assert.equal(isUnsupportedMobileDeviceFromDeviceType('tablet'), true)
         assert.equal(isUnsupportedMobileDeviceFromDeviceType('desktop'), false)
         assert.equal(isUnsupportedMobileDeviceFromDeviceType(undefined), false)
+    })
+})
+
+describe('isUnsupportedMobileDevice', () => {
+    it('returns true when the server already flagged the device', () => {
+        assert.equal(isUnsupportedMobileDevice(true), true)
+    })
+
+    it('returns false on the server when the device is not flagged', () => {
+        assert.equal(isUnsupportedMobileDevice(false), false)
     })
 })
 
