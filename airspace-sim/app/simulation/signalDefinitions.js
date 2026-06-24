@@ -23,6 +23,13 @@ export const MISC_SIGNAL_ID = 'MISC'
 
 /** @type {Record<string, SignalDefinition>} */
 export const SIGNAL_DEFINITIONS = {
+    DROP: {
+        id: 'DROP',
+        kind: SIGNAL_KIND.ATTENTION,
+        label: 'DROP',
+        description: 'Uncorrelated track scheduled for automatic removal.',
+        priority: 5,
+    },
     STALE: {
         id: 'STALE',
         kind: SIGNAL_KIND.ATTENTION,

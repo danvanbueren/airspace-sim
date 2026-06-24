@@ -18,6 +18,7 @@ import {
     formatCoordinatePairForGridReferenceSystem,
     getGridReferenceSystemDisplayName,
 } from '@/app/tools/formatting/GridReferenceFormatting'
+import {shouldShowDropAttention} from '@/app/simulation/trackAutoDrop'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
 function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef) {
@@ -48,6 +49,8 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                                                                   mapContainerRef,
                                                                   onInitiateTrack,
                                                                   onDropTrack,
+                                                                  onRecoverTrack,
+                                                                  onToggleDropProtect,
                                                                   onRemoveBearingRangeLine,
                                                                   onClearBearingRangeLines,
                                                                   lines,
@@ -57,7 +60,10 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     if (!elementContainer) return null
 
     const hasBearingRangeLine = Boolean(elementContainer.line)
-    const hasTrack = Boolean(elementContainer.track)
+    const track = elementContainer.track ?? null
+    const hasTrack = Boolean(track)
+    const showRecoverTrack = hasTrack && shouldShowDropAttention(track)
+    const dropProtectEnabled = Boolean(track?.dropProtect)
     const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
         elementContainer.lngLat.lat,
         elementContainer.lngLat.lng,
@@ -188,16 +194,42 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     Initiate Track
                 </Button>
 
+                {showRecoverTrack && (
+                    <Button
+                        color='warning'
+                        size='small'
+                        variant='outlined'
+                        onClick={() => onRecoverTrack(track)}
+                        sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                        fullWidth
+                    >
+                        Recover Track
+                    </Button>
+                )}
+
                 {hasTrack && (
                     <Button
                         color='warning'
                         size='small'
                         variant='outlined'
-                        onClick={() => onDropTrack(elementContainer.track)}
+                        onClick={() => onDropTrack(track)}
                         sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
                         fullWidth
                     >
-                        Drop Track
+                        Drop
+                    </Button>
+                )}
+
+                {hasTrack && (
+                    <Button
+                        color='primary'
+                        size='small'
+                        variant='outlined'
+                        onClick={() => onToggleDropProtect(track)}
+                        sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                        fullWidth
+                    >
+                        {dropProtectEnabled ? 'Disable Drop Protect' : 'Enable Drop Protect'}
                     </Button>
                 )}
 
