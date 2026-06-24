@@ -358,18 +358,21 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         }))
     }
 
-    const commitKinematicFieldDraft = (field) => {
+    const handleKinematicFieldBlur = (field) => {
         const draft = kinematicFieldDrafts[field]
+        const nextDrafts = {...kinematicFieldDrafts}
+        delete nextDrafts[field]
+
+        const nextFocusedFields = new Set(focusedFields)
+        nextFocusedFields.delete(field)
+
+        publishSkipLiveFields(nextFocusedFields, nextDrafts)
+        setKinematicFieldDrafts(nextDrafts)
+        setFocusedFields(nextFocusedFields)
 
         if (draft === undefined) {
             return
         }
-
-        const nextDrafts = {...kinematicFieldDrafts}
-        delete nextDrafts[field]
-
-        publishSkipLiveFields(focusedFields, nextDrafts)
-        setKinematicFieldDrafts(nextDrafts)
 
         const parsedValue = parseCommittedKinematicField(field, draft)
 
@@ -460,8 +463,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             }}
             onChange={(event) => updateKinematicFieldDraft(field, event.target.value)}
             onBlur={() => {
-                commitKinematicFieldDraft(field)
-                handleFieldBlur(field)
+                handleKinematicFieldBlur(field)
             }}
             slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
             fullWidth
