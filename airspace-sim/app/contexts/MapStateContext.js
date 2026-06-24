@@ -134,21 +134,12 @@ export function MapStateProvider({children}) {
     }, [])
 
     const deleteAlarmAlert = useCallback((alertId) => {
-        setAlarmAlertQueue((currentQueue) => {
-            const alert = currentQueue.find((entry) => entry.id === alertId)
-
-            if (alert?.alarmKey) {
-                raisedEmergencyAlarmKeysRef.current.delete(alert.alarmKey)
-                emergencyAlarmLastSeenRef.current.delete(alert.alarmKey)
-            }
-
-            return currentQueue.filter((entry) => entry.id !== alertId)
-        })
+        setAlarmAlertQueue((currentQueue) => (
+            currentQueue.filter((entry) => entry.id !== alertId)
+        ))
     }, [])
 
     const clearAlarmAlerts = useCallback(() => {
-        raisedEmergencyAlarmKeysRef.current.clear()
-        emergencyAlarmLastSeenRef.current.clear()
         setAlarmAlertQueue([])
     }, [])
 
