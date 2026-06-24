@@ -7,6 +7,10 @@ import {
     writeCookieJsonValue,
 } from '@/app/tools/browser/CookieStorage'
 import {DEFAULT_SIMULATION_SETTINGS} from '@/app/simulation/constants'
+import {
+    ALERT_SIGNAL_IDS,
+    ATTENTION_SIGNAL_IDS,
+} from '@/app/simulation/signalDefinitions'
 
 export const APP_SETTINGS_COOKIE_NAME = 'appSettings'
 
@@ -57,6 +61,8 @@ export const QUALITY_PRESET_OPTIONS = ['low', 'balanced', 'high', 'global_dense'
 
 export const DEFAULT_APP_SETTINGS = {
     gridReferenceSystem: GRID_REFERENCE_SYSTEMS.dd.value,
+    inhibitedAttentions: [],
+    inhibitedAlerts: [],
     ...DEFAULT_SIMULATION_SETTINGS,
 }
 
@@ -68,6 +74,16 @@ function clampNumber(value, min, max, fallback) {
     }
 
     return Math.min(max, Math.max(min, number))
+}
+
+function normalizeInhibitedSignalIds(values, allowedIds) {
+    if (!Array.isArray(values)) {
+        return []
+    }
+
+    const allowed = new Set(allowedIds)
+
+    return [...new Set(values.filter((value) => typeof value === 'string' && allowed.has(value)))]
 }
 
 function normalizeSettings(settings) {
@@ -113,6 +129,14 @@ function normalizeSettings(settings) {
         qualityPreset,
         adaptivePerformanceEnabled: settings?.adaptivePerformanceEnabled !== false,
         simulationEnabled: settings?.simulationEnabled !== false,
+        inhibitedAttentions: normalizeInhibitedSignalIds(
+            settings?.inhibitedAttentions,
+            ATTENTION_SIGNAL_IDS,
+        ),
+        inhibitedAlerts: normalizeInhibitedSignalIds(
+            settings?.inhibitedAlerts,
+            ALERT_SIGNAL_IDS,
+        ),
     }
 }
 

@@ -2,11 +2,11 @@
 
 import {Button, Grid} from '@mui/material'
 import BasicGlassPanel from './BasicGlassPanel'
-import {useMapState} from '@/app/contexts/MapStateContext'
+import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 
 export default function FixedFunctionPanel() {
 
-    const {addAlarmAlert, zoomIn, zoomOut} = useMapState()
+    const {raiseAlarmAlert, zoomIn, zoomOut} = useAlarmAlertActions()
 
     return (
         <BasicGlassPanel title='Fixed Function Panel'>
@@ -85,7 +85,12 @@ export default function FixedFunctionPanel() {
                                 borderColor: 'grey.400',
                             }
                         }}
-                        onClick={() => {addAlarmAlert('button todo')}}
+                        onClick={() => {
+                            raiseAlarmAlert({
+                                signalId: 'UI_HOME',
+                                message: 'HOME action is not yet implemented.',
+                            })
+                        }}
                     >
                         HOME
                     </Button>
@@ -110,7 +115,12 @@ export default function FixedFunctionPanel() {
                                 borderColor: 'grey.400',
                             }
                         }}
-                        onClick={() => {addAlarmAlert('button todo')}}
+                        onClick={() => {
+                            raiseAlarmAlert({
+                                signalId: 'UI_CENTER_E3',
+                                message: 'CENTER ON E-3 action is not yet implemented.',
+                            })
+                        }}
                     >
                         CENTER ON E-3
                     </Button>

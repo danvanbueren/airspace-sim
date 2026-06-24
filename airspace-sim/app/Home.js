@@ -10,7 +10,7 @@ import {useCallback, useState} from 'react'
 import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/hooks/global/ErrorForwarder'
-import {useMapState} from './contexts/MapStateContext'
+import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import usePrefetchLatestGithubCommit from '@/app/hooks/global/usePrefetchLatestGithubCommit'
 
 export default function Home() {
@@ -34,10 +34,10 @@ export default function Home() {
         zIndex: UI_Z_INDEX.GLASS_PANEL,
     })
 
-    const {addAlarmAlert} = useMapState()
+    const {raiseAlarmAlert} = useAlarmAlertActions()
 
     return (
-        <ErrorForwarder onError={addAlarmAlert}>
+        <ErrorForwarder onError={raiseAlarmAlert}>
             <Box
                 sx={{
                     display: 'flex', flexDirection: 'column', height: '100dvh',
@@ -56,7 +56,7 @@ export default function Home() {
                             zIndex: UI_Z_INDEX.MAP,
                         }}
                     >
-                        <ReactErrorForwardingBoundary onError={addAlarmAlert} name="Map view">
+                        <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Map view">
                             <MapView
                                 mapInteractionsEnabled={!settingsModalOpen}
                                 mapOverlayLayer={mapOverlayLayer}
@@ -64,13 +64,13 @@ export default function Home() {
                         </ReactErrorForwardingBoundary>
                     </Box>
 
-                    <ReactErrorForwardingBoundary onError={addAlarmAlert} name="Category select panel">
+                    <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Category select panel">
                         <Box style={glassPanelStyle({top: 20, left: 20})}>
                             <CategorySelectPanel/>
                         </Box>
                     </ReactErrorForwardingBoundary>
 
-                    <ReactErrorForwardingBoundary onError={addAlarmAlert} name="Fixed function panel">
+                    <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Fixed function panel">
                         <Box style={glassPanelStyle({bottom: 20, left: 20})}>
                             <FixedFunctionPanel/>
                         </Box>
@@ -80,7 +80,7 @@ export default function Home() {
                         <AlarmAlertPanel/>
                     </Box>
 
-                    <ReactErrorForwardingBoundary onError={addAlarmAlert} name="Settings controller">
+                    <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Settings controller">
                         <Box style={glassPanelStyle({top: 20, right: 20})}>
                             <SettingsController
                                 modalOpen={settingsModalOpen}

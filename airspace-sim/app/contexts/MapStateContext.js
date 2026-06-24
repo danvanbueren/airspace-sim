@@ -1,6 +1,10 @@
 'use client'
 
 import {createContext, useCallback, useContext, useMemo, useState} from 'react'
+import {
+    getSignalDefinition,
+    MISC_SIGNAL_ID,
+} from '@/app/simulation/signalDefinitions'
 
 const MapStateContext = createContext(null)
 
@@ -20,14 +24,44 @@ function normalizeAlarmAlertMessage(message) {
     return String(message)
 }
 
+function normalizeAlertInput(input) {
+    if (typeof input === 'string') {
+        return {
+            signalId: MISC_SIGNAL_ID,
+            message: input,
+        }
+    }
+
+    if (input && typeof input === 'object') {
+        const signalId = input.signalId ?? MISC_SIGNAL_ID
+        const message = input.message ?? input
+
+        return {
+            signalId,
+            message: normalizeAlarmAlertMessage(message),
+        }
+    }
+
+    return {
+        signalId: MISC_SIGNAL_ID,
+        message: normalizeAlarmAlertMessage(input),
+    }
+}
+
 export function MapStateProvider({children}) {
     const [alarmAlertQueue, setAlarmAlertQueue] = useState([])
     const [map, setMap] = useState(null)
 
-    const addAlarmAlert = useCallback((message) => {
+    const addAlarmAlert = useCallback((input) => {
+        const normalizedAlert = normalizeAlertInput(input)
+
         setAlarmAlertQueue((currentQueue) => [
             ...currentQueue,
-            [new Date(), normalizeAlarmAlertMessage(message)],
+            {
+                timestamp: new Date(),
+                signalId: normalizedAlert.signalId,
+                message: normalizedAlert.message,
+            },
         ])
     }, [])
 
@@ -60,6 +94,7 @@ export function MapStateProvider({children}) {
         registerMap,
         zoomIn,
         zoomOut,
+        getAlertSignalLabel: (signalId) => getSignalDefinition(signalId).label,
     }), [
         alarmAlertQueue,
         addAlarmAlert,

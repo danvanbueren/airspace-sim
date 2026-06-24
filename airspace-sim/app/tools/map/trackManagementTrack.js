@@ -25,6 +25,7 @@ export const TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS = [
     'altitude',
     'infoFields',
     'correlationMode',
+    'attentionFlags',
 ]
 
 export const TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS = 1000
@@ -257,6 +258,7 @@ export function getTrackManagementWindowLiveUpdatesFromTrack(track) {
         altitude: kinematicFields.altitude,
         infoFields: Boolean(track.infoFields),
         correlationMode: track.correlationMode ?? 'active',
+        attentionFlags: Array.isArray(track.attentionFlags) ? track.attentionFlags : [],
     }
 }
 
@@ -325,6 +327,14 @@ export function syncTrackManagementWindowsFromTracks(
             if (field === 'lngLat') {
                 return mergedWindow.lngLat.lng !== trackManagementWindow.lngLat.lng
                     || mergedWindow.lngLat.lat !== trackManagementWindow.lngLat.lat
+            }
+
+            if (field === 'attentionFlags') {
+                const previousFlags = trackManagementWindow.attentionFlags ?? []
+                const nextFlags = mergedWindow.attentionFlags ?? []
+
+                return previousFlags.length !== nextFlags.length
+                    || previousFlags.some((flag, index) => flag !== nextFlags[index])
             }
 
             return mergedWindow[field] !== trackManagementWindow[field]

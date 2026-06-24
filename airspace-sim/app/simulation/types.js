@@ -59,6 +59,7 @@
  * @property {number} [lastUserKinematicEditAt]
  * @property {string[]} [lastUserKinematicEditFields]
  * @property {string[]} [lastManagementEditFields]
+ * @property {string[]} [attentionFlags] Assigned attention flag IDs; merged with derived flags for display
  */
 
 export {}

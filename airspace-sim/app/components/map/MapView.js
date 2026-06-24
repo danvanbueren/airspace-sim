@@ -36,8 +36,9 @@ import {
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
+import TrackAttentionOverlay from './TrackAttentionOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import {useMapState} from '../../contexts/MapStateContext'
+import {useAlarmAlertActions} from '../../hooks/global/useAlarmAlertActions'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -46,7 +47,7 @@ const MAP_STYLES = {
 
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
-    const {addAlarmAlert, registerMap} = useMapState()
+    const {raiseAlarmAlert, registerMap} = useAlarmAlertActions()
     const {upsertManualTrack, dropTrack, getTrack, getSimulationTimestamp} = useSimulation()
     const {simulationSettings} = useAppSettings()
     const {isToggleActive} = useSensorDisplay()
@@ -65,7 +66,12 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
         mapContainerRef,
         initialStyle: mapStyle,
-        onError: addAlarmAlert,
+        onError: (message) => {
+            raiseAlarmAlert({
+                signalId: 'MAP_ERROR',
+                message,
+            })
+        },
     })
     const mapCursor = useMapCursorState(mapRef, mapReady && mapInteractionsEnabled)
 
@@ -458,6 +464,12 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                 cursorBoxRef={cursorBoxRef}
                 cursorBoxSize={cursorBoxSize}
                 mapContainerRef={mapContainerRef}
+            />
+            <TrackAttentionOverlay
+                mapRef={mapRef}
+                mapReady={mapReady}
+                tracks={simulationSnapshot?.tracks ?? []}
+                evaluationTime={getSimulationTimestamp()}
             />
 
             {mapOverlayLayer

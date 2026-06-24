@@ -491,7 +491,9 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - **Track merge** after correlation — collapses duplicate tracks competing for the same sensor return; formation pairs correlating separately are left alone ([details](#track-merge-and-deduplication)).
 - **Automatic track initiation** after three per-sensor plot updates on uncorrelated returns only.
 - Manual track initiation and editing from the map context menu, with correlation mode (active / extrapolated / suspend); editing an auto track converts it to manual.
-- Track Management window with domain, identity, MIL-STD type, searchable platform-specific type, callsign validation, and optional symbol info fields.
+- Track Management window with domain, identity, MIL-STD type, searchable platform-specific type, callsign validation, optional symbol info fields, and live attention-flag pills.
+- On-map track attention flags (amber, monospace, synchronized flash) pinned beside tracks; up to five lines with overflow summary.
+- Settings page matrix for inhibiting track attentions and alarm alert types; central signal registry in `app/simulation/signalDefinitions.js`.
 - Familiar platform silhouettes with MIL-STD-2525 fallback, callsign labels, and speed-scaled heading vectors on the map.
 - Optional **airport** and **air route** overlay layers.
 - Bearing/range drawing, context menus, and line removal controls.

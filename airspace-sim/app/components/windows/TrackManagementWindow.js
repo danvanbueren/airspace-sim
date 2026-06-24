@@ -47,6 +47,8 @@ import {
 } from '@/app/tools/milstd2525/trackSpecificTypes'
 import {TRACK_CORRELATION_MODES} from '@/app/simulation/trackFromDetection'
 import {expandTrackManagementWindowSkipLiveFields} from '@/app/tools/map/trackManagementTrack'
+import AttentionFlagPills from '@/app/components/windows/AttentionFlagPills'
+import {getVisibleTrackAttentionFlags} from '@/app/simulation/trackAttentionFlags'
 import {
     getTrackManagementWindowPosition,
     useTrackManagementWindowDrag,
@@ -480,6 +482,14 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     }
 
     const displayCallsign = callsignDraft ?? trackManagementWindow.callsign
+    const visibleAttentionFlags = getVisibleTrackAttentionFlags(
+        {
+            ...trackManagementWindow,
+            attentionFlags: trackManagementWindow.attentionFlags ?? [],
+        },
+        Date.now(),
+        appSettings.inhibitedAttentions ?? [],
+    )
 
     const activateWindow = useCallback(() => {
         if (trackManagementWindow.dismissOnMapClick) {
@@ -622,6 +632,32 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                             {coordinateLine}
                         </Typography>
                     ))}
+                </Box>
+
+                <Divider/>
+
+                <Box>
+                    <Typography
+                        sx={{
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            mb: 0.75,
+                        }}
+                    >
+                        Attention Flags
+                    </Typography>
+                    {visibleAttentionFlags.length > 0 ? (
+                        <AttentionFlagPills flagIds={visibleAttentionFlags} dense/>
+                    ) : (
+                        <Typography
+                            variant='body2'
+                            color='text.secondary'
+                            sx={{fontFamily: 'monospace', fontSize: '0.75rem'}}
+                        >
+                            None
+                        </Typography>
+                    )}
                 </Box>
 
                 <Divider/>

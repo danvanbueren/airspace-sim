@@ -1,11 +1,13 @@
 'use client'
 
-import {useState} from 'react'
+import {useMemo, useState} from 'react'
 import BasicGlassPanel from './BasicGlassPanel'
 import AlarmAlertDetailModal from './AlarmAlertDetailModal'
 import {Box, Button, Divider, Grid, IconButton, Stack, Typography} from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
-import {useMapState} from '@/app/contexts/MapStateContext'
+import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
+import {useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {getSignalLabel} from '@/app/simulation/signalDefinitions'
 import {formatDateTimeGroup} from '@/app/tools/formatting/DateTime'
 
 const ALARM_ALERT_PREVIEW_MAX_LENGTH = 120
@@ -19,8 +21,15 @@ function truncateAlarmAlertMessage(message, maxLength = ALARM_ALERT_PREVIEW_MAX_
 }
 
 export default function AlarmAlertPanel() {
-    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts} = useMapState()
+    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts} = useAlarmAlertActions()
+    const {appSettings} = useAppSettings()
     const [openAlert, setOpenAlert] = useState(null)
+
+    const visibleAlerts = useMemo(() => {
+        const inhibitedAlerts = new Set(appSettings.inhibitedAlerts ?? [])
+
+        return alarmAlertQueue.filter((alert) => !inhibitedAlerts.has(alert.signalId))
+    }, [alarmAlertQueue, appSettings.inhibitedAlerts])
 
     const closeDetailModal = () => setOpenAlert(null)
 
@@ -30,7 +39,7 @@ export default function AlarmAlertPanel() {
         }
 
         const indexToDelete = alarmAlertQueue.findIndex(
-            ([timestamp, message]) => timestamp === openAlert.timestamp && message === openAlert.message,
+            (alert) => alert.timestamp === openAlert.timestamp && alert.message === openAlert.message,
         )
 
         if (indexToDelete !== -1) {
@@ -40,7 +49,7 @@ export default function AlarmAlertPanel() {
         setOpenAlert(null)
     }
 
-    if (alarmAlertQueue.length < 1 && openAlert === null) {
+    if (visibleAlerts.length < 1 && openAlert === null) {
         return null
     }
 
@@ -50,10 +59,11 @@ export default function AlarmAlertPanel() {
             open={openAlert !== null}
             message={openAlert?.message ?? ''}
             timestamp={openAlert?.timestamp}
+            signalLabel={openAlert?.signalLabel}
             onClose={closeDetailModal}
             onDelete={deleteDetailAlert}
         />
-        {alarmAlertQueue.length > 0 && (
+        {visibleAlerts.length > 0 && (
         <BasicGlassPanel dense>
             <Button
                 size='small'
@@ -101,9 +111,9 @@ export default function AlarmAlertPanel() {
                         END OF ALERTS
                     </Typography>
 
-                    {alarmAlertQueue.map((item, index) => (
+                    {visibleAlerts.map((alert, index) => (
                         <Box
-                            key={`${item[0]}-${index}`}
+                            key={`${alert.timestamp}-${index}`}
                         >
                             <Divider
                                 sx={{m: 1, mt: 0,}}
@@ -124,16 +134,34 @@ export default function AlarmAlertPanel() {
                                             pt: 1,
                                             cursor: 'pointer',
                                         }}
-                                        onClick={() => setOpenAlert({message: item[1], timestamp: item[0]})}
+                                        onClick={() => setOpenAlert({
+                                            message: alert.message,
+                                            timestamp: alert.timestamp,
+                                            signalLabel: getSignalLabel(alert.signalId),
+                                        })}
                                         role='button'
                                         tabIndex={0}
                                         onKeyDown={(event) => {
                                             if (event.key === 'Enter' || event.key === ' ') {
                                                 event.preventDefault()
-                                                setOpenAlert({message: item[1], timestamp: item[0]})
+                                                setOpenAlert({
+                                                    message: alert.message,
+                                                    timestamp: alert.timestamp,
+                                                    signalLabel: getSignalLabel(alert.signalId),
+                                                })
                                             }
                                         }}
                                     >
+                                        <Typography
+                                            sx={{
+                                                fontFamily: 'monospace',
+                                                fontWeight: 'bold',
+                                                fontSize: 12,
+                                                opacity: 0.85,
+                                            }}
+                                        >
+                                            {getSignalLabel(alert.signalId)}
+                                        </Typography>
                                         <Typography
                                             sx={{
                                                 fontFamily: 'monospace',
@@ -141,7 +169,7 @@ export default function AlarmAlertPanel() {
                                                 wordBreak: 'break-word',
                                             }}
                                         >
-                                            {truncateAlarmAlertMessage(item[1])}
+                                            {truncateAlarmAlertMessage(alert.message)}
                                         </Typography>
                                         <Typography
                                             sx={{
@@ -153,7 +181,7 @@ export default function AlarmAlertPanel() {
                                                 opacity: 0.5,
                                             }}
                                         >
-                                            {formatDateTimeGroup(item[0])}
+                                            {formatDateTimeGroup(alert.timestamp)}
                                         </Typography>
                                     </Box>
                                 </Grid>
@@ -168,7 +196,12 @@ export default function AlarmAlertPanel() {
                                         edge="end"
                                         size="small"
                                         aria-label="delete alarm"
-                                        onClick={() => deleteAlarmAlert(index)}
+                                        onClick={() => {
+                                            const queueIndex = alarmAlertQueue.indexOf(alert)
+                                            if (queueIndex !== -1) {
+                                                deleteAlarmAlert(queueIndex)
+                                            }
+                                        }}
                                     >
                                         <DeleteIcon fontSize="small"/>
                                     </IconButton>
