@@ -321,7 +321,7 @@ Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Co
 
 - **Scan intervals** — Configurable radar and IFF refresh intervals (defaults 4 s and 1 s).
 - **Detections** — Each return includes position, sensor type, timestamp, and quality. Radar returns are position-only. **IFF returns also carry a Mode 3/A squawk code** (`mode3Code`) derived from the truth aircraft transponder setting. Codes are stored on sensor history for future search but are **not** rendered on the map.
-- **Mode 3 assignment** — Commercial and military traffic receive discrete octal codes; roughly 1% of aircraft are assigned an emergency code (`7500`, `7600`, or `7700`). See `iffMode3.js`.
+- **Mode 3 assignment** — Commercial and military traffic receive discrete octal codes. The fleet maintains **1–3 active emergency squawks** (`7500`, `7600`, or `7700`) at any time via `maintainFleetEmergencySquawks` in `iffMode3.js`.
 - **Noise** — Per-sensor drop probability and position error (`sensorNoise.js`), seeded from aircraft id and scan time for repeatable behavior.
 - **Display** — Tick marks use screen-space length scaled by the same zoom curve as track icons (`getTrackIconScaleForZoom` in `mapViewportUtils.js`), so returns stay small when zoomed out. Line stroke width also scales down at low zoom.
 
@@ -496,7 +496,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - **Automatic track initiation** after three per-sensor plot updates on uncorrelated returns only.
 - Manual track initiation and editing from the map context menu, with correlation mode (active / extrapolated / suspend); editing an auto track converts it to manual.
 - Track Management window with domain, identity, MIL-STD type, searchable platform-specific type, callsign validation, optional symbol info fields, and live attention-flag pills.
-- On-map track attention flags (amber, monospace, synchronized flash) pinned beside tracks; up to five lines with overflow summary.
+- On-map track attention flags (amber, monospace, synchronized flash) pinned beside tracks; up to five lines with overflow summary. Emergency IFF codes (`7500`, `7600`, `7700`) raise both attention flags and alarm alerts.
 - Automatic drop of uncorrelated tracks after a countdown (invisible DROP-RISK, then visible DROP attention, then removal); drop protect and recover actions in the context menu.
 - Settings page matrix for inhibiting track attentions and alarm alert types; central signal registry in `app/simulation/signalDefinitions.js`.
 - Familiar platform silhouettes with MIL-STD-2525 fallback, callsign labels, and speed-scaled heading vectors on the map.

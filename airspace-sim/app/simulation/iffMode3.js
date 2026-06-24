@@ -3,7 +3,8 @@ export const EMERGENCY_MODE3_CODES = ['7500', '7600', '7700']
 export const MODE3_CODE_VFR_US = '1200'
 export const MODE3_CODE_VFR_EU = '7000'
 
-export const DEFAULT_EMERGENCY_MODE3_RATE = 0.01
+export const MIN_FLEET_EMERGENCY_COUNT = 1
+export const MAX_FLEET_EMERGENCY_COUNT = 3
 
 export const IFF_MODE3_STALE_MULTIPLIER = 3
 
@@ -87,16 +88,108 @@ export function getEmergencyAlertSignalId(code) {
 
 /**
  * @param {() => number} random
- * @param {{ emergencyRate?: number, vfr?: boolean, useEuropeanVfr?: boolean }} [options]
+ * @returns {string}
+ */
+export function pickRandomEmergencyMode3Code(random) {
+    return EMERGENCY_MODE3_CODES[Math.floor(random() * EMERGENCY_MODE3_CODES.length)]
+}
+
+/**
+ * @param {import('./types.js').TruthAircraftState} aircraft
+ * @returns {{ vfr?: boolean, useEuropeanVfr?: boolean }}
+ */
+export function getMode3AssignmentOptionsForAircraft(aircraft) {
+    if (aircraft?.trafficKind === 'generalAviation') {
+        return {
+            vfr: true,
+            useEuropeanVfr: !String(aircraft.homeAirportIcao ?? '').startsWith('K'),
+        }
+    }
+
+    return {vfr: false}
+}
+
+function normalizeFleetIterable(aircraft) {
+    if (Array.isArray(aircraft)) {
+        return aircraft
+    }
+
+    if (aircraft instanceof Map) {
+        return Array.from(aircraft.values())
+    }
+
+    return Array.from(aircraft ?? [])
+}
+
+/**
+ * @param {Iterable<import('./types.js').TruthAircraftState>|Map<string, import('./types.js').TruthAircraftState>} aircraft
+ * @returns {number}
+ */
+export function countFleetEmergencySquawks(aircraft) {
+    return normalizeFleetIterable(aircraft)
+        .filter((item) => isEmergencyMode3Code(item.mode3Code))
+        .length
+}
+
+/**
+ * Keep the active fleet at a target of 1-3 emergency squawks (inclusive).
+ *
+ * @param {Iterable<import('./types.js').TruthAircraftState>|Map<string, import('./types.js').TruthAircraftState>} aircraft
+ * @param {() => number} random
+ * @param {{ minCount?: number, maxCount?: number, targetCount?: number }} [options]
+ * @returns {{ targetCount: number, previousCount: number, nextCount: number }}
+ */
+export function maintainFleetEmergencySquawks(aircraft, random, options = {}) {
+    const fleet = normalizeFleetIterable(aircraft)
+    const fleetSize = fleet.length
+
+    if (fleetSize === 0) {
+        return {
+            targetCount: 0,
+            previousCount: 0,
+            nextCount: 0,
+        }
+    }
+
+    const minCount = options.minCount ?? MIN_FLEET_EMERGENCY_COUNT
+    const maxCount = options.maxCount ?? MAX_FLEET_EMERGENCY_COUNT
+    const effectiveMin = Math.min(minCount, fleetSize)
+    const effectiveMax = Math.min(maxCount, fleetSize)
+    const span = effectiveMax - effectiveMin + 1
+    const targetCount = options.targetCount ?? (effectiveMin + Math.floor(random() * span))
+    const emergencies = fleet.filter((item) => isEmergencyMode3Code(item.mode3Code))
+    const nonEmergencies = fleet.filter((item) => !isEmergencyMode3Code(item.mode3Code))
+    const previousCount = emergencies.length
+
+    while (emergencies.length < targetCount && nonEmergencies.length > 0) {
+        const index = Math.floor(random() * nonEmergencies.length)
+        const selected = nonEmergencies.splice(index, 1)[0]
+
+        selected.mode3Code = pickRandomEmergencyMode3Code(random)
+        emergencies.push(selected)
+    }
+
+    while (emergencies.length > targetCount) {
+        const index = Math.floor(random() * emergencies.length)
+        const selected = emergencies.splice(index, 1)[0]
+
+        selected.mode3Code = assignMode3Code(random, getMode3AssignmentOptionsForAircraft(selected))
+        nonEmergencies.push(selected)
+    }
+
+    return {
+        targetCount,
+        previousCount,
+        nextCount: emergencies.length,
+    }
+}
+
+/**
+ * @param {() => number} random
+ * @param {{ vfr?: boolean, useEuropeanVfr?: boolean }} [options]
  * @returns {string}
  */
 export function assignMode3Code(random, options = {}) {
-    const emergencyRate = options.emergencyRate ?? DEFAULT_EMERGENCY_MODE3_RATE
-
-    if (random() < emergencyRate) {
-        return EMERGENCY_MODE3_CODES[Math.floor(random() * EMERGENCY_MODE3_CODES.length)]
-    }
-
     if (options.vfr) {
         return options.useEuropeanVfr ? MODE3_CODE_VFR_EU : MODE3_CODE_VFR_US
     }

@@ -8,6 +8,7 @@ import {
     isEmergencyMode3Code,
     isIffMode3Stale,
     isValidMode3Code,
+    maintainFleetEmergencySquawks,
     MODE3_CODE_VFR_EU,
     MODE3_CODE_VFR_US,
 } from '../../app/simulation/iffMode3.js'
@@ -83,6 +84,31 @@ describe('iffMode3', () => {
         const flags = deriveAttentionFlagsFromTrackState(track, 5_000, 1000)
 
         assert.ok(flags.includes('IFF_STALE'))
+    })
+
+    it('maintains between one and three fleet emergency squawks', () => {
+        const fleet = Array.from({length: 20}, (_, index) => ({
+            id: `FLT-${index}`,
+            mode3Code: '1200',
+        }))
+
+        const {nextCount, targetCount} = maintainFleetEmergencySquawks(fleet, () => 0.5)
+
+        assert.ok(targetCount >= 1)
+        assert.ok(targetCount <= 3)
+        assert.equal(nextCount, targetCount)
+        assert.equal(
+            fleet.filter((aircraft) => isEmergencyMode3Code(aircraft.mode3Code)).length,
+            targetCount,
+        )
+    })
+
+    it('never assigns emergency codes during normal Mode 3 assignment', () => {
+        for (let index = 0; index < 50; index += 1) {
+            const code = assignMode3Code(Math.random)
+
+            assert.ok(!isEmergencyMode3Code(code))
+        }
     })
 })
 

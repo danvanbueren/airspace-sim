@@ -17,6 +17,7 @@ import {
     getGeneralAviationFleetSize,
     pickGeneralAviationAirport,
 } from './generalAviationTraffic'
+import {maintainFleetEmergencySquawks} from './iffMode3'
 import {updateAircraftKinematics} from './flightWorldKinematics'
 
 export class FlightWorldSimulator {
@@ -84,6 +85,7 @@ export class FlightWorldSimulator {
         }
 
         this.aircraft = nextAircraft
+        maintainFleetEmergencySquawks(this.aircraft, random)
     }
 
     initialize(maxActiveFlights) {
