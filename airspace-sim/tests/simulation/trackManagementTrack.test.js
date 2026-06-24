@@ -621,6 +621,52 @@ describe('track management window live sync', () => {
         assert.equal(syncedWindows[0].altitude, 15_000)
     })
 
+    it('evaluates live-sync skip fields using simulation time', () => {
+        const editAt = 10_000
+        const evaluationTime = editAt + 5_000
+        const openWindow = {
+            id: 'track-AUTO-1',
+            trackId: 'AUTO-1',
+            x: 100,
+            y: 200,
+            lngLat: {
+                lng: -75,
+                lat: 40,
+            },
+            line: null,
+            domain: 'AIR',
+            identity: 'NEUTRAL',
+            type: '01:110104',
+            specificType: 'F-16',
+            callsign: 'CIV01',
+            heading: 90,
+            speed: 420,
+            altitude: 12_000,
+            infoFields: false,
+            correlationMode: 'active',
+            source: 'auto',
+            dismissOnMapClick: false,
+        }
+
+        const syncedWindows = syncTrackManagementWindowsFromTracks(
+            [openWindow],
+            [existingTrack({
+                heading: 180,
+                speed: 500,
+                altitude: 15_000,
+                lastManagementEditFields: ['heading'],
+                lastUserKinematicEditAt: editAt,
+                lastUserKinematicEditFields: ['heading'],
+            })],
+            {},
+            evaluationTime,
+        )
+
+        assert.equal(syncedWindows[0].heading, 90)
+        assert.equal(syncedWindows[0].speed, 500)
+        assert.equal(syncedWindows[0].altitude, 15_000)
+    })
+
     it('preserves earlier committed fields after a later edit', () => {
         const openWindow = {
             id: 'track-AUTO-1',

@@ -58,6 +58,8 @@ const CORRELATION_MODE_OPTIONS = [
     {value: TRACK_CORRELATION_MODES.SUSPEND, label: 'Suspended'},
 ]
 
+const KINEMATIC_FOCUS_FIELDS = ['heading', 'speed', 'altitude']
+
 function formatEnumLabel(value) {
     return value
         .replace(/([A-Z])/g, ' $1')
@@ -390,6 +392,24 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         updateField(field, parsedValue)
     }
 
+    const blurActiveKinematicFields = () => {
+        for (const field of KINEMATIC_FOCUS_FIELDS) {
+            if (focusedFieldsRef.current.has(field) || field in kinematicFieldDraftsRef.current) {
+                handleKinematicFieldBlur(field)
+            }
+        }
+    }
+
+    const handleSelectOpen = (field) => {
+        blurActiveKinematicFields()
+        handleFieldFocus(field)
+    }
+
+    const handleNonKinematicFieldFocus = (field) => {
+        blurActiveKinematicFields()
+        handleFieldFocus(field)
+    }
+
     const getKinematicFieldDisplayValue = (field) => {
         const draft = kinematicFieldDrafts[field]
 
@@ -580,7 +600,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         label='Correlation mode'
                         value={trackManagementWindow.correlationMode ?? TRACK_CORRELATION_MODES.ACTIVE}
                         onChange={(event) => updateField('correlationMode', event.target.value)}
-                        onOpen={() => handleFieldFocus('correlationMode')}
+                        onOpen={() => handleSelectOpen('correlationMode')}
                         onClose={() => handleFieldBlur('correlationMode')}
                     >
                         {CORRELATION_MODE_OPTIONS.map((option) => (
@@ -596,7 +616,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     size='small'
                     value={displayCallsign}
                     onChange={handleCallsignChange}
-                    onFocus={() => handleFieldFocus('callsign')}
+                    onFocus={() => handleNonKinematicFieldFocus('callsign')}
                     onBlur={() => {
                         handleCallsignBlur()
                         handleFieldBlur('callsign')
@@ -616,7 +636,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         label='Domain'
                         value={trackManagementWindow.domain}
                         onChange={(event) => updateField('domain', event.target.value)}
-                        onOpen={() => handleFieldFocus('domain')}
+                        onOpen={() => handleSelectOpen('domain')}
                         onClose={() => handleFieldBlur('domain')}
                     >
                         {Object.values(TRACK_DOMAINS).map((domain) => (
@@ -636,7 +656,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         label='Identity'
                         value={trackManagementWindow.identity}
                         onChange={(event) => updateField('identity', event.target.value)}
-                        onOpen={() => handleFieldFocus('identity')}
+                        onOpen={() => handleSelectOpen('identity')}
                         onClose={() => handleFieldBlur('identity')}
                     >
                         {TRACK_IDENTITY_OPTIONS.map((identityOption) => (
@@ -656,7 +676,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     disabled={availableTrackTypes.length === 0}
                     emptyResultsLabel='No matching types'
                     zIndex={zIndex}
-                    onOpen={() => handleFieldFocus('type')}
+                    onOpen={() => handleSelectOpen('type')}
                     onClose={() => handleFieldBlur('type')}
                 />
 
@@ -668,7 +688,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     onChange={(value) => updateField('specificType', value)}
                     emptyResultsLabel='No matching platforms'
                     zIndex={zIndex}
-                    onOpen={() => handleFieldFocus('specificType')}
+                    onOpen={() => handleSelectOpen('specificType')}
                     onClose={() => handleFieldBlur('specificType')}
                 />
 
@@ -677,7 +697,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         <Checkbox
                             checked={Boolean(trackManagementWindow.infoFields)}
                             onChange={(event) => updateField('infoFields', event.target.checked)}
-                            onFocus={() => handleFieldFocus('infoFields')}
+                            onFocus={() => handleNonKinematicFieldFocus('infoFields')}
                             onBlur={() => handleFieldBlur('infoFields')}
                             size='small'
                         />

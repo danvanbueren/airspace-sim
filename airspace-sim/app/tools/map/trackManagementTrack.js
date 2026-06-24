@@ -147,6 +147,7 @@ export function mergeLiveTracksForManagementWindowSync(
     simulationTracks,
     openTrackManagementWindows,
     getMapLayerTrack,
+    evaluationTime = Date.now(),
 ) {
     const tracksById = new Map()
 
@@ -170,7 +171,7 @@ export function mergeLiveTracksForManagementWindowSync(
         tracksById.set(
             trackManagementWindow.trackId,
             existingTrack
-                ? mergeUserDirectedLayerTrackOverSimulation(existingTrack, layerTrack)
+                ? mergeUserDirectedLayerTrackOverSimulation(existingTrack, layerTrack, evaluationTime)
                 : layerTrack,
         )
     }
@@ -282,6 +283,7 @@ export function syncTrackManagementWindowsFromTracks(
     trackManagementWindows,
     tracks,
     skipFieldsByWindowId = {},
+    evaluationTime = Date.now(),
 ) {
     if (trackManagementWindows.length === 0 || tracks.length === 0) {
         return trackManagementWindows
@@ -311,6 +313,7 @@ export function syncTrackManagementWindowsFromTracks(
             skipFieldsByWindowId[trackManagementWindow.id] ?? new Set(),
             liveTrack.lastManagementEditFields,
             liveTrack,
+            evaluationTime,
         )
         const mergedWindow = mergeTrackManagementWindowLiveUpdates(
             trackManagementWindow,

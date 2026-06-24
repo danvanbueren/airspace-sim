@@ -260,10 +260,12 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     ])
 
     const syncOpenManagementWindows = useCallback(() => {
+        const evaluationTime = getSimulationTimestamp()
         const tracks = mergeLiveTracksForManagementWindowSync(
             liveTracksRef.current,
             trackManagementWindowsRef.current,
             trackMapLayerGetTrackRef.current,
+            evaluationTime,
         )
 
         if (!tracks.length) {
@@ -273,8 +275,9 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         syncTrackManagementWindowsFromLiveTracksRef.current?.(
             tracks,
             skipLiveFieldsByWindowIdRef.current,
+            evaluationTime,
         )
-    }, [])
+    }, [getSimulationTimestamp])
 
     const handleSkipLiveFieldsChange = useCallback((windowId, skipFields) => {
         skipLiveFieldsByWindowIdRef.current = {
