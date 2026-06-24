@@ -211,7 +211,7 @@ The simulator UI is a Next.js client application. Simulation state is produced i
 | `SensorDisplayProvider` | Category Select Panel toggle state |
 | `SimulationProvider` | Singleton `TrackEngine`, manual track APIs |
 
-[`app/page.js`](airspace-sim/app/page.js) composes the main shell: classification bars, glass panels (Category Select, Fixed Function, alarm alerts, settings toolbelt), a dedicated map overlay layer for floating track windows, and the full-screen map.
+[`app/page.js`](airspace-sim/app/page.js) gates unsupported mobile and tablet devices before rendering [`app/Home.js`](airspace-sim/app/Home.js), which composes the main shell: classification bars, glass panels (Category Select, Fixed Function, alarm alerts, settings toolbelt), a dedicated map overlay layer for floating track windows, and the full-screen map.
 
 ### Map workspace
 
@@ -501,6 +501,11 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - In-app settings, keybinds, about, and markdown-backed roadmap pages.
 - Node test suites for formatting, simulation, and symbol helpers (`npm test`).
 - Error forwarding into an in-app alert panel for easier testing feedback.
+- Desktop-first experience with keyboard and mouse controls; mobile and tablet devices see an unsupported-platform page instead of the simulator.
+
+### Platform Support
+
+Airspace Simulator targets desktop and laptop browsers. Mobile phones and tablets are detected on the server and client and shown a dedicated unsupported-platform page, because touch input and small viewports are not yet supported. A future mobile-first redesign may revisit this policy.
 
 ### Safety and Data Policy
 
