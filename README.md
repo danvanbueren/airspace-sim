@@ -236,7 +236,7 @@ Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles
 | Sensor/history visibility | Category Select Panel | Display toggles only (no sim logic) |
 | Map zoom | Fixed Function Panel → Zoom In / Zoom Out | `MapStateProvider` zoom helpers (display only) |
 
-The Track Management window edits callsign (alphanumeric, unique across tracks), domain, identity, MIL-STD type, platform-specific type (searchable catalog), optional symbol info fields, heading, speed, altitude, and correlation mode. While a window is open, displayed fields refresh from the live simulation about once per second; a field pauses live updates while it is focused for editing. Focusing a kinematic field without changing its value does not count as an operator commit. Committed heading, speed, altitude, or position edits hold automatic correlation and truth-aircraft kinematic updates for about 10 seconds; after the hold expires, correlation regains control and live kinematic fields resume syncing. Invalid or duplicate callsigns are rejected in the UI and track store. Any committed edit from the window routes through `upsertManualTrack`, including correlation mode changes.
+The Track Management window edits callsign (alphanumeric, unique across tracks), domain, identity, MIL-STD type, platform-specific type (searchable catalog), optional symbol info fields, heading, speed, altitude, and correlation mode. A read-only **IFF Mode 3** field shows the squawk code from the last correlated IFF return (greyed out with a stale pill when the code has not refreshed). While a window is open, displayed fields refresh from the live simulation about once per second; a field pauses live updates while it is focused for editing. Focusing a kinematic field without changing its value does not count as an operator commit. Committed heading, speed, altitude, or position edits hold automatic correlation and truth-aircraft kinematic updates for about 10 seconds; after the hold expires, correlation regains control and live kinematic fields resume syncing. Invalid or duplicate callsigns are rejected in the UI and track store. Any committed edit from the window routes through `upsertManualTrack`, including correlation mode changes.
 
 Manual track edits are marked `userDirected` so they take priority when tracks merge (see [Track merge and deduplication](#track-merge-and-deduplication)).
 
@@ -315,11 +315,13 @@ Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Co
 - **Data** — `app/data/airports.json` (major airports and regional strips) and `app/data/airRoutes.json` (origin/destination pairs with traffic `weight`).
 - **Fleet size** — Controlled by **Max active flights (global)** in Settings → Simulation (`maxActiveFlights`). Quality presets cap the target count (`low` 400, `balanced` 800, `high` 1200, `global_dense` 1500). Under adaptive performance, the engine may **lower tick rate** but does **not** delete flights to match the viewport.
 - **Traffic distribution** — New flights pick routes by weight, not by where the map is centered, so empty regions do not accumulate spurious traffic.
+- **General aviation** — A small slice of the fleet (~4%, capped at 40) flies slow, low-altitude local orbits near airports (`generalAviationTraffic.js`). GA aircraft squawk VFR Mode 3 codes (`1200` in North America, `7000` elsewhere).
 
 ### Sensor simulation
 
 - **Scan intervals** — Configurable radar and IFF refresh intervals (defaults 4 s and 1 s).
-- **Detections** — Each return includes position, sensor type, timestamp, and quality. Public detections do **not** carry a ground-truth `truthId`; initiation and correlation work from geometry and time only.
+- **Detections** — Each return includes position, sensor type, timestamp, and quality. Radar returns are position-only. **IFF returns also carry a Mode 3/A squawk code** (`mode3Code`) derived from the truth aircraft transponder setting. Codes are stored on sensor history for future search but are **not** rendered on the map.
+- **Mode 3 assignment** — Commercial and military traffic receive discrete octal codes; roughly 1% of aircraft are assigned an emergency code (`7500`, `7600`, or `7700`). See `iffMode3.js`.
 - **Noise** — Per-sensor drop probability and position error (`sensorNoise.js`), seeded from aircraft id and scan time for repeatable behavior.
 - **Display** — Tick marks use screen-space length scaled by the same zoom curve as track icons (`getTrackIconScaleForZoom` in `mapViewportUtils.js`), so returns stay small when zoomed out. Line stroke width also scales down at low zoom.
 
@@ -328,7 +330,9 @@ Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Co
 - Runs **before** automatic initiation on every sensor scan.
 - Only tracks with **`correlationMode: 'active'`** are correlation targets.
 - Nearest available track within **Correlation threshold (NM)** wins (default 5 NM), with one-to-one assignment so a single track cannot consume multiple returns from the same scan.
-- Matched detections are marked `correlated: true` and update the track position from the sensor return.
+- **IFF code preference** — Tracks that already hold a correlated IFF Mode 3 code re-bind to returns carrying that same code before generic nearest-neighbor matching runs (`iffCorrelation.js`).
+- **IFF separation** — When no IFF return with the track's stored code is within the correlation threshold, the code is cleared from the track.
+- Matched detections are marked `correlated: true` and update the track position from the sensor return. IFF correlations also update read-only track fields `iffMode3Code` and `iffMode3UpdatedAt`.
 - Returns already correlated are not passed to initiation.
 
 **Track correlation modes** (editable in the Track Management window):

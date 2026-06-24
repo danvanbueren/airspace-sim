@@ -1,4 +1,5 @@
 import {SENSOR_TYPES} from './constants'
+import {formatMode3Code} from './iffMode3'
 import {PlotAssociationStore} from './PlotAssociationStore'
 import {trackFromInitiation} from './trackFromDetection'
 import {findNearestActiveTrack} from './trackMerge'
@@ -72,6 +73,7 @@ export class TrackInitiationService {
 
             const track = trackFromInitiation({
                 ...promotion,
+                mode3Code: promotion.mode3Code ? formatMode3Code(promotion.mode3Code) : null,
                 flightWorld: this.flightWorld,
             })
 

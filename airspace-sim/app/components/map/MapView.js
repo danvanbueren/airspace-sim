@@ -15,6 +15,7 @@ import {useTrackManagementWindowFocusOrder} from '../../hooks/map/useTrackManage
 import {useTrackMapLayer} from '../../hooks/map/useTrackMapLayer'
 import {useSensorDetectionMapLayer} from '../../hooks/map/useSensorDetectionMapLayer'
 import {useSimulationLoop} from '../../hooks/simulation/useSimulationLoop'
+import {useIffEmergencyAlarms} from '../../hooks/simulation/useIffEmergencyAlarms'
 import {useTrackManagementKeyboardCustody} from '../../hooks/map/useTrackManagementKeyboardCustody'
 import {useMapCursorState} from '../../hooks/map/useMapCursorState'
 import {useSimulation} from '../../contexts/SimulationContext'
@@ -90,6 +91,12 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     useRegisteredMap(mapRef, mapReady, registerMap)
 
     const simulationSnapshot = useSimulationLoop(mapRef, mapReady)
+
+    useIffEmergencyAlarms(
+        simulationSnapshot?.tracks ?? [],
+        getSimulationTimestamp(),
+        simulationSettings.iffRefreshMs ?? 1000,
+    )
 
     useSensorDetectionMapLayer(mapRef, mapReady, simulationSnapshot, mapStyle)
 
@@ -496,6 +503,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                 mapReady={mapReady}
                 tracks={simulationSnapshot?.tracks ?? []}
                 evaluationTime={getSimulationTimestamp()}
+                iffRefreshMs={simulationSettings.iffRefreshMs ?? 1000}
             />
 
             {mapOverlayLayer

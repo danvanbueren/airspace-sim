@@ -10,6 +10,13 @@ import {
     loadAirRouteCatalog,
     positionAlongRoute,
 } from './flightWorldUtils'
+import {
+    advanceGeneralAviationAircraft,
+    createGeneralAviationAircraft,
+    getGeneralAviationAirports,
+    getGeneralAviationFleetSize,
+    pickGeneralAviationAirport,
+} from './generalAviationTraffic'
 import {updateAircraftKinematics} from './flightWorldKinematics'
 
 export class FlightWorldSimulator {
@@ -17,10 +24,66 @@ export class FlightWorldSimulator {
         this.airports = loadAirportCatalog()
         this.routes = loadAirRouteCatalog()
         this.airportByIcao = buildAirportIndex(this.airports)
+        this.generalAviationAirports = getGeneralAviationAirports(this.airports)
         this.pickRoute = buildWeightedRoutePicker(this.routes, this.airportByIcao)
         this.aircraft = new Map()
         this.nextFlightIndex = 0
+        this.nextGeneralAviationIndex = 0
         this.initialized = false
+    }
+
+    getCommercialFleetTarget(maxActiveFlights) {
+        const gaTarget = getGeneralAviationFleetSize(maxActiveFlights)
+
+        return Math.max(0, maxActiveFlights - gaTarget)
+    }
+
+    rebalanceFleet(maxActiveFlights, random) {
+        const gaTarget = getGeneralAviationFleetSize(maxActiveFlights)
+        const commercialTarget = this.getCommercialFleetTarget(maxActiveFlights)
+        const existingCommercial = Array.from(this.aircraft.values())
+            .filter((aircraft) => aircraft.trafficKind !== 'generalAviation')
+        const existingGa = Array.from(this.aircraft.values())
+            .filter((aircraft) => aircraft.trafficKind === 'generalAviation')
+        const nextAircraft = new Map()
+
+        existingCommercial.slice(0, commercialTarget).forEach((aircraft) => {
+            nextAircraft.set(aircraft.id, aircraft)
+        })
+
+        existingGa.slice(0, gaTarget).forEach((aircraft) => {
+            nextAircraft.set(aircraft.id, aircraft)
+        })
+
+        let commercialCount = existingCommercial.slice(0, commercialTarget).length
+        let gaCount = existingGa.slice(0, gaTarget).length
+
+        while (commercialCount < commercialTarget) {
+            const id = `FLT-${this.nextFlightIndex}`
+            this.nextFlightIndex += 1
+            const route = this.pickRoute(random)
+            const aircraft = createFlightAircraft(id, route, this.airportByIcao, random)
+
+            nextAircraft.set(id, aircraft)
+            commercialCount += 1
+        }
+
+        while (gaCount < gaTarget) {
+            const airport = pickGeneralAviationAirport(this.generalAviationAirports, random)
+
+            if (!airport) {
+                break
+            }
+
+            const id = `GA-${this.nextGeneralAviationIndex}`
+            this.nextGeneralAviationIndex += 1
+            const aircraft = createGeneralAviationAircraft(id, airport, random)
+
+            nextAircraft.set(id, aircraft)
+            gaCount += 1
+        }
+
+        this.aircraft = nextAircraft
     }
 
     initialize(maxActiveFlights) {
@@ -29,17 +92,7 @@ export class FlightWorldSimulator {
         }
 
         const random = createBootstrapRandom(maxActiveFlights)
-        const targetCount = Math.max(0, maxActiveFlights)
-
-        while (this.aircraft.size < targetCount) {
-            const id = `FLT-${this.nextFlightIndex}`
-            this.nextFlightIndex += 1
-            const route = this.pickRoute(random)
-            const aircraft = createFlightAircraft(id, route, this.airportByIcao, random)
-
-            this.aircraft.set(id, aircraft)
-        }
-
+        this.rebalanceFleet(maxActiveFlights, random)
         this.initialized = true
     }
 
@@ -51,23 +104,7 @@ export class FlightWorldSimulator {
             return
         }
 
-        while (this.aircraft.size < maxActiveFlights) {
-            const id = `FLT-${this.nextFlightIndex}`
-            this.nextFlightIndex += 1
-            const route = this.pickRoute(random)
-            const aircraft = createFlightAircraft(id, route, this.airportByIcao, random)
-
-            this.aircraft.set(id, aircraft)
-        }
-
-        if (this.aircraft.size > maxActiveFlights) {
-            const keys = Array.from(this.aircraft.keys())
-            const excess = this.aircraft.size - maxActiveFlights
-
-            for (let index = keys.length - excess; index < keys.length; index += 1) {
-                this.aircraft.delete(keys[index])
-            }
-        }
+        this.rebalanceFleet(maxActiveFlights, random)
     }
 
     advance(deltaSeconds) {
@@ -78,6 +115,11 @@ export class FlightWorldSimulator {
         const random = createBootstrapRandom('advance', Math.floor(Date.now() / 1000))
 
         this.aircraft.forEach((aircraft, id) => {
+            if (aircraft.trafficKind === 'generalAviation') {
+                this.aircraft.set(id, advanceGeneralAviationAircraft(aircraft, deltaSeconds))
+                return
+            }
+
             let current = aircraft
             const routeHeading = headingAlongRoute(
                 current.polyline,

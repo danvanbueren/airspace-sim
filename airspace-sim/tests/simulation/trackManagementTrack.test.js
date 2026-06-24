@@ -232,6 +232,8 @@ describe('track management window live sync', () => {
             infoFields: false,
             correlationMode: 'extrapolated',
             attentionFlags: [],
+            iffMode3Code: null,
+            iffMode3UpdatedAt: null,
         })
     })
 

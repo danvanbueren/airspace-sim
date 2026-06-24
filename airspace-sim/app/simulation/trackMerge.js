@@ -211,6 +211,18 @@ export function buildMergedTrackState(survivor, merged, timestamp) {
         )
     }
 
+    const survivorIffUpdatedAt = survivor.iffMode3UpdatedAt ?? 0
+    const mergedIffUpdatedAt = merged.iffMode3UpdatedAt ?? 0
+    const iffSource = mergedIffUpdatedAt > survivorIffUpdatedAt ? merged : survivor
+
+    if (iffSource.iffMode3Code) {
+        mergedState.iffMode3Code = iffSource.iffMode3Code
+        mergedState.iffMode3UpdatedAt = iffSource.iffMode3UpdatedAt ?? null
+    } else {
+        mergedState.iffMode3Code = null
+        mergedState.iffMode3UpdatedAt = null
+    }
+
     return mergedState
 }
 

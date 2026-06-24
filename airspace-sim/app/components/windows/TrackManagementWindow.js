@@ -50,6 +50,10 @@ import {expandTrackManagementWindowSkipLiveFields} from '@/app/tools/map/trackMa
 import AttentionFlagPills from '@/app/components/windows/AttentionFlagPills'
 import {getVisibleTrackAttentionFlags} from '@/app/simulation/trackAttentionFlags'
 import {
+    getMode3DisplayLabel,
+    isIffMode3Stale,
+} from '@/app/simulation/iffMode3'
+import {
     getTrackManagementWindowPosition,
     useTrackManagementWindowDrag,
 } from '@/app/hooks/map/useTrackManagementWindowDrag'
@@ -489,7 +493,19 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         },
         Date.now(),
         appSettings.inhibitedAttentions ?? [],
+        appSettings.iffRefreshMs ?? 1000,
     )
+    const iffMode3Stale = Boolean(
+        trackManagementWindow.iffMode3Code
+        && isIffMode3Stale(
+            trackManagementWindow,
+            Date.now(),
+            appSettings.iffRefreshMs ?? 1000,
+        ),
+    )
+    const iffMode3Display = trackManagementWindow.iffMode3Code
+        ? getMode3DisplayLabel(trackManagementWindow.iffMode3Code)
+        : '—'
 
     const activateWindow = useCallback(() => {
         if (trackManagementWindow.dismissOnMapClick) {
@@ -658,6 +674,51 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                             None
                         </Typography>
                     )}
+                </Box>
+
+                <Divider/>
+
+                <Box>
+                    <Typography
+                        sx={{
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            mb: 0.75,
+                        }}
+                    >
+                        IFF Mode 3
+                    </Typography>
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.75,
+                            flexWrap: 'wrap',
+                        }}
+                    >
+                        <Typography
+                            sx={{
+                                fontFamily: 'monospace',
+                                fontSize: '0.8rem',
+                                color: iffMode3Stale ? 'text.disabled' : 'text.primary',
+                            }}
+                        >
+                            {iffMode3Display}
+                        </Typography>
+                        {iffMode3Stale ? (
+                            <AttentionFlagPills flagIds={['IFF_STALE']} dense/>
+                        ) : null}
+                    </Box>
+                    {!trackManagementWindow.iffMode3Code ? (
+                        <Typography
+                            variant='body2'
+                            color='text.secondary'
+                            sx={{fontFamily: 'monospace', fontSize: '0.75rem', mt: 0.5}}
+                        >
+                            No correlated IFF return
+                        </Typography>
+                    ) : null}
                 </Box>
 
                 <Divider/>
