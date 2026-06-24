@@ -66,6 +66,16 @@ function formatEnumLabel(value) {
         .replace(/^./, (character) => character.toUpperCase())
 }
 
+function isTrackManagementInteractiveTarget(target) {
+    if (!(target instanceof Element)) {
+        return false
+    }
+
+    return Boolean(target.closest(
+        'input, textarea, select, button, label, [role="combobox"], [role="listbox"], [role="option"], [role="checkbox"], .MuiInputBase-root, .MuiFormControl-root, .MuiCheckbox-root, .MuiFormControlLabel-root, .MuiIconButton-root',
+    ))
+}
+
 function formatOptionalGroupedWholeNumber(value) {
     if (value === '' || value === null || value === undefined) {
         return ''
@@ -416,6 +426,17 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         handleFieldFocus(field)
     }
 
+    const releaseActiveFieldFocus = () => {
+        blurActiveKinematicFields()
+
+        const activeElement = document.activeElement
+
+        if (activeElement instanceof HTMLElement
+            && trackManagementWindowRef.current?.contains(activeElement)) {
+            activeElement.blur()
+        }
+    }
+
     const getKinematicFieldDisplayValue = (field) => {
         const draft = kinematicFieldDrafts[field]
 
@@ -466,11 +487,16 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         }
     }, [onActivate, trackManagementWindow.dismissOnMapClick, trackManagementWindow.id])
 
-    const handleWindowPointerDown = useCallback((event) => {
+    const handleWindowPointerDown = (event) => {
         event.stopPropagation()
+
+        if (!isTrackManagementInteractiveTarget(event.target)) {
+            releaseActiveFieldFocus()
+        }
+
         activateWindow()
         onClaimKeyboardCustody?.(trackManagementWindow.id)
-    }, [activateWindow, onClaimKeyboardCustody, trackManagementWindow.id])
+    }
 
     const {
         handleHeaderPointerDown,
@@ -530,7 +556,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             })}
         >
             <Box
-                onPointerDown={handleHeaderPointerDown}
+                onPointerDown={(event) => {
+                    releaseActiveFieldFocus()
+                    handleHeaderPointerDown(event)
+                }}
                 onPointerMove={handleHeaderPointerMove}
                 onPointerUp={handleHeaderPointerUp}
                 onPointerCancel={handleHeaderPointerUp}
