@@ -458,6 +458,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                     onSkipLiveFieldsChange={handleSkipLiveFieldsChange}
                     hasKeyboardCustody={trackManagementKeyboardCustodyWindowId === trackManagementWindow.id}
                     zIndex={getWindowZIndex(trackManagementWindow.id)}
+                    evaluationTime={getSimulationTimestamp()}
                 />
             ))}
 

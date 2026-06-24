@@ -28,7 +28,7 @@ function buildCorrelationCandidates(detections, tracks, thresholdNm) {
     return candidates
 }
 
-function assignCandidates(candidates, detections) {
+function sortCorrelationCandidates(candidates) {
     candidates.sort((left, right) => {
         if (left.distanceNm !== right.distanceNm) {
             return left.distanceNm - right.distanceNm
@@ -36,6 +36,10 @@ function assignCandidates(candidates, detections) {
 
         return left.detectionIndex - right.detectionIndex
     })
+}
+
+function assignCandidates(candidates, detections) {
+    sortCorrelationCandidates(candidates)
 
     const assignedDetections = new Map()
     const assignedTrackIds = new Set()
@@ -143,6 +147,8 @@ export function correlateIffDetections(detections, tracks, thresholdNm) {
         assignedDetectionIndexes.add(candidate.detectionIndex)
     })
 
+    sortCorrelationCandidates(generalCandidates)
+
     generalCandidates.forEach((candidate) => {
         if (assignedDetectionIndexes.has(candidate.detectionIndex)
             || assignedTrackIds.has(candidate.trackId)) {
@@ -183,9 +189,16 @@ export function clearSeparatedIffTrackCodes(trackStore, detections, thresholdNm)
         }
 
         const trackCode = formatMode3Code(track.iffMode3Code)
-        const hasMatchingDetectionNearby = detections.some((detection) => (
+        const sameCodeDetections = detections.filter((detection) => (
             formatMode3Code(detection.mode3Code) === trackCode
-            && haversineDistanceNm(
+        ))
+
+        if (sameCodeDetections.length === 0) {
+            return
+        }
+
+        const hasMatchingDetectionNearby = sameCodeDetections.some((detection) => (
+            haversineDistanceNm(
                 track.latitude,
                 track.longitude,
                 detection.latitude,

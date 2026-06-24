@@ -233,6 +233,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             trackManagementWindow,
                                                                             mapContainerRef,
                                                                             tracksForCallsignValidation = [],
+                                                                            evaluationTime = Date.now(),
                                                                             onChange,
                                                                             onMove,
                                                                             onActivate,
@@ -491,7 +492,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             ...trackManagementWindow,
             attentionFlags: trackManagementWindow.attentionFlags ?? [],
         },
-        Date.now(),
+        evaluationTime,
         appSettings.inhibitedAttentions ?? [],
         appSettings.iffRefreshMs ?? 1000,
     )
@@ -499,7 +500,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         trackManagementWindow.iffMode3Code
         && isIffMode3Stale(
             trackManagementWindow,
-            Date.now(),
+            evaluationTime,
             appSettings.iffRefreshMs ?? 1000,
         ),
     )
