@@ -92,13 +92,14 @@ describe('syncActiveTrackKinematicsFromFlightWorld', () => {
     })
 
     it('skips truth-aircraft sync while an operator kinematic hold is active', () => {
+        const now = 10_000
         const trackStore = new TrackStore()
         trackStore.addTrack(activeTrack({
             heading: 90,
             speed: 400,
             altitude: 30_000,
             lastManagementEditFields: ['heading'],
-            lastUserKinematicEditAt: Date.now(),
+            lastUserKinematicEditAt: now,
             lastUserKinematicEditFields: ['heading'],
             userDirected: true,
         }))
@@ -112,6 +113,7 @@ describe('syncActiveTrackKinematicsFromFlightWorld', () => {
                 altitude: 35_000,
             }]),
             trackStore,
+            now + 5_000,
         )
 
         const updatedTrack = trackStore.getTrack('TRK-1')
@@ -119,6 +121,32 @@ describe('syncActiveTrackKinematicsFromFlightWorld', () => {
         assert.equal(updatedTrack.heading, 90)
         assert.equal(updatedTrack.speed, 400)
         assert.equal(updatedTrack.altitude, 30_000)
+    })
+
+    it('uses tick timestamp for correlation hold expiry', () => {
+        const editAt = 10_000
+        const trackStore = new TrackStore()
+        trackStore.addTrack(activeTrack({
+            heading: 90,
+            lastUserKinematicEditAt: editAt,
+            lastUserKinematicEditFields: ['heading'],
+        }))
+
+        const flightWorld = createFlightWorld([{
+            longitude: -75,
+            latitude: 40,
+            heading: 200,
+            speed: 500,
+            altitude: 35_000,
+        }])
+
+        syncActiveTrackKinematicsFromFlightWorld(flightWorld, trackStore, editAt + 5_000)
+
+        assert.equal(trackStore.getTrack('TRK-1').heading, 90)
+
+        syncActiveTrackKinematicsFromFlightWorld(flightWorld, trackStore, editAt + 10_001)
+
+        assert.equal(trackStore.getTrack('TRK-1').heading, 200)
     })
 
     it('does not update suspended tracks', () => {

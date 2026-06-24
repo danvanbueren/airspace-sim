@@ -34,7 +34,7 @@ function hasKinematicUpdate(track, updates) {
     ))
 }
 
-export function syncActiveTrackKinematicsFromFlightWorld(flightWorld, trackStore) {
+export function syncActiveTrackKinematicsFromFlightWorld(flightWorld, trackStore, timestamp = Date.now()) {
     if (!flightWorld || !trackStore) {
         return
     }
@@ -46,7 +46,7 @@ export function syncActiveTrackKinematicsFromFlightWorld(flightWorld, trackStore
             continue
         }
 
-        if (isCorrelationHoldActive(track)) {
+        if (isCorrelationHoldActive(track, timestamp)) {
             continue
         }
 

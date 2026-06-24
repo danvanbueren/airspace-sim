@@ -334,7 +334,7 @@ export class TrackEngine {
         if (deltaSeconds > 0 && !this.perf.shouldSkipSimulationStep()) {
             this.flightWorld.advance(deltaSeconds)
             this.trackStore.extrapolate(timestamp, deltaSeconds, this.settings)
-            syncActiveTrackKinematicsFromFlightWorld(this.flightWorld, this.trackStore)
+            syncActiveTrackKinematicsFromFlightWorld(this.flightWorld, this.trackStore, timestamp)
         }
 
         this.lastTrackTickAt = timestamp
