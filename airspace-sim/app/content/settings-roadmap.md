@@ -16,6 +16,25 @@ Planned work for Airspace Simulator, grouped by completion month. Completed item
 - ✅ Simulation & sensors - Detection-to-track correlation and merge — [`961dcc1`](https://github.com/danvanbueren/airspace-sim/commit/961dcc1), [`e96a06e`](https://github.com/danvanbueren/airspace-sim/commit/e96a06e)
 - ✅ Tracks & symbology - Velocity vector sticks on firm tracks — [`7b1214a`](https://github.com/danvanbueren/airspace-sim/commit/7b1214a)
 
+## History
+
+Follow-on and original commit references for the work above. Primary attribution stays in the monthly sections.
+
+### May 2026
+
+- ✅ Map & scope tools - Bearing/range QOL and tooltip refinements — [`6864844`](https://github.com/danvanbueren/airspace-sim/commit/6864844)
+- ✅ Map & scope tools - Bearing/range tool directory refactor (original roadmap commit) — [`63caa1c`](https://github.com/danvanbueren/airspace-sim/commit/63caa1c)
+
+### June 2026
+
+- ✅ Operator interface - Markdown-backed settings roadmap page — [`c5f2013`](https://github.com/danvanbueren/airspace-sim/commit/c5f2013)
+- ✅ Tracks & symbology - Live kinematic field editing in Track Management — [`a0ff710`](https://github.com/danvanbueren/airspace-sim/commit/a0ff710), [`011f714`](https://github.com/danvanbueren/airspace-sim/commit/011f714)
+- ✅ Tracks & symbology - Callsign validation and civilian CIV## allocation — [`5dc8803`](https://github.com/danvanbueren/airspace-sim/commit/5dc8803)
+- ✅ Tracks & symbology - Searchable platform-specific type catalog — [`e6f85d3`](https://github.com/danvanbueren/airspace-sim/commit/e6f85d3)
+- ✅ Tracks & symbology - Track management UI overhaul — [`67464d8`](https://github.com/danvanbueren/airspace-sim/commit/67464d8)
+- ✅ Tracks & symbology - Lazy registration for missing MIL-STD map icons — [`4c9623e`](https://github.com/danvanbueren/airspace-sim/commit/4c9623e)
+- ✅ Map & scope tools - Dark map water and track label readability — [`1e82879`](https://github.com/danvanbueren/airspace-sim/commit/1e82879)
+
 ## Future
 
 - Map & scope tools - Reference point creation and management
