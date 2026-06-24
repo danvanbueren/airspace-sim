@@ -48,7 +48,7 @@ const MAP_STYLES = {
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
     const {raiseAlarmAlert, registerMap} = useAlarmAlertActions()
-    const {upsertManualTrack, dropTrack, getTrack, getSimulationTimestamp} = useSimulation()
+    const {upsertManualTrack, dropTrack, recoverTrack, setDropProtect, getTrack, getSimulationTimestamp} = useSimulation()
     const {simulationSettings} = useAppSettings()
     const {isToggleActive} = useSensorDisplay()
     const mapContainerRef = useRef(null)
@@ -113,10 +113,12 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     } = useMapContextMenuState(contextMenuRef)
 
     const handleMapContextMenu = useCallback(({point, mapPoint, lngLat, line}) => {
-        const track = mapPoint ? trackMapLayer.getTrackAtMapPoint(mapPoint) : null
+        const layerTrack = mapPoint ? trackMapLayer.getTrackAtMapPoint(mapPoint) : null
+        const trackId = layerTrack?.trackId ?? layerTrack?.id
+        const track = trackId ? (getTrack(trackId) ?? layerTrack) : null
 
         openBearingRangeContextMenu({point, lngLat, line, track})
-    }, [openBearingRangeContextMenu, trackMapLayer])
+    }, [getTrack, openBearingRangeContextMenu, trackMapLayer])
 
     const {
         removeBearingRangeLine,
@@ -231,6 +233,28 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         closeTrackManagementWindowsForTrack,
         closeContextMenu,
     ])
+
+    const handleRecoverTrack = useCallback((track) => {
+        const trackId = track.trackId ?? track.id
+
+        if (!trackId) {
+            return
+        }
+
+        recoverTrack(trackId)
+        closeContextMenu()
+    }, [recoverTrack, closeContextMenu])
+
+    const handleToggleDropProtect = useCallback((track) => {
+        const trackId = track.trackId ?? track.id
+
+        if (!trackId) {
+            return
+        }
+
+        setDropProtect(trackId, !track.dropProtect)
+        closeContextMenu()
+    }, [setDropProtect, closeContextMenu])
 
     useEffect(() => {
         const map = mapRef.current
@@ -437,6 +461,8 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                 mapContainerRef={mapContainerRef}
                 onInitiateTrack={initiateTrack}
                 onDropTrack={handleDropTrack}
+                onRecoverTrack={handleRecoverTrack}
+                onToggleDropProtect={handleToggleDropProtect}
                 onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
                 onClearBearingRangeLines={handleClearBearingRangeLines}
                 lines={lines}

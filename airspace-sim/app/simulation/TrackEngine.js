@@ -14,6 +14,10 @@ import {getBoundedTrackDeltaSeconds} from './trackTiming'
 import {syncActiveTrackKinematicsFromFlightWorld} from './syncActiveTrackKinematicsFromFlightWorld'
 import {isCorrelationHoldActive} from './correlationHold'
 import {enrichTracksWithAttentionFlags} from './trackAttentionFlags'
+import {
+    getAutoDropStateClearUpdates,
+    processAutoDropTracks,
+} from './trackAutoDrop'
 
 export class TrackEngine {
     constructor(options = {}) {
@@ -157,6 +161,36 @@ export class TrackEngine {
 
     dropTrack(trackId) {
         this.trackStore.dropTrack(trackId)
+        this.notifyListeners()
+    }
+
+    recoverTrack(trackId) {
+        const track = this.trackStore.getTrack(trackId)
+
+        if (!track || !track.dropAt) {
+            return
+        }
+
+        this.trackStore.updateTrack(trackId, getAutoDropStateClearUpdates())
+        this.notifyListeners()
+    }
+
+    setDropProtect(trackId, enabled) {
+        const track = this.trackStore.getTrack(trackId)
+
+        if (!track) {
+            return
+        }
+
+        const updates = {
+            dropProtect: Boolean(enabled),
+        }
+
+        if (enabled) {
+            Object.assign(updates, getAutoDropStateClearUpdates())
+        }
+
+        this.trackStore.updateTrack(trackId, updates)
         this.notifyListeners()
     }
 
@@ -357,6 +391,8 @@ export class TrackEngine {
             this.lastIffScanAt = timestamp
             this.runSensorScan(SENSOR_TYPES.IFF, timestamp, bounds)
         }
+
+        processAutoDropTracks(this.trackStore, timestamp)
 
         this.notifyListeners()
 

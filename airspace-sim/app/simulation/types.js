@@ -60,6 +60,9 @@
  * @property {string[]} [lastUserKinematicEditFields]
  * @property {string[]} [lastManagementEditFields]
  * @property {string[]} [attentionFlags] Assigned attention flag IDs; merged with derived flags for display
+ * @property {number} [dropRiskAt] Timestamp when invisible DROP-RISK auto-drop countdown started
+ * @property {number} [dropAt] Timestamp when visible DROP attention phase started
+ * @property {boolean} [dropProtect] When true, prevents automatic drop of uncorrelated tracks
  */
 
 export {}

@@ -1,5 +1,6 @@
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 import {isCorrelationHoldActive} from './correlationHold.js'
+import {isTrackInAutoDropPhase} from './trackAutoDrop.js'
 import {filterInhibitedSignalIds, sortSignalIdsByPriority} from './signalDefinitions.js'
 
 /**
@@ -11,6 +12,10 @@ import {filterInhibitedSignalIds, sortSignalIdsByPriority} from './signalDefinit
  */
 export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.now()) {
     const flags = []
+
+    if (isTrackInAutoDropPhase(track)) {
+        flags.push('DROP')
+    }
 
     if (track.stale) {
         flags.push('STALE')

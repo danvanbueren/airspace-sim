@@ -493,6 +493,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - Manual track initiation and editing from the map context menu, with correlation mode (active / extrapolated / suspend); editing an auto track converts it to manual.
 - Track Management window with domain, identity, MIL-STD type, searchable platform-specific type, callsign validation, optional symbol info fields, and live attention-flag pills.
 - On-map track attention flags (amber, monospace, synchronized flash) pinned beside tracks; up to five lines with overflow summary.
+- Automatic drop of uncorrelated tracks after a countdown (invisible DROP-RISK, then visible DROP attention, then removal); drop protect and recover actions in the context menu.
 - Settings page matrix for inhibiting track attentions and alarm alert types; central signal registry in `app/simulation/signalDefinitions.js`.
 - Familiar platform silhouettes with MIL-STD-2525 fallback, callsign labels, and speed-scaled heading vectors on the map.
 - Optional **airport** and **air route** overlay layers.

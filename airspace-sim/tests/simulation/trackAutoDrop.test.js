@@ -1,0 +1,100 @@
+import {describe, it} from 'node:test'
+import assert from 'node:assert/strict'
+import {TrackStore} from '../../app/simulation/TrackStore.js'
+import {
+    AUTO_DROP_REMOVE_DELAY_MS,
+    AUTO_DROP_RISK_DELAY_MS,
+    getAutoDropProgressUpdates,
+    isTrackEligibleForAutoDrop,
+    isTrackInAutoDropPhase,
+    processAutoDropTracks,
+    shouldAutoDropTrack,
+} from '../../app/simulation/trackAutoDrop.js'
+import {deriveAttentionFlagsFromTrackState} from '../../app/simulation/trackAttentionFlags.js'
+
+function createTrack(overrides = {}) {
+    return {
+        id: 'TRK-test',
+        trackId: 'TRK-test',
+        longitude: -77.5,
+        latitude: 39.2,
+        heading: 90,
+        speed: 400,
+        altitude: 30000,
+        lastSensorUpdateAt: 0,
+        lastExtrapolationAt: 0,
+        stale: false,
+        domain: 'air',
+        identity: 'pending',
+        type: '01:110104',
+        callsign: 'TEST01',
+        correlated: false,
+        ...overrides,
+    }
+}
+
+describe('trackAutoDrop', () => {
+    it('identifies uncorrelated tracks without drop protect as eligible', () => {
+        assert.equal(isTrackEligibleForAutoDrop(createTrack()), true)
+        assert.equal(isTrackEligibleForAutoDrop(createTrack({correlated: true})), false)
+        assert.equal(isTrackEligibleForAutoDrop(createTrack({dropProtect: true})), false)
+    })
+
+    it('starts invisible DROP-RISK countdown for eligible tracks', () => {
+        const updates = getAutoDropProgressUpdates(createTrack(), 1000)
+
+        assert.deepEqual(updates, {dropRiskAt: 1000})
+    })
+
+    it('enters visible DROP phase after five seconds', () => {
+        const updates = getAutoDropProgressUpdates(
+            createTrack({dropRiskAt: 1000}),
+            1000 + AUTO_DROP_RISK_DELAY_MS,
+        )
+
+        assert.deepEqual(updates, {dropAt: 6000})
+        assert.equal(isTrackInAutoDropPhase(createTrack({dropAt: 6000})), true)
+    })
+
+    it('removes tracks ten seconds after DROP phase begins', () => {
+        const track = createTrack({dropAt: 1000})
+
+        assert.equal(shouldAutoDropTrack(track, 1000 + AUTO_DROP_REMOVE_DELAY_MS - 1), false)
+        assert.equal(shouldAutoDropTrack(track, 1000 + AUTO_DROP_REMOVE_DELAY_MS), true)
+    })
+
+    it('clears auto-drop state when a track becomes correlated', () => {
+        const updates = getAutoDropProgressUpdates(
+            createTrack({dropRiskAt: 1000, dropAt: 6000, correlated: true}),
+            7000,
+        )
+
+        assert.deepEqual(updates, {dropRiskAt: undefined, dropAt: undefined})
+    })
+
+    it('processes countdown, visible DROP, and removal through TrackStore', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(createTrack())
+
+        processAutoDropTracks(trackStore, 1000)
+        assert.equal(trackStore.getTrack('TRK-test').dropRiskAt, 1000)
+        assert.equal(trackStore.getTrack('TRK-test').dropAt, undefined)
+
+        processAutoDropTracks(trackStore, 1000 + AUTO_DROP_RISK_DELAY_MS)
+        assert.equal(trackStore.getTrack('TRK-test').dropAt, 6000)
+
+        const removedTrackIds = processAutoDropTracks(
+            trackStore,
+            6000 + AUTO_DROP_REMOVE_DELAY_MS,
+        )
+
+        assert.deepEqual(removedTrackIds, ['TRK-test'])
+        assert.equal(trackStore.getTrack('TRK-test'), null)
+    })
+
+    it('derives DROP attention during visible auto-drop phase', () => {
+        const flags = deriveAttentionFlagsFromTrackState(createTrack({dropAt: 5000}))
+
+        assert.ok(flags.includes('DROP'))
+    })
+})
