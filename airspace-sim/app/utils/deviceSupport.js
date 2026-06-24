@@ -16,6 +16,10 @@ export function isUnsupportedMobileDevice(initialUnsupported = false) {
     return initialUnsupported || isUnsupportedMobileDeviceClient()
 }
 
+export function isUnsupportedTouchPrimaryDevice(hasCoarsePointer, hasNoHover) {
+    return hasCoarsePointer && hasNoHover
+}
+
 export function isUnsupportedMobileDeviceClient() {
     if (typeof window === 'undefined') {
         return false
@@ -35,9 +39,8 @@ export function isUnsupportedMobileDeviceClient() {
 
     const hasCoarsePointer = window.matchMedia('(pointer: coarse)').matches
     const hasNoHover = window.matchMedia('(hover: none)').matches
-    const isNarrowTabletViewport = window.matchMedia('(max-width: 1024px)').matches
 
-    return hasCoarsePointer && hasNoHover && isNarrowTabletViewport
+    return isUnsupportedTouchPrimaryDevice(hasCoarsePointer, hasNoHover)
 }
 
 export function getServerUnsupportedDevice(headersList) {

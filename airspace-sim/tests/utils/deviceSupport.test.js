@@ -5,6 +5,7 @@ import {
     isUnsupportedMobileDevice,
     isUnsupportedMobileDeviceFromDeviceType,
     isUnsupportedMobileDeviceFromUserAgent,
+    isUnsupportedTouchPrimaryDevice,
 } from '../../app/utils/deviceSupport.js'
 
 describe('isUnsupportedMobileDeviceFromUserAgent', () => {
@@ -51,6 +52,15 @@ describe('isUnsupportedMobileDeviceFromDeviceType', () => {
         assert.equal(isUnsupportedMobileDeviceFromDeviceType('tablet'), true)
         assert.equal(isUnsupportedMobileDeviceFromDeviceType('desktop'), false)
         assert.equal(isUnsupportedMobileDeviceFromDeviceType(undefined), false)
+    })
+})
+
+describe('isUnsupportedTouchPrimaryDevice', () => {
+    it('flags touch-primary devices regardless of viewport width', () => {
+        assert.equal(isUnsupportedTouchPrimaryDevice(true, true), true)
+        assert.equal(isUnsupportedTouchPrimaryDevice(true, false), false)
+        assert.equal(isUnsupportedTouchPrimaryDevice(false, true), false)
+        assert.equal(isUnsupportedTouchPrimaryDevice(false, false), false)
     })
 })
 
