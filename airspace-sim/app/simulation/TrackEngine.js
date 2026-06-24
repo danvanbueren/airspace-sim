@@ -145,6 +145,10 @@ export class TrackEngine {
         this.notifyListeners()
     }
 
+    getTrack(trackId) {
+        return this.trackStore.getTrack(trackId)
+    }
+
     removeManualTrack(trackId) {
         this.trackStore.removeTrack(trackId)
         this.notifyListeners()

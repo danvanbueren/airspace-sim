@@ -160,6 +160,50 @@ describe('track management track updates', () => {
         assert.equal(afterCallsignEdit.heading, 90)
         assert.equal(afterCallsignEdit.callsign, 'VIP01')
     })
+
+    it('preserves prior kinematic commits when metadata edits merge from fresh engine track', () => {
+        const staleSnapshotTrack = existingTrack({
+            heading: 120,
+            callsign: 'CIV01',
+        })
+
+        const freshEngineTrack = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                heading: '090',
+            }),
+            staleSnapshotTrack,
+            ['heading'],
+        )
+
+        const mergedFromStaleSnapshot = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                heading: 90,
+                callsign: 'VIP01',
+            }),
+            staleSnapshotTrack,
+            ['callsign'],
+        )
+
+        const mergedFromFreshEngine = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                heading: 90,
+                callsign: 'VIP01',
+            }),
+            freshEngineTrack,
+            ['callsign'],
+        )
+
+        assert.equal(mergedFromStaleSnapshot.heading, 120)
+        assert.deepEqual(mergedFromStaleSnapshot.lastManagementEditFields, ['callsign'])
+
+        assert.equal(mergedFromFreshEngine.heading, 90)
+        assert.equal(mergedFromFreshEngine.callsign, 'VIP01')
+        assert.deepEqual(
+            mergedFromFreshEngine.lastManagementEditFields.sort(),
+            ['callsign', 'heading'],
+        )
+        assert.ok(mergedFromFreshEngine.lastUserKinematicEditAt > 0)
+    })
 })
 
 describe('track management window live sync', () => {

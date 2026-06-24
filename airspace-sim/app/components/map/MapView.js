@@ -47,7 +47,7 @@ const MAP_STYLES = {
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
     const {addAlarmAlert, registerMap} = useMapState()
-    const {upsertManualTrack, dropTrack} = useSimulation()
+    const {upsertManualTrack, dropTrack, getTrack} = useSimulation()
     const {simulationSettings} = useAppSettings()
     const {isToggleActive} = useSensorDisplay()
     const mapContainerRef = useRef(null)
@@ -142,10 +142,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
 
     const handleTrackUpdated = useCallback((trackManagementWindow, changedFields) => {
         const trackId = trackManagementWindow.trackId
-        const simulationTrack = simulationSnapshot?.tracks?.find(
-            (track) => (track.trackId ?? track.id) === trackId,
-        )
-        const existingTrack = simulationTrack ?? trackMapLayer.getTrack(trackId)
+        const existingTrack = getTrack(trackId) ?? trackMapLayer.getTrack(trackId)
 
         const track = createTrackUpdateFromManagementWindow(
             trackManagementWindow,
@@ -155,7 +152,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
 
         upsertManualTrack(track)
         trackMapLayer.upsertTrack(track)
-    }, [trackMapLayer, simulationSnapshot?.tracks, upsertManualTrack])
+    }, [getTrack, trackMapLayer, upsertManualTrack])
 
     const {
         trackManagementWindows,
