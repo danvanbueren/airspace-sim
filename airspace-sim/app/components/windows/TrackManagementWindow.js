@@ -66,6 +66,53 @@ const CORRELATION_MODE_OPTIONS = [
 
 const KINEMATIC_FOCUS_FIELDS = ['heading', 'speed', 'altitude']
 
+const TRACK_MANAGEMENT_MONOSPACE_SX = {
+    fontFamily: 'monospace',
+    '& .MuiTypography-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiInputBase-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiInputLabel-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiFormHelperText-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiFormControlLabel-label': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiSelect-select': {
+        fontFamily: 'monospace',
+    },
+}
+
+function getTrackManagementSelectMenuProps(zIndex) {
+    return {
+        autoFocus: false,
+        disableAutoFocusItem: true,
+        slotProps: {
+            paper: {
+                sx: {
+                    maxHeight: 320,
+                    zIndex: (zIndex ?? 1300) + 1,
+                    fontFamily: 'monospace',
+                    '& .MuiMenuItem-root': {
+                        fontFamily: 'monospace',
+                    },
+                    '& .MuiInputBase-root': {
+                        fontFamily: 'monospace',
+                    },
+                    '& .MuiTypography-root': {
+                        fontFamily: 'monospace',
+                    },
+                },
+            },
+        },
+    }
+}
+
 function formatEnumLabel(value) {
     return value
         .replace(/([A-Z])/g, ' $1')
@@ -187,18 +234,7 @@ function SearchableSelect({
                 onChange={(event) => onChange(event.target.value)}
                 onOpen={onOpen}
                 onClose={handleClose}
-                MenuProps={{
-                    autoFocus: false,
-                    disableAutoFocusItem: true,
-                    slotProps: {
-                        paper: {
-                            sx: {
-                                maxHeight: 320,
-                                zIndex: (zIndex ?? 1300) + 1,
-                            },
-                        },
-                    },
-                }}
+                MenuProps={getTrackManagementSelectMenuProps(zIndex)}
             >
                 <ListSubheader sx={{lineHeight: 1, px: 1.5, pt: 1, pb: 1}}>
                     <TextField
@@ -209,17 +245,26 @@ function SearchableSelect({
                         onChange={(event) => setSearchQuery(event.target.value)}
                         onKeyDown={(event) => event.stopPropagation()}
                         onClick={(event) => event.stopPropagation()}
+                        slotProps={{
+                            input: {
+                                sx: {fontFamily: 'monospace'},
+                            },
+                        }}
                     />
                 </ListSubheader>
                 {filteredOptions.length === 0 ? (
-                    <MenuItem disabled dense sx={{opacity: 1}}>
+                    <MenuItem disabled dense sx={{opacity: 1, fontFamily: 'monospace'}}>
                         <Typography variant='body2' color='text.secondary'>
                             {emptyResultsLabel}
                         </Typography>
                     </MenuItem>
                 ) : (
                     filteredOptions.map((option) => (
-                        <MenuItem key={option.value || 'unspecified'} value={option.value}>
+                        <MenuItem
+                            key={option.value || 'unspecified'}
+                            value={option.value}
+                            sx={{fontFamily: 'monospace'}}
+                        >
                             {option.label}
                         </MenuItem>
                     ))
@@ -577,6 +622,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 pointerEvents: 'auto',
                 userSelect: 'none',
                 overflow: 'hidden',
+                ...TRACK_MANAGEMENT_MONOSPACE_SX,
                 ...(hasKeyboardCustody && {
                     boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[8]}`,
                 }),
@@ -610,7 +656,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 <Typography
                     sx={{
                         fontWeight: 'bold',
-                        fontFamily: 'monospace',
                         color: 'primary.contrastText',
                         fontSize: '0.9rem',
                         flexGrow: 1,
@@ -636,7 +681,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             </Box>
 
             <Stack spacing={1.5} sx={{p: 2}}>
-                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
+                <Typography sx={{fontWeight: 'bold'}}>
                     Track ID: {trackManagementWindow.trackId}
                 </Typography>
 
@@ -644,7 +689,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     {formattedCoordinates.map((coordinateLine) => (
                         <Typography
                             key={coordinateLine}
-                            sx={{fontFamily: 'monospace', whiteSpace: 'pre', fontSize: '0.8rem'}}
+                            sx={{whiteSpace: 'pre', fontSize: '0.8rem'}}
                         >
                             {coordinateLine}
                         </Typography>
@@ -656,7 +701,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 <Box>
                     <Typography
                         sx={{
-                            fontFamily: 'monospace',
                             fontWeight: 'bold',
                             fontSize: '0.8rem',
                             mb: 0.75,
@@ -670,7 +714,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         <Typography
                             variant='body2'
                             color='text.secondary'
-                            sx={{fontFamily: 'monospace', fontSize: '0.75rem'}}
+                            sx={{fontSize: '0.75rem'}}
                         >
                             None
                         </Typography>
@@ -682,7 +726,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 <Box>
                     <Typography
                         sx={{
-                            fontFamily: 'monospace',
                             fontWeight: 'bold',
                             fontSize: '0.8rem',
                             mb: 0.75,
@@ -700,7 +743,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     >
                         <Typography
                             sx={{
-                                fontFamily: 'monospace',
                                 fontSize: '0.8rem',
                                 color: iffMode3Stale ? 'text.disabled' : 'text.primary',
                             }}
@@ -715,7 +757,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         <Typography
                             variant='body2'
                             color='text.secondary'
-                            sx={{fontFamily: 'monospace', fontSize: '0.75rem', mt: 0.5}}
+                            sx={{fontSize: '0.75rem', mt: 0.5}}
                         >
                             No correlated IFF return
                         </Typography>
@@ -735,9 +777,14 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         onChange={(event) => updateField('correlationMode', event.target.value)}
                         onOpen={() => handleSelectOpen('correlationMode')}
                         onClose={() => handleFieldBlur('correlationMode')}
+                        MenuProps={getTrackManagementSelectMenuProps(zIndex)}
                     >
                         {CORRELATION_MODE_OPTIONS.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>
+                            <MenuItem
+                                key={option.value}
+                                value={option.value}
+                                sx={{fontFamily: 'monospace'}}
+                            >
                                 {option.label}
                             </MenuItem>
                         ))}
@@ -771,9 +818,14 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         onChange={(event) => updateField('domain', event.target.value)}
                         onOpen={() => handleSelectOpen('domain')}
                         onClose={() => handleFieldBlur('domain')}
+                        MenuProps={getTrackManagementSelectMenuProps(zIndex)}
                     >
                         {Object.values(TRACK_DOMAINS).map((domain) => (
-                            <MenuItem key={domain} value={domain}>
+                            <MenuItem
+                                key={domain}
+                                value={domain}
+                                sx={{fontFamily: 'monospace'}}
+                            >
                                 {formatEnumLabel(domain)}
                             </MenuItem>
                         ))}
@@ -791,9 +843,14 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         onChange={(event) => updateField('identity', event.target.value)}
                         onOpen={() => handleSelectOpen('identity')}
                         onClose={() => handleFieldBlur('identity')}
+                        MenuProps={getTrackManagementSelectMenuProps(zIndex)}
                     >
                         {TRACK_IDENTITY_OPTIONS.map((identityOption) => (
-                            <MenuItem key={identityOption.value} value={identityOption.value}>
+                            <MenuItem
+                                key={identityOption.value}
+                                value={identityOption.value}
+                                sx={{fontFamily: 'monospace'}}
+                            >
                                 {identityOption.label}
                             </MenuItem>
                         ))}
