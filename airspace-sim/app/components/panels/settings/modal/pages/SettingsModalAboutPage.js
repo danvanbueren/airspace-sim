@@ -1,6 +1,8 @@
-import {Button, Grid, Stack, Typography} from "@mui/material";
+import {Button, Grid, Link, Stack, Typography} from "@mui/material";
 import buildInfo from '../../../../../buildInfo'
+import {ABOUT_ATTRIBUTIONS} from '../../../../../content/about-attributions'
 import LatestCommitDisplay from "../../../../global/LatestCommitDisplay";
+import SettingsModalAboutAttributionEntry from './SettingsModalAboutAttributionEntry'
 
 export default function SettingsModalAboutPage() {
 
@@ -95,6 +97,47 @@ export default function SettingsModalAboutPage() {
                 </Grid>
 
             </Grid>
+
+            <Typography
+                variant='h6'
+                sx={{
+                    pt: 2,
+                }}
+            >
+                Attributions
+            </Typography>
+
+            <Typography sx={{lineHeight: 1.7, fontWeight: 'normal', mb: 1}}>
+                {info.projectName} is built on open-source libraries, map data, and other projects. Credit and copyright belong to their respective authors.
+            </Typography>
+
+            {ABOUT_ATTRIBUTIONS.map((entry) => (
+                <SettingsModalAboutAttributionEntry
+                    key={entry.name}
+                    entry={entry}
+                />
+            ))}
+
+            <Typography
+                variant='h6'
+                sx={{
+                    pt: 2,
+                }}
+            >
+                Disclaimers
+            </Typography>
+
+            <Typography sx={{lineHeight: 1.7, fontWeight: 'normal', mb: 1.5}}>
+                This simulator is a work in progress. Large changes ship regularly, so you may encounter rough edges, regressions, or unexpected behavior. Please report anything that looks wrong in{' '}
+                <Link href={info.githubIssuesLink} target='_blank' rel='noreferrer'>
+                    GitHub Issues
+                </Link>
+                .
+            </Typography>
+
+            <Typography sx={{lineHeight: 1.7, fontWeight: 'normal', mb: 1.5}}>
+                Development relies heavily on AI-assisted tooling. That pace helps the project move quickly, but it also increases the risk of subtle bugs and incomplete polish. Reporting issues when you find them is essential to keeping this high-speed development tempo sustainable.
+            </Typography>
 
             <Typography
                 variant='h6'
