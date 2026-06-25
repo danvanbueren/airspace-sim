@@ -2,12 +2,35 @@
 
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import {
-    Alert, Box, Button, Chip, Divider, FormControl, InputLabel, MenuItem, Select, Slider, Stack, TextField, Typography,
+    Alert, Box, Button, Chip, Divider, FormControl, InputLabel, MenuItem, Select, Slider, Stack, Typography,
 } from '@mui/material'
 import {
     MOUSE_BUTTONS, useControlBindings,
 } from '../../../../../contexts/ControlBindingsContext'
 import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
+import DeferredTextField from '@/app/components/global/DeferredTextField'
+import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
+
+const KEYBINDS_SENSITIVITY_FIELDS = [
+    {
+        key: 'contextMenuMaxMs',
+        label: 'Context Menu Timeout',
+        helperText: 'Milliseconds',
+        ...createDeferredNumericFieldConfig({min: 0, integer: true}),
+    },
+    {
+        key: 'contextMenuMaxPixels',
+        label: 'Context Menu Movement Limit',
+        helperText: 'Pixels',
+        ...createDeferredNumericFieldConfig({min: 0, integer: true}),
+    },
+    {
+        key: 'minPersistedLinePixels',
+        label: 'Minimum Line Length',
+        helperText: 'Pixels',
+        ...createDeferredNumericFieldConfig({min: 0, integer: true}),
+    },
+]
 
 const KEYBOARD_BINDINGS = [{
     key: 'panUp', label: 'Pan North', description: 'Pan the map north.',
@@ -334,47 +357,21 @@ export default function SettingsModalKeybindsPage() {
                     }, gap: 2,
                 }}
             >
-                <TextField
-                    label='Context Menu Timeout'
-                    type='number'
-                    value={bearingRangeTool.contextMenuMaxMs}
-                    onChange={(event) => updateBearingRangeBinding('contextMenuMaxMs', event.target.value)}
-                    slotProps={{
-                        htmlInput: {
-                            min: 0,
-                        },
-                    }}
-                    helperText='Milliseconds'
-                    fullWidth
-                />
-
-                <TextField
-                    label='Context Menu Movement Limit'
-                    type='number'
-                    value={bearingRangeTool.contextMenuMaxPixels}
-                    onChange={(event) => updateBearingRangeBinding('contextMenuMaxPixels', event.target.value)}
-                    slotProps={{
-                        htmlInput: {
-                            min: 0,
-                        },
-                    }}
-                    helperText='Pixels'
-                    fullWidth
-                />
-
-                <TextField
-                    label='Minimum Line Length'
-                    type='number'
-                    value={bearingRangeTool.minPersistedLinePixels}
-                    onChange={(event) => updateBearingRangeBinding('minPersistedLinePixels', event.target.value)}
-                    slotProps={{
-                        htmlInput: {
-                            min: 0,
-                        },
-                    }}
-                    helperText='Pixels'
-                    fullWidth
-                />
+                {KEYBINDS_SENSITIVITY_FIELDS.map((field) => (
+                    <DeferredTextField
+                        key={field.key}
+                        label={field.label}
+                        type='text'
+                        inputMode='numeric'
+                        committedValue={bearingRangeTool[field.key]}
+                        onCommit={(value) => updateBearingRangeBinding(field.key, value)}
+                        formatCommitted={field.formatCommitted}
+                        getDraftError={field.getDraftError}
+                        parseDraft={field.parseDraft}
+                        helperText={field.helperText}
+                        fullWidth
+                    />
+                ))}
             </Box>
         </Stack>
 

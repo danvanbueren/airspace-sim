@@ -9,20 +9,48 @@ import {
     Select,
     Stack,
     Switch,
-    TextField,
     Typography,
 } from '@mui/material'
+import DeferredTextField from '@/app/components/global/DeferredTextField'
 import {QUALITY_PRESET_OPTIONS, useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {QUALITY_PRESETS} from '@/app/simulation/constants'
+import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
+
+const SIMULATION_NUMERIC_FIELDS = [
+    {
+        key: 'radarRefreshMs',
+        label: 'Radar refresh (ms)',
+        ...createDeferredNumericFieldConfig({min: 500, max: 30000, integer: true}),
+    },
+    {
+        key: 'iffRefreshMs',
+        label: 'IFF refresh (ms)',
+        ...createDeferredNumericFieldConfig({min: 250, max: 10000, integer: true}),
+    },
+    {
+        key: 'trackUpdateHz',
+        label: 'Track update rate (Hz)',
+        ...createDeferredNumericFieldConfig({min: 2, max: 30, integer: true}),
+    },
+    {
+        key: 'correlationThresholdNm',
+        label: 'Correlation threshold (NM)',
+        ...createDeferredNumericFieldConfig({min: 0.5, max: 50}),
+    },
+    {
+        key: 'plotAssociationThresholdNm',
+        label: 'Plot association threshold (NM)',
+        ...createDeferredNumericFieldConfig({min: 0.5, max: 20}),
+    },
+    {
+        key: 'maxActiveFlights',
+        label: 'Max active flights (global)',
+        ...createDeferredNumericFieldConfig({min: 10, max: 2500, integer: true}),
+    },
+]
 
 export default function SettingsModalSimulationPage() {
     const {appSettings, updateSimulationSettings} = useAppSettings()
-
-    const updateNumericField = (field) => (event) => {
-        updateSimulationSettings({
-            [field]: event.target.value,
-        })
-    }
 
     return (
         <Stack spacing={3}>
@@ -75,54 +103,20 @@ export default function SettingsModalSimulationPage() {
             </Box>
 
             <Stack spacing={2}>
-                <TextField
-                    label='Radar refresh (ms)'
-                    type='number'
-                    size='small'
-                    value={appSettings.radarRefreshMs}
-                    onChange={updateNumericField('radarRefreshMs')}
-                    slotProps={{htmlInput: {min: 500, max: 30000, step: 100}}}
-                />
-                <TextField
-                    label='IFF refresh (ms)'
-                    type='number'
-                    size='small'
-                    value={appSettings.iffRefreshMs}
-                    onChange={updateNumericField('iffRefreshMs')}
-                    slotProps={{htmlInput: {min: 250, max: 10000, step: 50}}}
-                />
-                <TextField
-                    label='Track update rate (Hz)'
-                    type='number'
-                    size='small'
-                    value={appSettings.trackUpdateHz}
-                    onChange={updateNumericField('trackUpdateHz')}
-                    slotProps={{htmlInput: {min: 2, max: 30, step: 1}}}
-                />
-                <TextField
-                    label='Correlation threshold (NM)'
-                    type='number'
-                    size='small'
-                    value={appSettings.correlationThresholdNm}
-                    onChange={updateNumericField('correlationThresholdNm')}
-                    slotProps={{htmlInput: {min: 0.5, max: 50, step: 0.5}}}
-                />
-                <TextField
-                    label='Plot association threshold (NM)'
-                    type='number'
-                    size='small'
-                    value={appSettings.plotAssociationThresholdNm}
-                    onChange={updateNumericField('plotAssociationThresholdNm')}
-                    slotProps={{htmlInput: {min: 0.5, max: 20, step: 0.5}}}
-                />
-                <TextField
-                    label='Max active flights (global)'
-                    type='number'
-                    size='small'
-                    value={appSettings.maxActiveFlights}
-                    onChange={updateNumericField('maxActiveFlights')}
-                    slotProps={{htmlInput: {min: 10, max: 2500, step: 50}}}
-                />
+                {SIMULATION_NUMERIC_FIELDS.map((field) => (
+                    <DeferredTextField
+                        key={field.key}
+                        label={field.label}
+                        size='small'
+                        type='text'
+                        inputMode='decimal'
+                        committedValue={appSettings[field.key]}
+                        onCommit={(value) => updateSimulationSettings({[field.key]: value})}
+                        formatCommitted={field.formatCommitted}
+                        getDraftError={field.getDraftError}
+                        parseDraft={field.parseDraft}
+                    />
+                ))}
             </Stack>
 
             <FormControl size='small' fullWidth>
