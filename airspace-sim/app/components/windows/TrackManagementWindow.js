@@ -54,6 +54,8 @@ import {
     isIffMode3Stale,
 } from '@/app/simulation/iffMode3'
 import {absoluteToEdgeAnchor} from '@/app/tools/map/edgeAnchoredPosition'
+import {TEXT_INPUT_ENTER_BLUR_SLOT_PROPS} from '@/app/tools/ui/textInputSlotProps'
+import {isPartialNumericInput} from '@/app/tools/ui/deferredNumericField'
 import {
     getLegacyMapClickWindowPosition,
     getTrackManagementWindowPosition,
@@ -176,19 +178,28 @@ function isCommittedKinematicFieldUnchanged(field, parsedValue, committedValue) 
     return normalizedParsed === normalizedCommitted
 }
 
-function blurTextInputOnEnter(event) {
-    if (event.key !== 'Enter') {
-        return
+function getKinematicDraftError(field, raw) {
+    const trimmed = String(raw ?? '').replaceAll(',', '').trim()
+
+    if (trimmed === '') {
+        return null
     }
 
-    event.preventDefault()
-    event.currentTarget.blur()
-}
+    if (!isPartialNumericInput(trimmed)) {
+        return 'Enter a valid number'
+    }
 
-const TEXT_INPUT_ENTER_BLUR_SLOT_PROPS = {
-    htmlInput: {
-        onKeyDown: blurTextInputOnEnter,
-    },
+    if (field === 'heading') {
+        return null
+    }
+
+    const parsed = parseWholeNumberInput(trimmed)
+
+    if (parsed === '') {
+        return 'Enter a valid number'
+    }
+
+    return null
 }
 
 function filterOptionsBySearch(options, searchQuery) {
@@ -293,6 +304,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     const {appSettings} = useAppSettings()
     const trackManagementWindowRef = useRef(null)
     const [kinematicFieldDrafts, setKinematicFieldDrafts] = useState({})
+    const [kinematicFieldErrors, setKinematicFieldErrors] = useState({})
     const [callsignDraft, setCallsignDraft] = useState(null)
     const [callsignError, setCallsignError] = useState(null)
     const kinematicFieldDraftsRef = useRef({})
@@ -317,6 +329,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         callsignDraftRef.current = null
         focusedFieldsRef.current = new Set()
         setKinematicFieldDrafts({})
+        setKinematicFieldErrors({})
         setCallsignDraft(null)
         setCallsignError(null)
         onSkipLiveFieldsChange?.(trackManagementWindow.id, new Set())
@@ -419,8 +432,29 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         setKinematicFieldDrafts(nextDrafts)
 
         if (draft === undefined) {
+            setKinematicFieldErrors((previous) => {
+                const next = {...previous}
+                delete next[field]
+                return next
+            })
             return
         }
+
+        const draftError = getKinematicDraftError(field, draft)
+
+        if (draftError) {
+            setKinematicFieldErrors((previous) => ({
+                ...previous,
+                [field]: draftError,
+            }))
+            return
+        }
+
+        setKinematicFieldErrors((previous) => {
+            const next = {...previous}
+            delete next[field]
+            return next
+        })
 
         const parsedValue = parseCommittedKinematicField(field, draft)
 
@@ -458,6 +492,11 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         kinematicFieldDraftsRef.current = nextDrafts
         publishSkipLiveFields(nextFocusedFields, nextDrafts)
         setKinematicFieldDrafts(nextDrafts)
+        setKinematicFieldErrors((previous) => {
+            const next = {...previous}
+            delete next[field]
+            return next
+        })
     }
 
     const updateKinematicFieldDraft = (field, rawValue) => {
@@ -468,6 +507,18 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
 
         kinematicFieldDraftsRef.current = nextDrafts
         setKinematicFieldDrafts(nextDrafts)
+        setKinematicFieldErrors((previous) => {
+            const error = getKinematicDraftError(field, rawValue)
+            const next = {...previous}
+
+            if (error) {
+                next[field] = error
+            } else {
+                delete next[field]
+            }
+
+            return next
+        })
     }
 
     const handleSelectOpen = (field) => {
@@ -509,28 +560,41 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             trackManagementWindow.trackId,
         )
 
-        if (!error) {
-            callsignDraftRef.current = null
-            publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, null)
-            setCallsignDraft(null)
-            setCallsignError(null)
-            updateField('callsign', sanitized)
-            return
-        }
-
         callsignDraftRef.current = sanitized
         publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, sanitized)
         setCallsignDraft(sanitized)
         setCallsignError(error)
     }
 
+    const handleCallsignFocus = () => {
+        handleNonKinematicFieldFocus('callsign')
+
+        const initial = trackManagementWindow.callsign
+
+        callsignDraftRef.current = initial
+        publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, initial)
+        setCallsignDraft(initial)
+        setCallsignError(null)
+    }
+
     const handleCallsignBlur = () => {
-        if (callsignError) {
-            callsignDraftRef.current = null
-            publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, null)
-            setCallsignDraft(null)
-            setCallsignError(null)
+        const sanitized = callsignDraftRef.current ?? trackManagementWindow.callsign
+        const error = getCallsignValidationError(
+            sanitized,
+            tracksForCallsignValidation,
+            trackManagementWindow.trackId,
+        )
+
+        callsignDraftRef.current = null
+        publishSkipLiveFields(focusedFieldsRef.current, kinematicFieldDraftsRef.current, null)
+        setCallsignDraft(null)
+        setCallsignError(null)
+
+        if (!error && sanitized !== trackManagementWindow.callsign) {
+            updateField('callsign', sanitized)
         }
+
+        handleFieldBlur('callsign')
     }
 
     const displayCallsign = callsignDraft ?? trackManagementWindow.callsign
@@ -651,6 +715,8 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 handleKinematicFieldBlur(field)
             }}
             slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
+            error={Boolean(kinematicFieldErrors[field])}
+            helperText={kinematicFieldErrors[field]}
             fullWidth
         />
     )
@@ -844,11 +910,8 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     size='small'
                     value={displayCallsign}
                     onChange={handleCallsignChange}
-                    onFocus={() => handleNonKinematicFieldFocus('callsign')}
-                    onBlur={() => {
-                        handleCallsignBlur()
-                        handleFieldBlur('callsign')
-                    }}
+                    onFocus={handleCallsignFocus}
+                    onBlur={handleCallsignBlur}
                     slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
                     error={Boolean(callsignError)}
                     helperText={callsignError ?? 'Letters and numbers only.'}

@@ -80,10 +80,10 @@ slotProps: {
 
 **Select inside a map overlay** — `MenuProps.slotProps.paper` in `app/components/map/MapContextMenu.js`.
 
-**TextField native input** — see `TEXT_INPUT_ENTER_BLUR_SLOT_PROPS` in `TrackManagementWindow.js` and `slotProps={{ htmlInput: { min, max, step } }}` on settings fields:
+**TextField native input** — see `TEXT_INPUT_ENTER_BLUR_SLOT_PROPS` in `app/tools/ui/textInputSlotProps.js` and `DeferredTextField` in `app/components/global/DeferredTextField.js`:
 
 ```jsx
-slotProps={{ htmlInput: { min: 500, max: 30000, step: 100 } }}
+slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
 ```
 
 #### Rule 4 — put layout/styles on the correct layer
@@ -100,6 +100,34 @@ Do **not** pass `alignItems` through `slotProps.paper` when you own the `Paper` 
 #### Rule 5 — verify against installed types
 
 Before adding unfamiliar MUI props, check the component's `.d.ts` under `node_modules/@mui/material/<Component>/` or grep this repo for an existing pattern. If a prop is not listed in the component's public API, assume it will leak to the DOM.
+
+#### Rule 6 — deferred text and number inputs (commit on blur)
+
+Do **not** write user-facing `TextField` values directly to context, cookies, or parent state on every keystroke. Partial input (especially numbers that get clamped in `normalizeSettings`) will fight the operator mid-edit.
+
+**Required pattern for text/number fields:**
+
+1. Keep a **local draft** while the field is focused.
+2. Validate while typing only enough to flag clearly invalid input — show `error` and `helperText` on the `TextField`.
+3. **Commit on blur** (and on **Enter**, which must blur the input via `TEXT_INPUT_ENTER_BLUR_SLOT_PROPS`).
+4. On commit: parse, clamp or format, then call the parent updater only if the parsed value changed.
+5. If commit fails validation, **revert** the draft to the last committed value and keep the error visible until the operator fixes it or blurs away.
+6. When the committed value changes externally (restore defaults, preset apply, live sync), resync the draft **only while the field is not focused**.
+
+**Use the shared primitives:**
+
+| Piece | Location |
+|-------|----------|
+| `DeferredTextField` | `app/components/global/DeferredTextField.js` |
+| `useDeferredTextField` | `app/hooks/ui/useDeferredTextField.js` |
+| Numeric parse/clamp helpers | `app/tools/ui/deferredNumericField.js` |
+| Enter-to-blur slot props | `app/tools/ui/textInputSlotProps.js` |
+
+Prefer `type='text'` with `inputMode='numeric'` or `inputMode='decimal'` instead of `type='number'` so the browser does not interfere with partial entry. Apply min/max on commit, not on each keypress.
+
+**Reference implementations:** Settings → Simulation and Keybinds sensitivity fields (`DeferredTextField`); Track Management kinematic and callsign fields (`useDeferredTextField` behavior inlined with live-sync skip-field coordination).
+
+Discrete controls (switches, selects, radio groups, sliders) may still update immediately.
 
 
 ## React Effects and Hook Dependencies
