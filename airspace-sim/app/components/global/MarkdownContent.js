@@ -18,12 +18,17 @@ export default function MarkdownContent({source, sx}) {
     return (
         <Box
             sx={{
+                '& > :first-child': {
+                    mt: 0,
+                },
                 '& h2': {
                     typography: 'h6',
                     fontWeight: 'bold',
-                    mt: 2.5,
                     mb: 1,
-                    '&:first-of-type': {mt: 0},
+                    mt: 0,
+                },
+                '& h2:not(:first-of-type)': {
+                    mt: 2.5,
                 },
                 '& h3': {
                     typography: 'subtitle2',
@@ -35,11 +40,13 @@ export default function MarkdownContent({source, sx}) {
                 '& p': {
                     typography: 'body2',
                     color: 'text.secondary',
+                    mt: 0,
                     mb: 2,
                     lineHeight: 1.7,
                 },
                 '& ul': {
                     pl: 0,
+                    mt: 0,
                     mb: 2,
                     listStyle: 'none',
                 },
