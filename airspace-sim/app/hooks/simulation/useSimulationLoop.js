@@ -12,6 +12,14 @@ export function useSimulationLoop(mapRef, mapReady) {
     const [snapshot, setSnapshot] = useState(null)
     const frameRef = useRef(null)
     const lastTickRef = useRef(0)
+    const performanceInstrumentationRef = useRef(performanceInstrumentation)
+    const simulationSettingsRef = useRef(simulationSettings)
+
+    performanceInstrumentationRef.current = performanceInstrumentation
+    simulationSettingsRef.current = simulationSettings
+
+    const simulationEnabled = simulationSettings.simulationEnabled !== false
+    const trackUpdateHz = simulationSettings.trackUpdateHz ?? 10
 
     useEffect(() => {
         if (!mapReady) {
@@ -26,7 +34,7 @@ export function useSimulationLoop(mapRef, mapReady) {
 
         const unsubscribe = engine.subscribe(handleSnapshot)
 
-        if (simulationSettings.simulationEnabled === false) {
+        if (!simulationEnabled) {
             return () => {
                 unsubscribe()
             }
@@ -43,9 +51,11 @@ export function useSimulationLoop(mapRef, mapReady) {
                 return
             }
 
+            const settings = simulationSettingsRef.current
+            const instrumentation = performanceInstrumentationRef.current
             const frameStart = performance.now()
             const trackHz = engine.perf.getEffectiveTrackUpdateHz(
-                simulationSettings.trackUpdateHz ?? 10,
+                settings.trackUpdateHz ?? 10,
             )
             const minIntervalMs = 1000 / trackHz
 
@@ -62,15 +72,15 @@ export function useSimulationLoop(mapRef, mapReady) {
                 timestamp: Date.now(),
             })
 
-            performanceInstrumentation.recordSimTick(performance.now() - tickStart)
+            instrumentation.recordSimTick(performance.now() - tickStart)
 
-            const snapshot = engine.getSnapshot()
+            const nextSnapshot = engine.getSnapshot()
             const effectiveTrackUpdateHz = engine.perf.getEffectiveTrackUpdateHz(
-                simulationSettings.trackUpdateHz ?? 10,
+                settings.trackUpdateHz ?? 10,
             )
 
-            performanceInstrumentation.updateFromSnapshot(snapshot, {
-                maxActiveFlights: simulationSettings.maxActiveFlights,
+            instrumentation.updateFromSnapshot(nextSnapshot, {
+                maxActiveFlights: settings.maxActiveFlights,
                 effectiveTrackUpdateHz,
                 mapZoom: map.getZoom?.(),
             })
@@ -88,7 +98,7 @@ export function useSimulationLoop(mapRef, mapReady) {
                 frameRef.current = null
             }
         }
-    }, [getEngine, mapReady, mapRef, performanceInstrumentation, simulationSettings])
+    }, [getEngine, mapReady, mapRef, simulationEnabled, trackUpdateHz])
 
     return snapshot
 }

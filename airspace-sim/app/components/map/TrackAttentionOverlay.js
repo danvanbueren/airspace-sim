@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useEffect, useMemo, useState} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {Box} from '@mui/material'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {getVisibleTrackAttentionFlags} from '@/app/simulation/trackAttentionFlags'
@@ -13,6 +13,7 @@ import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
 const TRACK_ATTENTION_OFFSET_X = 28
 const TRACK_ATTENTION_OFFSET_Y = -8
+const EMPTY_INHIBITED_ATTENTIONS = []
 
 function getTrackCoordinates(track) {
     if (Array.isArray(track.coordinates) && track.coordinates.length >= 2) {
@@ -30,18 +31,47 @@ function getTrackId(track) {
     return track.id ?? track.trackId
 }
 
+function positionsAreEqual(previous, next) {
+    const nextKeys = Object.keys(next)
+
+    if (Object.keys(previous).length !== nextKeys.length) {
+        return false
+    }
+
+    return nextKeys.every((trackId) => {
+        const previousPosition = previous[trackId]
+        const nextPosition = next[trackId]
+
+        return previousPosition
+            && nextPosition
+            && previousPosition.left === nextPosition.left
+            && previousPosition.top === nextPosition.top
+    })
+}
+
 export default function TrackAttentionOverlay({
     mapRef,
     mapReady,
     tracks = [],
-    evaluationTime = Date.now(),
+    evaluationTime = 0,
     iffRefreshMs = 1000,
 }) {
     const {appSettings} = useAppSettings()
     const flashVisible = useAttentionFlashVisible(true)
     const [positionsByTrackId, setPositionsByTrackId] = useState({})
 
-    const inhibitedAttentionIds = appSettings.inhibitedAttentions ?? []
+    const inhibitedAttentionIds = appSettings.inhibitedAttentions ?? EMPTY_INHIBITED_ATTENTIONS
+    const resolvedIffRefreshMs = iffRefreshMs ?? appSettings.iffRefreshMs ?? 1000
+
+    const tracksRef = useRef(tracks)
+    const evaluationTimeRef = useRef(evaluationTime)
+    const inhibitedAttentionIdsRef = useRef(inhibitedAttentionIds)
+    const iffRefreshMsRef = useRef(resolvedIffRefreshMs)
+
+    tracksRef.current = tracks
+    evaluationTimeRef.current = evaluationTime
+    inhibitedAttentionIdsRef.current = inhibitedAttentionIds
+    iffRefreshMsRef.current = resolvedIffRefreshMs
 
     const tracksWithAttentions = useMemo(() => (
         tracks
@@ -51,7 +81,7 @@ export default function TrackAttentionOverlay({
                     track,
                     evaluationTime,
                     inhibitedAttentionIds,
-                    iffRefreshMs ?? appSettings.iffRefreshMs ?? 1000,
+                    resolvedIffRefreshMs,
                 )
 
                 if (!trackId || flagIds.length === 0) {
@@ -65,7 +95,7 @@ export default function TrackAttentionOverlay({
                 }
             })
             .filter(Boolean)
-    ), [tracks, evaluationTime, inhibitedAttentionIds, iffRefreshMs, appSettings.iffRefreshMs])
+    ), [tracks, evaluationTime, inhibitedAttentionIds, resolvedIffRefreshMs])
 
     const updatePositions = useCallback(() => {
         const map = mapRef.current
@@ -75,8 +105,12 @@ export default function TrackAttentionOverlay({
         }
 
         const nextPositions = {}
+        const currentTracks = tracksRef.current
+        const currentEvaluationTime = evaluationTimeRef.current
+        const currentInhibitedAttentionIds = inhibitedAttentionIdsRef.current
+        const currentIffRefreshMs = iffRefreshMsRef.current
 
-        for (const track of tracks) {
+        for (const track of currentTracks) {
             const trackId = getTrackId(track)
             const coordinates = getTrackCoordinates(track)
 
@@ -86,9 +120,9 @@ export default function TrackAttentionOverlay({
 
             const flagIds = getVisibleTrackAttentionFlags(
                 track,
-                evaluationTime,
-                inhibitedAttentionIds,
-                iffRefreshMs ?? appSettings.iffRefreshMs ?? 1000,
+                currentEvaluationTime,
+                currentInhibitedAttentionIds,
+                currentIffRefreshMs,
             )
 
             if (flagIds.length === 0) {
@@ -103,12 +137,14 @@ export default function TrackAttentionOverlay({
             }
         }
 
-        setPositionsByTrackId(nextPositions)
-    }, [evaluationTime, iffRefreshMs, inhibitedAttentionIds, appSettings.iffRefreshMs, mapReady, mapRef, tracks])
+        setPositionsByTrackId((previous) => (
+            positionsAreEqual(previous, nextPositions) ? previous : nextPositions
+        ))
+    }, [mapReady, mapRef])
 
     useEffect(() => {
         updatePositions()
-    }, [updatePositions])
+    }, [tracks, evaluationTime, inhibitedAttentionIds, resolvedIffRefreshMs, mapReady, updatePositions])
 
     useEffect(() => {
         const map = mapRef.current

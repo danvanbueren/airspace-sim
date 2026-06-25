@@ -102,6 +102,85 @@ Do **not** pass `alignItems` through `slotProps.paper` when you own the `Paper` 
 Before adding unfamiliar MUI props, check the component's `.d.ts` under `node_modules/@mui/material/<Component>/` or grep this repo for an existing pattern. If a prop is not listed in the component's public API, assume it will leak to the DOM.
 
 
+## React Effects and Hook Dependencies
+
+Infinite re-render loops (`Maximum update depth exceeded`) usually come from `useEffect` calling `setState` while a dependency gets a **new reference every render**. Follow these rules when adding or reviewing hooks, especially around the simulation tick pipeline.
+
+### Do not put unstable objects in effect dependency arrays
+
+Objects, arrays, and inline functions from context hooks or `useMemo` without stable deps are compared by **reference**. If a parent re-renders every simulation tick and recreates the value, the effect tears down and re-runs on every tick — often calling `setState` again and hitting React's update limit.
+
+**Prefer refs for values the effect body must read but that should not restart the effect:**
+
+```javascript
+const settingsRef = useRef(simulationSettings)
+settingsRef.current = simulationSettings
+
+useEffect(() => {
+    const loop = () => {
+        engine.tick({ settings: settingsRef.current })
+    }
+    // ...
+}, [getEngine, mapReady]) // primitives + stable refs only
+```
+
+See `app/hooks/simulation/useSimulationLoop.js`: `performanceInstrumentation` and `simulationSettings` are stored in refs; the animation effect depends only on `simulationEnabled` and `trackUpdateHz`.
+
+### Avoid `?? []` and `?? {}` in dependency lists
+
+`value ?? []` creates a **new empty array every render** when `value` is nullish, which makes any hook that lists it as a dependency run every render.
+
+```javascript
+// Wrong — new [] every render when tracks is undefined
+useEffect(() => { ... }, [snapshot?.tracks ?? []])
+
+// Right — module-level constant
+const EMPTY_TRACKS = []
+useEffect(() => { ... }, [snapshot?.tracks ?? EMPTY_TRACKS])
+```
+
+Better still: pass the stable field from state/context (`appSettings.inhibitedAttentions`) without a fallback when normalization already guarantees an array.
+
+### Do not call time-varying functions during render for effect deps
+
+Calling `Date.now()`, `getSimulationTimestamp()` (before the first engine tick), or similar **during render** produces a new value every render and re-triggers effects unnecessarily.
+
+```javascript
+// Wrong — evaluationTime changes every render before first tick
+useIffEmergencyAlarms(tracks, getSimulationTimestamp(), iffRefreshMs)
+
+// Right — use simulation snapshot time, updated only when the engine ticks
+useIffEmergencyAlarms(
+    simulationSnapshot?.tracks ?? EMPTY_TRACKS,
+    simulationSnapshot?.evaluationTime ?? 0,
+    iffRefreshMs,
+)
+```
+
+Expose tick-aligned timestamps on snapshots (`TrackEngine.getSnapshot().evaluationTime`) instead of sampling wall clock during render.
+
+### Keep long-lived subscriptions stable
+
+Map listeners, `requestAnimationFrame` loops, and engine `subscribe` handlers should use **stable callbacks** (`useCallback` with refs for changing data). Re-subscribing every tick wastes work and can amplify snapshot-driven re-render bugs.
+
+When `setState` runs inside an effect, bail out if nothing changed:
+
+```javascript
+setPositionsByTrackId((previous) => (
+    positionsAreEqual(previous, nextPositions) ? previous : nextPositions
+))
+```
+
+### Checklist before merging hook changes
+
+- Effect deps are primitives, stable callbacks, or module-level constants — not context objects recreated each render.
+- Refs hold latest objects/functions when the effect body needs them but restart would be harmful.
+- No `?? []` / `?? {}` fallbacks in dependency arrays.
+- No wall-clock or engine time sampled during render solely to feed a `useEffect` dependency.
+- Long-lived subscriptions (map events, rAF, engine listeners) use stable handler references.
+
+## Code Formatting And Styling
+
 Prioritize readability and standardized best practices throughout the codebase. Keep formatting consistent with the surrounding file, use clear names, and prefer straightforward control flow over clever or densely packed code.
 
 Avoid excessively long components, hooks, or files. Split large front-end components into smaller focused components, and move reusable component logic into separate hook files when that improves readability. Prefer clear file boundaries over large files that mix rendering, state management, data shaping, and side effects.

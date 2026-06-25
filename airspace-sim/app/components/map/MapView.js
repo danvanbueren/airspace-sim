@@ -49,6 +49,8 @@ const MAP_STYLES = {
     dark: 'map-styles/dark-matter-gl-style.json',
 }
 
+const EMPTY_TRACKS = []
+
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
     const {raiseAlarmAlert, registerMap} = useAlarmAlertActions()
@@ -97,11 +99,14 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
 
     const simulationSnapshot = useSimulationLoop(mapRef, mapReady)
     const [mapVisibleTracks, setMapVisibleTracks] = useState([])
+    const simulationTracks = simulationSnapshot?.tracks ?? EMPTY_TRACKS
+    const simulationEvaluationTime = simulationSnapshot?.evaluationTime ?? 0
+    const iffRefreshMs = simulationSettings.iffRefreshMs ?? 1000
 
     useIffEmergencyAlarms(
-        simulationSnapshot?.tracks ?? [],
-        getSimulationTimestamp(),
-        simulationSettings.iffRefreshMs ?? 1000,
+        simulationTracks,
+        simulationEvaluationTime,
+        iffRefreshMs,
     )
 
     useSensorDetectionMapLayer(mapRef, mapReady, simulationSnapshot, mapStyle)
@@ -490,7 +495,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                     onSkipLiveFieldsChange={handleSkipLiveFieldsChange}
                     hasKeyboardCustody={trackManagementKeyboardCustodyWindowId === trackManagementWindow.id}
                     zIndex={getWindowZIndex(trackManagementWindow.id)}
-                    evaluationTime={getSimulationTimestamp()}
+                    evaluationTime={simulationEvaluationTime}
                 />
             ))}
 
@@ -535,8 +540,8 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                 mapRef={mapRef}
                 mapReady={mapReady}
                 tracks={mapVisibleTracks}
-                evaluationTime={getSimulationTimestamp()}
-                iffRefreshMs={simulationSettings.iffRefreshMs ?? 1000}
+                evaluationTime={simulationEvaluationTime}
+                iffRefreshMs={iffRefreshMs}
             />
             <PerformanceAnalyticsOverlay mapContainerRef={mapContainerRef} />
 

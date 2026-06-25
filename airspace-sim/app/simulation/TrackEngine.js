@@ -429,6 +429,7 @@ export class TrackEngine {
         const evaluationTime = this.lastTrackTickAt || Date.now()
 
         return {
+            evaluationTime,
             tracks: enrichTracksWithAttentionFlags(
                 this.trackStore.getAllTracks(),
                 evaluationTime,
