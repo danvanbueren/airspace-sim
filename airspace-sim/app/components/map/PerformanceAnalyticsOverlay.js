@@ -15,8 +15,10 @@ import {
 } from '@/app/components/panels/glass/glassPanelSurface'
 import {usePerformanceAnalyticsOverlayDrag} from '@/app/hooks/map/usePerformanceAnalyticsOverlayDrag'
 import {
+    PERFORMANCE_50FPS_BUDGET_MS,
     PERFORMANCE_AVERAGE_MARKER_COLORS,
     PERFORMANCE_BUDGET_LINE_COLOR,
+    PERFORMANCE_TARGET_FRAME_MS,
 } from '@/app/simulation/performanceFrameSegments'
 import PerformanceFrameTimeChart from './PerformanceFrameTimeChart'
 
@@ -26,55 +28,25 @@ const MONO_LABEL_SX = {
     lineHeight: 1.35,
 }
 
-function AverageMarkerLegendItem() {
-    return (
-        <Stack spacing={0.5}>
-            <Typography component='span' sx={{...MONO_LABEL_SX, color: 'rgba(255, 255, 255, 0.88)'}}>
-                Average compute
-            </Typography>
-            <Stack direction='row' spacing={0.75} sx={{alignItems: 'center'}}>
-                {[
-                    {color: PERFORMANCE_AVERAGE_MARKER_COLORS.withinBudget, label: '≤60 fps'},
-                    {color: PERFORMANCE_AVERAGE_MARKER_COLORS.warning, label: '>60 fps'},
-                    {color: PERFORMANCE_AVERAGE_MARKER_COLORS.overBudget, label: '>50 fps'},
-                ].map((tier) => (
-                    <Stack key={tier.label} direction='row' spacing={0.5} sx={{alignItems: 'center'}}>
-                        <Box
-                            component='span'
-                            sx={{
-                                display: 'inline-block',
-                                width: 12,
-                                borderTop: `2.75px solid ${tier.color}`,
-                                borderRadius: 1,
-                                boxShadow: `0 0 0 1px rgba(0, 0, 0, 0.85), 0 0 0 2px rgba(255, 255, 255, 0.35)`,
-                            }}
-                        />
-                        <Typography
-                            component='span'
-                            sx={{...MONO_LABEL_SX, color: 'rgba(255, 255, 255, 0.62)', fontSize: '0.6rem'}}
-                        >
-                            {tier.label}
-                        </Typography>
-                    </Stack>
-                ))}
-            </Stack>
-        </Stack>
-    )
-}
-
-function BudgetLineLegendItem() {
+function LineLegendItem({color, label, dashed = false}) {
     return (
         <Stack direction='row' spacing={0.75} sx={{alignItems: 'center'}}>
             <Box
                 component='span'
                 sx={{
                     display: 'inline-block',
-                    width: 14,
-                    borderTop: `2px dashed ${PERFORMANCE_BUDGET_LINE_COLOR}`,
+                    width: dashed ? 14 : 12,
+                    borderTop: dashed
+                        ? `2px dashed ${color}`
+                        : `2.75px solid ${color}`,
+                    borderRadius: dashed ? 0 : 1,
+                    boxShadow: dashed
+                        ? undefined
+                        : `0 0 0 1px rgba(0, 0, 0, 0.85), 0 0 0 2px rgba(255, 255, 255, 0.35)`,
                 }}
             />
             <Typography component='span' sx={{...MONO_LABEL_SX, color: 'rgba(255, 255, 255, 0.88)'}}>
-                60 fps budget
+                {label}
             </Typography>
         </Stack>
     )
@@ -307,8 +279,23 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                             label={segment.label}
                         />
                     ))}
-                    <AverageMarkerLegendItem />
-                    <BudgetLineLegendItem />
+                    <LineLegendItem
+                        color={PERFORMANCE_AVERAGE_MARKER_COLORS.withinBudget}
+                        label='≥60 FPS'
+                    />
+                    <LineLegendItem
+                        color={PERFORMANCE_AVERAGE_MARKER_COLORS.warning}
+                        label='<60 FPS'
+                    />
+                    <LineLegendItem
+                        color={PERFORMANCE_AVERAGE_MARKER_COLORS.overBudget}
+                        label='<50 FPS'
+                    />
+                    <LineLegendItem
+                        color={PERFORMANCE_BUDGET_LINE_COLOR}
+                        label={`${PERFORMANCE_TARGET_FRAME_MS} ms budget`}
+                        dashed
+                    />
                 </Box>
 
                 <Divider />
@@ -323,8 +310,9 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                 >
                     Colored bar segments show peak measured compute for each workload during that
                     1 s period. The horizontal line marks average compute for the same period;
-                    it turns green within the 60 fps budget, yellow above 60 fps, and red above
-                    50 fps.
+                    it turns green at or below {PERFORMANCE_TARGET_FRAME_MS} ms, yellow above
+                    {PERFORMANCE_TARGET_FRAME_MS} ms but at or below {PERFORMANCE_50FPS_BUDGET_MS} ms,
+                    and red above {PERFORMANCE_50FPS_BUDGET_MS} ms.
                 </Typography>
             </Stack>
         </Card>
