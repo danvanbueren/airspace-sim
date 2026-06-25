@@ -1,6 +1,7 @@
 'use client'
 
-import { alpha, Card, Divider, Typography } from '@mui/material'
+import {Card, Divider, Typography} from '@mui/material'
+import {GLASS_PANEL_BORDER_STYLE, getGlassPanelSurfaceSx} from './glassPanelSurface'
 
 export default function BasicGlassPanel({title = null, children, dense = false}) {
 
@@ -15,12 +16,10 @@ export default function BasicGlassPanel({title = null, children, dense = false})
                 flexDirection: 'column',
                 gap: 10,
                 alignItems: 'center',
-                borderWidth: 2,
-                borderRadius: '2%',
+                ...GLASS_PANEL_BORDER_STYLE,
             }}
             sx={(theme) => ({
-                backgroundColor: alpha(theme.palette.background.paper, 0.3),
-                backdropFilter: 'blur(10px)',
+                ...getGlassPanelSurfaceSx(theme),
                 userSelect: 'none',
             })}
         >

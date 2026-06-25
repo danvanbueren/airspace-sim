@@ -1,12 +1,19 @@
 'use client'
 
-import {Box, Paper, Stack, Typography, Grid, Divider} from '@mui/material'
+import {useRef} from 'react'
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
+import {Box, Card, Stack, Typography, Grid, Divider} from '@mui/material'
 import {usePerformanceMetrics} from '@/app/contexts/PerformanceMonitorContext'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import {
     MAP_GLASS_INSET_PX,
     MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
 } from '@/app/constants/mapUiLayout'
+import {
+    GLASS_PANEL_BORDER_STYLE,
+    getGlassPanelSurfaceSx,
+} from '@/app/components/panels/glass/glassPanelSurface'
+import {usePerformanceAnalyticsOverlayDrag} from '@/app/hooks/map/usePerformanceAnalyticsOverlayDrag'
 import {
     PERFORMANCE_BUDGET_LINE_COLOR,
     PERFORMANCE_MAX_MARKER_COLOR,
@@ -120,36 +127,80 @@ function StatChip({label, value, warn = false, multiline = false}) {
     )
 }
 
-export default function PerformanceAnalyticsOverlay() {
+export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
     const {enabled, metrics} = usePerformanceMetrics()
+    const overlayRef = useRef(null)
+
+    const {
+        position,
+        handlePanelPointerDown,
+        handleDragHandlePointerDown,
+        handleDragHandlePointerMove,
+        handleDragHandlePointerUp,
+    } = usePerformanceAnalyticsOverlayDrag({
+        mapContainerRef,
+        overlayRef,
+        enabled,
+    })
 
     if (!enabled) {
         return null
     }
 
-    const frameBudgetWarn = metrics.frameMs > metrics.targetFrameMs
-
     return (
-        <Paper
-            elevation={0}
-            sx={{
+        <Card
+            ref={overlayRef}
+            data-performance-analytics-overlay
+            variant='outlined'
+            onPointerDown={handlePanelPointerDown}
+            style={GLASS_PANEL_BORDER_STYLE}
+            sx={(theme) => ({
+                ...getGlassPanelSurfaceSx(theme),
                 position: 'absolute',
-                right: MAP_GLASS_INSET_PX,
-                bottom: MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
+                ...(position
+                    ? {
+                        left: position.left,
+                        top: position.top,
+                    }
+                    : {
+                        right: MAP_GLASS_INSET_PX,
+                        bottom: MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
+                        visibility: 'hidden',
+                    }),
                 zIndex: UI_Z_INDEX.MAP_OVERLAY,
                 width: {xs: 300, sm: 380},
                 maxWidth: `calc(100% - ${MAP_GLASS_INSET_PX * 2}px)`,
-                pointerEvents: 'none',
+                pointerEvents: 'auto',
+                cursor: 'default',
                 userSelect: 'none',
-                borderRadius: 1,
-                p: 2,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.28)',
-            }}
+                overflow: 'hidden',
+            })}
         >
-            <Stack spacing={1.5}>
+            <Box
+                onPointerDown={handleDragHandlePointerDown}
+                onPointerMove={handleDragHandlePointerMove}
+                onPointerUp={handleDragHandlePointerUp}
+                onPointerCancel={handleDragHandlePointerUp}
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    px: 1.5,
+                    py: 2.5,
+                    cursor: 'grab',
+                    touchAction: 'none',
+                    '&:active': {
+                        cursor: 'grabbing',
+                    },
+                }}
+            >
+                <DragIndicatorIcon
+                    aria-hidden
+                    sx={{
+                        color: 'rgba(255, 255, 255, 0.55)',
+                        fontSize: '1rem',
+                    }}
+                />
                 <Typography
                     sx={{
                         fontFamily: 'monospace',
@@ -160,6 +211,9 @@ export default function PerformanceAnalyticsOverlay() {
                 >
                     Performance Analytics
                 </Typography>
+            </Box>
+
+            <Stack spacing={1.5} sx={{px: 2, pb: 2}}>
 
                 <Typography
                     component='div'
@@ -184,7 +238,7 @@ export default function PerformanceAnalyticsOverlay() {
                         <Grid size={6}>
                             <StatChip label='Tracks Total:' value={metrics.firmTrackCount} />
                         </Grid>
-                        
+
                     </Grid>
                 </Typography>
 
@@ -209,7 +263,7 @@ export default function PerformanceAnalyticsOverlay() {
                         </Grid>
                         <Grid size={6}>
                             <Box component='span'>
-                            Y: Avg compute (ms)
+                                Y: Avg compute (ms)
                             </Box>
                         </Grid>
                     </Grid>
@@ -235,6 +289,6 @@ export default function PerformanceAnalyticsOverlay() {
                     <BudgetLineLegendItem />
                 </Box>
             </Stack>
-        </Paper>
+        </Card>
     )
 }

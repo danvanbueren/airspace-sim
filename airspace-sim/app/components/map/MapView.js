@@ -538,7 +538,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                 evaluationTime={getSimulationTimestamp()}
                 iffRefreshMs={simulationSettings.iffRefreshMs ?? 1000}
             />
-            <PerformanceAnalyticsOverlay />
+            <PerformanceAnalyticsOverlay mapContainerRef={mapContainerRef} />
 
             {mapOverlayLayer
                 ? createPortal(mapOverlays, mapOverlayLayer)
