@@ -2,18 +2,21 @@
 
 Analysis of simulator rendering and simulation cost, conducted June 2026. Goal: understand why the app can stress high-end hardware and identify a path to **60 fps on a basic laptop** with hundreds of visible tracks.
 
+> **Validation:** A deep benchmark pass on 2026-06-25 confirmed most claims and identified one under-documented bottleneck — `syncActiveTrackKinematicsFromFlightWorld`. See [validation-results.md](validation-results.md) for measured numbers and confidence levels.
+
 ## Executive summary
 
 The app is slow because of **compounding costs**, not because it draws thousands of DOM sprites. Aircraft are already rendered by **MapLibre WebGL symbol layers**. The main pain points are:
 
-1. **React re-renders on every simulation tick** (~10 Hz)
-2. **Full GeoJSON `setData` rebuilds** across six sources, repeated on pan/zoom
-3. **O(n²) sensor correlation** during radar/IFF scans
-4. **Global fleet simulation** (up to 1500 aircraft) independent of viewport
-5. **Globe projection + dense vector basemap** (93 layers) consuming GPU budget
-6. **`icon-allow-overlap: true`** forcing MapLibre to draw every symbol without collision culling
+1. **`syncActiveTrackKinematicsFromFlightWorld` — O(tracks × fleet) haversine search (~15 ms/tick at 330 firm tracks / 1200 fleet)** — validated June 2026
+2. **React re-renders on every simulation tick** (~10 Hz) — architectural
+3. **Full GeoJSON `setData` rebuilds** across six sources, repeated on pan/zoom — architectural (JS prep &lt;2 ms; MapLibre GPU cost unmeasured in Node)
+4. **O(n²) sensor correlation** during radar/IFF scans (+29 ms on IFF interval ticks) — validated
+5. **Global fleet simulation** (up to 1500 aircraft advanced every tick) — validated (~1 ms advance at 1200 fleet)
+6. **Globe projection + dense vector basemap** (93 layers) consuming GPU budget
+7. **`icon-allow-overlap: true`** forcing MapLibre to draw every symbol without collision culling
 
-Pure JavaScript render-prep (building GeoJSON, `map.project`) is relatively cheap on a fast CPU. **MapLibre's reaction to `setData()`** and **React reconciliation** dominate browser time.
+Pure JavaScript render-prep (building GeoJSON, `map.project`) is relatively cheap on a fast CPU. **MapLibre's reaction to `setData()`** and **React reconciliation** dominate browser time alongside simulation sync cost.
 
 ---
 
@@ -80,38 +83,61 @@ Default: **familiar platform silhouettes** (identity-colored). Full MIL-STD-2525
 
 ## Profiling results
 
-Benchmarks were run in Node (simulation) and via isolated JS microbenchmarks (render-prep). Browser GPU time was inferred from architecture review and MapLibre behavior. Cloud-agent CPU is not representative of user laptops — treat absolute numbers as **order-of-magnitude**, not guarantees.
+> Numbers combine initial investigation with the **2026-06-25 validation pass**. See [validation-results.md](validation-results.md) for methodology and confidence labels.
 
-### Simulation tick (wide CONUS viewport, adaptive perf disabled)
+Benchmarks were run in Node (simulation) and via isolated JS microbenchmarks (render-prep). Browser GPU time is inferred from architecture. Cloud-agent CPU is not representative of user laptops.
 
-| Fleet size | Firm tracks (after warmup) | Avg tick | P95 tick | Max tick |
-|-----------|---------------------------|----------|----------|----------|
-| 800 | ~219 | 8.6 ms | 17.3 ms | 26.5 ms |
-| 1200 | ~332 | 19.4 ms | 40.9 ms | 63.5 ms |
-| 1500 | ~361 | 26.5 ms | 54.9 ms | 83.5 ms |
+### Steady-state simulation phases (wide viewport, 1200 fleet, ~330 firm tracks)
 
-At `global_dense` with a wide viewport, **simulation alone can exceed the 16.67 ms frame budget** before MapLibre draws anything.
+| Phase | Validated avg (ms) | Notes |
+|-------|-------------------|-------|
+| `flightWorld.advance` | 0.95 | O(fleet); viewport-independent |
+| **`syncActiveTrackKinematicsFromFlightWorld`** | **15.47** | **Dominant** — O(tracks × fleet) |
+| `trackStore.extrapolate` | 0.05 | O(tracks) |
+| `enrichTracksWithAttentionFlags` | 0.08 | O(tracks) |
+| `correlateDetections` (300×329) | 2.68 | Per radar scan |
 
-### Correlation complexity (O(detections × tracks))
+### Full tick timing (same setup)
 
-| N (detections ≈ tracks) | Correlate time (approx.) |
-|------------------------|--------------------------|
-| 300 | ~2 ms |
-| 600 | ~8 ms |
-| 1000 | ~24 ms |
-| 1500 | ~53 ms |
+| Tick type | Validated avg (ms) | P95 (ms) |
+|-----------|-------------------|----------|
+| Normal | 16.8 | 17.5 |
+| IFF scan interval | 46.1 | 63.4 |
 
-IFF scans (default every 1 s) and radar scans (every 4 s) trigger full correlation over in-bounds returns.
+### Viewport width effect (1200 fleet)
 
-### Render-prep CPU (JavaScript only, before MapLibre)
+| Viewport | Firm tracks | Avg tick (ms) |
+|----------|-------------|---------------|
+| Narrow | 72 | 4.7 |
+| Wide (CONUS) | 333 | 20.4 |
 
-| Visible tracks | Vector rebuild | 4× sensor rebuild | Pan/zoom JS total |
-|---------------|----------------|-------------------|-------------------|
-| 300 | ~0.03 ms | ~0.09 ms | ~0.14 ms |
-| 600 | ~0.07 ms | ~0.17 ms | ~0.28 ms |
-| 1000 | ~0.10 ms | ~0.41 ms | ~0.54 ms |
+### Fleet scaling (initial + validated advance)
 
-Building GeoJSON in JS is not the bottleneck. **MapLibre reprocessing after `setData`** is.
+| Fleet size | Firm tracks (wide) | Avg tick | P95 tick |
+|-----------|-------------------|----------|----------|
+| 800 | ~219 | 8.6 ms | 17.3 ms |
+| 1200 | ~332 | 19.4 ms | 40.9 ms |
+| 1500 | ~361 | 26.5 ms | 54.9 ms |
+
+Post-validation: most tick cost is **syncKinematics**, not fleet advance (~1 ms at 1200).
+
+### Correlation complexity (O(detections × tracks)) — validated
+
+| N (detections ≈ tracks) | Correlate time |
+|------------------------|----------------|
+| 100 | 0.42 ms |
+| 400 | 3.96 ms |
+| 800 | 15.90 ms |
+| 1000 | 24.64 ms |
+
+### Render-prep CPU (JavaScript only, before MapLibre) — validated
+
+| Visible tracks | Vectors | 4× sensor rebuild | JSON stringify |
+|---------------|---------|---------------------|----------------|
+| 300 | 0.17 ms | 0.21 ms | 0.18 ms |
+| 1000 | 0.15 ms | 0.34 ms | 0.84 ms |
+
+Building GeoJSON in JS is not the bottleneck. **MapLibre reprocessing after `setData`** is (browser-side).
 
 ### Basemap cost
 
@@ -122,18 +148,22 @@ Building GeoJSON in JS is not the bottleneck. **MapLibre reprocessing after `set
 
 ## Ranked bottlenecks
 
-| Rank | Subsystem | Why it hurts |
-|------|-----------|--------------|
-| **1** | React ↔ Map coupling | Every tick → `setSnapshot` → MapView re-render at ~10 Hz |
-| **2** | Full GeoJSON `setData` churn | Six sources rebuilt; no incremental/delta updates |
-| **3** | Pan/zoom cascade | Three independent `move`/`zoom` handlers, each O(n) + `setData` |
-| **4** | O(n²) correlation | Sensor scan spikes with hundreds of detections × tracks |
-| **5** | Global fleet simulation | Up to 1500 aircraft advanced every tick regardless of viewport |
-| **6** | Symbol layer config | `icon-allow-overlap: true` disables collision culling (correct for C2, costly) |
-| **7** | Globe + dense basemap | GPU budget consumed before dynamic layers |
-| **8** | Screen-space vectors | `project`/`unproject` per track on every pan/zoom |
-| **9** | Icon cold-start | Async canvas + `addImage` on first variant appearance |
-| **10** | Dead optimization hook | `PerfBudgetController.shouldCoalesceUpdates()` exists but is **never called** |
+> **Updated after 2026-06-25 validation.** See [validation-results.md](validation-results.md).
+
+| Rank | Subsystem | Why it hurts | Confidence |
+|------|-----------|--------------|------------|
+| **1** | **`syncActiveTrackKinematicsFromFlightWorld`** | ~15 ms/tick at 330 tracks — each track scans all aircraft | Measured |
+| **2** | React ↔ Map coupling | Every tick → `setSnapshot` → MapView re-render | Architectural |
+| **3** | Full GeoJSON `setData` churn | Six sources; JS &lt;2 ms but MapLibre reprocesses all geometry | Architectural |
+| **4** | IFF/radar scan spikes | IFF tick 2.7× normal (+29 ms) | Measured |
+| **5** | O(n²) correlation | 2.7 ms at 300×329; 25 ms at 1000×1000 | Measured |
+| **6** | Pan/zoom cascade | Four handlers, 6× `setData`, multiple `setState` | Static |
+| **7** | Global fleet advance | ~1 ms at 1200 aircraft every tick | Measured |
+| **8** | Symbol layer config | `icon-allow-overlap: true` disables culling | Static |
+| **9** | Globe + dense basemap | 93 vector layers | Static |
+| **10** | Screen-space vectors | Per-track reprojection on pan; JS cost still low | Measured (JS) |
+| **11** | Icon cold-start | Async canvas + `addImage` | Static |
+| **12** | Dead optimization hook | `shouldCoalesceUpdates()` never called | Static |
 
 ### Existing mitigations
 
@@ -166,6 +196,7 @@ Building GeoJSON in JS is not the bottleneck. **MapLibre reprocessing after `set
 | Area | Files |
 |------|-------|
 | Simulation tick | `app/simulation/TrackEngine.js`, `app/hooks/simulation/useSimulationLoop.js` |
+| **Sync kinematics (top sim cost)** | `app/simulation/syncActiveTrackKinematicsFromFlightWorld.js`, `FlightWorldSimulator.findNearestAircraft` |
 | Adaptive perf | `app/simulation/PerfBudgetController.js` |
 | Track rendering | `app/hooks/map/useTrackMapLayer.js` |
 | Sensor rendering | `app/hooks/map/useSensorDetectionMapLayer.js` |
