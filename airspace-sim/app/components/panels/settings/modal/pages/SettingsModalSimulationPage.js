@@ -13,11 +13,11 @@ import {
     Typography,
 } from '@mui/material'
 import DeferredTextField from '@/app/components/global/DeferredTextField'
-import {QUALITY_PRESET_OPTIONS, useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {QUALITY_PRESET_CUSTOM, QUALITY_PRESET_OPTIONS, useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {QUALITY_PRESET_LABELS, QUALITY_PRESETS} from '@/app/simulation/constants'
 import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
 
-const SIMULATION_NUMERIC_FIELDS = [
+const SIMULATION_OPTION_FIELDS = [
     {
         key: 'radarRefreshMs',
         label: 'Radar refresh (ms)',
@@ -29,11 +29,6 @@ const SIMULATION_NUMERIC_FIELDS = [
         ...createDeferredNumericFieldConfig({min: 250, max: 10000, integer: true}),
     },
     {
-        key: 'trackUpdateHz',
-        label: 'Track update rate (Hz)',
-        ...createDeferredNumericFieldConfig({min: 2, max: 30, integer: true}),
-    },
-    {
         key: 'correlationThresholdNm',
         label: 'Correlation threshold (NM)',
         ...createDeferredNumericFieldConfig({min: 0.5, max: 50}),
@@ -42,6 +37,14 @@ const SIMULATION_NUMERIC_FIELDS = [
         key: 'plotAssociationThresholdNm',
         label: 'Plot association threshold (NM)',
         ...createDeferredNumericFieldConfig({min: 0.5, max: 20}),
+    },
+]
+
+const SIMULATION_QUALITY_FIELDS = [
+    {
+        key: 'trackUpdateHz',
+        label: 'Track update rate (Hz)',
+        ...createDeferredNumericFieldConfig({min: 2, max: 30, integer: true}),
     },
     {
         key: 'maxActiveFlights',
@@ -57,11 +60,11 @@ export default function SettingsModalSimulationPage() {
         <Stack spacing={3} divider={<Divider/>}>
             <Box>
                 <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
-                    Simulation
+                    Options
                 </Typography>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
-                    Tune sensor refresh rates, track updates, correlation range, flight
-                    density, adaptive performance, and the performance overlay.
+                    Control whether the simulation engine runs and tune sensor refresh
+                    rates plus correlation thresholds.
                 </Typography>
 
                 <FormControlLabel
@@ -76,6 +79,33 @@ export default function SettingsModalSimulationPage() {
                     label='Enable simulation engine'
                 />
 
+                <Stack spacing={2} sx={{mt: 2}}>
+                    {SIMULATION_OPTION_FIELDS.map((field) => (
+                        <DeferredTextField
+                            key={field.key}
+                            label={field.label}
+                            size='small'
+                            type='text'
+                            inputMode='decimal'
+                            committedValue={appSettings[field.key]}
+                            onCommit={(value) => updateSimulationSettings({[field.key]: value})}
+                            formatCommitted={field.formatCommitted}
+                            getDraftError={field.getDraftError}
+                            parseDraft={field.parseDraft}
+                        />
+                    ))}
+                </Stack>
+            </Box>
+
+            <Box>
+                <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
+                    Quality
+                </Typography>
+                <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
+                    Set flight density, track update rate, adaptive performance, and
+                    quality presets.
+                </Typography>
+
                 <FormControlLabel
                     control={(
                         <Switch
@@ -86,64 +116,60 @@ export default function SettingsModalSimulationPage() {
                         />
                     )}
                     label='Adaptive performance balancing'
-                    sx={{display: 'block', mt: 1}}
                 />
 
-                <FormControlLabel
-                    control={(
-                        <Switch
-                            checked={Boolean(appSettings.showPerformanceOverlay)}
-                            onChange={(event) => updateSimulationSettings({
-                                showPerformanceOverlay: event.target.checked,
-                            })}
+                <Stack spacing={2} sx={{mt: 2}}>
+                    {SIMULATION_QUALITY_FIELDS.map((field) => (
+                        <DeferredTextField
+                            key={field.key}
+                            label={field.label}
+                            size='small'
+                            type='text'
+                            inputMode='decimal'
+                            committedValue={appSettings[field.key]}
+                            onCommit={(value) => updateSimulationSettings({[field.key]: value})}
+                            formatCommitted={field.formatCommitted}
+                            getDraftError={field.getDraftError}
+                            parseDraft={field.parseDraft}
                         />
-                    )}
-                    label='Show performance analytics overlay'
-                    sx={{display: 'block', mt: 1}}
-                />
-            </Box>
-
-            <Stack spacing={2}>
-                {SIMULATION_NUMERIC_FIELDS.map((field) => (
-                    <DeferredTextField
-                        key={field.key}
-                        label={field.label}
-                        size='small'
-                        type='text'
-                        inputMode='decimal'
-                        committedValue={appSettings[field.key]}
-                        onCommit={(value) => updateSimulationSettings({[field.key]: value})}
-                        formatCommitted={field.formatCommitted}
-                        getDraftError={field.getDraftError}
-                        parseDraft={field.parseDraft}
-                    />
-                ))}
-            </Stack>
-
-            <FormControl size='small' fullWidth>
-                <InputLabel id='quality-preset-label'>Quality preset</InputLabel>
-                <Select
-                    labelId='quality-preset-label'
-                    label='Quality preset'
-                    value={appSettings.qualityPreset}
-                    onChange={(event) => {
-                        const preset = QUALITY_PRESETS[event.target.value] ?? QUALITY_PRESETS.balanced
-
-                        updateSimulationSettings({
-                            qualityPreset: event.target.value,
-                            trackUpdateHz: preset.trackUpdateHz,
-                            maxActiveFlights: preset.maxActiveFlights
-                                ?? preset.maxTruthAircraftInViewport,
-                        })
-                    }}
-                >
-                    {QUALITY_PRESET_OPTIONS.map((preset) => (
-                        <MenuItem key={preset} value={preset}>
-                            {QUALITY_PRESET_LABELS[preset] ?? preset}
-                        </MenuItem>
                     ))}
-                </Select>
-            </FormControl>
+                </Stack>
+
+                <FormControl size='small' fullWidth sx={{mt: 2}}>
+                    <InputLabel id='quality-preset-label'>Quality preset</InputLabel>
+                    <Select
+                        labelId='quality-preset-label'
+                        label='Quality preset'
+                        value={appSettings.qualityPreset}
+                        onChange={(event) => {
+                            const preset = QUALITY_PRESETS[event.target.value] ?? QUALITY_PRESETS.balanced
+
+                            updateSimulationSettings({
+                                qualityPreset: event.target.value,
+                                trackUpdateHz: preset.trackUpdateHz,
+                                maxActiveFlights: preset.maxActiveFlights
+                                    ?? preset.maxTruthAircraftInViewport,
+                            })
+                        }}
+                    >
+                        {appSettings.qualityPreset === QUALITY_PRESET_CUSTOM && (
+                            <MenuItem value={QUALITY_PRESET_CUSTOM} disabled>
+                                {QUALITY_PRESET_LABELS[QUALITY_PRESET_CUSTOM]}
+                            </MenuItem>
+                        )}
+                        {QUALITY_PRESET_OPTIONS.map((preset) => (
+                            <MenuItem key={preset} value={preset}>
+                                {QUALITY_PRESET_LABELS[preset] ?? preset}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                    <Typography variant='caption' color='text.secondary' sx={{display: 'block', mt: 1}}>
+                        Low (400 flights, 5 Hz) for lighter hardware. Balanced (800 flights, 10 Hz)
+                        is the default. High (1,000 flights, 12 Hz) increases density and update
+                        rate. Ultra (1,500 flights, 10 Hz) targets maximum global traffic.
+                    </Typography>
+                </FormControl>
+            </Box>
         </Stack>
     )
 }

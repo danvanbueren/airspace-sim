@@ -2,7 +2,6 @@
 
 import {
     Box,
-    Divider,
     FormControl,
     InputLabel,
     MenuItem,
@@ -14,17 +13,17 @@ import {
     DEFAULT_APP_SETTINGS,
     GRID_REFERENCE_SYSTEMS,
     useAppSettings,
-} from '../../../../../contexts/AppSettingsContext'
-import {DEFAULT_SIMULATION_SETTINGS} from '@/app/simulation/constants'
-import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
-import SettingsModalSimulationPage from './SettingsModalSimulationPage'
+} from '@/app/contexts/AppSettingsContext'
+import {
+    formatCoordinatePairForGridReferenceSystem,
+} from '@/app/tools/formatting/GridReferenceFormatting'
+import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 
-export default function SettingsModalSettingsPage() {
-    const {
-        appSettings,
-        setGridReferenceSystem,
-        updateAppSettings,
-    } = useAppSettings()
+const GRID_REFERENCE_EXAMPLE_LAT = 38.8977
+const GRID_REFERENCE_EXAMPLE_LNG = -77.0365
+
+export default function SettingsModalLookAndFeelPage() {
+    const {appSettings, setGridReferenceSystem, updateAppSettings} = useAppSettings()
 
     return (
         <Stack spacing={3}>
@@ -54,21 +53,29 @@ export default function SettingsModalSettingsPage() {
                         ))}
                     </Select>
                 </FormControl>
+
+                <Typography
+                    variant='caption'
+                    color='text.secondary'
+                    component='div'
+                    sx={{display: 'block', mt: 1, fontFamily: 'monospace'}}
+                >
+                    Example:{' '}
+                    {formatCoordinatePairForGridReferenceSystem(
+                        GRID_REFERENCE_EXAMPLE_LAT,
+                        GRID_REFERENCE_EXAMPLE_LNG,
+                        appSettings.gridReferenceSystem,
+                    ).join(' · ')}
+                </Typography>
             </Box>
 
-            <Divider/>
-
-            <SettingsModalSimulationPage/>
-
-            <SettingsModalRestoreDefaultsSection
-                label='Restore Default Settings'
-                hint='Resets grid reference and simulation options on this page. Other tabs are unchanged.'
-                onClick={() => {
+            <SettingsModalPageRestoreFooter
+                pageLabel='Reset Look & Feel Page'
+                pageHint='Resets grid reference settings on this page only.'
+                onPageReset={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
                         gridReferenceSystem: DEFAULT_APP_SETTINGS.gridReferenceSystem,
-                        showPerformanceOverlay: DEFAULT_APP_SETTINGS.showPerformanceOverlay,
-                        ...DEFAULT_SIMULATION_SETTINGS,
                     }))
                 }}
             />

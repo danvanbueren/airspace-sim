@@ -6,7 +6,14 @@ import {
     readCookieValue,
     writeCookieJsonValue,
 } from '@/app/tools/browser/CookieStorage'
-import {DEFAULT_SIMULATION_SETTINGS} from '@/app/simulation/constants'
+import {
+    DEFAULT_SIMULATION_SETTINGS,
+    QUALITY_PRESET_CUSTOM,
+    QUALITY_PRESET_TUNING_KEYS,
+    SELECTABLE_QUALITY_PRESET_OPTIONS,
+    qualityPresetMatchesSettings,
+    resolveQualityPresetAfterManualTuning,
+} from '@/app/simulation/constants'
 import {
     ALERT_SIGNAL_IDS,
     ATTENTION_SIGNAL_IDS,
@@ -57,7 +64,9 @@ export const GRID_REFERENCE_SYSTEMS = {
     },
 }
 
-export const QUALITY_PRESET_OPTIONS = ['low', 'balanced', 'high', 'global_dense']
+export const QUALITY_PRESET_OPTIONS = SELECTABLE_QUALITY_PRESET_OPTIONS
+
+export {QUALITY_PRESET_CUSTOM} from '@/app/simulation/constants'
 
 export const DEFAULT_APP_SETTINGS = {
     gridReferenceSystem: GRID_REFERENCE_SYSTEMS.dd.value,
@@ -92,9 +101,45 @@ function normalizeSettings(settings) {
         ? settings.gridReferenceSystem
         : DEFAULT_APP_SETTINGS.gridReferenceSystem
 
-    const qualityPreset = QUALITY_PRESET_OPTIONS.includes(settings?.qualityPreset)
-        ? settings.qualityPreset
-        : DEFAULT_APP_SETTINGS.qualityPreset
+    const trackUpdateHz = clampNumber(settings?.trackUpdateHz, 2, 30, DEFAULT_APP_SETTINGS.trackUpdateHz)
+    const maxActiveFlights = clampNumber(
+        settings?.maxActiveFlights ?? settings?.maxTruthAircraftInViewport,
+        10,
+        2500,
+        DEFAULT_APP_SETTINGS.maxActiveFlights,
+    )
+
+    const storedPreset = settings?.qualityPreset
+    let qualityPreset = DEFAULT_APP_SETTINGS.qualityPreset
+    let qualityPresetBeforeCustom = SELECTABLE_QUALITY_PRESET_OPTIONS.includes(
+        settings?.qualityPresetBeforeCustom,
+    )
+        ? settings.qualityPresetBeforeCustom
+        : undefined
+
+    if (storedPreset === QUALITY_PRESET_CUSTOM) {
+        qualityPreset = QUALITY_PRESET_CUSTOM
+    } else if (SELECTABLE_QUALITY_PRESET_OPTIONS.includes(storedPreset)) {
+        qualityPreset = storedPreset
+    }
+
+    if (
+        qualityPreset !== QUALITY_PRESET_CUSTOM
+        && SELECTABLE_QUALITY_PRESET_OPTIONS.includes(qualityPreset)
+        && !qualityPresetMatchesSettings(qualityPreset, {trackUpdateHz, maxActiveFlights})
+    ) {
+        qualityPresetBeforeCustom = qualityPresetBeforeCustom ?? qualityPreset
+        qualityPreset = QUALITY_PRESET_CUSTOM
+    } else if (
+        qualityPreset === QUALITY_PRESET_CUSTOM
+        && qualityPresetBeforeCustom
+        && qualityPresetMatchesSettings(qualityPresetBeforeCustom, {trackUpdateHz, maxActiveFlights})
+    ) {
+        qualityPreset = qualityPresetBeforeCustom
+        qualityPresetBeforeCustom = undefined
+    } else if (qualityPreset !== QUALITY_PRESET_CUSTOM) {
+        qualityPresetBeforeCustom = undefined
+    }
 
     return {
         ...DEFAULT_APP_SETTINGS,
@@ -102,19 +147,14 @@ function normalizeSettings(settings) {
         gridReferenceSystem,
         radarRefreshMs: clampNumber(settings?.radarRefreshMs, 500, 30000, DEFAULT_APP_SETTINGS.radarRefreshMs),
         iffRefreshMs: clampNumber(settings?.iffRefreshMs, 250, 10000, DEFAULT_APP_SETTINGS.iffRefreshMs),
-        trackUpdateHz: clampNumber(settings?.trackUpdateHz, 2, 30, DEFAULT_APP_SETTINGS.trackUpdateHz),
+        trackUpdateHz,
         correlationThresholdNm: clampNumber(
             settings?.correlationThresholdNm,
             0.5,
             50,
             DEFAULT_APP_SETTINGS.correlationThresholdNm,
         ),
-        maxActiveFlights: clampNumber(
-            settings?.maxActiveFlights ?? settings?.maxTruthAircraftInViewport,
-            10,
-            2500,
-            DEFAULT_APP_SETTINGS.maxActiveFlights,
-        ),
+        maxActiveFlights,
         plotAssociationThresholdNm: clampNumber(
             settings?.plotAssociationThresholdNm,
             0.5,
@@ -128,6 +168,7 @@ function normalizeSettings(settings) {
             DEFAULT_APP_SETTINGS.viewportPaddingDegrees,
         ),
         qualityPreset,
+        qualityPresetBeforeCustom,
         adaptivePerformanceEnabled: settings?.adaptivePerformanceEnabled !== false,
         simulationEnabled: settings?.simulationEnabled !== false,
         showPerformanceOverlay: settings?.showPerformanceOverlay === true,
@@ -197,10 +238,34 @@ export function AppSettingsProvider({children, initialSettings}) {
     }, [])
 
     const updateSimulationSettings = useCallback((updates) => {
-        updateAppSettings((currentSettings) => ({
-            ...currentSettings,
-            ...updates,
-        }))
+        updateAppSettings((currentSettings) => {
+            const nextSettings = {
+                ...currentSettings,
+                ...updates,
+            }
+            const explicitlySelectedPreset = (
+                typeof updates.qualityPreset === 'string'
+                && updates.qualityPreset !== QUALITY_PRESET_CUSTOM
+                && SELECTABLE_QUALITY_PRESET_OPTIONS.includes(updates.qualityPreset)
+            )
+            const resolvedPreset = (
+                explicitlySelectedPreset
+                || !QUALITY_PRESET_TUNING_KEYS.some((key) => key in updates)
+            )
+                ? {
+                    qualityPreset: nextSettings.qualityPreset,
+                    qualityPresetBeforeCustom: explicitlySelectedPreset
+                        ? undefined
+                        : nextSettings.qualityPresetBeforeCustom,
+                }
+                : resolveQualityPresetAfterManualTuning(currentSettings, updates)
+
+            return {
+                ...nextSettings,
+                qualityPreset: resolvedPreset.qualityPreset,
+                qualityPresetBeforeCustom: resolvedPreset.qualityPresetBeforeCustom,
+            }
+        })
     }, [updateAppSettings])
 
     const simulationSettings = useMemo(() => ({

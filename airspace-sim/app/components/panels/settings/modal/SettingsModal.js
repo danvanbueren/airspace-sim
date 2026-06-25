@@ -3,21 +3,19 @@
 import {useEffect, useRef} from 'react'
 import {alpha, Box, Card, Divider, Grid, Modal, Typography} from '@mui/material'
 import SettingsModalGenericButton from '@/app/components/panels/settings/modal/SettingsModalGenericButton'
-import SettingsModalSettingsPage from '@/app/components/panels/settings/modal/pages/SettingsModalSettingsPage'
+import SettingsModalSimulationEnginePage from '@/app/components/panels/settings/modal/pages/SettingsModalSimulationEnginePage'
+import SettingsModalLookAndFeelPage from './pages/SettingsModalLookAndFeelPage'
+import SettingsModalAdvancedPage from './pages/SettingsModalAdvancedPage'
 import SettingsModalKeybindsPage from './pages/SettingsModalKeybindsPage'
 import SettingsModalRoadmapPage from './pages/SettingsModalRoadmapPage'
 import SettingsModalAboutPage from './pages/SettingsModalAboutPage'
 import SettingsModalAlertsAttentionsPage from './pages/SettingsModalAlertsAttentionsPage'
+import {
+    DEFAULT_SETTINGS_PAGE_ID,
+    SETTINGS_PAGE_TITLES,
+} from '../settingsPageConfig'
 
-const SETTINGS_PAGE_TITLES = {
-    settings: 'Settings',
-    keybinds: 'Keybinds',
-    alerts: 'Alerts & Attentions',
-    roadmap: 'Roadmap',
-    about: 'About',
-}
-
-export default function SettingsModal({open, setOpen, state = 'settings', buildData}) {
+export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_PAGE_ID, buildData}) {
     const pageScrollRef = useRef(null)
 
     useEffect(() => {
@@ -42,8 +40,12 @@ export default function SettingsModal({open, setOpen, state = 'settings', buildD
 
     const getModalPage = () => {
         switch (state) {
-            case 'settings':
-                return <SettingsModalSettingsPage/>
+            case 'simulation':
+                return <SettingsModalSimulationEnginePage/>
+            case 'lookAndFeel':
+                return <SettingsModalLookAndFeelPage/>
+            case 'advanced':
+                return <SettingsModalAdvancedPage/>
             case 'keybinds':
                 return <SettingsModalKeybindsPage/>
             case 'alerts':

@@ -7,7 +7,7 @@ import {
 import {
     MOUSE_BUTTONS, useControlBindings,
 } from '../../../../../contexts/ControlBindingsContext'
-import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
+import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 import DeferredTextField from '@/app/components/global/DeferredTextField'
 import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
 
@@ -375,10 +375,11 @@ export default function SettingsModalKeybindsPage() {
             </Box>
         </Stack>
 
-        <SettingsModalRestoreDefaultsSection
-            label='Restore Default Keybinds'
-            hint='Resets all keybinds and mouse settings on this page. Other tabs are unchanged.'
-            onClick={handleResetDefaults}
+        <SettingsModalPageRestoreFooter
+            pageLabel='Reset Keybinds Page'
+            pageHint='Resets keybinds on this page only.'
+            onPageReset={handleResetDefaults}
+            onAfterResetAll={() => setListeningForBinding(null)}
         />
     </Box>)
 }

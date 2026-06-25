@@ -34,7 +34,7 @@ This project is personal. It is not owned, operated, sponsored, or endorsed by a
     - [After merge](#after-merge)
   - [Manual tracks](#manual-tracks)
   - [Map display (Category Select Panel)](#map-display-category-select-panel)
-  - [Settings reference (Simulation page)](#settings-reference-simulation-page)
+  - [Settings reference](#settings-reference)
   - [Development utilities](#development-utilities)
 - [Roadmap](#roadmap)
 - [Context](#context)
@@ -283,7 +283,7 @@ On each simulation step, `TrackEngine.tick()` runs this sequence:
 4. **Sensor scans (on interval)** — When radar or IFF refresh elapses, run the [per-sensor scan pipeline](#per-sensor-scan-pipeline) below.
 5. **`getSnapshot()`** — Expose tracks, sensor cycles, airports/routes, and overlay visibility to the map hooks.
 
-World motion and track extrapolation run every tick when the simulation engine is enabled. Sensor processing runs at radar/IFF refresh rates, not necessarily every tick. Disabling **Enable simulation engine** in Settings → Simulation pauses flight-world motion, extrapolation, and sensor scans while leaving existing tracks on the map.
+World motion and track extrapolation run every tick when the simulation engine is enabled. Sensor processing runs at radar/IFF refresh rates, not necessarily every tick. Disabling **Enable simulation engine** in Settings → Simulation Engine pauses flight-world motion, extrapolation, and sensor scans while leaving existing tracks on the map.
 
 ```mermaid
 flowchart TB
@@ -317,7 +317,7 @@ Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Co
 ### Flight world
 
 - **Data** — `app/data/airports.json` (major airports and regional strips) and `app/data/airRoutes.json` (origin/destination pairs with traffic `weight`).
-- **Fleet size** — Controlled by **Max active flights (global)** in Settings → Simulation (`maxActiveFlights`). Quality presets cap the target count (`low` 400, `balanced` 800, `high` 1200, `global_dense` 1500). Under adaptive performance, the engine may **lower tick rate** but does **not** delete flights to match the viewport.
+- **Fleet size** — Controlled by **Max active flights (global)** in Settings → Simulation Engine (`maxActiveFlights`). Quality presets cap the target count (`low` 400, `balanced` 800, `high` 1000, `global_dense` / Ultra 1500). Under adaptive performance, the engine may **lower tick rate** but does **not** delete flights to match the viewport.
 - **Traffic distribution** — New flights pick routes by weight, not by where the map is centered, so empty regions do not accumulate spurious traffic.
 - **General aviation** — A small slice of the fleet (~4%, capped at 40) flies slow, low-altitude local orbits near airports (`generalAviationTraffic.js`). GA aircraft squawk VFR Mode 3 codes (`1200` in North America, `7000` elsewhere).
 
@@ -447,23 +447,36 @@ Sensor and overlay visibility are display-only toggles:
 - Icon, label, and vector size scale with map zoom via MapLibre interpolation (smaller when zoomed out).
 - Only tracks inside the expanded viewport are sent to the map layer; the engine snapshot still holds all firm tracks globally.
 
-### Settings reference (Simulation page)
+### Settings reference
+
+#### Simulation Engine
 
 | Setting | Role |
 |---------|------|
 | Enable simulation engine | Pauses or resumes flight-world motion, extrapolation, and sensor scans |
 | Radar / IFF refresh (ms) | Sensor scan cadence |
-| Track update rate (Hz) | Simulation tick rate (may be reduced by adaptive performance) |
 | Correlation threshold (NM) | Max distance to link a return to an active track |
 | Plot association threshold (NM) | Plot trail association, initiation blocking near active tracks, and merge proximity to a correlated return (default 3 NM) |
+| Track update rate (Hz) | Simulation tick rate (may be reduced by adaptive performance) |
 | Max active flights (global) | Target fleet size |
 | Quality preset | Applies preset Hz and fleet caps |
 | Adaptive performance balancing | Reduces tick rate under frame pressure; does not cull the fleet by viewport |
+
+#### Look & Feel
+
+| Setting | Role |
+|---------|------|
+| Grid reference display format | Coordinate format for the cursor tooltip and context menu |
+
+#### Advanced
+
+| Setting | Role |
+|---------|------|
 | Show performance analytics overlay | Live half-opacity map overlay with stacked frame-time history (1 s intervals, ~15 s window) broken down by pipeline stage |
 
 ### Development utilities
 
-In development builds, the stress harness is exposed on `window.__airspaceSimStressHarness` (see `app/simulation/stressHarness.js`) for timing benchmarks. Enable **Show performance analytics overlay** in Settings → Simulation to view live FPS, tracks in view, firm track totals, and a stacked frame-time chart on the map.
+In development builds, the stress harness is exposed on `window.__airspaceSimStressHarness` (see `app/simulation/stressHarness.js`) for timing benchmarks. Enable **Show performance analytics overlay** in Settings → Advanced to view live FPS, tracks in view, firm track totals, and a stacked frame-time chart on the map.
 
 ## Roadmap
 

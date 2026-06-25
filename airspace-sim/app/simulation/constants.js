@@ -33,9 +33,15 @@ export const DEFAULT_SIMULATION_SETTINGS = {
     qualityPreset: 'balanced',
     adaptivePerformanceEnabled: true,
     simulationEnabled: true,
-    maxActiveFlights: 1200,
+    maxActiveFlights: 800,
     viewportPaddingDegrees: 0.5,
 }
+
+export const QUALITY_PRESET_CUSTOM = 'custom'
+
+export const SELECTABLE_QUALITY_PRESET_OPTIONS = ['low', 'balanced', 'high', 'global_dense']
+
+export const QUALITY_PRESET_TUNING_KEYS = ['trackUpdateHz', 'maxActiveFlights']
 
 export const QUALITY_PRESETS = {
     low: {
@@ -48,7 +54,7 @@ export const QUALITY_PRESETS = {
     },
     high: {
         trackUpdateHz: 12,
-        maxActiveFlights: 1200,
+        maxActiveFlights: 1000,
     },
     global_dense: {
         trackUpdateHz: 10,
@@ -60,5 +66,59 @@ export const QUALITY_PRESET_LABELS = {
     low: 'Low',
     balanced: 'Balanced',
     high: 'High',
-    global_dense: 'Global Dense',
+    global_dense: 'Ultra',
+    [QUALITY_PRESET_CUSTOM]: 'Custom',
+}
+
+export function qualityPresetMatchesSettings(preset, {trackUpdateHz, maxActiveFlights}) {
+    const definition = QUALITY_PRESETS[preset]
+
+    if (!definition) {
+        return false
+    }
+
+    return definition.trackUpdateHz === trackUpdateHz
+        && definition.maxActiveFlights === maxActiveFlights
+}
+
+export function resolveQualityPresetAfterManualTuning(currentSettings, updates) {
+    const nextSettings = {
+        ...currentSettings,
+        ...updates,
+    }
+    const currentPreset = currentSettings.qualityPreset
+    const revertPreset = SELECTABLE_QUALITY_PRESET_OPTIONS.includes(
+        currentSettings.qualityPresetBeforeCustom,
+    )
+        ? currentSettings.qualityPresetBeforeCustom
+        : undefined
+
+    if (currentPreset === QUALITY_PRESET_CUSTOM) {
+        if (revertPreset && qualityPresetMatchesSettings(revertPreset, nextSettings)) {
+            return {
+                qualityPreset: revertPreset,
+                qualityPresetBeforeCustom: undefined,
+            }
+        }
+
+        return {
+            qualityPreset: QUALITY_PRESET_CUSTOM,
+            qualityPresetBeforeCustom: revertPreset,
+        }
+    }
+
+    if (
+        SELECTABLE_QUALITY_PRESET_OPTIONS.includes(currentPreset)
+        && qualityPresetMatchesSettings(currentPreset, nextSettings)
+    ) {
+        return {
+            qualityPreset: currentPreset,
+            qualityPresetBeforeCustom: undefined,
+        }
+    }
+
+    return {
+        qualityPreset: QUALITY_PRESET_CUSTOM,
+        qualityPresetBeforeCustom: currentPreset,
+    }
 }
