@@ -143,6 +143,11 @@ export default function SettingsModalSimulationPage() {
                         </MenuItem>
                     ))}
                 </Select>
+                <Typography variant='caption' color='text.secondary' sx={{display: 'block', mt: 1}}>
+                    Low (400 flights, 5 Hz) for lighter hardware. Balanced (800 flights, 10 Hz)
+                    is the default. High (1,000 flights, 12 Hz) increases density and update
+                    rate. Ultra (1,500 flights, 10 Hz) targets maximum global traffic.
+                </Typography>
             </FormControl>
         </Stack>
     )

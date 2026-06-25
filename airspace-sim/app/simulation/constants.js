@@ -33,7 +33,7 @@ export const DEFAULT_SIMULATION_SETTINGS = {
     qualityPreset: 'balanced',
     adaptivePerformanceEnabled: true,
     simulationEnabled: true,
-    maxActiveFlights: 1200,
+    maxActiveFlights: 800,
     viewportPaddingDegrees: 0.5,
 }
 
@@ -48,7 +48,7 @@ export const QUALITY_PRESETS = {
     },
     high: {
         trackUpdateHz: 12,
-        maxActiveFlights: 1200,
+        maxActiveFlights: 1000,
     },
     global_dense: {
         trackUpdateHz: 10,
@@ -60,5 +60,5 @@ export const QUALITY_PRESET_LABELS = {
     low: 'Low',
     balanced: 'Balanced',
     high: 'High',
-    global_dense: 'Global Dense',
+    global_dense: 'Ultra',
 }

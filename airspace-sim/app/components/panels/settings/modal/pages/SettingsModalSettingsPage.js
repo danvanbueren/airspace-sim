@@ -16,8 +16,14 @@ import {
     useAppSettings,
 } from '../../../../../contexts/AppSettingsContext'
 import {DEFAULT_SIMULATION_SETTINGS} from '@/app/simulation/constants'
+import {
+    formatCoordinatePairForGridReferenceSystem,
+} from '@/app/tools/formatting/GridReferenceFormatting'
 import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
 import SettingsModalSimulationPage from './SettingsModalSimulationPage'
+
+const GRID_REFERENCE_EXAMPLE_LAT = 38.8977
+const GRID_REFERENCE_EXAMPLE_LNG = -77.0365
 
 export default function SettingsModalSettingsPage() {
     const {
@@ -54,6 +60,20 @@ export default function SettingsModalSettingsPage() {
                         ))}
                     </Select>
                 </FormControl>
+
+                <Typography
+                    variant='caption'
+                    color='text.secondary'
+                    component='div'
+                    sx={{display: 'block', mt: 1, fontFamily: 'monospace'}}
+                >
+                    Example:{' '}
+                    {formatCoordinatePairForGridReferenceSystem(
+                        GRID_REFERENCE_EXAMPLE_LAT,
+                        GRID_REFERENCE_EXAMPLE_LNG,
+                        appSettings.gridReferenceSystem,
+                    ).join(' · ')}
+                </Typography>
             </Box>
 
             <Divider/>
