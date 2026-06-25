@@ -13,7 +13,7 @@ import {
     Typography,
 } from '@mui/material'
 import DeferredTextField from '@/app/components/global/DeferredTextField'
-import {QUALITY_PRESET_OPTIONS, useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {QUALITY_PRESET_CUSTOM, QUALITY_PRESET_OPTIONS, useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {QUALITY_PRESET_LABELS, QUALITY_PRESETS} from '@/app/simulation/constants'
 import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
 
@@ -137,6 +137,11 @@ export default function SettingsModalSimulationPage() {
                         })
                     }}
                 >
+                    {appSettings.qualityPreset === QUALITY_PRESET_CUSTOM && (
+                        <MenuItem value={QUALITY_PRESET_CUSTOM} disabled>
+                            {QUALITY_PRESET_LABELS[QUALITY_PRESET_CUSTOM]}
+                        </MenuItem>
+                    )}
                     {QUALITY_PRESET_OPTIONS.map((preset) => (
                         <MenuItem key={preset} value={preset}>
                             {QUALITY_PRESET_LABELS[preset] ?? preset}

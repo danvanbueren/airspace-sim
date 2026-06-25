@@ -37,6 +37,12 @@ export const DEFAULT_SIMULATION_SETTINGS = {
     viewportPaddingDegrees: 0.5,
 }
 
+export const QUALITY_PRESET_CUSTOM = 'custom'
+
+export const SELECTABLE_QUALITY_PRESET_OPTIONS = ['low', 'balanced', 'high', 'global_dense']
+
+export const QUALITY_PRESET_TUNING_KEYS = ['trackUpdateHz', 'maxActiveFlights']
+
 export const QUALITY_PRESETS = {
     low: {
         trackUpdateHz: 5,
@@ -61,4 +67,37 @@ export const QUALITY_PRESET_LABELS = {
     balanced: 'Balanced',
     high: 'High',
     global_dense: 'Ultra',
+    [QUALITY_PRESET_CUSTOM]: 'Custom',
+}
+
+export function qualityPresetMatchesSettings(preset, {trackUpdateHz, maxActiveFlights}) {
+    const definition = QUALITY_PRESETS[preset]
+
+    if (!definition) {
+        return false
+    }
+
+    return definition.trackUpdateHz === trackUpdateHz
+        && definition.maxActiveFlights === maxActiveFlights
+}
+
+export function resolveQualityPresetAfterManualTuning(currentSettings, updates) {
+    const nextSettings = {
+        ...currentSettings,
+        ...updates,
+    }
+    const currentPreset = currentSettings.qualityPreset
+
+    if (currentPreset === QUALITY_PRESET_CUSTOM) {
+        return QUALITY_PRESET_CUSTOM
+    }
+
+    if (
+        SELECTABLE_QUALITY_PRESET_OPTIONS.includes(currentPreset)
+        && qualityPresetMatchesSettings(currentPreset, nextSettings)
+    ) {
+        return currentPreset
+    }
+
+    return QUALITY_PRESET_CUSTOM
 }

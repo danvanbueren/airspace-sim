@@ -1,4 +1,4 @@
-import {QUALITY_PRESETS} from './constants'
+import {QUALITY_PRESETS, QUALITY_PRESET_CUSTOM} from './constants'
 
 const TARGET_FRAME_MS = 16.67
 const SMOOTHING = 0.85
@@ -71,6 +71,10 @@ export class PerfBudgetController {
     }
 
     getEffectiveMaxAircraft(baseMax, qualityPreset) {
+        if (qualityPreset === QUALITY_PRESET_CUSTOM) {
+            return Math.max(10, Math.round(baseMax))
+        }
+
         const preset = QUALITY_PRESETS[qualityPreset] ?? QUALITY_PRESETS.balanced
         const presetMax = preset.maxActiveFlights
             ?? preset.maxTruthAircraftInViewport
