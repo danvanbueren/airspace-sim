@@ -63,6 +63,7 @@ export const DEFAULT_APP_SETTINGS = {
     gridReferenceSystem: GRID_REFERENCE_SYSTEMS.dd.value,
     inhibitedAttentions: [],
     inhibitedAlerts: [],
+    showPerformanceOverlay: false,
     ...DEFAULT_SIMULATION_SETTINGS,
 }
 
@@ -129,6 +130,7 @@ function normalizeSettings(settings) {
         qualityPreset,
         adaptivePerformanceEnabled: settings?.adaptivePerformanceEnabled !== false,
         simulationEnabled: settings?.simulationEnabled !== false,
+        showPerformanceOverlay: settings?.showPerformanceOverlay === true,
         inhibitedAttentions: normalizeInhibitedSignalIds(
             settings?.inhibitedAttentions,
             ATTENTION_SIGNAL_IDS,

@@ -32,7 +32,8 @@ export default function SettingsModalSimulationPage() {
                 </Typography>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
                     Configure sensor refresh rates, track update frequency, correlation range,
-                    global flight density, and adaptive performance behavior.
+                    global flight density, adaptive performance behavior, and the live
+                    performance analytics overlay.
                 </Typography>
 
                 <FormControlLabel
@@ -57,6 +58,19 @@ export default function SettingsModalSimulationPage() {
                         />
                     )}
                     label='Adaptive performance balancing'
+                    sx={{display: 'block', mt: 1}}
+                />
+
+                <FormControlLabel
+                    control={(
+                        <Switch
+                            checked={Boolean(appSettings.showPerformanceOverlay)}
+                            onChange={(event) => updateSimulationSettings({
+                                showPerformanceOverlay: event.target.checked,
+                            })}
+                        />
+                    )}
+                    label='Show performance analytics overlay'
                     sx={{display: 'block', mt: 1}}
                 />
             </Box>

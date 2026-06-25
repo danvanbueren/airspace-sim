@@ -6,6 +6,7 @@ import {
     mouseButtonMatchesBinding,
     useControlBindings,
 } from '../../contexts/ControlBindingsContext'
+import {usePerformanceInstrumentation} from '@/app/contexts/PerformanceMonitorContext'
 import {addMilStd2525IconToMap} from '../../tools/milstd2525/createMilStd2525Icon'
 import {
     getTrackSymbolCode,
@@ -360,6 +361,7 @@ function addTrackLayers(map) {
 
 export function useTrackMapLayer(mapRef, mapReady, options = {}) {
     const {controlBindings} = useControlBindings()
+    const performanceInstrumentation = usePerformanceInstrumentation()
     const mapCursorBindings = controlBindings.mapCursor
 
     const tracksRef = useRef(new Map())
@@ -389,12 +391,17 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
         const tracks = Array.from(tracksRef.current.values())
         const featureCollection = createFeatureCollection(tracks, iconSize)
+        const vectorFeatureCollection = tracksToVectorFeatureCollection(tracks, map)
+        const setDataStart = performance.now()
 
         getSource(map)?.setData(featureCollection)
-        map.getSource(TRACK_VECTOR_SOURCE_ID)?.setData(
-            tracksToVectorFeatureCollection(tracks, map),
-        )
-    }, [iconSize])
+        map.getSource(TRACK_VECTOR_SOURCE_ID)?.setData(vectorFeatureCollection)
+
+        performanceInstrumentation.recordTrackSetData(performance.now() - setDataStart, {
+            trackFeatures: featureCollection.features.length,
+            vectorFeatures: vectorFeatureCollection.features.length,
+        })
+    }, [iconSize, performanceInstrumentation])
 
     const scheduleSetData = useCallback(() => {
         if (frameRef.current) {
