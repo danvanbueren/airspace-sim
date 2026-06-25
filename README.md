@@ -112,6 +112,8 @@ Do not include classified, sensitive, operational, export-controlled, or persona
 ## Repository Structure
 
 ```text
+docs/                      # Planning docs, investigations, and technical roadmaps (not in-app UI).
++-- performance/           # Performance analysis, optimization plan, instrumentation guide.
 airspace-sim/
 +-- app/
 |   +-- components/
@@ -150,7 +152,9 @@ airspace-sim/
 +-- README.md                # Short pointer to the root README.
 ```
 
-Paths above are relative to the `airspace-sim/` application directory inside this repository.
+Paths above are relative to the repository root unless noted. Application paths under `airspace-sim/` are relative to that directory.
+
+For planning and investigation documents (for example, the performance optimization roadmap), see [docs/](docs/README.md).
 
 ## Tech Stack
 
