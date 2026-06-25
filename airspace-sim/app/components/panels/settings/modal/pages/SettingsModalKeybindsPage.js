@@ -7,6 +7,7 @@ import {
 import {
     MOUSE_BUTTONS, useControlBindings,
 } from '../../../../../contexts/ControlBindingsContext'
+import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
 
 const KEYBOARD_BINDINGS = [{
     key: 'panUp', label: 'Pan North', description: 'Moves the map camera north.',
@@ -377,16 +378,10 @@ export default function SettingsModalKeybindsPage() {
             </Box>
         </Stack>
 
-        <Divider/>
-
-        <Stack direction='row' sx={{justifyContent: 'flex-end'}} spacing={2}>
-            <Button
-                variant='outlined'
-                color='warning'
-                onClick={handleResetDefaults}
-            >
-                Reset Defaults
-            </Button>
-        </Stack>
+        <SettingsModalRestoreDefaultsSection
+            label='Restore Default Keybinds'
+            hint='Resets every keyboard, mouse, and sensitivity binding on this page. Settings on other tabs stay exactly as you left them.'
+            onClick={handleResetDefaults}
+        />
     </Box>)
 }

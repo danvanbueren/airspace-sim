@@ -17,7 +17,8 @@ import {
     getSignalDefinition,
     SIGNAL_KIND,
 } from '@/app/simulation/signalDefinitions'
-import {useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {DEFAULT_APP_SETTINGS, useAppSettings} from '@/app/contexts/AppSettingsContext'
+import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
 
 function SignalInhibitTable({title, description, kind, inhibitedIds, onToggle}) {
     const signals = getSignalsByKind(kind)
@@ -58,8 +59,10 @@ function SignalInhibitTable({title, description, kind, inhibitedIds, onToggle}) 
                                         <Checkbox
                                             checked={inhibited}
                                             onChange={() => onToggle(signal.id)}
-                                            inputProps={{
-                                                'aria-label': `Inhibit ${signal.label}`,
+                                            slotProps={{
+                                                input: {
+                                                    'aria-label': `Inhibit ${signal.label}`,
+                                                },
                                             }}
                                         />
                                     </TableCell>
@@ -121,6 +124,18 @@ export default function SettingsModalAlertsAttentionsPage() {
                 kind={SIGNAL_KIND.ALERT}
                 inhibitedIds={inhibitedAlerts}
                 onToggle={(signalId) => toggleInhibitedSignal(SIGNAL_KIND.ALERT, signalId)}
+            />
+
+            <SettingsModalRestoreDefaultsSection
+                label='Restore Default Alerts & Attentions'
+                hint='Clears every inhibition on this page so all signals can appear again. Keybinds, simulation options, and other settings tabs are not affected.'
+                onClick={() => {
+                    updateAppSettings((currentSettings) => ({
+                        ...currentSettings,
+                        inhibitedAttentions: DEFAULT_APP_SETTINGS.inhibitedAttentions,
+                        inhibitedAlerts: DEFAULT_APP_SETTINGS.inhibitedAlerts,
+                    }))
+                }}
             />
         </Stack>
     )

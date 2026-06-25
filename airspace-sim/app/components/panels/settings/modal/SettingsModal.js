@@ -1,3 +1,6 @@
+'use client'
+
+import {useEffect, useRef} from 'react'
 import {alpha, Box, Card, Divider, Grid, Modal, Typography} from '@mui/material'
 import SettingsModalGenericButton from '@/app/components/panels/settings/modal/SettingsModalGenericButton'
 import SettingsModalSettingsPage from '@/app/components/panels/settings/modal/pages/SettingsModalSettingsPage'
@@ -15,6 +18,11 @@ const SETTINGS_PAGE_TITLES = {
 }
 
 export default function SettingsModal({open, setOpen, state = 'settings', buildData}) {
+    const pageScrollRef = useRef(null)
+
+    useEffect(() => {
+        pageScrollRef.current?.scrollTo({top: 0})
+    }, [state])
 
     const modalStyle = (theme) => ({
         position: 'absolute',
@@ -100,7 +108,7 @@ export default function SettingsModal({open, setOpen, state = 'settings', buildD
                     <Typography variant='h4' sx={{fontWeight: 'bold', marginBottom: 2}}>
                         {SETTINGS_PAGE_TITLES[state] ?? state}
                     </Typography>
-                    <Box sx={{overflow: 'auto', height: '100%', paddingRight: 1}}>
+                    <Box ref={pageScrollRef} sx={{overflow: 'auto', height: '100%', paddingRight: 1}}>
                         <Card sx={{borderRadius: 2, padding: 3, minHeight: '100%'}}>
                             {getModalPage()}
                         </Card>
