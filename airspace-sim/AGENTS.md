@@ -215,6 +215,18 @@ Avoid excessively long components, hooks, or files. Split large front-end compon
 
 Use React context where it fits the domain and reduces long prop chains through intermediate components. Keep context values focused and stable; do not introduce context for state that is only used by a narrow parent-child pair.
 
+## Pull Requests
+
+**Keep related work in a single PR.** Do not split one user request, feature, or polish pass across multiple stacked PRs unless the user explicitly asks for separate reviews.
+
+Opening several PRs for the same area (for example copy edits, then input behavior, then layout tweaks) creates painful rebase chains, duplicate review, and merge-order dependencies. Instead:
+
+- Use **one branch and one PR** for the full scope of the task.
+- Add commits to that branch as the work evolves.
+- If a prior PR from the same session is still open and touches the same feature, **extend that branch/PR** rather than opening another.
+
+Only open a second PR when the work is genuinely independent (different subsystem, no shared files, safe to merge in any order) or when the user requests a split.
+
 ## README Documentation
 
 The repository root [`README.md`](../README.md) is the primary user-facing documentation. Treat it as part of every change, not a separate follow-up task.
