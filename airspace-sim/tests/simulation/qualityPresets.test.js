@@ -25,9 +25,12 @@ describe('quality presets', () => {
             maxActiveFlights: 1000,
         }
 
-        assert.equal(resolveQualityPresetAfterManualTuning(currentSettings, {
+        assert.deepEqual(resolveQualityPresetAfterManualTuning(currentSettings, {
             maxActiveFlights: 1000,
-        }), 'high')
+        }), {
+            qualityPreset: 'high',
+            qualityPresetBeforeCustom: undefined,
+        })
     })
 
     it('switches to custom when manual tuning diverges from the active preset', () => {
@@ -37,20 +40,43 @@ describe('quality presets', () => {
             maxActiveFlights: 800,
         }
 
-        assert.equal(resolveQualityPresetAfterManualTuning(currentSettings, {
+        assert.deepEqual(resolveQualityPresetAfterManualTuning(currentSettings, {
             maxActiveFlights: 850,
-        }), QUALITY_PRESET_CUSTOM)
+        }), {
+            qualityPreset: QUALITY_PRESET_CUSTOM,
+            qualityPresetBeforeCustom: 'balanced',
+        })
     })
 
-    it('stays custom after further manual tuning', () => {
+    it('restores the prior preset when manual tuning matches it again', () => {
         const currentSettings = {
             qualityPreset: QUALITY_PRESET_CUSTOM,
+            qualityPresetBeforeCustom: 'balanced',
+            trackUpdateHz: 10,
+            maxActiveFlights: 850,
+        }
+
+        assert.deepEqual(resolveQualityPresetAfterManualTuning(currentSettings, {
+            maxActiveFlights: 800,
+        }), {
+            qualityPreset: 'balanced',
+            qualityPresetBeforeCustom: undefined,
+        })
+    })
+
+    it('stays custom when manual tuning does not match the prior preset', () => {
+        const currentSettings = {
+            qualityPreset: QUALITY_PRESET_CUSTOM,
+            qualityPresetBeforeCustom: 'balanced',
             trackUpdateHz: 11,
             maxActiveFlights: 850,
         }
 
-        assert.equal(resolveQualityPresetAfterManualTuning(currentSettings, {
+        assert.deepEqual(resolveQualityPresetAfterManualTuning(currentSettings, {
             trackUpdateHz: 12,
-        }), QUALITY_PRESET_CUSTOM)
+        }), {
+            qualityPreset: QUALITY_PRESET_CUSTOM,
+            qualityPresetBeforeCustom: 'balanced',
+        })
     })
 })

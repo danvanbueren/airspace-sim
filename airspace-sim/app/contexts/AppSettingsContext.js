@@ -111,6 +111,11 @@ function normalizeSettings(settings) {
 
     const storedPreset = settings?.qualityPreset
     let qualityPreset = DEFAULT_APP_SETTINGS.qualityPreset
+    let qualityPresetBeforeCustom = SELECTABLE_QUALITY_PRESET_OPTIONS.includes(
+        settings?.qualityPresetBeforeCustom,
+    )
+        ? settings.qualityPresetBeforeCustom
+        : undefined
 
     if (storedPreset === QUALITY_PRESET_CUSTOM) {
         qualityPreset = QUALITY_PRESET_CUSTOM
@@ -123,7 +128,17 @@ function normalizeSettings(settings) {
         && SELECTABLE_QUALITY_PRESET_OPTIONS.includes(qualityPreset)
         && !qualityPresetMatchesSettings(qualityPreset, {trackUpdateHz, maxActiveFlights})
     ) {
+        qualityPresetBeforeCustom = qualityPresetBeforeCustom ?? qualityPreset
         qualityPreset = QUALITY_PRESET_CUSTOM
+    } else if (
+        qualityPreset === QUALITY_PRESET_CUSTOM
+        && qualityPresetBeforeCustom
+        && qualityPresetMatchesSettings(qualityPresetBeforeCustom, {trackUpdateHz, maxActiveFlights})
+    ) {
+        qualityPreset = qualityPresetBeforeCustom
+        qualityPresetBeforeCustom = undefined
+    } else if (qualityPreset !== QUALITY_PRESET_CUSTOM) {
+        qualityPresetBeforeCustom = undefined
     }
 
     return {
@@ -153,6 +168,7 @@ function normalizeSettings(settings) {
             DEFAULT_APP_SETTINGS.viewportPaddingDegrees,
         ),
         qualityPreset,
+        qualityPresetBeforeCustom,
         adaptivePerformanceEnabled: settings?.adaptivePerformanceEnabled !== false,
         simulationEnabled: settings?.simulationEnabled !== false,
         showPerformanceOverlay: settings?.showPerformanceOverlay === true,
@@ -232,16 +248,22 @@ export function AppSettingsProvider({children, initialSettings}) {
                 && updates.qualityPreset !== QUALITY_PRESET_CUSTOM
                 && SELECTABLE_QUALITY_PRESET_OPTIONS.includes(updates.qualityPreset)
             )
-            const qualityPreset = (
+            const resolvedPreset = (
                 explicitlySelectedPreset
                 || !QUALITY_PRESET_TUNING_KEYS.some((key) => key in updates)
             )
-                ? nextSettings.qualityPreset
+                ? {
+                    qualityPreset: nextSettings.qualityPreset,
+                    qualityPresetBeforeCustom: explicitlySelectedPreset
+                        ? undefined
+                        : nextSettings.qualityPresetBeforeCustom,
+                }
                 : resolveQualityPresetAfterManualTuning(currentSettings, updates)
 
             return {
                 ...nextSettings,
-                qualityPreset,
+                qualityPreset: resolvedPreset.qualityPreset,
+                qualityPresetBeforeCustom: resolvedPreset.qualityPresetBeforeCustom,
             }
         })
     }, [updateAppSettings])

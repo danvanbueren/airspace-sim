@@ -87,17 +87,38 @@ export function resolveQualityPresetAfterManualTuning(currentSettings, updates) 
         ...updates,
     }
     const currentPreset = currentSettings.qualityPreset
+    const revertPreset = SELECTABLE_QUALITY_PRESET_OPTIONS.includes(
+        currentSettings.qualityPresetBeforeCustom,
+    )
+        ? currentSettings.qualityPresetBeforeCustom
+        : undefined
 
     if (currentPreset === QUALITY_PRESET_CUSTOM) {
-        return QUALITY_PRESET_CUSTOM
+        if (revertPreset && qualityPresetMatchesSettings(revertPreset, nextSettings)) {
+            return {
+                qualityPreset: revertPreset,
+                qualityPresetBeforeCustom: undefined,
+            }
+        }
+
+        return {
+            qualityPreset: QUALITY_PRESET_CUSTOM,
+            qualityPresetBeforeCustom: revertPreset,
+        }
     }
 
     if (
         SELECTABLE_QUALITY_PRESET_OPTIONS.includes(currentPreset)
         && qualityPresetMatchesSettings(currentPreset, nextSettings)
     ) {
-        return currentPreset
+        return {
+            qualityPreset: currentPreset,
+            qualityPresetBeforeCustom: undefined,
+        }
     }
 
-    return QUALITY_PRESET_CUSTOM
+    return {
+        qualityPreset: QUALITY_PRESET_CUSTOM,
+        qualityPresetBeforeCustom: currentPreset,
+    }
 }
