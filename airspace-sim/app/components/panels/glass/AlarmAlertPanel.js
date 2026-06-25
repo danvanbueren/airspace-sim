@@ -238,30 +238,32 @@ export default function AlarmAlertPanel() {
                                 <Grid
                                     size='auto'
                                     sx={{
-                                        alignContent: 'center',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
                                     }}
                                 >
-                                    {showTrackFocus ? (
+                                    <Stack direction='column' spacing={0} alignItems='center'>
+                                        {showTrackFocus ? (
+                                            <IconButton
+                                                size="small"
+                                                aria-label="center map on track"
+                                                onClick={handleFocusTrack}
+                                            >
+                                                <GpsFixedIcon fontSize="small"/>
+                                            </IconButton>
+                                        ) : null}
                                         <IconButton
-                                            edge="start"
                                             size="small"
-                                            aria-label="center map on track"
-                                            onClick={handleFocusTrack}
+                                            aria-label="delete alarm"
+                                            onClick={(event) => {
+                                                event.stopPropagation()
+                                                deleteAlarmAlert(alert.id)
+                                            }}
                                         >
-                                            <GpsFixedIcon fontSize="small"/>
+                                            <DeleteIcon fontSize="small"/>
                                         </IconButton>
-                                    ) : null}
-                                    <IconButton
-                                        edge="end"
-                                        size="small"
-                                        aria-label="delete alarm"
-                                        onClick={(event) => {
-                                            event.stopPropagation()
-                                            deleteAlarmAlert(alert.id)
-                                        }}
-                                    >
-                                        <DeleteIcon fontSize="small"/>
-                                    </IconButton>
+                                    </Stack>
                                 </Grid>
                             </Grid>
                         </Box>
