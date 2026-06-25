@@ -2,7 +2,6 @@
 
 import {
     Box,
-    Divider,
     FormControl,
     InputLabel,
     MenuItem,
@@ -14,24 +13,18 @@ import {
     DEFAULT_APP_SETTINGS,
     GRID_REFERENCE_SYSTEMS,
     useAppSettings,
-} from '../../../../../contexts/AppSettingsContext'
-import {DEFAULT_SIMULATION_SETTINGS} from '@/app/simulation/constants'
+} from '@/app/contexts/AppSettingsContext'
 import {
     formatCoordinatePairForGridReferenceSystem,
 } from '@/app/tools/formatting/GridReferenceFormatting'
 import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
 import SettingsModalRestoreAllDefaultsSection from '../SettingsModalRestoreAllDefaultsSection'
-import SettingsModalSimulationPage from './SettingsModalSimulationPage'
 
 const GRID_REFERENCE_EXAMPLE_LAT = 38.8977
 const GRID_REFERENCE_EXAMPLE_LNG = -77.0365
 
-export default function SettingsModalSettingsPage() {
-    const {
-        appSettings,
-        setGridReferenceSystem,
-        updateAppSettings,
-    } = useAppSettings()
+export default function SettingsModalLookAndFeelPage() {
+    const {appSettings, setGridReferenceSystem, updateAppSettings} = useAppSettings()
 
     return (
         <Stack spacing={3}>
@@ -77,19 +70,13 @@ export default function SettingsModalSettingsPage() {
                 </Typography>
             </Box>
 
-            <Divider/>
-
-            <SettingsModalSimulationPage/>
-
             <SettingsModalRestoreDefaultsSection
-                label='Reset Settings Page'
-                hint='Resets grid reference and simulation options on this page only. Other pages are unchanged.'
+                label='Reset Look & Feel Page'
+                hint='Resets grid reference options on this page only. Other pages are unchanged.'
                 onClick={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
                         gridReferenceSystem: DEFAULT_APP_SETTINGS.gridReferenceSystem,
-                        showPerformanceOverlay: DEFAULT_APP_SETTINGS.showPerformanceOverlay,
-                        ...DEFAULT_SIMULATION_SETTINGS,
                     }))
                 }}
             />

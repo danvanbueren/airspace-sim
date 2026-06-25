@@ -17,7 +17,7 @@ Investigation and optimization planning for simulator frame rate and responsiven
 |------|--------|
 | Performance analysis (2026-06) | Documented |
 | Deep validation pass (2026-06-25) | Documented — see [validation-results.md](validation-results.md) |
-| Live analytics overlay | Shipped — Settings → Simulation → **Show performance analytics overlay** |
+| Live analytics overlay | Shipped — Settings → Advanced → **Show performance analytics overlay** |
 | Phase 1 quick wins (React decoupling, syncKinematics index, setData coalescing, Mercator toggle) | Planned |
 | Phase 2 algorithm/render-prep fixes | Planned |
 | Phase 3 instanced render layer (deck.gl / canvas / custom WebGL) | Exploratory |

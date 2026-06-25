@@ -4,7 +4,7 @@ Live tooling for observing frame budget pressure while operating the simulator.
 
 ## Performance analytics overlay
 
-**Settings → Simulation → Show performance analytics overlay**
+**Settings → Advanced → Show performance analytics overlay**
 
 When enabled, a **semi-transparent** panel (`rgba(0, 0, 0, 0.5)` with backdrop blur) appears at the bottom-right of the map.
 
@@ -79,7 +79,7 @@ Separate from the overlay, `PerfBudgetController` adjusts simulation tick rate u
 | 0.45 | Aggressive reduction |
 | &lt; 0.35 | May skip simulation steps |
 
-Controlled by **Settings → Simulation → Adaptive performance balancing**. The overlay’s **Throttle** stat is how much the engine is backing off from the configured simulation tick rate (0% = no throttling).
+Controlled by **Settings → Simulation Engine → Adaptive performance balancing**. The overlay’s **Throttle** stat is how much the engine is backing off from the configured simulation tick rate (0% = no throttling).
 
 ---
 

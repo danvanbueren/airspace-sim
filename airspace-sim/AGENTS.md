@@ -125,7 +125,7 @@ Do **not** write user-facing `TextField` values directly to context, cookies, or
 
 Prefer `type='text'` with `inputMode='numeric'` or `inputMode='decimal'` instead of `type='number'` so the browser does not interfere with partial entry. Apply min/max on commit, not on each keypress.
 
-**Reference implementations:** Settings → Simulation and Keybinds sensitivity fields (`DeferredTextField`); Track Management kinematic and callsign fields (`useDeferredTextField` behavior inlined with live-sync skip-field coordination).
+**Reference implementations:** Settings → Simulation Engine and Keybinds sensitivity fields (`DeferredTextField`); Track Management kinematic and callsign fields (`useDeferredTextField` behavior inlined with live-sync skip-field coordination).
 
 Discrete controls (switches, selects, radio groups, sliders) may still update immediately.
 

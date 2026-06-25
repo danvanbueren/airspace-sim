@@ -1,5 +1,7 @@
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu'
-import SettingsIcon from '@mui/icons-material/Settings'
+import MemoryIcon from '@mui/icons-material/Memory'
+import PaletteIcon from '@mui/icons-material/Palette'
+import TuneIcon from '@mui/icons-material/Tune'
 import KeyboardIcon from '@mui/icons-material/Keyboard'
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import InfoIcon from '@mui/icons-material/Info'
@@ -12,7 +14,7 @@ import {useColorMode} from '@/app/contexts/CustomThemeContext'
 
 export default function SettingsController({modalOpen, setModalOpen}) {
 
-    const [modalState, setModalState] = useState('settings')
+    const [modalState, setModalState] = useState('simulation')
 
     const [toolbeltOpen, setToolbeltOpen] = useState(false)
 
@@ -33,11 +35,23 @@ export default function SettingsController({modalOpen, setModalOpen}) {
             onModalClick: () => colorMode.toggleColorMode()
         }],
         full: [{
-            name: 'settings',
-            icon: <SettingsIcon/>,
-            tooltip: 'Settings',
-            onToolbeltClick: () => openModalWithState('settings'),
-            onModalClick: () => setModalState('settings')
+            name: 'simulation',
+            icon: <MemoryIcon/>,
+            tooltip: 'Simulation Engine',
+            onToolbeltClick: () => openModalWithState('simulation'),
+            onModalClick: () => setModalState('simulation')
+        }, {
+            name: 'lookAndFeel',
+            icon: <PaletteIcon/>,
+            tooltip: 'Look & Feel',
+            onToolbeltClick: () => openModalWithState('lookAndFeel'),
+            onModalClick: () => setModalState('lookAndFeel')
+        }, {
+            name: 'advanced',
+            icon: <TuneIcon/>,
+            tooltip: 'Advanced',
+            onToolbeltClick: () => openModalWithState('advanced'),
+            onModalClick: () => setModalState('advanced')
         }, {
             name: 'keybinds',
             icon: <KeyboardIcon/>,
