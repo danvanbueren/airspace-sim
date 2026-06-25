@@ -12,7 +12,7 @@ export default function SettingsModalRestoreDefaultsSection({
     const buttonBlock = (
         <Stack spacing={0.5}>
             <Button
-                variant='contained'
+                variant='outlined'
                 color={color}
                 fullWidth
                 onClick={onClick}

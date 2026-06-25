@@ -11,7 +11,7 @@ export default function SettingsModalPageRestoreFooter({
     onAfterResetAll,
 }) {
     return (
-        <Stack spacing={1}>
+        <Stack spacing={2}>
             <Divider/>
             <Stack spacing={1}>
                 <SettingsModalRestoreDefaultsSection
