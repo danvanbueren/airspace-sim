@@ -10,18 +10,12 @@ import SettingsModalKeybindsPage from './pages/SettingsModalKeybindsPage'
 import SettingsModalRoadmapPage from './pages/SettingsModalRoadmapPage'
 import SettingsModalAboutPage from './pages/SettingsModalAboutPage'
 import SettingsModalAlertsAttentionsPage from './pages/SettingsModalAlertsAttentionsPage'
+import {
+    DEFAULT_SETTINGS_PAGE_ID,
+    SETTINGS_PAGE_TITLES,
+} from '../settingsPageConfig'
 
-const SETTINGS_PAGE_TITLES = {
-    lookAndFeel: 'Look & Feel',
-    simulation: 'Simulation Engine',
-    alerts: 'Alerts & Attentions',
-    keybinds: 'Keybinds',
-    advanced: 'Advanced',
-    roadmap: 'Roadmap',
-    about: 'About',
-}
-
-export default function SettingsModal({open, setOpen, state = 'lookAndFeel', buildData}) {
+export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_PAGE_ID, buildData}) {
     const pageScrollRef = useRef(null)
 
     useEffect(() => {

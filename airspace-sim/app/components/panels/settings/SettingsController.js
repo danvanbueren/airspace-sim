@@ -11,10 +11,21 @@ import SettingsModal from './modal/SettingsModal'
 import SettingsToolbelt from './toolbelt/SettingsToolbelt'
 import {useState} from 'react'
 import {useColorMode} from '@/app/contexts/CustomThemeContext'
+import {DEFAULT_SETTINGS_PAGE_ID, SETTINGS_PAGE_IDS, SETTINGS_PAGE_TITLES} from './settingsPageConfig'
+
+const SETTINGS_PAGE_ICONS = {
+    lookAndFeel: PaletteIcon,
+    simulation: MemoryIcon,
+    alerts: NotificationsActiveIcon,
+    keybinds: KeyboardIcon,
+    advanced: TuneIcon,
+    roadmap: HistoryEduIcon,
+    about: InfoIcon,
+}
 
 export default function SettingsController({modalOpen, setModalOpen}) {
 
-    const [modalState, setModalState] = useState('lookAndFeel')
+    const [modalState, setModalState] = useState(DEFAULT_SETTINGS_PAGE_ID)
 
     const [toolbeltOpen, setToolbeltOpen] = useState(false)
 
@@ -34,49 +45,17 @@ export default function SettingsController({modalOpen, setModalOpen}) {
             onToolbeltClick: () => colorMode.toggleColorMode(),
             onModalClick: () => colorMode.toggleColorMode()
         }],
-        full: [{
-            name: 'simulation',
-            icon: <MemoryIcon/>,
-            tooltip: 'Simulation Engine',
-            onToolbeltClick: () => openModalWithState('simulation'),
-            onModalClick: () => setModalState('simulation')
-        }, {
-            name: 'lookAndFeel',
-            icon: <PaletteIcon/>,
-            tooltip: 'Look & Feel',
-            onToolbeltClick: () => openModalWithState('lookAndFeel'),
-            onModalClick: () => setModalState('lookAndFeel')
-        }, {
-            name: 'advanced',
-            icon: <TuneIcon/>,
-            tooltip: 'Advanced',
-            onToolbeltClick: () => openModalWithState('advanced'),
-            onModalClick: () => setModalState('advanced')
-        }, {
-            name: 'keybinds',
-            icon: <KeyboardIcon/>,
-            tooltip: 'Keybinds',
-            onToolbeltClick: () => openModalWithState('keybinds'),
-            onModalClick: () => setModalState('keybinds')
-        }, {
-            name: 'alerts',
-            icon: <NotificationsActiveIcon/>,
-            tooltip: 'Alerts & Attentions',
-            onToolbeltClick: () => openModalWithState('alerts'),
-            onModalClick: () => setModalState('alerts')
-        }, {
-            name: 'roadmap',
-            icon: <HistoryEduIcon/>,
-            tooltip: 'Roadmap',
-            onToolbeltClick: () => openModalWithState('roadmap'),
-            onModalClick: () => setModalState('roadmap')
-        }, {
-            name: 'about',
-            icon: <InfoIcon/>,
-            tooltip: 'About',
-            onToolbeltClick: () => openModalWithState('about'),
-            onModalClick: () => setModalState('about')
-        }]
+        full: SETTINGS_PAGE_IDS.map((pageId) => {
+            const Icon = SETTINGS_PAGE_ICONS[pageId]
+
+            return {
+                name: pageId,
+                icon: <Icon/>,
+                tooltip: SETTINGS_PAGE_TITLES[pageId],
+                onToolbeltClick: () => openModalWithState(pageId),
+                onModalClick: () => setModalState(pageId),
+            }
+        }),
     }
 
     return (<>
