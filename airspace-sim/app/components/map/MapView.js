@@ -186,7 +186,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         initiateTrack,
         openTrackManagementWindow,
         updateTrackManagementWindow,
-        moveTrackManagementWindow,
+        setTrackManagementWindowPositionAnchor,
         markTrackManagementWindowPersistent,
         closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
@@ -488,7 +488,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                     mapContainerRef={mapContainerRef}
                     tracksForCallsignValidation={tracksForCallsignValidation}
                     onChange={updateTrackManagementWindow}
-                    onMove={moveTrackManagementWindow}
+                    onMoveComplete={setTrackManagementWindowPositionAnchor}
                     onActivate={markTrackManagementWindowPersistent}
                     onClaimKeyboardCustody={claimTrackManagementKeyboardCustody}
                     onClose={handleCloseTrackManagementWindow}

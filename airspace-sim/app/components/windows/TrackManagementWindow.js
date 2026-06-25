@@ -1,6 +1,6 @@
 'use client'
 
-import {forwardRef, useCallback, useEffect, useRef, useState} from 'react'
+import {forwardRef, useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {
     Box,
     Checkbox,
@@ -53,7 +53,9 @@ import {
     getMode3DisplayLabel,
     isIffMode3Stale,
 } from '@/app/simulation/iffMode3'
+import {absoluteToEdgeAnchor} from '@/app/tools/map/edgeAnchoredPosition'
 import {
+    getLegacyMapClickWindowPosition,
     getTrackManagementWindowPosition,
     useTrackManagementWindowDrag,
 } from '@/app/hooks/map/useTrackManagementWindowDrag'
@@ -280,7 +282,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             tracksForCallsignValidation = [],
                                                                             evaluationTime = Date.now(),
                                                                             onChange,
-                                                                            onMove,
+                                                                            onMoveComplete,
                                                                             onActivate,
                                                                             onClaimKeyboardCustody,
                                                                             onClose,
@@ -571,17 +573,67 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     }
 
     const {
+        dragPosition,
         handleHeaderPointerDown,
         handleHeaderPointerMove,
         handleHeaderPointerUp,
     } = useTrackManagementWindowDrag({
         mapContainerRef,
-        onMove,
+        onMoveComplete,
         onActivate: activateWindow,
         onClaimKeyboardCustody,
         windowId: trackManagementWindow.id,
         trackManagementWindowSize,
     })
+
+    useLayoutEffect(() => {
+        if (trackManagementWindow.positionAnchor) {
+            return
+        }
+
+        if (!trackManagementWindowSize.width || !trackManagementWindowSize.height) {
+            return
+        }
+
+        const legacyPosition = getLegacyMapClickWindowPosition(
+            trackManagementWindow,
+            trackManagementWindowSize,
+            mapContainerRef,
+        )
+        const containerSize = {
+            width: mapContainerRef.current?.clientWidth ?? window.innerWidth,
+            height: mapContainerRef.current?.clientHeight ?? window.innerHeight,
+        }
+
+        onMoveComplete?.(
+            trackManagementWindow.id,
+            absoluteToEdgeAnchor(
+                legacyPosition.left,
+                legacyPosition.top,
+                containerSize,
+                {
+                    width: trackManagementWindowSize.width,
+                    height: trackManagementWindowSize.height,
+                },
+            ),
+        )
+    }, [
+        mapContainerRef,
+        onMoveComplete,
+        trackManagementWindow.id,
+        trackManagementWindow.positionAnchor,
+        trackManagementWindow.x,
+        trackManagementWindow.y,
+        trackManagementWindowSize,
+    ])
+
+    const windowPosition = dragPosition
+        ? {left: dragPosition.x, top: dragPosition.y}
+        : getTrackManagementWindowPosition(
+            trackManagementWindow,
+            trackManagementWindowSize,
+            mapContainerRef,
+        )
 
     const renderKinematicField = (field, label) => (
         <TextField
@@ -612,11 +664,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             onPointerDown={handleWindowPointerDown}
             sx={(theme) => ({
                 position: 'absolute',
-                ...getTrackManagementWindowPosition(
-                    trackManagementWindow,
-                    trackManagementWindowSize,
-                    mapContainerRef,
-                ),
+                ...windowPosition,
                 zIndex,
                 width: 300,
                 pointerEvents: 'auto',

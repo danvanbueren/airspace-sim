@@ -1,6 +1,10 @@
 'use client'
 
-import {useCallback, useRef} from 'react'
+import {useCallback, useRef, useState} from 'react'
+import {
+    absoluteToEdgeAnchor,
+    resolveEdgeAnchoredPosition,
+} from '@/app/tools/map/edgeAnchoredPosition'
 
 const EDGE_PADDING = 8
 const DEFAULT_WINDOW_WIDTH = 300
@@ -20,19 +24,32 @@ function getWindowSize(trackManagementWindowSize) {
     }
 }
 
-function getBoundedTrackManagementWindowPosition(left, top, trackManagementWindowSize, mapContainerRef) {
+function getTrackManagementWindowBounds(trackManagementWindowSize, mapContainerRef) {
     const containerSize = getContainerSize(mapContainerRef)
     const windowSize = getWindowSize(trackManagementWindowSize)
-    const maxLeft = Math.max(EDGE_PADDING, containerSize.width - windowSize.width - EDGE_PADDING)
-    const maxTop = Math.max(EDGE_PADDING, containerSize.height - windowSize.height - EDGE_PADDING)
 
     return {
-        x: Math.min(Math.max(EDGE_PADDING, left), maxLeft),
-        y: Math.min(Math.max(EDGE_PADDING, top), maxTop),
+        minLeft: EDGE_PADDING,
+        minTop: EDGE_PADDING,
+        maxLeft: Math.max(EDGE_PADDING, containerSize.width - windowSize.width - EDGE_PADDING),
+        maxTop: Math.max(EDGE_PADDING, containerSize.height - windowSize.height - EDGE_PADDING),
     }
 }
 
-export function getTrackManagementWindowPosition(trackManagementWindow, trackManagementWindowSize, mapContainerRef) {
+function getBoundedTrackManagementWindowPosition(left, top, trackManagementWindowSize, mapContainerRef) {
+    const containerSize = getContainerSize(mapContainerRef)
+    const windowSize = getWindowSize(trackManagementWindowSize)
+    const bounds = getTrackManagementWindowBounds(trackManagementWindowSize, mapContainerRef)
+
+    return resolveEdgeAnchoredPosition(
+        absoluteToEdgeAnchor(left, top, containerSize, windowSize),
+        containerSize,
+        windowSize,
+        bounds,
+    )
+}
+
+export function getLegacyMapClickWindowPosition(trackManagementWindow, trackManagementWindowSize, mapContainerRef) {
     const containerSize = getContainerSize(mapContainerRef)
     const windowSize = getWindowSize(trackManagementWindowSize)
 
@@ -53,8 +70,36 @@ export function getTrackManagementWindowPosition(trackManagementWindow, trackMan
     }
 }
 
-export function useTrackManagementWindowDrag({mapContainerRef, onMove, onActivate, onClaimKeyboardCustody, windowId, trackManagementWindowSize}) {
+export function getTrackManagementWindowPosition(trackManagementWindow, trackManagementWindowSize, mapContainerRef) {
+    const containerSize = getContainerSize(mapContainerRef)
+    const windowSize = getWindowSize(trackManagementWindowSize)
+
+    if (trackManagementWindow.positionAnchor) {
+        return resolveEdgeAnchoredPosition(
+            trackManagementWindow.positionAnchor,
+            containerSize,
+            windowSize,
+            getTrackManagementWindowBounds(trackManagementWindowSize, mapContainerRef),
+        )
+    }
+
+    return getLegacyMapClickWindowPosition(
+        trackManagementWindow,
+        trackManagementWindowSize,
+        mapContainerRef,
+    )
+}
+
+export function useTrackManagementWindowDrag({
+    mapContainerRef,
+    onMoveComplete,
+    onActivate,
+    onClaimKeyboardCustody,
+    windowId,
+    trackManagementWindowSize,
+}) {
     const dragStateRef = useRef(null)
+    const [dragPosition, setDragPosition] = useState(null)
 
     const handleHeaderPointerDown = useCallback((event) => {
         if (event.button !== 0) {
@@ -98,17 +143,18 @@ export function useTrackManagementWindowDrag({mapContainerRef, onMove, onActivat
 
         const left = event.clientX - dragState.containerLeft - dragState.offsetX
         const top = event.clientY - dragState.containerTop - dragState.offsetY
-
-        onMove?.(
-            windowId,
-            getBoundedTrackManagementWindowPosition(
-                left,
-                top,
-                trackManagementWindowSize,
-                mapContainerRef,
-            ),
+        const boundedPosition = getBoundedTrackManagementWindowPosition(
+            left,
+            top,
+            trackManagementWindowSize,
+            mapContainerRef,
         )
-    }, [mapContainerRef, onMove, trackManagementWindowSize, windowId])
+
+        setDragPosition({
+            x: boundedPosition.left,
+            y: boundedPosition.top,
+        })
+    }, [mapContainerRef, trackManagementWindowSize])
 
     const handleHeaderPointerUp = useCallback((event) => {
         if (dragStateRef.current?.pointerId !== event.pointerId) {
@@ -120,9 +166,29 @@ export function useTrackManagementWindowDrag({mapContainerRef, onMove, onActivat
         }
 
         dragStateRef.current = null
-    }, [])
+
+        setDragPosition((currentDragPosition) => {
+            if (currentDragPosition) {
+                const containerSize = getContainerSize(mapContainerRef)
+                const windowSize = getWindowSize(trackManagementWindowSize)
+
+                onMoveComplete?.(
+                    windowId,
+                    absoluteToEdgeAnchor(
+                        currentDragPosition.x,
+                        currentDragPosition.y,
+                        containerSize,
+                        windowSize,
+                    ),
+                )
+            }
+
+            return null
+        })
+    }, [mapContainerRef, onMoveComplete, trackManagementWindowSize, windowId])
 
     return {
+        dragPosition,
         handleHeaderPointerDown,
         handleHeaderPointerMove,
         handleHeaderPointerUp,

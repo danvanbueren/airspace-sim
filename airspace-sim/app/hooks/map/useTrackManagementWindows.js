@@ -9,6 +9,7 @@ import {
 import {getDefaultSpecificTypeForTrackType} from '../../tools/milstd2525/trackSpecificTypes'
 import {parseTrackKinematicFields} from '../../tools/formatting/trackFieldFormatting'
 import {syncTrackManagementWindowsFromTracks} from '../../tools/map/trackManagementTrack'
+import {edgeAnchorsEqual} from '../../tools/map/edgeAnchoredPosition'
 
 export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTrackUpdated}) {
     const [trackManagementWindows, setTrackManagementWindows] = useState([])
@@ -93,6 +94,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                         ...trackManagementWindow,
                         x: point.x,
                         y: point.y,
+                        positionAnchor: undefined,
                         dismissOnMapClick: false,
                     }
                 })
@@ -129,16 +131,20 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         })
     }, [])
 
-    const moveTrackManagementWindow = useCallback((windowId, position) => {
+    const setTrackManagementWindowPositionAnchor = useCallback((windowId, positionAnchor) => {
         setTrackManagementWindows((currentWindows) => (
             currentWindows.map((trackManagementWindow) => {
                 if (trackManagementWindow.id !== windowId) {
                     return trackManagementWindow
                 }
 
+                if (edgeAnchorsEqual(trackManagementWindow.positionAnchor, positionAnchor)) {
+                    return trackManagementWindow
+                }
+
                 return {
                     ...trackManagementWindow,
-                    ...position,
+                    positionAnchor,
                 }
             })
         ))
@@ -197,7 +203,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         initiateTrack,
         openTrackManagementWindow,
         updateTrackManagementWindow,
-        moveTrackManagementWindow,
+        setTrackManagementWindowPositionAnchor,
         markTrackManagementWindowPersistent,
         closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
