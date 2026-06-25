@@ -85,7 +85,15 @@ export default function AlarmAlertDetailModal({
                             </Typography>
                         )}
                     </Box>
-                    <Stack direction='row' spacing={0.5} sx={{flexShrink: 0}}>
+                    <Stack
+                        direction='column'
+                        spacing={0.5}
+                        sx={{
+                            flexShrink: 0,
+                            alignSelf: 'center',
+                            alignItems: 'center',
+                        }}
+                    >
                         {showTrackFocus ? (
                             <IconButton
                                 size='small'
