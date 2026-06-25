@@ -19,6 +19,10 @@ import {
     processAutoDropTracks,
     shouldShowDropAttention,
 } from './trackAutoDrop'
+import {
+    decorrelateAllActiveTracks,
+    refreshTrackStaleAndDecorrelation,
+} from './trackDecorrelation'
 
 export class TrackEngine {
     constructor(options = {}) {
@@ -82,6 +86,10 @@ export class TrackEngine {
             previousSettings.simulationEnabled === false
             && nextSettings.simulationEnabled !== false
         )
+        const simulationDisabled = (
+            previousSettings.simulationEnabled !== false
+            && nextSettings.simulationEnabled === false
+        )
         const shouldResetScanTimers = (
             previousSettings.radarRefreshMs !== nextSettings.radarRefreshMs
             || previousSettings.iffRefreshMs !== nextSettings.iffRefreshMs
@@ -96,6 +104,10 @@ export class TrackEngine {
 
         if (simulationReenabled) {
             this.lastTrackTickAt = 0
+        }
+
+        if (simulationDisabled) {
+            decorrelateAllActiveTracks(this.trackStore, Date.now())
         }
 
         const previousMaxFlights = this.getMaxActiveFlights(previousSettings)
@@ -348,13 +360,36 @@ export class TrackEngine {
         )
     }
 
+    hasTracks() {
+        return this.trackStore.getAllTracks().length > 0
+    }
+
+    runMaintenanceTick(timestamp = Date.now()) {
+        refreshTrackStaleAndDecorrelation(this.trackStore, timestamp, this.settings)
+        processAutoDropTracks(this.trackStore, timestamp)
+        this.lastTrackTickAt = timestamp
+    }
+
     tick({map, timestamp = Date.now()}) {
         const bounds = expandBounds(
             this.getMapBounds(map),
             this.settings.viewportPaddingDegrees ?? 0.5,
         )
+        const simulationEnabled = this.settings.simulationEnabled !== false
+        const hasTracks = this.hasTracks()
 
-        if (!bounds || this.settings.simulationEnabled === false) {
+        if (!simulationEnabled) {
+            if (!hasTracks) {
+                return this.getSnapshot()
+            }
+
+            this.runMaintenanceTick(timestamp)
+            this.notifyListeners()
+
+            return this.getSnapshot()
+        }
+
+        if (!bounds) {
             return this.getSnapshot()
         }
 
@@ -394,6 +429,7 @@ export class TrackEngine {
             this.runSensorScan(SENSOR_TYPES.IFF, timestamp, bounds)
         }
 
+        refreshTrackStaleAndDecorrelation(this.trackStore, timestamp, this.settings)
         processAutoDropTracks(this.trackStore, timestamp)
 
         this.notifyListeners()

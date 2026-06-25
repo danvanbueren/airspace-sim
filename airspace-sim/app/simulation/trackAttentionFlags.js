@@ -23,7 +23,7 @@ export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.
         flags.push('DROP')
     }
 
-    if (track.iffMode3Code) {
+    if (track.iffMode3Code && track.correlated === true) {
         const iffStale = isIffMode3Stale(track, evaluationTime, iffRefreshMs)
 
         if (!iffStale) {
