@@ -16,7 +16,7 @@ export default function SettingsModalSimulationEnginePage() {
 
             <SettingsModalRestoreDefaultsSection
                 label='Reset Simulation Engine Page'
-                hint='Resets simulation options and quality settings on this page only. Other pages are unchanged.'
+                hint='Resets simulation settings on this page only.'
                 onClick={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,

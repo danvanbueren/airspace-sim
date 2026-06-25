@@ -134,7 +134,7 @@ export default function SettingsModalAlertsAttentionsPage() {
 
             <SettingsModalRestoreDefaultsSection
                 label='Reset Alerts & Attentions Page'
-                hint='Clears all inhibitions on this page only. Other pages are unchanged.'
+                hint='Clears inhibitions on this page only.'
                 onClick={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,

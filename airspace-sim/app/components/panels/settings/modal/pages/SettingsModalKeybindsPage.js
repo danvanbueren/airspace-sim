@@ -378,7 +378,7 @@ export default function SettingsModalKeybindsPage() {
 
         <SettingsModalRestoreDefaultsSection
             label='Reset Keybinds Page'
-            hint='Resets all keybinds and mouse settings on this page only. Other pages are unchanged.'
+            hint='Resets keybinds on this page only.'
             onClick={handleResetDefaults}
         />
 

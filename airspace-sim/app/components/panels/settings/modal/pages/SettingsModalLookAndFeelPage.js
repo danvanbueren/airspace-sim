@@ -72,7 +72,7 @@ export default function SettingsModalLookAndFeelPage() {
 
             <SettingsModalRestoreDefaultsSection
                 label='Reset Look & Feel Page'
-                hint='Resets grid reference options on this page only. Other pages are unchanged.'
+                hint='Resets grid reference settings on this page only.'
                 onClick={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,

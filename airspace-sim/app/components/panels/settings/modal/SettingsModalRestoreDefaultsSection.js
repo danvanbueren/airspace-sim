@@ -2,10 +2,16 @@
 
 import {Button, Divider, Stack, Typography} from '@mui/material'
 
-export default function SettingsModalRestoreDefaultsSection({label, hint, onClick, color = 'warning'}) {
+export default function SettingsModalRestoreDefaultsSection({
+    label,
+    hint,
+    onClick,
+    color = 'warning',
+    showDivider = true,
+}) {
     return (
         <Stack spacing={2}>
-            <Divider/>
+            {showDivider ? <Divider/> : null}
             <Stack spacing={1}>
                 <Button
                     variant='contained'
@@ -21,10 +27,9 @@ export default function SettingsModalRestoreDefaultsSection({label, hint, onClic
                         display: 'block',
                         textAlign: 'center',
                         color: 'text.secondary',
-                        whiteSpace: 'pre-line',
                     }}
                 >
-                    {hint?.replace(/\. /g, '.\n')}
+                    {hint}
                 </Typography>
             </Stack>
         </Stack>

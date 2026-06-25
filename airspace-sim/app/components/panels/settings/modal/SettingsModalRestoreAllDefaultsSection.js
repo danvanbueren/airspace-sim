@@ -18,8 +18,9 @@ export default function SettingsModalRestoreAllDefaultsSection({onAfterReset}) {
     return (
         <SettingsModalRestoreDefaultsSection
             label='Reset All Pages'
-            hint='Resets every settings page to defaults, including simulation engine, look & feel, advanced options, keybinds, and alerts/attentions.'
+            hint='Resets every settings page and keybinds to defaults.'
             color='error'
+            showDivider={false}
             onClick={handleResetAll}
         />
     )

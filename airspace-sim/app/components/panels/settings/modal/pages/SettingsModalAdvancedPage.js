@@ -39,7 +39,7 @@ export default function SettingsModalAdvancedPage() {
 
             <SettingsModalRestoreDefaultsSection
                 label='Reset Advanced Page'
-                hint='Resets advanced options on this page only. Other pages are unchanged.'
+                hint='Resets advanced settings on this page only.'
                 onClick={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
