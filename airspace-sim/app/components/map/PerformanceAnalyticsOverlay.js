@@ -1,42 +1,113 @@
 'use client'
 
-import {Box, Typography} from '@mui/material'
+import {Box, Paper, Stack, Typography, Grid, Divider} from '@mui/material'
 import {usePerformanceMetrics} from '@/app/contexts/PerformanceMonitorContext'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
+import {
+    PERFORMANCE_BUDGET_LINE_COLOR,
+    PERFORMANCE_MAX_MARKER_COLOR,
+} from '@/app/simulation/performanceFrameSegments'
 import PerformanceFrameTimeChart from './PerformanceFrameTimeChart'
+
+const MONO_LABEL_SX = {
+    fontFamily: 'monospace',
+    fontSize: '0.68rem',
+    lineHeight: 1.35,
+}
+
+function PeakMarkerLegendItem() {
+    return (
+        <Stack direction='row' spacing={0.75} sx={{alignItems: 'center'}}>
+            <Box
+                component='span'
+                sx={{
+                    display: 'inline-block',
+                    width: 14,
+                    borderTop: `2px solid ${PERFORMANCE_MAX_MARKER_COLOR}`,
+                }}
+            />
+            <Typography component='span' sx={{...MONO_LABEL_SX, color: 'rgba(255, 255, 255, 0.88)'}}>
+                Peak compute
+            </Typography>
+        </Stack>
+    )
+}
+
+function BudgetLineLegendItem() {
+    return (
+        <Stack direction='row' spacing={0.75} sx={{alignItems: 'center'}}>
+            <Box
+                component='span'
+                sx={{
+                    display: 'inline-block',
+                    width: 14,
+                    borderTop: `2px dashed ${PERFORMANCE_BUDGET_LINE_COLOR}`,
+                }}
+            />
+            <Typography component='span' sx={{...MONO_LABEL_SX, color: 'rgba(255, 255, 255, 0.88)'}}>
+                60 fps budget
+            </Typography>
+        </Stack>
+    )
+}
 
 function LegendItem({color, label}) {
     return (
-        <Box sx={{display: 'flex', alignItems: 'center', gap: 0.75}}>
+        <Stack direction='row' spacing={0.75} sx={{alignItems: 'center'}}>
             <Box
+                component='span'
                 sx={{
+                    display: 'inline-block',
                     width: 10,
                     height: 10,
                     borderRadius: 0.5,
                     backgroundColor: color,
-                    flexShrink: 0,
                 }}
             />
-            <Typography
-                sx={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.68rem',
-                    color: 'rgba(255, 255, 255, 0.88)',
-                }}
-            >
+            <Typography component='span' sx={{...MONO_LABEL_SX, color: 'rgba(255, 255, 255, 0.88)'}}>
                 {label}
             </Typography>
-        </Box>
+        </Stack>
     )
 }
 
-function StatChip({label, value, warn = false}) {
+function StatChip({label, value, warn = false, multiline = false}) {
+    const valueColor = warn ? '#ffb74d' : 'rgba(255, 255, 255, 0.9)'
+
+    if (multiline) {
+        return (
+            <Box sx={{minWidth: 0}}>
+                <Typography
+                    component='span'
+                    sx={{
+                        ...MONO_LABEL_SX,
+                        display: 'block',
+                        color: 'rgba(255, 255, 255, 0.72)',
+                    }}
+                >
+                    {label}
+                </Typography>
+                <Typography
+                    component='span'
+                    sx={{
+                        ...MONO_LABEL_SX,
+                        display: 'block',
+                        color: valueColor,
+                        fontWeight: 600,
+                    }}
+                >
+                    {value}
+                </Typography>
+            </Box>
+        )
+    }
+
     return (
         <Typography
+            component='span'
             sx={{
-                fontFamily: 'monospace',
-                fontSize: '0.68rem',
-                color: warn ? '#ffb74d' : 'rgba(255, 255, 255, 0.9)',
+                ...MONO_LABEL_SX,
+                color: valueColor,
                 whiteSpace: 'nowrap',
             }}
         >
@@ -55,81 +126,111 @@ export default function PerformanceAnalyticsOverlay() {
     const frameBudgetWarn = metrics.frameMs > metrics.targetFrameMs
 
     return (
-        <Box
+        <Paper
+            elevation={0}
             sx={{
                 position: 'absolute',
                 right: 16,
                 bottom: 16,
                 zIndex: UI_Z_INDEX.MAP_OVERLAY,
-                width: {xs: 280, sm: 360},
+                width: {xs: 300, sm: 380},
                 maxWidth: 'calc(100% - 32px)',
                 pointerEvents: 'none',
                 userSelect: 'none',
                 borderRadius: 1,
-                px: 1.25,
-                py: 1,
+                p: 2,
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
                 backdropFilter: 'blur(10px)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
                 boxShadow: '0 8px 24px rgba(0, 0, 0, 0.28)',
             }}
         >
-            <Typography
-                sx={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    color: '#ffffff',
-                    mb: 0.75,
-                }}
-            >
-                Performance Analytics
-            </Typography>
+            <Stack spacing={1.5}>
+                <Typography
+                    sx={{
+                        fontFamily: 'monospace',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
+                        color: '#ffffff',
+                    }}
+                >
+                    Performance Analytics
+                </Typography>
 
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 1,
-                    mb: 1,
-                }}
-            >
-                <StatChip label='FPS' value={metrics.fps} warn={frameBudgetWarn} />
-                <StatChip label='Frame' value={`${metrics.frameMs} ms`} warn={frameBudgetWarn} />
-                <StatChip label='Visible' value={metrics.visibleTrackCount} />
-                <StatChip label='Firm' value={metrics.firmTrackCount} />
-                <StatChip label='Load' value={metrics.loadFactor} warn={metrics.loadFactor < 0.85} />
-            </Box>
+                <Typography
+                    component='div'
+                    sx={{
+                        fontSize: '0.64rem',
+                    }}
+                >
+                    <Grid container spacing={0.5}>
+                        <Grid size={3}>
+                            <StatChip label='FPS:' value={metrics.fps} />
+                        </Grid>
 
-            <PerformanceFrameTimeChart metrics={metrics} />
+                        <Grid size={3}>
+                            <StatChip label='Load:' value={metrics.loadFactor} warn={metrics.loadFactor < 0.85} />
+                        </Grid>
+                        <Grid size={6}>
+                            <StatChip label='Tracks Displayed:' value={metrics.visibleTrackCount} />
+                        </Grid>
+                        <Grid size={6}>
+                            <StatChip label='Frame Time:' value={metrics.frameMs + ' ms'} />
+                        </Grid>
+                        <Grid size={6}>
+                            <StatChip label='Tracks Total:' value={metrics.firmTrackCount} />
+                        </Grid>
+                        
+                    </Grid>
+                </Typography>
 
-            <Box
-                sx={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                    gap: 0.75,
-                    mt: 1,
-                }}
-            >
-                {metrics.segments.map((segment) => (
-                    <LegendItem
-                        key={segment.key}
-                        color={segment.color}
-                        label={segment.label}
-                    />
-                ))}
-            </Box>
+                <Divider />
 
-            <Typography
-                sx={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.64rem',
-                    color: 'rgba(255, 255, 255, 0.62)',
-                    mt: 0.75,
-                }}
-            >
-                Y: frame time (ms) · X: recent frames · dashed line = 60 fps budget
-            </Typography>
-        </Box>
+                <PerformanceFrameTimeChart metrics={metrics} />
+
+                <Typography
+                    component='div'
+                    sx={{
+                        fontFamily: 'monospace',
+                        fontSize: '0.64rem',
+                        lineHeight: 1.45,
+                        color: 'rgba(255, 255, 255, 0.62)',
+                    }}
+                >
+                    <Grid container spacing={0.5}>
+                        <Grid size={6}>
+                            <Box component='span'>
+                                X: History (every 1s)
+                            </Box>
+                        </Grid>
+                        <Grid size={6}>
+                            <Box component='span'>
+                            Y: Avg compute (ms)
+                            </Box>
+                        </Grid>
+                    </Grid>
+                </Typography>
+
+                <Divider />
+
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                        gap: 1,
+                    }}
+                >
+                    {metrics.segments.map((segment) => (
+                        <LegendItem
+                            key={segment.key}
+                            color={segment.color}
+                            label={segment.label}
+                        />
+                    ))}
+                    <PeakMarkerLegendItem />
+                    <BudgetLineLegendItem />
+                </Box>
+            </Stack>
+        </Paper>
     )
 }

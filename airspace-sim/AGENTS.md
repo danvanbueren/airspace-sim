@@ -10,7 +10,97 @@ Use the Material UI version installed in this project, not examples from another
 
 When using Material UI APIs, verify patterns against the installed version's documentation or local package types. Avoid deprecated imports, props, styling APIs, or theming patterns from earlier MUI versions.
 
-## Code Formatting And Styling
+### MUI 9 slots, `slotProps`, and styling (read before writing JSX)
+
+This project is on **MUI 9**. Training data from MUI v4–v8 is a common source of bugs here. The most frequent mistake is passing **layout/style props directly on a component** when MUI 9 only forwards a small, explicit prop surface to the underlying DOM node.
+
+#### The React warning you must avoid
+
+If you see:
+
+`React does not recognize the 'alignItems' prop on a DOM element`
+
+…you almost certainly put a style/layout prop on the JSX tag instead of in `sx` or `slotProps`. Fix the callsite; do not work around it with native `<span style={…}>` unless there is a strong reason.
+
+#### Rule 1 — `Box`, `Paper`, `Typography`: use `sx`, not system props
+
+In MUI 9 these components accept **`sx`** (and `component`) for styling. They do **not** accept `alignItems`, `justifyContent`, `flexWrap`, `gap`, `display`, etc. as top-level JSX props.
+
+```jsx
+// Wrong — alignItems leaks to the DOM <div>
+<Box display='flex' alignItems='center' gap={1}>
+
+// Right
+<Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+
+// Also right for panel chrome
+<Paper elevation={0} sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+```
+
+#### Rule 2 — `Stack`: only a few top-level props are valid
+
+`Stack` supports `direction`, `spacing`, `divider`, `useFlexGap`, `component`, `children`, and **`sx`**. It does **not** support `alignItems`, `justifyContent`, or `flexWrap` as top-level props in v9.
+
+```jsx
+// Wrong
+<Stack direction='row' alignItems='center' flexWrap='wrap'>
+
+// Right
+<Stack direction='row' spacing={1} sx={{alignItems: 'center', flexWrap: 'wrap'}}>
+```
+
+#### Rule 3 — composite components use `slotProps`, not `PaperProps` / `*Props`
+
+MUI 9 replaced most `FooProps` passthrough APIs with **`slotProps`**. Each key names an internal **slot** (sub-component). Props under that key are forwarded to that slot's component.
+
+Common slots in this codebase:
+
+| Parent | Slot key | Forwards to | Typical use |
+|--------|----------|-------------|-------------|
+| `Menu`, `Select` `MenuProps` | `paper` | `Paper` | Menu surface styling (`maxHeight`, `zIndex`, nested selectors) |
+| `TextField` | `htmlInput` | native `<input>` | `min` / `max` / `step`, `onKeyDown`, etc. |
+| `Popover`, `Dialog`, `Drawer` | `paper` | `Paper` | Surface layout and theme overrides |
+| `Modal` | `backdrop` | `Backdrop` | Backdrop behavior/styles |
+
+Legacy names like `PaperProps`, `BackdropProps`, and `InputProps` are **not** the v9 pattern. Use `slotProps` instead. (People sometimes say “paperProps” informally — in this repo that means **`slotProps.paper`**.)
+
+**Menu / Select menu surface** — see `getTrackManagementSelectMenuProps` in `app/components/windows/TrackManagementWindow.js`:
+
+```jsx
+slotProps: {
+    paper: {
+        sx: {
+            maxHeight: 320,
+            zIndex: (zIndex ?? 1300) + 1,
+            '& .MuiMenuItem-root': { fontFamily: 'monospace' },
+        },
+    },
+},
+```
+
+**Select inside a map overlay** — `MenuProps.slotProps.paper` in `app/components/map/MapContextMenu.js`.
+
+**TextField native input** — see `TEXT_INPUT_ENTER_BLUR_SLOT_PROPS` in `TrackManagementWindow.js` and `slotProps={{ htmlInput: { min, max, step } }}` on settings fields:
+
+```jsx
+slotProps={{ htmlInput: { min: 500, max: 30000, step: 100 } }}
+```
+
+#### Rule 4 — put layout/styles on the correct layer
+
+| Goal | Do this |
+|------|---------|
+| Style the component's own root | `sx` on `Box` / `Paper` / `Stack` / `Typography` |
+| Style a Menu/Popover/Dialog surface | `slotProps.paper.sx` (or `MenuProps.slotProps.paper` on `Select`) |
+| Style the native input inside `TextField` | `slotProps.htmlInput` |
+| Style a one-off glass panel on the map | `Paper` + `sx` directly (e.g. `PerformanceAnalyticsOverlay`, `MapContextMenu`) |
+
+Do **not** pass `alignItems` through `slotProps.paper` when you own the `Paper` element — put it in that `Paper`'s `sx` instead. `slotProps.paper` is for when **MUI** renders the `Paper` inside a composite component.
+
+#### Rule 5 — verify against installed types
+
+Before adding unfamiliar MUI props, check the component's `.d.ts` under `node_modules/@mui/material/<Component>/` or grep this repo for an existing pattern. If a prop is not listed in the component's public API, assume it will leak to the DOM.
+
 
 Prioritize readability and standardized best practices throughout the codebase. Keep formatting consistent with the surrounding file, use clear names, and prefer straightforward control flow over clever or densely packed code.
 

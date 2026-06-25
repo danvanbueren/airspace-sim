@@ -1,5 +1,5 @@
 import {
-    PERFORMANCE_FRAME_SEGMENTS,
+    PERFORMANCE_MEASURED_FRAME_SEGMENTS,
     PERFORMANCE_HISTORY_LENGTH,
     PERFORMANCE_TARGET_FRAME_MS,
 } from './performanceFrameSegments.js'
@@ -23,9 +23,62 @@ function round(value, digits = 1) {
 function createEmptyFrameAccumulator() {
     return {
         simTickMs: 0,
-        trackSetDataMs: 0,
-        sensorSetDataMs: 0,
+        trackSymbolsSetDataMs: 0,
+        trackVectorsSetDataMs: 0,
+        sensorRadarSetDataMs: 0,
+        sensorIffSetDataMs: 0,
+        viewportSyncMs: 0,
     }
+}
+
+function createEmptyBucketAccumulator() {
+    return {
+        frameCount: 0,
+        frameMsSum: 0,
+        maxFrameMs: 0,
+        maxMeasuredMs: 0,
+        simTickMsSum: 0,
+        trackSymbolsSetDataMsSum: 0,
+        trackVectorsSetDataMsSum: 0,
+        sensorRadarSetDataMsSum: 0,
+        sensorIffSetDataMsSum: 0,
+        viewportSyncMsSum: 0,
+    }
+}
+
+function getMeasuredFrameMs(frame) {
+    return (
+        frame.simTickMs
+        + frame.trackSymbolsSetDataMs
+        + frame.trackVectorsSetDataMs
+        + frame.sensorRadarSetDataMs
+        + frame.sensorIffSetDataMs
+        + frame.viewportSyncMs
+    )
+}
+
+function getBucketMeasuredMsSum(bucket) {
+    return (
+        bucket.simTickMsSum
+        + bucket.trackSymbolsSetDataMsSum
+        + bucket.trackVectorsSetDataMsSum
+        + bucket.sensorRadarSetDataMsSum
+        + bucket.sensorIffSetDataMsSum
+        + bucket.viewportSyncMsSum
+    )
+}
+
+function averageBucketValue(sum, count) {
+    return count > 0 ? sum / count : 0
+}
+
+function addFrameMeasurementsToBucket(bucket, frame) {
+    bucket.simTickMsSum += frame.simTickMs
+    bucket.trackSymbolsSetDataMsSum += frame.trackSymbolsSetDataMs
+    bucket.trackVectorsSetDataMsSum += frame.trackVectorsSetDataMs
+    bucket.sensorRadarSetDataMsSum += frame.sensorRadarSetDataMs
+    bucket.sensorIffSetDataMsSum += frame.sensorIffSetDataMs
+    bucket.viewportSyncMsSum += frame.viewportSyncMs
 }
 
 export class PerformanceMonitor {
@@ -35,13 +88,17 @@ export class PerformanceMonitor {
         this.windowStartedAt = performance.now()
         this.history = []
         this.currentFrame = createEmptyFrameAccumulator()
+        this.currentBucket = createEmptyBucketAccumulator()
 
         this.smoothed = {
             fps: 60,
             frameMs: PERFORMANCE_TARGET_FRAME_MS,
             simTickMs: 0,
-            trackSetDataMs: 0,
-            sensorSetDataMs: 0,
+            trackSymbolsSetDataMs: 0,
+            trackVectorsSetDataMs: 0,
+            sensorRadarSetDataMs: 0,
+            sensorIffSetDataMs: 0,
+            viewportSyncMs: 0,
         }
 
         this.counters = {
@@ -80,6 +137,7 @@ export class PerformanceMonitor {
             this.resetWindow()
             this.history = []
             this.currentFrame = createEmptyFrameAccumulator()
+            this.currentBucket = createEmptyBucketAccumulator()
         }
     }
 
@@ -103,38 +161,81 @@ export class PerformanceMonitor {
         this.counters.viewportSyncs = 0
     }
 
+    absorbStrayMeasurements() {
+        if (!this.enabled || getMeasuredFrameMs(this.currentFrame) <= 0) {
+            return
+        }
+
+        const measuredMs = getMeasuredFrameMs(this.currentFrame)
+        const bucket = this.currentBucket
+
+        addFrameMeasurementsToBucket(bucket, this.currentFrame)
+        bucket.maxMeasuredMs = Math.max(bucket.maxMeasuredMs, measuredMs)
+        this.currentFrame = createEmptyFrameAccumulator()
+        this.latest.updatedAt = performance.now()
+    }
+
     commitFrame(frameMs) {
         if (!this.enabled || !Number.isFinite(frameMs)) {
             return
         }
 
-        const simTickMs = this.currentFrame.simTickMs
-        const trackSetDataMs = this.currentFrame.trackSetDataMs
-        const sensorSetDataMs = this.currentFrame.sensorSetDataMs
-        const measuredMs = simTickMs + trackSetDataMs + sensorSetDataMs
-        const otherMs = Math.max(0, frameMs - Math.min(measuredMs, frameMs))
+        const frame = this.currentFrame
+        const measuredMs = getMeasuredFrameMs(frame)
+        const bucket = this.currentBucket
 
-        this.history.push({
-            frameMs,
-            simTickMs,
-            trackSetDataMs,
-            sensorSetDataMs,
-            otherMs,
-        })
-
-        if (this.history.length > PERFORMANCE_HISTORY_LENGTH) {
-            this.history.shift()
-        }
+        addFrameMeasurementsToBucket(bucket, frame)
+        bucket.frameCount += 1
+        bucket.frameMsSum += frameMs
+        bucket.maxFrameMs = Math.max(bucket.maxFrameMs, frameMs)
+        bucket.maxMeasuredMs = Math.max(bucket.maxMeasuredMs, measuredMs)
 
         this.currentFrame = createEmptyFrameAccumulator()
         this.smoothed.frameMs = smooth(this.smoothed.frameMs, frameMs)
         this.smoothed.fps = smooth(this.smoothed.fps, 1000 / Math.max(frameMs, 0.001))
         this.latest.updatedAt = performance.now()
+    }
+
+    flushBucket() {
+        if (!this.enabled) {
+            return
+        }
+
+        this.absorbStrayMeasurements()
+
+        const bucket = this.currentBucket
+
+        if (bucket.frameCount > 0) {
+            const count = bucket.frameCount
+            const totalMeasuredMs = getBucketMeasuredMsSum(bucket)
+            const otherTotalMs = Math.max(0, bucket.frameMsSum - totalMeasuredMs)
+
+            this.history.push({
+                frameMs: averageBucketValue(bucket.frameMsSum, count),
+                maxFrameMs: bucket.maxFrameMs,
+                maxMeasuredMs: bucket.maxMeasuredMs,
+                simTickMs: averageBucketValue(bucket.simTickMsSum, count),
+                trackSymbolsSetDataMs: averageBucketValue(bucket.trackSymbolsSetDataMsSum, count),
+                trackVectorsSetDataMs: averageBucketValue(bucket.trackVectorsSetDataMsSum, count),
+                sensorRadarSetDataMs: averageBucketValue(bucket.sensorRadarSetDataMsSum, count),
+                sensorIffSetDataMs: averageBucketValue(bucket.sensorIffSetDataMsSum, count),
+                viewportSyncMs: averageBucketValue(bucket.viewportSyncMsSum, count),
+                otherMs: averageBucketValue(otherTotalMs, count),
+                frameCount: count,
+            })
+
+            if (this.history.length > PERFORMANCE_HISTORY_LENGTH) {
+                this.history.shift()
+            }
+        }
+
+        this.currentBucket = createEmptyBucketAccumulator()
+        this.latest.updatedAt = performance.now()
         this.notify()
     }
 
     recordSimTick(durationMs) {
-        if (!this.enabled || !Number.isFinite(durationMs)) {
+        if (!this.enabled || !Number.isFinite(durationMs) || durationMs < 0) {
             return
         }
 
@@ -144,32 +245,53 @@ export class PerformanceMonitor {
         this.latest.updatedAt = performance.now()
     }
 
-    recordTrackSetData(durationMs, {trackFeatures = 0, vectorFeatures = 0} = {}) {
-        if (!this.enabled || !Number.isFinite(durationMs)) {
+    recordTrackSetData({
+        trackSymbolsMs = 0,
+        trackVectorsMs = 0,
+        trackFeatures = 0,
+        vectorFeatures = 0,
+    } = {}) {
+        if (!this.enabled) {
             return
         }
 
-        this.currentFrame.trackSetDataMs += durationMs
-        this.smoothed.trackSetDataMs = smooth(this.smoothed.trackSetDataMs, durationMs)
+        if (Number.isFinite(trackSymbolsMs) && trackSymbolsMs >= 0) {
+            this.currentFrame.trackSymbolsSetDataMs += trackSymbolsMs
+            this.smoothed.trackSymbolsSetDataMs = smooth(this.smoothed.trackSymbolsSetDataMs, trackSymbolsMs)
+        }
+
+        if (Number.isFinite(trackVectorsMs) && trackVectorsMs >= 0) {
+            this.currentFrame.trackVectorsSetDataMs += trackVectorsMs
+            this.smoothed.trackVectorsSetDataMs = smooth(this.smoothed.trackVectorsSetDataMs, trackVectorsMs)
+        }
+
         this.counters.trackSetDataCalls += 1
         this.latest.lastTrackFeatureCount = trackFeatures
         this.latest.lastVectorFeatureCount = vectorFeatures
         this.latest.updatedAt = performance.now()
     }
 
-    recordSensorSetData(durationMs, featureCount = 0) {
-        if (!this.enabled || !Number.isFinite(durationMs)) {
+    recordSensorSetData({radarMs = 0, iffMs = 0, featureCount = 0} = {}) {
+        if (!this.enabled) {
             return
         }
 
-        this.currentFrame.sensorSetDataMs += durationMs
-        this.smoothed.sensorSetDataMs = smooth(this.smoothed.sensorSetDataMs, durationMs)
+        if (Number.isFinite(radarMs) && radarMs >= 0) {
+            this.currentFrame.sensorRadarSetDataMs += radarMs
+            this.smoothed.sensorRadarSetDataMs = smooth(this.smoothed.sensorRadarSetDataMs, radarMs)
+        }
+
+        if (Number.isFinite(iffMs) && iffMs >= 0) {
+            this.currentFrame.sensorIffSetDataMs += iffMs
+            this.smoothed.sensorIffSetDataMs = smooth(this.smoothed.sensorIffSetDataMs, iffMs)
+        }
+
         this.counters.sensorSetDataCalls += 1
         this.latest.lastSensorFeatureCount = featureCount
         this.latest.updatedAt = performance.now()
     }
 
-    recordViewportSync(visibleTrackCount, firmTrackCount) {
+    recordViewportSync(visibleTrackCount, firmTrackCount, durationMs = 0) {
         if (!this.enabled) {
             return
         }
@@ -177,6 +299,12 @@ export class PerformanceMonitor {
         this.counters.viewportSyncs += 1
         this.latest.visibleTrackCount = visibleTrackCount
         this.latest.firmTrackCount = firmTrackCount
+
+        if (Number.isFinite(durationMs) && durationMs >= 0) {
+            this.currentFrame.viewportSyncMs += durationMs
+            this.smoothed.viewportSyncMs = smooth(this.smoothed.viewportSyncMs, durationMs)
+        }
+
         this.latest.updatedAt = performance.now()
     }
 
@@ -232,7 +360,7 @@ export class PerformanceMonitor {
             return PERFORMANCE_TARGET_FRAME_MS
         }
 
-        const totals = this.history.map((sample) => sample.frameMs)
+        const totals = this.history.map((sample) => Math.max(sample.frameMs, sample.maxFrameMs ?? sample.frameMs))
         const sorted = [...totals].sort((left, right) => left - right)
         const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? PERFORMANCE_TARGET_FRAME_MS
 
@@ -246,8 +374,11 @@ export class PerformanceMonitor {
             fps: round(this.smoothed.fps, 1),
             frameMs: round(this.smoothed.frameMs, 2),
             simTickMs: round(this.smoothed.simTickMs, 2),
-            trackSetDataMs: round(this.smoothed.trackSetDataMs, 2),
-            sensorSetDataMs: round(this.smoothed.sensorSetDataMs, 2),
+            trackSymbolsSetDataMs: round(this.smoothed.trackSymbolsSetDataMs, 2),
+            trackVectorsSetDataMs: round(this.smoothed.trackVectorsSetDataMs, 2),
+            sensorRadarSetDataMs: round(this.smoothed.sensorRadarSetDataMs, 2),
+            sensorIffSetDataMs: round(this.smoothed.sensorIffSetDataMs, 2),
+            viewportSyncMs: round(this.smoothed.viewportSyncMs, 2),
             simTicksPerSec: round(rates.simTicksPerSec, 1),
             trackSetDataPerSec: round(rates.trackSetDataPerSec, 1),
             sensorSetDataPerSec: round(rates.sensorSetDataPerSec, 1),
@@ -271,7 +402,7 @@ export class PerformanceMonitor {
             lastSensorFeatureCount: this.latest.lastSensorFeatureCount,
             history: this.history.map((sample) => ({...sample})),
             historyMaxMs: round(this.getHistoryMaxMs(), 2),
-            segments: PERFORMANCE_FRAME_SEGMENTS,
+            segments: PERFORMANCE_MEASURED_FRAME_SEGMENTS,
             targetFrameMs: PERFORMANCE_TARGET_FRAME_MS,
             updatedAt: this.latest.updatedAt,
         }

@@ -243,7 +243,7 @@ export default function AlarmAlertPanel() {
                                         justifyContent: 'center',
                                     }}
                                 >
-                                    <Stack direction='column' spacing={0} alignItems='center'>
+                                    <Stack direction='column' spacing={0} sx={{alignItems: 'center'}}>
                                         {showTrackFocus ? (
                                             <IconButton
                                                 size="small"

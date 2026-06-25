@@ -11,10 +11,11 @@ import {
 } from 'react'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {createPerformanceMonitor} from '@/app/simulation/PerformanceMonitor'
+import {PERFORMANCE_HISTORY_BUCKET_MS} from '@/app/simulation/performanceFrameSegments'
 
 const PerformanceMonitorContext = createContext(null)
 
-const DISPLAY_REFRESH_MS = 250
+const DISPLAY_REFRESH_MS = PERFORMANCE_HISTORY_BUCKET_MS
 
 export function PerformanceMonitorProvider({children}) {
     const {appSettings} = useAppSettings()
@@ -44,10 +45,16 @@ export function PerformanceMonitorProvider({children}) {
             const frameMs = timestamp - lastFrameAt
             lastFrameAt = timestamp
 
-            monitorRef.current.commitFrame(frameMs)
+            queueMicrotask(() => {
+                monitorRef.current.commitFrame(frameMs)
+            })
         }
 
         frameRef = requestAnimationFrame(loop)
+
+        const bucketIntervalId = window.setInterval(() => {
+            monitorRef.current.flushBucket()
+        }, PERFORMANCE_HISTORY_BUCKET_MS)
 
         const resetIntervalId = window.setInterval(() => {
             monitorRef.current.resetWindow()
@@ -58,6 +65,7 @@ export function PerformanceMonitorProvider({children}) {
                 cancelAnimationFrame(frameRef)
             }
 
+            window.clearInterval(bucketIntervalId)
             window.clearInterval(resetIntervalId)
         }
     }, [enabled])
@@ -106,12 +114,10 @@ export function usePerformanceInstrumentation() {
         return {
             enabled: true,
             recordSimTick: (durationMs) => monitor.recordSimTick(durationMs),
-            recordTrackSetData: (durationMs, details) => monitor.recordTrackSetData(durationMs, details),
-            recordSensorSetData: (durationMs, featureCount) => (
-                monitor.recordSensorSetData(durationMs, featureCount)
-            ),
-            recordViewportSync: (visibleTrackCount, firmTrackCount) => (
-                monitor.recordViewportSync(visibleTrackCount, firmTrackCount)
+            recordTrackSetData: (details) => monitor.recordTrackSetData(details),
+            recordSensorSetData: (details) => monitor.recordSensorSetData(details),
+            recordViewportSync: (visibleTrackCount, firmTrackCount, durationMs) => (
+                monitor.recordViewportSync(visibleTrackCount, firmTrackCount, durationMs)
             ),
             updateFromSnapshot: (snapshot, details) => monitor.updateFromSnapshot(snapshot, details),
         }

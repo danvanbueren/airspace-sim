@@ -12,27 +12,33 @@ When enabled, a **semi-transparent** panel (`rgba(0, 0, 0, 0.5)` with backdrop b
 
 | Axis | Meaning |
 |------|---------|
-| **X** | Recent frame history (oldest left, newest right; up to 120 samples) |
-| **Y** | Frame time in milliseconds |
+| **X** | Recent history in 1 s intervals (oldest left, newest right; up to 15 columns ≈ 15 s) |
+| **Y** | Average measured compute time in milliseconds for each interval (scale uses the 95th percentile of recent stacks, minimum 20 ms) |
 
-Each vertical bar is one frame, split into colored segments:
+Each vertical bar is one 1 s interval. Colored segments stack **measured compute only** (averaged across frames in that interval). Idle frame gap is left blank — bars are not stretched to fill the 60 fps budget.
 
 | Color | Segment | Source |
 |-------|---------|--------|
-| Cyan (`#4fc3f7`) | Simulation | `TrackEngine.tick` duration |
-| Amber (`#ffb74d`) | Track setData | Track + vector GeoJSON `setData` |
-| Green (`#81c784`) | Sensor setData | Four sensor layer `setData` calls |
-| Purple (`#b39ddb`) | Other | Remaining frame budget (browser, MapLibre, React, unmeasured) |
+| Cyan (`#4fc3f7`) | Simulation tick | `TrackEngine.tick` duration |
+| Amber (`#ffb74d`) | Track symbols | Track icon GeoJSON `setData` |
+| Deep orange (`#ff8a65`) | Velocity vectors | Track vector GeoJSON `setData` |
+| Green (`#81c784`) | Radar detections | Radar current + history `setData` |
+| Light green (`#66bb6a`) | IFF detections | IFF current + history `setData` |
+| Teal (`#4dd0e1`) | Viewport filter | Map bounds filter + track list sync |
 
-A **dashed horizontal line** at **16.67 ms** marks the 60 fps budget.
+A **red horizontal tick** on each bar marks the **peak measured compute** in that 1 s bucket (worst single frame's instrumented total).
+
+The **Frame** stat above the chart still reflects display refresh interval (RAF spacing, ~16.67 ms at 60 Hz) — that is not the same as measured compute.
+
+A **yellow dashed horizontal line** at **16.67 ms** marks the 60 fps budget and is drawn above the bars so it stays visible.
 
 ### Compact stats
 
-Above the chart: FPS, frame ms, visible track count, firm track count, load factor (highlighted when under pressure).
+Above the chart: FPS, frame ms, tracks in view (viewport), firm track total, load factor (highlighted when under pressure).
 
 ### Update rate
 
-The overlay UI refreshes at **4 Hz** intentionally — fast enough to diagnose spikes without adding measurable React churn while profiling.
+The overlay UI and chart history refresh every **1 s** — each column averages all frames captured in that interval.
 
 ---
 
@@ -51,9 +57,9 @@ The overlay UI refreshes at **4 Hz** intentionally — fast enough to diagnose s
 | Hook location | Records |
 |---------------|---------|
 | `useSimulationLoop.js` | Simulation tick ms, snapshot counts |
-| `useTrackMapLayer.js` | Track/vector `setData` duration and feature counts |
-| `useSensorDetectionMapLayer.js` | Sensor `setData` duration and feature counts |
-| `MapView.js` | Viewport sync counts, snapshot metadata |
+| `useTrackMapLayer.js` | Track symbol and vector `setData` duration and feature counts |
+| `useSensorDetectionMapLayer.js` | Radar and IFF `setData` duration and feature counts |
+| `MapView.js` | Viewport filter/sync duration, snapshot metadata |
 
 When the overlay is **disabled**, hooks are no-ops — zero collection overhead.
 
@@ -91,7 +97,7 @@ Defined in `app/simulation/stressHarness.js`. Measures **simulation tick** time 
 
 1. Enable the overlay
 2. Set quality preset and fleet size to the scenario you care about
-3. Pan and zoom continuously for 10–15 seconds — watch purple (“Other”) grow during map interaction
+3. Pan and zoom continuously for 10–15 seconds — watch track and sensor segments grow during map interaction
 4. Wait for IFF/radar scan intervals — watch cyan (simulation) spike if correlation is hot
 5. Open Chrome DevTools **Performance** panel for GPU and React detail the overlay cannot see
 6. Compare Mercator vs globe if a projection toggle is available

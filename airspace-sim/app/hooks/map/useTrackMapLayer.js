@@ -392,12 +392,18 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         const tracks = Array.from(tracksRef.current.values())
         const featureCollection = createFeatureCollection(tracks, iconSize)
         const vectorFeatureCollection = tracksToVectorFeatureCollection(tracks, map)
-        const setDataStart = performance.now()
 
+        const trackSymbolsStart = performance.now()
         getSource(map)?.setData(featureCollection)
-        map.getSource(TRACK_VECTOR_SOURCE_ID)?.setData(vectorFeatureCollection)
+        const trackSymbolsMs = performance.now() - trackSymbolsStart
 
-        performanceInstrumentation.recordTrackSetData(performance.now() - setDataStart, {
+        const trackVectorsStart = performance.now()
+        map.getSource(TRACK_VECTOR_SOURCE_ID)?.setData(vectorFeatureCollection)
+        const trackVectorsMs = performance.now() - trackVectorsStart
+
+        performanceInstrumentation.recordTrackSetData({
+            trackSymbolsMs,
+            trackVectorsMs,
             trackFeatures: featureCollection.features.length,
             vectorFeatures: vectorFeatureCollection.features.length,
         })

@@ -459,11 +459,11 @@ Sensor and overlay visibility are display-only toggles:
 | Max active flights (global) | Target fleet size |
 | Quality preset | Applies preset Hz and fleet caps |
 | Adaptive performance balancing | Reduces tick rate under frame pressure; does not cull the fleet by viewport |
-| Show performance analytics overlay | Live half-opacity map overlay with stacked frame-time history (simulation, track setData, sensor setData, other) |
+| Show performance analytics overlay | Live half-opacity map overlay with stacked frame-time history (1 s intervals, ~15 s window) broken down by pipeline stage |
 
 ### Development utilities
 
-In development builds, the stress harness is exposed on `window.__airspaceSimStressHarness` (see `app/simulation/stressHarness.js`) for timing benchmarks. Enable **Show performance analytics overlay** in Settings → Simulation to view live FPS, track counts, and a stacked frame-time chart on the map.
+In development builds, the stress harness is exposed on `window.__airspaceSimStressHarness` (see `app/simulation/stressHarness.js`) for timing benchmarks. Enable **Show performance analytics overlay** in Settings → Simulation to view live FPS, tracks in view, firm track totals, and a stacked frame-time chart on the map.
 
 ## Roadmap
 

@@ -2,7 +2,13 @@
 
 import {useEffect, useRef} from 'react'
 import {Box} from '@mui/material'
-import {PERFORMANCE_FRAME_SEGMENTS} from '@/app/simulation/performanceFrameSegments'
+import {
+    PERFORMANCE_BUDGET_LINE_COLOR,
+    PERFORMANCE_HISTORY_LENGTH,
+    PERFORMANCE_MAX_MARKER_COLOR,
+    PERFORMANCE_MEASURED_FRAME_SEGMENTS,
+} from '@/app/simulation/performanceFrameSegments'
+import {getChartScaleMaxMs, getSampleMeasuredMs, msToPlotY} from '@/app/simulation/performanceChartScale'
 
 const CHART_HEIGHT = 132
 const PADDING = {
@@ -12,44 +18,71 @@ const PADDING = {
     left: 34,
 }
 
-function drawChart(canvas, metrics) {
-    const context = canvas.getContext('2d')
+function drawYAxisLabels(context, {plotTop, plotHeight, scaleMaxMs, targetFrameMs, leftPadding}) {
+    const budgetY = msToPlotY(targetFrameMs, {plotTop, plotHeight, scaleMaxMs})
+    const bottomY = plotTop + plotHeight
 
+    context.fillStyle = 'rgba(255, 255, 255, 0.55)'
+    context.font = '10px monospace'
+    context.textAlign = 'right'
+    context.textBaseline = 'middle'
+    context.fillText(String(targetFrameMs), leftPadding - 4, budgetY)
+    context.textBaseline = 'bottom'
+    context.fillText('0', leftPadding - 4, bottomY)
+    context.textBaseline = 'top'
+    context.fillText(String(Math.round(scaleMaxMs)), leftPadding - 4, plotTop)
+
+    return budgetY
+}
+
+function drawBudgetLine(context, {plotWidth, budgetY, leftPadding}) {
+    context.save()
+    context.strokeStyle = PERFORMANCE_BUDGET_LINE_COLOR
+    context.lineWidth = 1.5
+    context.setLineDash([4, 4])
+    context.beginPath()
+    context.moveTo(leftPadding, budgetY)
+    context.lineTo(leftPadding + plotWidth, budgetY)
+    context.stroke()
+    context.setLineDash([])
+    context.restore()
+}
+
+function drawChart(context, metrics, width, height) {
     if (!context) {
         return
     }
 
-    const width = canvas.width
-    const height = canvas.height
+    const plotTop = PADDING.top
     const plotWidth = width - PADDING.left - PADDING.right
     const plotHeight = height - PADDING.top - PADDING.bottom
     const history = metrics.history ?? []
-    const maxMs = Math.max(metrics.historyMaxMs ?? 16.67, metrics.targetFrameMs ?? 16.67, 1)
+    const targetFrameMs = metrics.targetFrameMs ?? 16.67
+    const scaleMaxMs = getChartScaleMaxMs(history, targetFrameMs)
+    const barSlotWidth = plotWidth / PERFORMANCE_HISTORY_LENGTH
+    const historyStartIndex = PERFORMANCE_HISTORY_LENGTH - history.length
+    const barWidth = Math.max(barSlotWidth - 1, 1)
 
     context.clearRect(0, 0, width, height)
 
     context.fillStyle = 'rgba(255, 255, 255, 0.08)'
     context.fillRect(PADDING.left, PADDING.top, plotWidth, plotHeight)
 
-    const budgetY = PADDING.top + plotHeight - ((metrics.targetFrameMs ?? 16.67) / maxMs) * plotHeight
-
-    context.strokeStyle = 'rgba(255, 255, 255, 0.35)'
-    context.setLineDash([4, 4])
-    context.beginPath()
-    context.moveTo(PADDING.left, budgetY)
-    context.lineTo(PADDING.left + plotWidth, budgetY)
-    context.stroke()
-    context.setLineDash([])
-
-    context.fillStyle = 'rgba(255, 255, 255, 0.55)'
-    context.font = '10px monospace'
-    context.textAlign = 'right'
-    context.textBaseline = 'middle'
-    context.fillText(`${metrics.targetFrameMs ?? 16.67}`, PADDING.left - 4, budgetY)
-    context.fillText('0', PADDING.left - 4, PADDING.top + plotHeight)
-    context.fillText(String(Math.round(maxMs)), PADDING.left - 4, PADDING.top)
+    const budgetY = drawYAxisLabels(context, {
+        plotTop,
+        plotHeight,
+        scaleMaxMs,
+        targetFrameMs,
+        leftPadding: PADDING.left,
+    })
 
     if (history.length === 0) {
+        drawBudgetLine(context, {
+            plotWidth,
+            budgetY,
+            leftPadding: PADDING.left,
+        })
+
         context.fillStyle = 'rgba(255, 255, 255, 0.65)'
         context.textAlign = 'center'
         context.textBaseline = 'middle'
@@ -57,32 +90,51 @@ function drawChart(canvas, metrics) {
         return
     }
 
-    const barWidth = Math.max(1, plotWidth / history.length)
-
     history.forEach((sample, index) => {
-        const x = PADDING.left + index * barWidth
-        let yOffset = PADDING.top + plotHeight
+        const columnIndex = historyStartIndex + index
+        const x = PADDING.left + columnIndex * barSlotWidth
+        let yOffset = plotTop + plotHeight
 
-        PERFORMANCE_FRAME_SEGMENTS.forEach((segment) => {
+        PERFORMANCE_MEASURED_FRAME_SEGMENTS.forEach((segment) => {
             const segmentMs = sample[segment.key] ?? 0
 
             if (segmentMs <= 0) {
                 return
             }
 
-            const segmentHeight = (segmentMs / maxMs) * plotHeight
+            const segmentHeight = (segmentMs / scaleMaxMs) * plotHeight
 
             yOffset -= segmentHeight
             context.fillStyle = segment.color
-            context.fillRect(x, yOffset, Math.max(barWidth - 0.5, 1), segmentHeight)
+            context.fillRect(x, yOffset, barWidth, segmentHeight)
         })
+
+        const peakMs = sample.maxMeasuredMs ?? getSampleMeasuredMs(sample)
+
+        if (peakMs > 0) {
+            const peakY = msToPlotY(peakMs, {plotTop, plotHeight, scaleMaxMs})
+
+            context.strokeStyle = PERFORMANCE_MAX_MARKER_COLOR
+            context.lineWidth = 2
+            context.beginPath()
+            context.moveTo(x + 0.5, peakY)
+            context.lineTo(x + barWidth - 0.5, peakY)
+            context.stroke()
+            context.lineWidth = 1
+        }
+    })
+
+    drawBudgetLine(context, {
+        plotWidth,
+        budgetY,
+        leftPadding: PADDING.left,
     })
 
     context.fillStyle = 'rgba(255, 255, 255, 0.55)'
     context.font = '10px monospace'
     context.textAlign = 'center'
     context.textBaseline = 'top'
-    context.fillText('history →', PADDING.left + plotWidth / 2, height - PADDING.bottom + 2)
+    context.fillText('past → now', PADDING.left + plotWidth / 2, height - PADDING.bottom + 2)
 }
 
 export default function PerformanceFrameTimeChart({metrics}) {
@@ -110,9 +162,8 @@ export default function PerformanceFrameTimeChart({metrics}) {
 
             if (context) {
                 context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0)
+                drawChart(context, metrics, width, CHART_HEIGHT)
             }
-
-            drawChart(canvas, metrics)
         }
 
         resize()

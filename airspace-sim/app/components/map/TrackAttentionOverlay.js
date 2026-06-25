@@ -6,7 +6,7 @@ import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {getVisibleTrackAttentionFlags} from '@/app/simulation/trackAttentionFlags'
 import {
     ATTENTION_AMBER,
-    formatAttentionDisplayLines,
+    formatAttentionDisplayEntries,
 } from '@/app/tools/map/trackAttentionDisplay'
 import {useAttentionFlashVisible} from '@/app/hooks/map/useAttentionFlashVisible'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
@@ -61,7 +61,7 @@ export default function TrackAttentionOverlay({
                 return {
                     trackId,
                     flagIds,
-                    displayLines: formatAttentionDisplayLines(flagIds),
+                    displayEntries: formatAttentionDisplayEntries(flagIds),
                 }
             })
             .filter(Boolean)
@@ -138,7 +138,7 @@ export default function TrackAttentionOverlay({
 
     return (
         <>
-            {tracksWithAttentions.map(({trackId, displayLines}) => {
+            {tracksWithAttentions.map(({trackId, displayEntries}) => {
                 const position = positionsByTrackId[trackId]
 
                 if (!position) {
@@ -159,9 +159,9 @@ export default function TrackAttentionOverlay({
                             transition: 'opacity 0.05s linear',
                         }}
                     >
-                        {displayLines.map((line) => (
+                        {displayEntries.map((entry) => (
                             <Box
-                                key={`${trackId}-${line}`}
+                                key={`${trackId}-${entry.key}`}
                                 sx={{
                                     color: ATTENTION_AMBER,
                                     fontFamily: 'monospace',
@@ -172,7 +172,7 @@ export default function TrackAttentionOverlay({
                                     textShadow: '0 0 4px rgba(0, 0, 0, 0.85)',
                                 }}
                             >
-                                {line}
+                                {entry.label}
                             </Box>
                         ))}
                     </Box>

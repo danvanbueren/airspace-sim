@@ -87,12 +87,16 @@ export function useSensorDetectionMapLayer(mapRef, mapReady, snapshot, styleKey)
         const radarHistory = detectionsToFeatureCollection(snap.radar?.history ?? [], SENSOR_TYPES.RADAR, 'history', map)
         const iffCurrent = detectionsToFeatureCollection(snap.iff?.current ?? [], SENSOR_TYPES.IFF, 'current', map)
         const iffHistory = detectionsToFeatureCollection(snap.iff?.history ?? [], SENSOR_TYPES.IFF, 'history', map)
-        const setDataStart = performance.now()
 
+        const radarStart = performance.now()
         map.getSource(SENSOR_SOURCES.radarCurrent)?.setData(radarCurrent)
         map.getSource(SENSOR_SOURCES.radarHistory)?.setData(radarHistory)
+        const radarMs = performance.now() - radarStart
+
+        const iffStart = performance.now()
         map.getSource(SENSOR_SOURCES.iffCurrent)?.setData(iffCurrent)
         map.getSource(SENSOR_SOURCES.iffHistory)?.setData(iffHistory)
+        const iffMs = performance.now() - iffStart
 
         const featureCount = (
             radarCurrent.features.length
@@ -101,7 +105,11 @@ export function useSensorDetectionMapLayer(mapRef, mapReady, snapshot, styleKey)
             + iffHistory.features.length
         )
 
-        performanceInstrumentation.recordSensorSetData(performance.now() - setDataStart, featureCount)
+        performanceInstrumentation.recordSensorSetData({
+            radarMs,
+            iffMs,
+            featureCount,
+        })
 
         return true
     }, [mapRef, performanceInstrumentation])

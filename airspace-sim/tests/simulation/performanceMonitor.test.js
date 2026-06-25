@@ -16,29 +16,61 @@ describe('PerformanceMonitor', () => {
         assert.equal(metrics.history.length, 0)
     })
 
-    it('records per-frame history samples for stacked charts when enabled', () => {
+    it('aggregates per-frame samples into averaged history buckets when enabled', () => {
         const monitor = new PerformanceMonitor()
         monitor.setEnabled(true)
 
         monitor.recordSimTick(8)
-        monitor.recordTrackSetData(3, {trackFeatures: 10, vectorFeatures: 10})
-        monitor.recordSensorSetData(2, 40)
+        monitor.recordTrackSetData({
+            trackSymbolsMs: 2,
+            trackVectorsMs: 1,
+            trackFeatures: 10,
+            vectorFeatures: 10,
+        })
+        monitor.recordSensorSetData({radarMs: 1.5, iffMs: 0.5, featureCount: 40})
+        monitor.recordViewportSync(12, 20, 1)
         monitor.commitFrame(20)
 
         monitor.recordSimTick(4)
         monitor.commitFrame(12)
 
+        monitor.flushBucket()
+
         const metrics = monitor.getMetrics()
 
-        assert.equal(metrics.history.length, 2)
-        assert.equal(metrics.history[0].simTickMs, 8)
-        assert.equal(metrics.history[0].trackSetDataMs, 3)
-        assert.equal(metrics.history[0].sensorSetDataMs, 2)
+        assert.equal(metrics.history.length, 1)
+        assert.equal(metrics.history[0].simTickMs, 6)
+        assert.equal(metrics.history[0].trackSymbolsSetDataMs, 1)
+        assert.equal(metrics.history[0].trackVectorsSetDataMs, 0.5)
+        assert.equal(metrics.history[0].sensorRadarSetDataMs, 0.75)
+        assert.equal(metrics.history[0].sensorIffSetDataMs, 0.25)
+        assert.equal(metrics.history[0].viewportSyncMs, 0.5)
+        assert.equal(metrics.history[0].frameMs, 16)
+        assert.equal(metrics.history[0].maxFrameMs, 20)
+        assert.equal(metrics.history[0].maxMeasuredMs, 14)
         assert.equal(metrics.history[0].otherMs, 7)
-        assert.equal(metrics.history[1].simTickMs, 4)
-        assert.equal(metrics.history[1].otherMs, 8)
+        assert.equal(metrics.history[0].frameCount, 2)
         assert.ok(metrics.historyMaxMs >= 16.67)
-        assert.equal(metrics.segments.length, 4)
+        assert.equal(metrics.segments.length, 6)
+    })
+
+    it('absorbs stray measurements recorded after the last frame commit', () => {
+        const monitor = new PerformanceMonitor()
+        monitor.setEnabled(true)
+
+        monitor.commitFrame(16.67)
+        monitor.recordSimTick(6)
+        monitor.recordTrackSetData({trackSymbolsMs: 1.5, trackVectorsMs: 0.5})
+        monitor.flushBucket()
+
+        const metrics = monitor.getMetrics()
+
+        assert.equal(metrics.history.length, 1)
+        assert.equal(metrics.history[0].frameCount, 1)
+        assert.equal(metrics.history[0].simTickMs, 6)
+        assert.equal(metrics.history[0].trackSymbolsSetDataMs, 1.5)
+        assert.equal(metrics.history[0].trackVectorsSetDataMs, 0.5)
+        assert.ok(Math.abs(metrics.history[0].otherMs - 8.67) < 0.01)
     })
 
     it('tracks smoothed metrics and snapshot fields', () => {

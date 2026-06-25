@@ -277,6 +277,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         const padding = simulationSettings.viewportPaddingDegrees ?? 0.5
 
         const syncVisibleTracks = () => {
+            const syncStart = performance.now()
             const bounds = getExpandedMapBounds(map, padding)
             const visibleTracks = filterTracksByBounds(simulationSnapshot.tracks, bounds)
 
@@ -285,6 +286,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
             performanceInstrumentation.recordViewportSync(
                 visibleTracks.length,
                 simulationSnapshot.tracks.length,
+                performance.now() - syncStart,
             )
         }
 

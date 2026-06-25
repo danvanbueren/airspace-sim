@@ -10,7 +10,7 @@ import {
     deriveAttentionFlagsFromTrackState,
     resolveTrackAttentionFlags,
 } from '../../app/simulation/trackAttentionFlags.js'
-import {formatAttentionDisplayLines} from '../../app/tools/map/trackAttentionDisplay.js'
+import {formatAttentionDisplayEntries, formatAttentionDisplayLines} from '../../app/tools/map/trackAttentionDisplay.js'
 import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
 
 describe('signalDefinitions', () => {
@@ -72,11 +72,21 @@ describe('trackAttentionDisplay', () => {
             'SUSPENDED',
             'EXTRAPOLATED',
             'HOLD',
-            'STALE',
+            'DROP',
             'HOLD',
         ])
 
         assert.equal(lines.length, 5)
         assert.equal(lines[4], '+ 2 MORE')
+    })
+
+    it('assigns stable unique keys when multiple flags share a display label', () => {
+        const entries = formatAttentionDisplayEntries(['IFF_STALE', 'STALE', 'HOLD'])
+
+        assert.deepEqual(entries, [
+            {key: 'IFF_STALE', label: 'STALE'},
+            {key: 'STALE', label: 'STALE'},
+            {key: 'HOLD', label: 'HOLD'},
+        ])
     })
 })
