@@ -1,3 +1,5 @@
+import ConstructionIcon from '@mui/icons-material/Construction'
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh'
 import {Button, Grid, Link, Stack, Typography} from "@mui/material";
 import buildInfo from '../../../../../buildInfo'
 import {ABOUT_ATTRIBUTIONS} from '../../../../../content/about-attributions'
@@ -127,17 +129,31 @@ export default function SettingsModalAboutPage() {
                 Disclaimers
             </Typography>
 
-            <Typography sx={{lineHeight: 1.7, fontWeight: 'normal', mb: 1.5}}>
-                This simulator is a work in progress. Large changes ship regularly, so you may encounter rough edges, regressions, or unexpected behavior. Please report anything that looks wrong in{' '}
-                <Link href={info.githubIssuesLink} target='_blank' rel='noreferrer'>
-                    GitHub Issues
-                </Link>
-                .
-            </Typography>
+            <Grid container spacing={1.5} sx={{mb: 1.5}}>
+                <Grid size='auto'>
+                    <ConstructionIcon sx={{mt: 0.2, color: 'text.secondary'}} />
+                </Grid>
+                <Grid size='grow'>
+                    <Typography sx={{lineHeight: 1.7, fontWeight: 'normal'}}>
+                        This simulator is a work in progress. Large changes ship regularly, so you may encounter rough edges, regressions, or unexpected behavior. Please report anything that looks wrong in{' '}
+                        <Link href={info.githubIssuesLink} target='_blank' rel='noreferrer'>
+                            GitHub Issues
+                        </Link>
+                        .
+                    </Typography>
+                </Grid>
+            </Grid>
 
-            <Typography sx={{lineHeight: 1.7, fontWeight: 'normal', mb: 1.5}}>
-                Development relies heavily on AI-assisted tooling. That pace helps the project move quickly, but it also increases the risk of subtle bugs and incomplete polish. Reporting issues when you find them is essential to keeping this high-speed development tempo sustainable.
-            </Typography>
+            <Grid container spacing={1.5} sx={{mb: 1.5}}>
+                <Grid size='auto'>
+                    <AutoFixHighIcon sx={{mt: 0.2, color: 'text.secondary'}} />
+                </Grid>
+                <Grid size='grow'>
+                    <Typography sx={{lineHeight: 1.7, fontWeight: 'normal'}}>
+                        Development relies heavily on AI-assisted tooling. That pace helps the project move quickly, but it also increases the risk of subtle bugs and incomplete polish. Reporting issues when you find them is essential to keeping this high-speed development tempo sustainable.
+                    </Typography>
+                </Grid>
+            </Grid>
 
             <Typography
                 variant='h6'

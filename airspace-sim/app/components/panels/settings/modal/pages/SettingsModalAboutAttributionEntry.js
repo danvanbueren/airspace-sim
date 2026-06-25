@@ -1,4 +1,22 @@
-import {Link, Typography} from '@mui/material'
+import {Box, Link, Typography} from '@mui/material'
+
+const SUBDUED_LIST_SX = {
+    m: 0,
+    pl: 2,
+    listStyleType: 'disc',
+    listStylePosition: 'outside',
+}
+
+const SUBDUED_ITEM_SX = {
+    display: 'list-item',
+    lineHeight: 1.5,
+    fontSize: 11,
+    color: 'text.secondary',
+    fontWeight: 'normal',
+    '&::marker': {
+        fontSize: 10,
+    },
+}
 
 function AttributionLink({href, children, sx}) {
     if (!href) {
@@ -19,53 +37,42 @@ function AttributionLink({href, children, sx}) {
 
 export default function SettingsModalAboutAttributionEntry({entry}) {
     return (
-        <Typography
-            variant='body2'
-            sx={{
-                lineHeight: 1.7,
-                mb: 1.5,
-                fontWeight: 'normal',
-            }}
-        >
-            <AttributionLink
-                href={entry.projectHref}
-                sx={{fontWeight: 'bold'}}
+        <Box sx={{mb: 1.25}}>
+            <Typography
+                variant='body2'
+                sx={{
+                    lineHeight: 1.6,
+                    fontWeight: 'normal',
+                }}
             >
-                {entry.name}
-            </AttributionLink>
-            {' — '}
-            Author:{' '}
-            <AttributionLink href={entry.authorHref}>
-                {entry.author}
-            </AttributionLink>
-            {' — '}
-            {entry.copyright}
-            {' — '}
-            <AttributionLink href={entry.licenseHref}>
-                {entry.license}
-            </AttributionLink>
-            {entry.repoHref ? (
-                <>
-                    {' — '}
-                    <AttributionLink href={entry.repoHref}>
-                        Repository
-                    </AttributionLink>
-                </>
-            ) : null}
-            {entry.note ? (
-                <Typography
-                    component='span'
-                    display='block'
-                    sx={(theme) => ({
-                        mt: 0.25,
-                        fontSize: 12,
-                        color: theme.palette.text.secondary,
-                        fontWeight: 'normal',
-                    })}
+                <AttributionLink
+                    href={entry.projectHref}
+                    sx={{fontWeight: 'bold'}}
                 >
-                    {entry.note}
+                    {entry.name}
+                </AttributionLink>
+                {' by '}
+                <AttributionLink href={entry.authorHref}>
+                    {entry.author}
+                </AttributionLink>
+                {' — Copyright © '}
+                {entry.copyrightHolder}
+            </Typography>
+
+            <Box component='ul' sx={SUBDUED_LIST_SX}>
+                <Typography component='li' sx={SUBDUED_ITEM_SX}>
+                    License:{' '}
+                    <AttributionLink href={entry.licenseHref}>
+                        {entry.license}
+                    </AttributionLink>
                 </Typography>
-            ) : null}
-        </Typography>
+
+                {entry.note ? (
+                    <Typography component='li' sx={SUBDUED_ITEM_SX}>
+                        {entry.note}
+                    </Typography>
+                ) : null}
+            </Box>
+        </Box>
     )
 }
