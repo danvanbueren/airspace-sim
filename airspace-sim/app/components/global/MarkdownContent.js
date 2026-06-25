@@ -25,6 +25,13 @@ export default function MarkdownContent({source, sx}) {
                     mb: 1,
                     '&:first-of-type': {mt: 0},
                 },
+                '& h3': {
+                    typography: 'subtitle2',
+                    fontWeight: 'bold',
+                    mt: 1.5,
+                    mb: 0.75,
+                    color: 'text.secondary',
+                },
                 '& p': {
                     typography: 'body2',
                     color: 'text.secondary',

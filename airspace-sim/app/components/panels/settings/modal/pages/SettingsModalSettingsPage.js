@@ -2,11 +2,11 @@
 
 import {
     Box,
+    Divider,
     FormControl,
-    FormControlLabel,
-    FormLabel,
-    Radio,
-    RadioGroup,
+    InputLabel,
+    MenuItem,
+    Select,
     Stack,
     Typography,
 } from '@mui/material'
@@ -37,27 +37,26 @@ export default function SettingsModalSettingsPage() {
                     Coordinate format for the cursor tooltip and context menu.
                 </Typography>
 
-                <FormControl>
-                    <FormLabel id='grid-reference-system-label'>
+                <FormControl fullWidth size='small'>
+                    <InputLabel id='grid-reference-system-label'>
                         Display Format
-                    </FormLabel>
-
-                    <RadioGroup
-                        aria-labelledby='grid-reference-system-label'
+                    </InputLabel>
+                    <Select
+                        labelId='grid-reference-system-label'
+                        label='Display Format'
                         value={appSettings.gridReferenceSystem}
                         onChange={(event) => setGridReferenceSystem(event.target.value)}
                     >
                         {Object.values(GRID_REFERENCE_SYSTEMS).map((system) => (
-                            <FormControlLabel
-                                key={system.value}
-                                value={system.value}
-                                control={<Radio/>}
-                                label={`${system.label} - ${system.description}`}
-                            />
+                            <MenuItem key={system.value} value={system.value}>
+                                {system.label} — {system.description}
+                            </MenuItem>
                         ))}
-                    </RadioGroup>
+                    </Select>
                 </FormControl>
             </Box>
+
+            <Divider/>
 
             <SettingsModalSimulationPage/>
 

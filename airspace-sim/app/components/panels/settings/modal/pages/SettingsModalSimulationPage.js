@@ -2,9 +2,10 @@
 
 import {
     Box,
+    Divider,
     FormControl,
     FormControlLabel,
-    FormLabel,
+    InputLabel,
     MenuItem,
     Select,
     Stack,
@@ -13,7 +14,7 @@ import {
 } from '@mui/material'
 import DeferredTextField from '@/app/components/global/DeferredTextField'
 import {QUALITY_PRESET_OPTIONS, useAppSettings} from '@/app/contexts/AppSettingsContext'
-import {QUALITY_PRESETS} from '@/app/simulation/constants'
+import {QUALITY_PRESET_LABELS, QUALITY_PRESETS} from '@/app/simulation/constants'
 import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
 
 const SIMULATION_NUMERIC_FIELDS = [
@@ -53,7 +54,7 @@ export default function SettingsModalSimulationPage() {
     const {appSettings, updateSimulationSettings} = useAppSettings()
 
     return (
-        <Stack spacing={3}>
+        <Stack spacing={3} divider={<Divider/>}>
             <Box>
                 <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
                     Simulation
@@ -120,8 +121,10 @@ export default function SettingsModalSimulationPage() {
             </Stack>
 
             <FormControl size='small' fullWidth>
-                <FormLabel>Quality preset</FormLabel>
+                <InputLabel id='quality-preset-label'>Quality preset</InputLabel>
                 <Select
+                    labelId='quality-preset-label'
+                    label='Quality preset'
                     value={appSettings.qualityPreset}
                     onChange={(event) => {
                         const preset = QUALITY_PRESETS[event.target.value] ?? QUALITY_PRESETS.balanced
@@ -136,7 +139,7 @@ export default function SettingsModalSimulationPage() {
                 >
                     {QUALITY_PRESET_OPTIONS.map((preset) => (
                         <MenuItem key={preset} value={preset}>
-                            {preset}
+                            {QUALITY_PRESET_LABELS[preset] ?? preset}
                         </MenuItem>
                     ))}
                 </Select>
