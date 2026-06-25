@@ -10,17 +10,17 @@ import {
 import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
 
 const KEYBOARD_BINDINGS = [{
-    key: 'panUp', label: 'Pan North', description: 'Moves the map camera north.',
+    key: 'panUp', label: 'Pan North', description: 'Pan the map north.',
 }, {
-    key: 'panRight', label: 'Pan East', description: 'Moves the map camera east.',
+    key: 'panRight', label: 'Pan East', description: 'Pan the map east.',
 }, {
-    key: 'panDown', label: 'Pan South', description: 'Moves the map camera south.',
+    key: 'panDown', label: 'Pan South', description: 'Pan the map south.',
 }, {
-    key: 'panLeft', label: 'Pan West', description: 'Moves the map camera west.',
+    key: 'panLeft', label: 'Pan West', description: 'Pan the map west.',
 }, {
     key: 'panSpeedModifier',
-    label: 'Pan Speed Modifier',
-    description: 'Hold this key to modify camera pan speed.',
+    label: 'Speed Modifier Key',
+    description: 'Hold while panning to apply the speed modifier below.',
 },]
 
 const MOUSE_BUTTON_OPTIONS = [{
@@ -241,7 +241,7 @@ export default function SettingsModalKeybindsPage() {
             <Box>
                 <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'center'}}>
                     <Typography sx={{fontWeight: 'bold'}}>
-                        Slow Pan Speed
+                        Speed Modifier
                     </Typography>
                     <Chip label={`${keyboardCamera.panSpeedMultiplier}x`} size='small'/>
                 </Stack>
@@ -324,7 +324,7 @@ export default function SettingsModalKeybindsPage() {
             <Divider/>
 
             <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                Line/Context Menu Detection Sensitivity
+                Line and Context Menu Sensitivity
             </Typography>
 
             <Box
@@ -335,7 +335,7 @@ export default function SettingsModalKeybindsPage() {
                 }}
             >
                 <TextField
-                    label='Context Menu Max Timeout'
+                    label='Context Menu Timeout'
                     type='number'
                     value={bearingRangeTool.contextMenuMaxMs}
                     onChange={(event) => updateBearingRangeBinding('contextMenuMaxMs', event.target.value)}
@@ -349,7 +349,7 @@ export default function SettingsModalKeybindsPage() {
                 />
 
                 <TextField
-                    label='Context Menu Max Movement'
+                    label='Context Menu Movement Limit'
                     type='number'
                     value={bearingRangeTool.contextMenuMaxPixels}
                     onChange={(event) => updateBearingRangeBinding('contextMenuMaxPixels', event.target.value)}
@@ -380,7 +380,7 @@ export default function SettingsModalKeybindsPage() {
 
         <SettingsModalRestoreDefaultsSection
             label='Restore Default Keybinds'
-            hint='Resets every keyboard, mouse, and sensitivity binding on this page. Settings on other tabs stay exactly as you left them.'
+            hint='Resets all keybinds and mouse settings on this page. Other tabs are unchanged.'
             onClick={handleResetDefaults}
         />
     </Box>)

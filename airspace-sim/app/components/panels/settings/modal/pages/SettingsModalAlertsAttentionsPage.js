@@ -101,9 +101,9 @@ export default function SettingsModalAlertsAttentionsPage() {
         <Stack spacing={4}>
             <Box>
                 <Typography variant='body2' color='text.secondary'>
-                    Track attentions appear on the scope beside affected tracks and in track
-                    management windows. Alarm alerts populate the AlarmAlert panel. Inhibited
-                    signals are suppressed from their respective displays.
+                    Attentions appear beside tracks and in track management windows. Alerts
+                    appear in the alarm panel. Inhibited signals are hidden from their
+                    displays.
                 </Typography>
                 <Typography variant='caption' color='text.secondary' sx={{display: 'block', mt: 1}}>
                     Fallback category: {getSignalDefinition('MISC').label}
@@ -112,7 +112,7 @@ export default function SettingsModalAlertsAttentionsPage() {
 
             <SignalInhibitTable
                 title='Track Attentions'
-                description='On-map attention flags pinned to the right of tracks.'
+                description='Attention flags shown beside tracks on the map.'
                 kind={SIGNAL_KIND.ATTENTION}
                 inhibitedIds={inhibitedAttentions}
                 onToggle={(signalId) => toggleInhibitedSignal(SIGNAL_KIND.ATTENTION, signalId)}
@@ -120,7 +120,7 @@ export default function SettingsModalAlertsAttentionsPage() {
 
             <SignalInhibitTable
                 title='Alarm Alerts'
-                description='Messages shown in the AlarmAlert panel.'
+                description='Alerts shown in the alarm panel.'
                 kind={SIGNAL_KIND.ALERT}
                 inhibitedIds={inhibitedAlerts}
                 onToggle={(signalId) => toggleInhibitedSignal(SIGNAL_KIND.ALERT, signalId)}
@@ -128,7 +128,7 @@ export default function SettingsModalAlertsAttentionsPage() {
 
             <SettingsModalRestoreDefaultsSection
                 label='Restore Default Alerts & Attentions'
-                hint='Clears every inhibition on this page so all signals can appear again. Keybinds, simulation options, and other settings tabs are not affected.'
+                hint='Clears all inhibitions on this page. Other tabs are unchanged.'
                 onClick={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,

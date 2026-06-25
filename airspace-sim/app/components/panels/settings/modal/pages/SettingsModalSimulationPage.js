@@ -31,9 +31,8 @@ export default function SettingsModalSimulationPage() {
                     Simulation
                 </Typography>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
-                    Configure sensor refresh rates, track update frequency, correlation range,
-                    global flight density, adaptive performance behavior, and the live
-                    performance analytics overlay.
+                    Tune sensor refresh rates, track updates, correlation range, flight
+                    density, adaptive performance, and the performance overlay.
                 </Typography>
 
                 <FormControlLabel

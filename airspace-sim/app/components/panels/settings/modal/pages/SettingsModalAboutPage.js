@@ -20,7 +20,7 @@ export default function SettingsModalAboutPage() {
             </Typography>
 
             <Typography sx={{lineHeight: 1.7}}>
-                A spiritual successor to John McCarthy's <Button variant='text' href={info.parrotSourLink} target='_blank' sx={{p:0, m:0}}>ParrotSour</Button>, {info.projectName} is a non-secure simulator intended for use to train on a simulated operational airspace for Command and Control aircrew, operators and controllers. This project is personal, and is not owned, operated, or endorsed by any government entities. This software is unclassified.
+                A spiritual successor to John McCarthy&apos;s <Button variant='text' href={info.parrotSourLink} target='_blank' sx={{p:0, m:0}}>ParrotSour</Button>, {info.projectName} is a non-secure simulator for training Command and Control aircrew, operators, and controllers in a simulated operational environment. This project is personal and is not owned, operated, or endorsed by any government entity. This software is unclassified.
             </Typography>
 
             <Typography
