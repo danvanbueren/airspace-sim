@@ -14,7 +14,7 @@ import {useColorMode} from '@/app/contexts/CustomThemeContext'
 
 export default function SettingsController({modalOpen, setModalOpen}) {
 
-    const [modalState, setModalState] = useState('simulation')
+    const [modalState, setModalState] = useState('lookAndFeel')
 
     const [toolbeltOpen, setToolbeltOpen] = useState(false)
 

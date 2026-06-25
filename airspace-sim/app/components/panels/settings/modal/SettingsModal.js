@@ -21,7 +21,7 @@ const SETTINGS_PAGE_TITLES = {
     about: 'About',
 }
 
-export default function SettingsModal({open, setOpen, state = 'simulation', buildData}) {
+export default function SettingsModal({open, setOpen, state = 'lookAndFeel', buildData}) {
     const pageScrollRef = useRef(null)
 
     useEffect(() => {
