@@ -19,8 +19,7 @@ import {
     SIGNAL_KIND,
 } from '@/app/simulation/signalDefinitions'
 import {DEFAULT_APP_SETTINGS, useAppSettings} from '@/app/contexts/AppSettingsContext'
-import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
-import SettingsModalRestoreAllDefaultsSection from '../SettingsModalRestoreAllDefaultsSection'
+import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 
 function SignalInhibitTable({title, description, kind, inhibitedIds, onToggle}) {
     const signals = getSignalsByKind(kind)
@@ -132,10 +131,10 @@ export default function SettingsModalAlertsAttentionsPage() {
                 onToggle={(signalId) => toggleInhibitedSignal(SIGNAL_KIND.ALERT, signalId)}
             />
 
-            <SettingsModalRestoreDefaultsSection
-                label='Reset Alerts & Attentions Page'
-                hint='Clears inhibitions on this page only.'
-                onClick={() => {
+            <SettingsModalPageRestoreFooter
+                pageLabel='Reset Alerts & Attentions Page'
+                pageHint='Clears inhibitions on this page only.'
+                onPageReset={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
                         inhibitedAttentions: DEFAULT_APP_SETTINGS.inhibitedAttentions,
@@ -143,8 +142,6 @@ export default function SettingsModalAlertsAttentionsPage() {
                     }))
                 }}
             />
-
-            <SettingsModalRestoreAllDefaultsSection/>
         </Stack>
     )
 }

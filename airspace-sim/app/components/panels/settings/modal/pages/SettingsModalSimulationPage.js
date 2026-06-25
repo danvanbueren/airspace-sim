@@ -60,7 +60,7 @@ export default function SettingsModalSimulationPage() {
         <Stack spacing={3} divider={<Divider/>}>
             <Box>
                 <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
-                    Simulation Options
+                    Options
                 </Typography>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
                     Control whether the simulation engine runs and tune sensor refresh
@@ -99,7 +99,7 @@ export default function SettingsModalSimulationPage() {
 
             <Box>
                 <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
-                    Simulation Quality
+                    Quality
                 </Typography>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
                     Set flight density, track update rate, adaptive performance, and

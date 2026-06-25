@@ -3,8 +3,7 @@
 import {Stack} from '@mui/material'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {DEFAULT_SIMULATION_SETTINGS} from '@/app/simulation/constants'
-import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
-import SettingsModalRestoreAllDefaultsSection from '../SettingsModalRestoreAllDefaultsSection'
+import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 import SettingsModalSimulationPage from './SettingsModalSimulationPage'
 
 export default function SettingsModalSimulationEnginePage() {
@@ -14,18 +13,16 @@ export default function SettingsModalSimulationEnginePage() {
         <Stack spacing={3}>
             <SettingsModalSimulationPage/>
 
-            <SettingsModalRestoreDefaultsSection
-                label='Reset Simulation Engine Page'
-                hint='Resets simulation settings on this page only.'
-                onClick={() => {
+            <SettingsModalPageRestoreFooter
+                pageLabel='Reset Simulation Engine Page'
+                pageHint='Resets simulation settings on this page only.'
+                onPageReset={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
                         ...DEFAULT_SIMULATION_SETTINGS,
                     }))
                 }}
             />
-
-            <SettingsModalRestoreAllDefaultsSection/>
         </Stack>
     )
 }

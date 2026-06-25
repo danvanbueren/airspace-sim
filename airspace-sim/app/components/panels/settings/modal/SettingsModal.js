@@ -12,11 +12,11 @@ import SettingsModalAboutPage from './pages/SettingsModalAboutPage'
 import SettingsModalAlertsAttentionsPage from './pages/SettingsModalAlertsAttentionsPage'
 
 const SETTINGS_PAGE_TITLES = {
-    simulation: 'Simulation Engine',
     lookAndFeel: 'Look & Feel',
-    advanced: 'Advanced',
-    keybinds: 'Keybinds',
+    simulation: 'Simulation Engine',
     alerts: 'Alerts & Attentions',
+    keybinds: 'Keybinds',
+    advanced: 'Advanced',
     roadmap: 'Roadmap',
     about: 'About',
 }

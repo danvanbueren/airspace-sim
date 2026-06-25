@@ -9,29 +9,37 @@ export default function SettingsModalRestoreDefaultsSection({
     color = 'warning',
     showDivider = true,
 }) {
+    const buttonBlock = (
+        <Stack spacing={0.5}>
+            <Button
+                variant='contained'
+                color={color}
+                fullWidth
+                onClick={onClick}
+            >
+                {label}
+            </Button>
+            <Typography
+                variant='caption'
+                sx={{
+                    display: 'block',
+                    textAlign: 'center',
+                    color: 'text.secondary',
+                }}
+            >
+                {hint}
+            </Typography>
+        </Stack>
+    )
+
+    if (!showDivider) {
+        return buttonBlock
+    }
+
     return (
         <Stack spacing={2}>
-            {showDivider ? <Divider/> : null}
-            <Stack spacing={1}>
-                <Button
-                    variant='contained'
-                    color={color}
-                    fullWidth
-                    onClick={onClick}
-                >
-                    {label}
-                </Button>
-                <Typography
-                    variant='caption'
-                    sx={{
-                        display: 'block',
-                        textAlign: 'center',
-                        color: 'text.secondary',
-                    }}
-                >
-                    {hint}
-                </Typography>
-            </Stack>
+            <Divider/>
+            {buttonBlock}
         </Stack>
     )
 }

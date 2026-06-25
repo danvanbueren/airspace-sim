@@ -8,8 +8,7 @@ import {
     Typography,
 } from '@mui/material'
 import {DEFAULT_APP_SETTINGS, useAppSettings} from '@/app/contexts/AppSettingsContext'
-import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
-import SettingsModalRestoreAllDefaultsSection from '../SettingsModalRestoreAllDefaultsSection'
+import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 
 export default function SettingsModalAdvancedPage() {
     const {appSettings, updateSimulationSettings, updateAppSettings} = useAppSettings()
@@ -37,18 +36,16 @@ export default function SettingsModalAdvancedPage() {
                 />
             </Box>
 
-            <SettingsModalRestoreDefaultsSection
-                label='Reset Advanced Page'
-                hint='Resets advanced settings on this page only.'
-                onClick={() => {
+            <SettingsModalPageRestoreFooter
+                pageLabel='Reset Advanced Page'
+                pageHint='Resets advanced settings on this page only.'
+                onPageReset={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
                         showPerformanceOverlay: DEFAULT_APP_SETTINGS.showPerformanceOverlay,
                     }))
                 }}
             />
-
-            <SettingsModalRestoreAllDefaultsSection/>
         </Stack>
     )
 }

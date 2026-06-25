@@ -17,8 +17,7 @@ import {
 import {
     formatCoordinatePairForGridReferenceSystem,
 } from '@/app/tools/formatting/GridReferenceFormatting'
-import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
-import SettingsModalRestoreAllDefaultsSection from '../SettingsModalRestoreAllDefaultsSection'
+import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 
 const GRID_REFERENCE_EXAMPLE_LAT = 38.8977
 const GRID_REFERENCE_EXAMPLE_LNG = -77.0365
@@ -70,18 +69,16 @@ export default function SettingsModalLookAndFeelPage() {
                 </Typography>
             </Box>
 
-            <SettingsModalRestoreDefaultsSection
-                label='Reset Look & Feel Page'
-                hint='Resets grid reference settings on this page only.'
-                onClick={() => {
+            <SettingsModalPageRestoreFooter
+                pageLabel='Reset Look & Feel Page'
+                pageHint='Resets grid reference settings on this page only.'
+                onPageReset={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
                         gridReferenceSystem: DEFAULT_APP_SETTINGS.gridReferenceSystem,
                     }))
                 }}
             />
-
-            <SettingsModalRestoreAllDefaultsSection/>
         </Stack>
     )
 }
