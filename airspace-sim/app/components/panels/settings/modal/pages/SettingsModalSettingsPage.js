@@ -20,6 +20,7 @@ import {
     formatCoordinatePairForGridReferenceSystem,
 } from '@/app/tools/formatting/GridReferenceFormatting'
 import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
+import SettingsModalRestoreAllDefaultsSection from '../SettingsModalRestoreAllDefaultsSection'
 import SettingsModalSimulationPage from './SettingsModalSimulationPage'
 
 const GRID_REFERENCE_EXAMPLE_LAT = 38.8977
@@ -81,8 +82,8 @@ export default function SettingsModalSettingsPage() {
             <SettingsModalSimulationPage/>
 
             <SettingsModalRestoreDefaultsSection
-                label='Restore Default Settings'
-                hint='Resets grid reference and simulation options on this page. Other tabs are unchanged.'
+                label='Reset Settings Page'
+                hint='Resets grid reference and simulation options on this page only. Other pages are unchanged.'
                 onClick={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
@@ -92,6 +93,8 @@ export default function SettingsModalSettingsPage() {
                     }))
                 }}
             />
+
+            <SettingsModalRestoreAllDefaultsSection/>
         </Stack>
     )
 }

@@ -1,6 +1,7 @@
 import {Button, Grid, Stack, Typography} from "@mui/material";
 import buildInfo from '../../../../../buildInfo'
 import LatestCommitDisplay from "../../../../global/LatestCommitDisplay";
+import SettingsModalRestoreAllDefaultsSection from '../SettingsModalRestoreAllDefaultsSection';
 
 export default function SettingsModalAboutPage() {
 
@@ -107,6 +108,8 @@ export default function SettingsModalAboutPage() {
 
             <Typography>{info.copyrightTitle}</Typography>
             <Typography sx={(theme) => ({fontSize: 12, color: theme.palette.text.secondary})}>{info.copyrightDescription}</Typography>
+
+            <SettingsModalRestoreAllDefaultsSection/>
         </Stack>
     )
 }

@@ -2,14 +2,14 @@
 
 import {Button, Divider, Stack, Typography} from '@mui/material'
 
-export default function SettingsModalRestoreDefaultsSection({label, hint, onClick}) {
+export default function SettingsModalRestoreDefaultsSection({label, hint, onClick, color = 'warning'}) {
     return (
         <Stack spacing={2}>
             <Divider/>
             <Stack spacing={1}>
                 <Button
                     variant='contained'
-                    color='warning'
+                    color={color}
                     fullWidth
                     onClick={onClick}
                 >
