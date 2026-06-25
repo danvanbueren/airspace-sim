@@ -14,6 +14,14 @@ function getOverlaySize(overlayRef) {
     }
 }
 
+function positionsEqual(leftPosition, rightPosition) {
+    if (!leftPosition || !rightPosition) {
+        return leftPosition === rightPosition
+    }
+
+    return leftPosition.left === rightPosition.left && leftPosition.top === rightPosition.top
+}
+
 function getDefaultOverlayPosition(overlayRef, mapContainerRef) {
     const container = mapContainerRef.current
     const overlaySize = getOverlaySize(overlayRef)
@@ -51,6 +59,23 @@ export function getBoundedPerformanceOverlayPosition(left, top, overlayRef, mapC
     }
 }
 
+function applyBoundedPosition(setPosition, left, top, overlayRef, mapContainerRef) {
+    setPosition((currentPosition) => {
+        const nextPosition = getBoundedPerformanceOverlayPosition(
+            left,
+            top,
+            overlayRef,
+            mapContainerRef,
+        )
+
+        if (positionsEqual(currentPosition, nextPosition)) {
+            return currentPosition
+        }
+
+        return nextPosition
+    })
+}
+
 export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef, enabled}) {
     const [position, setPosition] = useState(null)
     const dragStateRef = useRef(null)
@@ -63,18 +88,13 @@ export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef,
             return
         }
 
-        setPosition((currentPosition) => {
-            if (!currentPosition) {
-                return currentPosition
-            }
-
-            return getBoundedPerformanceOverlayPosition(
-                currentPosition.left,
-                currentPosition.top,
-                overlayRef,
-                mapContainerRef,
-            )
-        })
+        applyBoundedPosition(
+            setPosition,
+            positionRef.current.left,
+            positionRef.current.top,
+            overlayRef,
+            mapContainerRef,
+        )
     }, [mapContainerRef, overlayRef])
 
     useLayoutEffect(() => {
@@ -83,33 +103,44 @@ export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef,
             return
         }
 
-        const defaultPosition = getDefaultOverlayPosition(overlayRef, mapContainerRef)
+        setPosition((currentPosition) => {
+            if (currentPosition) {
+                return currentPosition
+            }
 
-        if (defaultPosition) {
-            setPosition(defaultPosition)
-        }
+            return getDefaultOverlayPosition(overlayRef, mapContainerRef) ?? currentPosition
+        })
     }, [enabled, mapContainerRef, overlayRef])
 
     useLayoutEffect(() => {
         if (!enabled || !mapContainerRef.current) {
-            return
+            return undefined
         }
 
         const container = mapContainerRef.current
+        let frameRef = null
+
         const resizeObserver = new ResizeObserver(() => {
-            syncPositionToBounds()
+            if (frameRef) {
+                return
+            }
+
+            frameRef = requestAnimationFrame(() => {
+                frameRef = null
+                syncPositionToBounds()
+            })
         })
 
         resizeObserver.observe(container)
 
-        if (overlayRef.current) {
-            resizeObserver.observe(overlayRef.current)
-        }
-
         return () => {
             resizeObserver.disconnect()
+
+            if (frameRef) {
+                cancelAnimationFrame(frameRef)
+            }
         }
-    }, [enabled, mapContainerRef, overlayRef, syncPositionToBounds])
+    }, [enabled, mapContainerRef, syncPositionToBounds])
 
     const handlePanelPointerDown = useCallback((event) => {
         event.stopPropagation()
@@ -157,12 +188,7 @@ export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef,
         const left = event.clientX - dragState.containerLeft - dragState.offsetX
         const top = event.clientY - dragState.containerTop - dragState.offsetY
 
-        setPosition(getBoundedPerformanceOverlayPosition(
-            left,
-            top,
-            overlayRef,
-            mapContainerRef,
-        ))
+        applyBoundedPosition(setPosition, left, top, overlayRef, mapContainerRef)
     }, [mapContainerRef, overlayRef])
 
     const handleDragHandlePointerUp = useCallback((event) => {
