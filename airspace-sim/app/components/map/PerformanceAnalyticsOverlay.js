@@ -227,7 +227,11 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                         </Grid>
 
                         <Grid size={3}>
-                            <StatChip label='Load:' value={metrics.loadFactor} warn={metrics.loadFactor < 0.85} />
+                            <StatChip
+                                label='Throttle:'
+                                value={`${Math.round((1 - metrics.loadFactor) * 100)}%`}
+                                warn={metrics.loadFactor < 0.85}
+                            />
                         </Grid>
                         <Grid size={6}>
                             <StatChip label='Tracks Displayed:' value={metrics.visibleTrackCount} />

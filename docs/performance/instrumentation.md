@@ -34,7 +34,7 @@ A **yellow dashed horizontal line** at **16.67 ms** marks the 60 fps budget and 
 
 ### Compact stats
 
-Above the chart: FPS, frame ms, tracks in view (viewport), firm track total, load factor (highlighted when under pressure).
+Above the chart: FPS, frame ms, tracks in view (viewport), firm track total, adaptive throttle % (highlighted above 15%).
 
 ### Update rate
 
@@ -77,7 +77,7 @@ Separate from the overlay, `PerfBudgetController` adjusts simulation tick rate u
 | 0.45 | Aggressive reduction |
 | &lt; 0.35 | May skip simulation steps |
 
-Controlled by **Settings → Simulation → Adaptive performance balancing**. The overlay’s **load factor** and **adaptive level** fields reflect this system.
+Controlled by **Settings → Simulation → Adaptive performance balancing**. The overlay’s **Throttle** stat is how much the engine is backing off from the configured simulation tick rate (0% = no throttling).
 
 ---
 
