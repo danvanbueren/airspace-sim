@@ -34,13 +34,12 @@ export default function SettingsModalSettingsPage() {
                 </Typography>
 
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
-                    Choose the coordinate/grid reference format used in the cursor tooltip,
-                    context menu, and future map features.
+                    Coordinate format for the cursor tooltip and context menu.
                 </Typography>
 
                 <FormControl>
                     <FormLabel id='grid-reference-system-label'>
-                        Display format
+                        Display Format
                     </FormLabel>
 
                     <RadioGroup
@@ -64,7 +63,7 @@ export default function SettingsModalSettingsPage() {
 
             <SettingsModalRestoreDefaultsSection
                 label='Restore Default Settings'
-                hint='Returns grid reference and simulation options on this page to their factory values. Keybinds, alert inhibitions, and other settings tabs remain unchanged.'
+                hint='Resets grid reference and simulation options on this page. Other tabs are unchanged.'
                 onClick={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,

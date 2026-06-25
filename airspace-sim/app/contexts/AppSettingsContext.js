@@ -38,7 +38,7 @@ export const GRID_REFERENCE_SYSTEMS = {
     geohash: {
         value: 'geohash',
         label: 'Geohash',
-        description: 'Public Domain Geocoding System',
+        description: 'Geohash encoding',
     },
     georef: {
         value: 'georef',
