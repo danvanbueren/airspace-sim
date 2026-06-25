@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+function isMapChromePointerTarget(target) {
+    return target instanceof Element && Boolean(target.closest('.maplibregl-ctrl'))
+}
+
 export function useCursorHooks(mapRef, enabled, mapContainerRef) {
     const [cursorInfo, setCursorInfo] = useState(null)
     const animationFrameRef = useRef(null)
@@ -40,7 +44,22 @@ export function useCursorHooks(mapRef, enabled, mapContainerRef) {
             })
         }
 
+        const clearCursorInfo = () => {
+            latestPointerRef.current = null
+            setCursorInfo(null)
+
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current)
+                animationFrameRef.current = null
+            }
+        }
+
         const scheduleCursorUpdate = (event) => {
+            if (isMapChromePointerTarget(event.target)) {
+                clearCursorInfo()
+                return
+            }
+
             const bounds = container.getBoundingClientRect()
 
             latestPointerRef.current = {
@@ -55,8 +74,7 @@ export function useCursorHooks(mapRef, enabled, mapContainerRef) {
         }
 
         const handlePointerLeave = () => {
-            latestPointerRef.current = null
-            setCursorInfo(null)
+            clearCursorInfo()
         }
 
         container.addEventListener('pointermove', scheduleCursorUpdate)

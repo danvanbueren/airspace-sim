@@ -4,6 +4,10 @@ import {Box, Paper, Stack, Typography, Grid, Divider} from '@mui/material'
 import {usePerformanceMetrics} from '@/app/contexts/PerformanceMonitorContext'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import {
+    MAP_GLASS_INSET_PX,
+    MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
+} from '@/app/constants/mapUiLayout'
+import {
     PERFORMANCE_BUDGET_LINE_COLOR,
     PERFORMANCE_MAX_MARKER_COLOR,
 } from '@/app/simulation/performanceFrameSegments'
@@ -130,11 +134,11 @@ export default function PerformanceAnalyticsOverlay() {
             elevation={0}
             sx={{
                 position: 'absolute',
-                right: 16,
-                bottom: 16,
+                right: MAP_GLASS_INSET_PX,
+                bottom: MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
                 zIndex: UI_Z_INDEX.MAP_OVERLAY,
                 width: {xs: 300, sm: 380},
-                maxWidth: 'calc(100% - 32px)',
+                maxWidth: `calc(100% - ${MAP_GLASS_INSET_PX * 2}px)`,
                 pointerEvents: 'none',
                 userSelect: 'none',
                 borderRadius: 1,

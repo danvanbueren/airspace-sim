@@ -40,6 +40,7 @@ import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import TrackAttentionOverlay from './TrackAttentionOverlay'
 import PerformanceAnalyticsOverlay from './PerformanceAnalyticsOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import './mapAttributionTheme.css'
 import {useAlarmAlertActions} from '../../hooks/global/useAlarmAlertActions'
 import {usePerformanceInstrumentation} from '@/app/contexts/PerformanceMonitorContext'
 
@@ -70,6 +71,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
         mapContainerRef,
         initialStyle: mapStyle,
+        colorMode: theme.palette.mode,
         onError: (message) => {
             raiseAlarmAlert({
                 signalId: 'MAP_ERROR',

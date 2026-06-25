@@ -11,7 +11,22 @@ const formatMapLibreErrorMessage = (error) => {
     return `Map error: ${message}`
 }
 
-export function useMapLibreMap({mapContainerRef, initialStyle, onError}) {
+/** MapLibre opens attribution expanded on load; collapse to the info icon once. */
+const collapseMapAttribution = (mapContainer) => {
+    const attribution = mapContainer?.querySelector('.maplibregl-ctrl-attrib')
+    if (!attribution || attribution.classList.contains('maplibregl-attrib-empty')) {
+        return false
+    }
+
+    if (attribution.classList.contains('maplibregl-compact-show')) {
+        attribution.classList.remove('maplibregl-compact-show')
+        attribution.setAttribute('open', '')
+    }
+
+    return true
+}
+
+export function useMapLibreMap({mapContainerRef, initialStyle, colorMode = 'dark', onError}) {
     const mapRef = useRef(null)
     const initialStyleRef = useRef(initialStyle)
     const onErrorRef = useRef(onError)
@@ -22,7 +37,16 @@ export function useMapLibreMap({mapContainerRef, initialStyle, onError}) {
     }, [onError])
 
     useEffect(() => {
+        const container = mapContainerRef.current
+        if (!container) return
+
+        container.dataset.colorMode = colorMode
+    }, [mapContainerRef, colorMode])
+
+    useEffect(() => {
         if (!mapContainerRef.current || mapRef.current) return
+
+        const attributionCollapsedRef = {current: false}
 
         mapRef.current = new maplibregl.Map({
             container: mapContainerRef.current,
@@ -30,10 +54,29 @@ export function useMapLibreMap({mapContainerRef, initialStyle, onError}) {
             style: initialStyleRef.current,
             center: [0, 0],
             zoom: 1,
+            attributionControl: false,
         })
 
+        mapRef.current.addControl(
+            new maplibregl.AttributionControl({compact: true}),
+            'bottom-right',
+        )
+
+        const collapseAttributionOnce = () => {
+            if (attributionCollapsedRef.current) return
+
+            if (collapseMapAttribution(mapContainerRef.current)) {
+                attributionCollapsedRef.current = true
+            }
+        }
+
         const handleMapLoad = () => {
+            collapseAttributionOnce()
             setMapReady(true)
+        }
+
+        const handleSourceData = () => {
+            collapseAttributionOnce()
         }
 
         const handleMapError = (event) => {
@@ -41,10 +84,12 @@ export function useMapLibreMap({mapContainerRef, initialStyle, onError}) {
         }
 
         mapRef.current.on('load', handleMapLoad)
+        mapRef.current.on('sourcedata', handleSourceData)
         mapRef.current.on('error', handleMapError)
 
         return () => {
             mapRef.current?.off('load', handleMapLoad)
+            mapRef.current?.off('sourcedata', handleSourceData)
             mapRef.current?.off('error', handleMapError)
             mapRef.current?.remove()
             mapRef.current = null

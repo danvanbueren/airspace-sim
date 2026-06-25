@@ -1,0 +1,39 @@
+/* Match glass panel inset (`Home.js`: 20px). MapLibre default is 10px. */
+.maplibregl-ctrl-bottom-right > .maplibregl-ctrl-attrib {
+  margin: 0 20px 20px 0;
+}
+
+/* Collapsed: icon-only hit target (MapLibre leaves extra pill padding otherwise). */
+.maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) {
+  box-sizing: border-box;
+  min-height: 24px;
+  padding: 2px;
+  width: 24px;
+}
+
+[data-color-mode='dark'] .maplibregl-ctrl-attrib {
+  background-color: rgba(18, 18, 18, 0.75);
+  color: rgba(255, 255, 255, 0.87);
+}
+
+[data-color-mode='dark'] .maplibregl-ctrl-attrib.maplibregl-compact {
+  background-color: rgba(30, 30, 30, 0.92);
+  color: rgba(255, 255, 255, 0.87);
+}
+
+[data-color-mode='dark'] .maplibregl-ctrl-attrib a {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+[data-color-mode='dark'] .maplibregl-ctrl-attrib a:hover {
+  color: rgba(255, 255, 255, 0.87);
+}
+
+[data-color-mode='dark'] .maplibregl-ctrl-attrib-button {
+  background-color: rgba(255, 255, 255, 0.12);
+  filter: invert(1);
+}
+
+[data-color-mode='dark'] .maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button {
+  background-color: rgba(255, 255, 255, 0.08);
+}
