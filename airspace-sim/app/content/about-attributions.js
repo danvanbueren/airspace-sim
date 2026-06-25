@@ -153,9 +153,12 @@ export const ABOUT_ATTRIBUTIONS = [
     {
         name: 'ParrotSour',
         projectHref: 'https://parrotsour.com/',
+        repoHref: 'https://github.com/jemccarthy13/parrotsour',
         author: 'John McCarthy',
+        authorHref: 'https://github.com/jemccarthy13',
         copyrightHolder: 'John McCarthy',
-        license: 'Inspiration & spiritual predecessor',
-        note: 'Referenced as the spiritual predecessor to Airspace Simulator.',
+        license: 'MIT License',
+        licenseHref: 'https://github.com/jemccarthy13/parrotsour/blob/main/package.json',
+        note: 'Spiritual inspiration for this project.',
     },
 ]
