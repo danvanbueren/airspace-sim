@@ -8,7 +8,7 @@ This folder is for contributor-facing documentation that is **not** shown in the
 
 | Path | Description |
 |------|-------------|
-| [performance/](performance/README.md) | Performance investigation and optimization roadmap |
+| [performance/](performance/README.md) | Performance investigation, validation results, and optimization roadmap |
 
 ## Conventions
 
