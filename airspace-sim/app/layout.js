@@ -18,6 +18,7 @@ import {THEME_COOKIE_NAME} from '@/app/contexts/CustomThemeContext'
 import {MapStateProvider} from './contexts/MapStateContext'
 import {SensorDisplayProvider} from './contexts/SensorDisplayContext'
 import {SimulationProvider} from './contexts/SimulationContext'
+import {PerformanceMonitorProvider} from './contexts/PerformanceMonitorContext'
 
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next"
@@ -48,9 +49,11 @@ export default async function RootLayout({children}) {
                 <AppSettingsProvider initialSettings={appSettingsCookie}>
                     <SensorDisplayProvider>
                         <SimulationProvider>
-                            <ControlBindingsProvider initialBindings={controlBindingsCookie}>
-                                {children}
-                            </ControlBindingsProvider>
+                            <PerformanceMonitorProvider>
+                                <ControlBindingsProvider initialBindings={controlBindingsCookie}>
+                                    {children}
+                                </ControlBindingsProvider>
+                            </PerformanceMonitorProvider>
                         </SimulationProvider>
                     </SensorDisplayProvider>
                 </AppSettingsProvider>

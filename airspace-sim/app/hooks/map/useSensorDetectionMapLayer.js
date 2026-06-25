@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react'
 import {SENSOR_TYPES} from '@/app/simulation/constants'
 import {detectionsToFeatureCollection} from '@/app/simulation/detectionFeatures'
+import {usePerformanceInstrumentation} from '@/app/contexts/PerformanceMonitorContext'
 
 const SENSOR_SOURCES = {
     radarCurrent: 'sensor-radar-current',
@@ -65,6 +66,7 @@ function moveSensorLayersToTop(map) {
 }
 
 export function useSensorDetectionMapLayer(mapRef, mapReady, snapshot, styleKey) {
+    const performanceInstrumentation = usePerformanceInstrumentation()
     const frameRef = useRef(null)
     const viewChangeFrameRef = useRef(null)
     const rehydrateTimeoutRef = useRef(null)
@@ -81,21 +83,28 @@ export function useSensorDetectionMapLayer(mapRef, mapReady, snapshot, styleKey)
             return false
         }
 
-        map.getSource(SENSOR_SOURCES.radarCurrent)?.setData(
-            detectionsToFeatureCollection(snap.radar?.current ?? [], SENSOR_TYPES.RADAR, 'current', map),
-        )
-        map.getSource(SENSOR_SOURCES.radarHistory)?.setData(
-            detectionsToFeatureCollection(snap.radar?.history ?? [], SENSOR_TYPES.RADAR, 'history', map),
-        )
-        map.getSource(SENSOR_SOURCES.iffCurrent)?.setData(
-            detectionsToFeatureCollection(snap.iff?.current ?? [], SENSOR_TYPES.IFF, 'current', map),
-        )
-        map.getSource(SENSOR_SOURCES.iffHistory)?.setData(
-            detectionsToFeatureCollection(snap.iff?.history ?? [], SENSOR_TYPES.IFF, 'history', map),
+        const radarCurrent = detectionsToFeatureCollection(snap.radar?.current ?? [], SENSOR_TYPES.RADAR, 'current', map)
+        const radarHistory = detectionsToFeatureCollection(snap.radar?.history ?? [], SENSOR_TYPES.RADAR, 'history', map)
+        const iffCurrent = detectionsToFeatureCollection(snap.iff?.current ?? [], SENSOR_TYPES.IFF, 'current', map)
+        const iffHistory = detectionsToFeatureCollection(snap.iff?.history ?? [], SENSOR_TYPES.IFF, 'history', map)
+        const setDataStart = performance.now()
+
+        map.getSource(SENSOR_SOURCES.radarCurrent)?.setData(radarCurrent)
+        map.getSource(SENSOR_SOURCES.radarHistory)?.setData(radarHistory)
+        map.getSource(SENSOR_SOURCES.iffCurrent)?.setData(iffCurrent)
+        map.getSource(SENSOR_SOURCES.iffHistory)?.setData(iffHistory)
+
+        const featureCount = (
+            radarCurrent.features.length
+            + radarHistory.features.length
+            + iffCurrent.features.length
+            + iffHistory.features.length
         )
 
+        performanceInstrumentation.recordSensorSetData(performance.now() - setDataStart, featureCount)
+
         return true
-    }, [mapRef])
+    }, [mapRef, performanceInstrumentation])
 
     const ensureLayers = useCallback(() => {
         const map = mapRef.current

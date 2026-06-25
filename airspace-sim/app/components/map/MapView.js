@@ -38,8 +38,10 @@ import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import TrackAttentionOverlay from './TrackAttentionOverlay'
+import PerformanceAnalyticsOverlay from './PerformanceAnalyticsOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import {useAlarmAlertActions} from '../../hooks/global/useAlarmAlertActions'
+import {usePerformanceInstrumentation} from '@/app/contexts/PerformanceMonitorContext'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -51,6 +53,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const {raiseAlarmAlert, registerMap} = useAlarmAlertActions()
     const {upsertManualTrack, dropTrack, recoverTrack, setDropProtect, getTrack, getSimulationTimestamp} = useSimulation()
     const {simulationSettings} = useAppSettings()
+    const performanceInstrumentation = usePerformanceInstrumentation()
     const {isToggleActive} = useSensorDisplay()
     const mapContainerRef = useRef(null)
     const cursorBoxRef = useRef(null)
@@ -279,6 +282,10 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
 
             setMapVisibleTracks(visibleTracks)
             trackMapLayer.replaceTracks(visibleTracks)
+            performanceInstrumentation.recordViewportSync(
+                visibleTracks.length,
+                simulationSnapshot.tracks.length,
+            )
         }
 
         syncVisibleTracks()
@@ -296,6 +303,25 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         simulationSnapshot,
         simulationSettings.viewportPaddingDegrees,
         trackMapLayer,
+        performanceInstrumentation,
+    ])
+
+    useEffect(() => {
+        if (!simulationSnapshot) {
+            return
+        }
+
+        const map = mapRef.current
+
+        performanceInstrumentation.updateFromSnapshot(simulationSnapshot, {
+            maxActiveFlights: simulationSettings.maxActiveFlights,
+            mapZoom: map?.getZoom?.(),
+        })
+    }, [
+        mapRef,
+        performanceInstrumentation,
+        simulationSettings.maxActiveFlights,
+        simulationSnapshot,
     ])
 
     const syncOpenManagementWindows = useCallback(() => {
@@ -508,6 +534,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                 evaluationTime={getSimulationTimestamp()}
                 iffRefreshMs={simulationSettings.iffRefreshMs ?? 1000}
             />
+            <PerformanceAnalyticsOverlay />
 
             {mapOverlayLayer
                 ? createPortal(mapOverlays, mapOverlayLayer)
