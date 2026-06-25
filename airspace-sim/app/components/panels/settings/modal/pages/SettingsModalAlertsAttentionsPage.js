@@ -3,6 +3,7 @@
 import {
     Box,
     Checkbox,
+    Divider,
     Stack,
     Table,
     TableBody,
@@ -110,6 +111,8 @@ export default function SettingsModalAlertsAttentionsPage() {
                 </Typography>
             </Box>
 
+            <Divider/>
+
             <SignalInhibitTable
                 title='Track Attentions'
                 description='Attention flags shown beside tracks on the map.'
@@ -117,6 +120,8 @@ export default function SettingsModalAlertsAttentionsPage() {
                 inhibitedIds={inhibitedAttentions}
                 onToggle={(signalId) => toggleInhibitedSignal(SIGNAL_KIND.ATTENTION, signalId)}
             />
+
+            <Divider/>
 
             <SignalInhibitTable
                 title='Alarm Alerts'

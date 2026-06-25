@@ -55,3 +55,10 @@ export const QUALITY_PRESETS = {
         maxActiveFlights: 1500,
     },
 }
+
+export const QUALITY_PRESET_LABELS = {
+    low: 'Low',
+    balanced: 'Balanced',
+    high: 'High',
+    global_dense: 'Global Dense',
+}
