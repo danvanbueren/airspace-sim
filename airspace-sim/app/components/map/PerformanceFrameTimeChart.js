@@ -5,8 +5,8 @@ import {Box} from '@mui/material'
 import {
     PERFORMANCE_BUDGET_LINE_COLOR,
     PERFORMANCE_HISTORY_LENGTH,
-    PERFORMANCE_MAX_MARKER_COLOR,
     PERFORMANCE_MEASURED_FRAME_SEGMENTS,
+    getAverageMarkerColor,
 } from '@/app/simulation/performanceFrameSegments'
 import {getChartScaleMaxMs, getSampleMeasuredMs, msToPlotY} from '@/app/simulation/performanceChartScale'
 
@@ -33,6 +33,39 @@ function drawYAxisLabels(context, {plotTop, plotHeight, scaleMaxMs, targetFrameM
     context.fillText(String(Math.round(scaleMaxMs)), leftPadding - 4, plotTop)
 
     return budgetY
+}
+
+function drawAverageMarkerLine(context, {x, barWidth, averageY, color}) {
+    const xStart = x + 0.5
+    const xEnd = x + barWidth - 0.5
+
+    context.save()
+    context.lineCap = 'round'
+
+    context.strokeStyle = 'rgba(0, 0, 0, 0.9)'
+    context.lineWidth = 5
+    context.beginPath()
+    context.moveTo(xStart, averageY)
+    context.lineTo(xEnd, averageY)
+    context.stroke()
+
+    context.strokeStyle = 'rgba(255, 255, 255, 0.45)'
+    context.lineWidth = 3.5
+    context.beginPath()
+    context.moveTo(xStart, averageY)
+    context.lineTo(xEnd, averageY)
+    context.stroke()
+
+    context.strokeStyle = color
+    context.lineWidth = 2.75
+    context.shadowColor = 'rgba(0, 0, 0, 0.85)'
+    context.shadowBlur = 3
+    context.beginPath()
+    context.moveTo(xStart, averageY)
+    context.lineTo(xEnd, averageY)
+    context.stroke()
+
+    context.restore()
 }
 
 function drawBudgetLine(context, {plotWidth, budgetY, leftPadding}) {
@@ -96,7 +129,7 @@ function drawChart(context, metrics, width, height) {
         let yOffset = plotTop + plotHeight
 
         PERFORMANCE_MEASURED_FRAME_SEGMENTS.forEach((segment) => {
-            const segmentMs = sample[segment.key] ?? 0
+            const segmentMs = sample[segment.maxKey] ?? 0
 
             if (segmentMs <= 0) {
                 return
@@ -109,18 +142,17 @@ function drawChart(context, metrics, width, height) {
             context.fillRect(x, yOffset, barWidth, segmentHeight)
         })
 
-        const peakMs = sample.maxMeasuredMs ?? getSampleMeasuredMs(sample)
+        const averageMs = getSampleMeasuredMs(sample)
 
-        if (peakMs > 0) {
-            const peakY = msToPlotY(peakMs, {plotTop, plotHeight, scaleMaxMs})
+        if (averageMs > 0) {
+            const averageY = msToPlotY(averageMs, {plotTop, plotHeight, scaleMaxMs})
 
-            context.strokeStyle = PERFORMANCE_MAX_MARKER_COLOR
-            context.lineWidth = 2
-            context.beginPath()
-            context.moveTo(x + 0.5, peakY)
-            context.lineTo(x + barWidth - 0.5, peakY)
-            context.stroke()
-            context.lineWidth = 1
+            drawAverageMarkerLine(context, {
+                x,
+                barWidth,
+                averageY,
+                color: getAverageMarkerColor(averageMs, targetFrameMs),
+            })
         }
     })
 

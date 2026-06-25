@@ -1,3 +1,4 @@
+import {getSampleMaxMeasuredMs, getSampleMeasuredMs} from './performanceChartScale.js'
 import {
     PERFORMANCE_MEASURED_FRAME_SEGMENTS,
     PERFORMANCE_HISTORY_LENGTH,
@@ -43,6 +44,12 @@ function createEmptyBucketAccumulator() {
         sensorRadarSetDataMsSum: 0,
         sensorIffSetDataMsSum: 0,
         viewportSyncMsSum: 0,
+        maxSimTickMs: 0,
+        maxTrackSymbolsSetDataMs: 0,
+        maxTrackVectorsSetDataMs: 0,
+        maxSensorRadarSetDataMs: 0,
+        maxSensorIffSetDataMs: 0,
+        maxViewportSyncMs: 0,
     }
 }
 
@@ -79,6 +86,21 @@ function addFrameMeasurementsToBucket(bucket, frame) {
     bucket.sensorRadarSetDataMsSum += frame.sensorRadarSetDataMs
     bucket.sensorIffSetDataMsSum += frame.sensorIffSetDataMs
     bucket.viewportSyncMsSum += frame.viewportSyncMs
+    bucket.maxSimTickMs = Math.max(bucket.maxSimTickMs, frame.simTickMs)
+    bucket.maxTrackSymbolsSetDataMs = Math.max(
+        bucket.maxTrackSymbolsSetDataMs,
+        frame.trackSymbolsSetDataMs,
+    )
+    bucket.maxTrackVectorsSetDataMs = Math.max(
+        bucket.maxTrackVectorsSetDataMs,
+        frame.trackVectorsSetDataMs,
+    )
+    bucket.maxSensorRadarSetDataMs = Math.max(
+        bucket.maxSensorRadarSetDataMs,
+        frame.sensorRadarSetDataMs,
+    )
+    bucket.maxSensorIffSetDataMs = Math.max(bucket.maxSensorIffSetDataMs, frame.sensorIffSetDataMs)
+    bucket.maxViewportSyncMs = Math.max(bucket.maxViewportSyncMs, frame.viewportSyncMs)
 }
 
 export class PerformanceMonitor {
@@ -92,7 +114,7 @@ export class PerformanceMonitor {
 
         this.smoothed = {
             fps: 60,
-            frameMs: PERFORMANCE_TARGET_FRAME_MS,
+            frameMs: 0,
             simTickMs: 0,
             trackSymbolsSetDataMs: 0,
             trackVectorsSetDataMs: 0,
@@ -191,7 +213,7 @@ export class PerformanceMonitor {
         bucket.maxMeasuredMs = Math.max(bucket.maxMeasuredMs, measuredMs)
 
         this.currentFrame = createEmptyFrameAccumulator()
-        this.smoothed.frameMs = smooth(this.smoothed.frameMs, frameMs)
+        this.smoothed.frameMs = smooth(this.smoothed.frameMs, measuredMs)
         this.smoothed.fps = smooth(this.smoothed.fps, 1000 / Math.max(frameMs, 0.001))
         this.latest.updatedAt = performance.now()
     }
@@ -214,12 +236,19 @@ export class PerformanceMonitor {
                 frameMs: averageBucketValue(bucket.frameMsSum, count),
                 maxFrameMs: bucket.maxFrameMs,
                 maxMeasuredMs: bucket.maxMeasuredMs,
+                avgMeasuredMs: averageBucketValue(totalMeasuredMs, count),
                 simTickMs: averageBucketValue(bucket.simTickMsSum, count),
                 trackSymbolsSetDataMs: averageBucketValue(bucket.trackSymbolsSetDataMsSum, count),
                 trackVectorsSetDataMs: averageBucketValue(bucket.trackVectorsSetDataMsSum, count),
                 sensorRadarSetDataMs: averageBucketValue(bucket.sensorRadarSetDataMsSum, count),
                 sensorIffSetDataMs: averageBucketValue(bucket.sensorIffSetDataMsSum, count),
                 viewportSyncMs: averageBucketValue(bucket.viewportSyncMsSum, count),
+                maxSimTickMs: bucket.maxSimTickMs,
+                maxTrackSymbolsSetDataMs: bucket.maxTrackSymbolsSetDataMs,
+                maxTrackVectorsSetDataMs: bucket.maxTrackVectorsSetDataMs,
+                maxSensorRadarSetDataMs: bucket.maxSensorRadarSetDataMs,
+                maxSensorIffSetDataMs: bucket.maxSensorIffSetDataMs,
+                maxViewportSyncMs: bucket.maxViewportSyncMs,
                 otherMs: averageBucketValue(otherTotalMs, count),
                 frameCount: count,
             })
@@ -360,7 +389,10 @@ export class PerformanceMonitor {
             return PERFORMANCE_TARGET_FRAME_MS
         }
 
-        const totals = this.history.map((sample) => Math.max(sample.frameMs, sample.maxFrameMs ?? sample.frameMs))
+        const totals = this.history.map((sample) => Math.max(
+            getSampleMaxMeasuredMs(sample),
+            sample.maxMeasuredMs ?? 0,
+        ))
         const sorted = [...totals].sort((left, right) => left - right)
         const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? PERFORMANCE_TARGET_FRAME_MS
 

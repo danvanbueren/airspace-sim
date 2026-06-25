@@ -13,9 +13,9 @@ When enabled, a **semi-transparent** panel (`rgba(0, 0, 0, 0.5)` with backdrop b
 | Axis | Meaning |
 |------|---------|
 | **X** | Recent history in 1 s intervals (oldest left, newest right; up to 15 columns ≈ 15 s) |
-| **Y** | Average measured compute time in milliseconds for each interval (scale uses the 95th percentile of recent stacks, minimum 20 ms) |
+| **Y** | Peak measured compute in milliseconds for each interval (scale uses the 95th percentile of recent stacks, minimum 20 ms) |
 
-Each vertical bar is one 1 s interval. Colored segments stack **measured compute only** (averaged across frames in that interval). Idle frame gap is left blank — bars are not stretched to fill the 60 fps budget.
+Each vertical bar is one 1 s interval. Colored segments stack **peak measured compute per segment** within that interval (the highest value each segment reached during the bucket). Idle frame gap is left blank — bars are not stretched to fill the 60 fps budget.
 
 | Color | Segment | Source |
 |-------|---------|--------|
@@ -26,19 +26,21 @@ Each vertical bar is one 1 s interval. Colored segments stack **measured compute
 | Light green (`#66bb6a`) | IFF detections | IFF current + history `setData` |
 | Teal (`#4dd0e1`) | Viewport filter | Map bounds filter + track list sync |
 
-A **red horizontal tick** on each bar marks the **peak measured compute** in that 1 s bucket (worst single frame's instrumented total).
+A **horizontal tick** on each bar marks the **average measured compute** for that 1 s bucket. Its color reflects budget pressure: **green** at or below the 60 fps budget (16.67 ms), **yellow** above 60 fps but at or below the 50 fps budget (20 ms), and **red** above 20 ms.
 
-The **Frame** stat above the chart still reflects display refresh interval (RAF spacing, ~16.67 ms at 60 Hz) — that is not the same as measured compute.
+Per-bucket **averages** are still recorded alongside these peaks for stats and future use.
+
+**FPS** reflects display refresh rate (RAF spacing, ~60 on a 60 Hz panel, higher on high-refresh displays). **Frame Time** is smoothed **measured compute only** — the same instrumented work shown in the chart, excluding idle time between frames.
 
 A **yellow dashed horizontal line** at **16.67 ms** marks the 60 fps budget and is drawn above the bars so it stays visible.
 
 ### Compact stats
 
-Above the chart: FPS, frame ms, tracks in view (viewport), firm track total, adaptive throttle % (highlighted above 15%).
+Above the chart: FPS (display refresh), frame time (measured compute ms), tracks in view (viewport), firm track total, adaptive throttle % (highlighted above 15%).
 
 ### Update rate
 
-The overlay UI and chart history refresh every **1 s** — each column averages all frames captured in that interval.
+The overlay UI and chart history refresh every **1 s** — each column summarizes all frames captured in that interval (stacked peaks plus an average marker).
 
 ---
 

@@ -16,7 +16,7 @@ describe('PerformanceMonitor', () => {
         assert.equal(metrics.history.length, 0)
     })
 
-    it('aggregates per-frame samples into averaged history buckets when enabled', () => {
+    it('aggregates per-frame samples into averaged and peak history buckets when enabled', () => {
         const monitor = new PerformanceMonitor()
         monitor.setEnabled(true)
 
@@ -45,6 +45,13 @@ describe('PerformanceMonitor', () => {
         assert.equal(metrics.history[0].sensorRadarSetDataMs, 0.75)
         assert.equal(metrics.history[0].sensorIffSetDataMs, 0.25)
         assert.equal(metrics.history[0].viewportSyncMs, 0.5)
+        assert.equal(metrics.history[0].maxSimTickMs, 8)
+        assert.equal(metrics.history[0].maxTrackSymbolsSetDataMs, 2)
+        assert.equal(metrics.history[0].maxTrackVectorsSetDataMs, 1)
+        assert.equal(metrics.history[0].maxSensorRadarSetDataMs, 1.5)
+        assert.equal(metrics.history[0].maxSensorIffSetDataMs, 0.5)
+        assert.equal(metrics.history[0].maxViewportSyncMs, 1)
+        assert.equal(metrics.history[0].avgMeasuredMs, 9)
         assert.equal(metrics.history[0].frameMs, 16)
         assert.equal(metrics.history[0].maxFrameMs, 20)
         assert.equal(metrics.history[0].maxMeasuredMs, 14)
@@ -71,6 +78,22 @@ describe('PerformanceMonitor', () => {
         assert.equal(metrics.history[0].trackSymbolsSetDataMs, 1.5)
         assert.equal(metrics.history[0].trackVectorsSetDataMs, 0.5)
         assert.ok(Math.abs(metrics.history[0].otherMs - 8.67) < 0.01)
+    })
+
+    it('tracks measured compute in frameMs, not display refresh interval', () => {
+        const monitor = new PerformanceMonitor()
+        monitor.setEnabled(true)
+
+        for (let index = 0; index < 10; index += 1) {
+            monitor.recordSimTick(5)
+            monitor.commitFrame(index % 2 === 0 ? 8.33 : 16.67)
+        }
+
+        const metrics = monitor.getMetrics()
+
+        assert.ok(metrics.fps > 55)
+        assert.ok(metrics.frameMs > 4)
+        assert.ok(metrics.frameMs < 6)
     })
 
     it('tracks smoothed metrics and snapshot fields', () => {

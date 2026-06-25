@@ -15,8 +15,8 @@ import {
 } from '@/app/components/panels/glass/glassPanelSurface'
 import {usePerformanceAnalyticsOverlayDrag} from '@/app/hooks/map/usePerformanceAnalyticsOverlayDrag'
 import {
+    PERFORMANCE_AVERAGE_MARKER_COLORS,
     PERFORMANCE_BUDGET_LINE_COLOR,
-    PERFORMANCE_MAX_MARKER_COLOR,
 } from '@/app/simulation/performanceFrameSegments'
 import PerformanceFrameTimeChart from './PerformanceFrameTimeChart'
 
@@ -26,20 +26,38 @@ const MONO_LABEL_SX = {
     lineHeight: 1.35,
 }
 
-function PeakMarkerLegendItem() {
+function AverageMarkerLegendItem() {
     return (
-        <Stack direction='row' spacing={0.75} sx={{alignItems: 'center'}}>
-            <Box
-                component='span'
-                sx={{
-                    display: 'inline-block',
-                    width: 14,
-                    borderTop: `2px solid ${PERFORMANCE_MAX_MARKER_COLOR}`,
-                }}
-            />
+        <Stack spacing={0.5}>
             <Typography component='span' sx={{...MONO_LABEL_SX, color: 'rgba(255, 255, 255, 0.88)'}}>
-                Peak compute
+                Average compute
             </Typography>
+            <Stack direction='row' spacing={0.75} sx={{alignItems: 'center'}}>
+                {[
+                    {color: PERFORMANCE_AVERAGE_MARKER_COLORS.withinBudget, label: '≤60 fps'},
+                    {color: PERFORMANCE_AVERAGE_MARKER_COLORS.warning, label: '>60 fps'},
+                    {color: PERFORMANCE_AVERAGE_MARKER_COLORS.overBudget, label: '>50 fps'},
+                ].map((tier) => (
+                    <Stack key={tier.label} direction='row' spacing={0.5} sx={{alignItems: 'center'}}>
+                        <Box
+                            component='span'
+                            sx={{
+                                display: 'inline-block',
+                                width: 12,
+                                borderTop: `2.75px solid ${tier.color}`,
+                                borderRadius: 1,
+                                boxShadow: `0 0 0 1px rgba(0, 0, 0, 0.85), 0 0 0 2px rgba(255, 255, 255, 0.35)`,
+                            }}
+                        />
+                        <Typography
+                            component='span'
+                            sx={{...MONO_LABEL_SX, color: 'rgba(255, 255, 255, 0.62)', fontSize: '0.6rem'}}
+                        >
+                            {tier.label}
+                        </Typography>
+                    </Stack>
+                ))}
+            </Stack>
         </Stack>
     )
 }
@@ -267,7 +285,7 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                         </Grid>
                         <Grid size={6}>
                             <Box component='span'>
-                                Y: Avg compute (ms)
+                                Y: Max compute (ms)
                             </Box>
                         </Grid>
                     </Grid>
@@ -289,9 +307,25 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                             label={segment.label}
                         />
                     ))}
-                    <PeakMarkerLegendItem />
+                    <AverageMarkerLegendItem />
                     <BudgetLineLegendItem />
                 </Box>
+
+                <Divider />
+
+                <Typography
+                    sx={{
+                        fontFamily: 'monospace',
+                        fontSize: '0.6rem',
+                        lineHeight: 1.55,
+                        color: 'rgba(255, 255, 255, 0.55)',
+                    }}
+                >
+                    Colored bar segments show peak measured compute for each workload during that
+                    1 s period. The horizontal line marks average compute for the same period;
+                    it turns green within the 60 fps budget, yellow above 60 fps, and red above
+                    50 fps.
+                </Typography>
             </Stack>
         </Card>
     )

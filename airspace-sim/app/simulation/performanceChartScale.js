@@ -14,10 +14,17 @@ export function getSampleMeasuredMs(sample) {
     )
 }
 
+export function getSampleMaxMeasuredMs(sample) {
+    return PERFORMANCE_MEASURED_FRAME_SEGMENTS.reduce(
+        (sum, segment) => sum + (sample[segment.maxKey] ?? 0),
+        0,
+    )
+}
+
 export function getSamplePeakMs(sample) {
     return Math.max(
         sample.maxMeasuredMs ?? 0,
-        getSampleMeasuredMs(sample),
+        getSampleMaxMeasuredMs(sample),
     )
 }
 
@@ -34,7 +41,7 @@ export function getChartScaleMaxMs(history, targetFrameMs = PERFORMANCE_TARGET_F
     }
 
     const peaks = history
-        .map((sample) => getSampleMeasuredMs(sample))
+        .map((sample) => getSampleMaxMeasuredMs(sample))
         .filter((value) => Number.isFinite(value) && value > 0)
         .sort((left, right) => left - right)
 
