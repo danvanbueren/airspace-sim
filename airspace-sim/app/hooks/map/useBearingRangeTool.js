@@ -518,6 +518,7 @@ export function useBearingRangeTool(mapRef, enabled, {
     const handoffInProgressRef = useRef(false)
     const handoffCancelFnRef = useRef(null)
     const redrawPreviewOverlayRef = useRef(() => {})
+    const syncCommittedLinesToMapRef = useRef(() => {})
 
     bearingRangeBindingsRef.current = bearingRangeBindings
     mapCursorBindingsRef.current = mapCursorBindings
@@ -640,6 +641,7 @@ export function useBearingRangeTool(mapRef, enabled, {
     clearPreviewLabelMarkersRef.current = clearPreviewLabelMarkers
     updatePreviewLabelMarkersRef.current = updatePreviewLabelMarkers
     redrawPreviewOverlayRef.current = redrawPreviewOverlay
+    syncCommittedLinesToMapRef.current = syncCommittedLinesToMap
 
     const rehydrateLayers = useCallback(() => {
         if (rehydrateTimeoutRef.current) {
@@ -666,21 +668,32 @@ export function useBearingRangeTool(mapRef, enabled, {
         attemptRehydrate()
     }, [mapRef, syncCommittedLinesToMap])
 
+    const cancelPendingCommits = useCallback(() => {
+        pendingCommitGenerationRef.current += 1
+        cancelHandoffWait()
+        handoffInProgressRef.current = false
+        handoffDataReadyRef.current = false
+        hidePreviewOverlayOnly()
+    }, [cancelHandoffWait, hidePreviewOverlayOnly])
+
     const removeBearingRangeLine = useCallback((lineId) => {
+        cancelPendingCommits()
+
         setLines((currentLines) => {
             const nextLines = currentLines.filter((line) => line.id !== lineId)
             linesRef.current = nextLines
-            syncCommittedLinesToMap()
             return nextLines
         })
-    }, [syncCommittedLinesToMap])
+        syncCommittedLinesToMap()
+    }, [cancelPendingCommits, syncCommittedLinesToMap])
 
     const clearBearingRangeLines = useCallback(() => {
+        cancelPendingCommits()
         linesRef.current = []
         setLines([])
         removeDragPreview()
         syncCommittedLinesToMap()
-    }, [removeDragPreview, syncCommittedLinesToMap])
+    }, [cancelPendingCommits, removeDragPreview, syncCommittedLinesToMap])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) return
@@ -940,9 +953,14 @@ export function useBearingRangeTool(mapRef, enabled, {
                 try {
                     ensureCommittedLineLayer(map, lineColorRef.current, appliedLineColorRef)
 
-                    const committed = await setCommittedLineDataAsync(map, nextLines)
+                    const committed = await setCommittedLineDataAsync(map, linesRef.current)
 
-                    if (!committed || isHandoffCancelled()) {
+                    if (!committed) {
+                        return
+                    }
+
+                    if (isHandoffCancelled()) {
+                        syncCommittedLinesToMapRef.current()
                         return
                     }
 
@@ -959,7 +977,9 @@ export function useBearingRangeTool(mapRef, enabled, {
                     handoffDataReadyRef.current = false
                     handoffInProgressRef.current = false
 
-                    if (!isHandoffCancelled()) {
+                    if (isHandoffCancelled()) {
+                        syncCommittedLinesToMapRef.current()
+                    } else {
                         hidePreviewOverlayOnlyRef.current()
                     }
                 }
