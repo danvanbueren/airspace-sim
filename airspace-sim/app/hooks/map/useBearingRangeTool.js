@@ -569,10 +569,9 @@ export function useBearingRangeTool(mapRef, enabled, {
     const handoffCancelFnRef = useRef(null)
     const redrawPreviewOverlayRef = useRef(() => {})
     const syncCommittedLinesToMapRef = useRef(() => {})
-    const publishLinesRef = useRef(() => 0)
-    const requestCommittedLinesFlushRef = useRef(() => Promise.resolve())
-    const committedLinesRevisionRef = useRef(0)
-    const committedLinesFlushChainRef = useRef(Promise.resolve())
+    const setLinesStateRef = useRef(() => {})
+    const queueCommittedLinesAsyncWriteRef = useRef(() => Promise.resolve())
+    const mapWritePromiseRef = useRef(Promise.resolve())
 
     bearingRangeBindingsRef.current = bearingRangeBindings
     mapCursorBindingsRef.current = mapCursorBindings
@@ -583,10 +582,6 @@ export function useBearingRangeTool(mapRef, enabled, {
     const [lines, setLines] = useState([])
     const [isDrawingBearingRangeLine, setIsDrawingBearingRangeLine] = useState(false)
     const [labelWorldVersion, setLabelWorldVersion] = useState(0)
-
-    useEffect(() => {
-        linesRef.current = lines
-    }, [lines])
 
     const syncCommittedLinesToMap = useCallback(() => {
         const map = mapRef.current
@@ -602,46 +597,35 @@ export function useBearingRangeTool(mapRef, enabled, {
         return true
     }, [mapRef])
 
-    const publishLines = useCallback((nextLines) => {
+    const setLinesState = useCallback((nextLines) => {
         linesRef.current = nextLines
-        committedLinesRevisionRef.current += 1
         setLines(nextLines)
-        return committedLinesRevisionRef.current
     }, [])
 
-    const flushCommittedLinesToMap = useCallback(async (revisionAtStart) => {
+    const queueCommittedLinesAsyncWrite = useCallback(() => {
         const map = mapRef.current
 
         if (!map?.isStyleLoaded()) {
-            return
+            return mapWritePromiseRef.current
         }
 
-        ensureCommittedLineLayer(map, lineColorRef.current, appliedLineColorRef)
-        await flushCommittedLineData(map, linesRef.current)
-
-        if (committedLinesRevisionRef.current !== revisionAtStart) {
-            await flushCommittedLinesToMap(committedLinesRevisionRef.current)
-        }
-    }, [mapRef])
-
-    const requestCommittedLinesFlush = useCallback(({immediate = false} = {}) => {
-        const map = mapRef.current
-        const revision = committedLinesRevisionRef.current
-
-        if (immediate) {
-            syncCommittedLinesToMap()
-        }
-
-        if (!map) {
-            return committedLinesFlushChainRef.current
-        }
-
-        committedLinesFlushChainRef.current = committedLinesFlushChainRef.current
+        mapWritePromiseRef.current = mapWritePromiseRef.current
             .catch(() => {})
-            .then(() => flushCommittedLinesToMap(revision))
+            .then(async () => {
+                const mapInstance = mapRef.current
 
-        return committedLinesFlushChainRef.current
-    }, [flushCommittedLinesToMap, syncCommittedLinesToMap])
+                if (!mapInstance?.isStyleLoaded()) {
+                    return
+                }
+
+                ensureCommittedLineLayer(mapInstance, lineColorRef.current, appliedLineColorRef)
+                await flushCommittedLineData(mapInstance, linesRef.current)
+                setCommittedLineData(mapInstance, linesRef.current)
+                moveCommittedLayerToTop(mapInstance)
+            })
+
+        return mapWritePromiseRef.current
+    }, [mapRef])
 
     const clearPreviewLabelMarkers = useCallback(() => {
         previewLabelMarkersRef.current.forEach((marker) => marker.remove())
@@ -739,8 +723,8 @@ export function useBearingRangeTool(mapRef, enabled, {
     updatePreviewLabelMarkersRef.current = updatePreviewLabelMarkers
     redrawPreviewOverlayRef.current = redrawPreviewOverlay
     syncCommittedLinesToMapRef.current = syncCommittedLinesToMap
-    publishLinesRef.current = publishLines
-    requestCommittedLinesFlushRef.current = requestCommittedLinesFlush
+    setLinesStateRef.current = setLinesState
+    queueCommittedLinesAsyncWriteRef.current = queueCommittedLinesAsyncWrite
 
     const rehydrateLayers = useCallback(() => {
         if (rehydrateTimeoutRef.current) {
@@ -773,23 +757,23 @@ export function useBearingRangeTool(mapRef, enabled, {
         handoffInProgressRef.current = false
         handoffDataReadyRef.current = false
         hidePreviewOverlayOnly()
-        committedLinesFlushChainRef.current = Promise.resolve()
     }, [cancelHandoffWait, hidePreviewOverlayOnly])
 
     const removeBearingRangeLine = useCallback((lineId) => {
         cancelPendingCommits()
-
-        publishLines(linesRef.current.filter((line) => line.id !== lineId))
+        setLinesState(linesRef.current.filter((line) => line.id !== lineId))
         removeDragPreview()
-        requestCommittedLinesFlush({immediate: true})
-    }, [cancelPendingCommits, publishLines, removeDragPreview, requestCommittedLinesFlush])
+        syncCommittedLinesToMap()
+        queueCommittedLinesAsyncWrite()
+    }, [cancelPendingCommits, queueCommittedLinesAsyncWrite, removeDragPreview, setLinesState, syncCommittedLinesToMap])
 
     const clearBearingRangeLines = useCallback(() => {
         cancelPendingCommits()
-        publishLines([])
+        setLinesState([])
         removeDragPreview()
-        requestCommittedLinesFlush({immediate: true})
-    }, [cancelPendingCommits, publishLines, removeDragPreview, requestCommittedLinesFlush])
+        syncCommittedLinesToMap()
+        queueCommittedLinesAsyncWrite()
+    }, [cancelPendingCommits, queueCommittedLinesAsyncWrite, removeDragPreview, setLinesState, syncCommittedLinesToMap])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) return
@@ -1037,7 +1021,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 handoffCancelled = true
             }
 
-            publishLinesRef.current(nextLines)
+            setLinesStateRef.current(nextLines)
             clearPreviewLabelMarkersRef.current()
             previewLineRef.current = lineToCommit
 
@@ -1051,7 +1035,8 @@ export function useBearingRangeTool(mapRef, enabled, {
                 )
             }
 
-            requestCommittedLinesFlushRef.current({immediate: true})
+            syncCommittedLinesToMapRef.current()
+            queueCommittedLinesAsyncWriteRef.current()
 
             const isHandoffCancelled = () => (
                 handoffCancelled || pendingCommitGenerationRef.current !== commitGeneration
@@ -1059,9 +1044,10 @@ export function useBearingRangeTool(mapRef, enabled, {
 
             void (async () => {
                 try {
-                    await committedLinesFlushChainRef.current
+                    await mapWritePromiseRef.current
 
                     if (isHandoffCancelled()) {
+                        syncCommittedLinesToMapRef.current()
                         return
                     }
 
@@ -1079,7 +1065,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                     handoffInProgressRef.current = false
 
                     if (isHandoffCancelled()) {
-                        requestCommittedLinesFlushRef.current({immediate: true})
+                        syncCommittedLinesToMapRef.current()
                     } else {
                         hidePreviewOverlayOnlyRef.current()
                     }
