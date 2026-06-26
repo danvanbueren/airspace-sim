@@ -41,11 +41,14 @@ function normalizeAlertInput(input) {
         return {
             signalId,
             message: normalizeAlarmAlertMessage(message),
+            messageIcon: input.messageIcon ?? null,
             trackId: input.trackId ?? null,
             longitude: input.longitude ?? null,
             latitude: input.latitude ?? null,
             raisedAt: input.raisedAt ?? null,
             alarmKey: input.alarmKey ?? null,
+            linkUrl: input.linkUrl ?? null,
+            linkLabel: input.linkLabel ?? null,
         }
     }
 
@@ -123,10 +126,13 @@ export function MapStateProvider({children}) {
                 timestamp: toAlertTimestamp(normalizedAlert.raisedAt),
                 signalId: normalizedAlert.signalId,
                 message: normalizedAlert.message,
+                messageIcon: normalizedAlert.messageIcon ?? null,
                 trackId: normalizedAlert.trackId ?? null,
                 longitude: normalizedAlert.longitude ?? null,
                 latitude: normalizedAlert.latitude ?? null,
                 alarmKey: normalizedAlert.alarmKey ?? null,
+                linkUrl: normalizedAlert.linkUrl ?? null,
+                linkLabel: normalizedAlert.linkLabel ?? null,
             },
         ])
 

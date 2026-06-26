@@ -1,8 +1,8 @@
 'use client'
 
-import {alpha, Box, IconButton, Modal, Stack, Typography} from '@mui/material'
-import DeleteIcon from '@mui/icons-material/Delete'
-import GpsFixedIcon from '@mui/icons-material/GpsFixed'
+import {alpha, Box, Modal, Stack, Typography} from '@mui/material'
+import AlarmAlertActionButtons from './AlarmAlertActionButtons'
+import AlarmAlertMessageContent from './AlarmAlertMessageContent'
 import {formatDateTimeGroup} from '@/app/tools/formatting/DateTime'
 
 const modalStyle = (theme) => ({
@@ -25,13 +25,17 @@ const modalStyle = (theme) => ({
 export default function AlarmAlertDetailModal({
     open,
     message,
+    messageIcon = null,
     timestamp,
     signalLabel,
-    showTrackFocus = false,
+    alert = null,
     onClose,
     onDelete,
     onFocusTrack,
+    onOpenLink,
 }) {
+    const actionAlert = alert ?? {message, messageIcon}
+
     return (
         <Modal
             open={open}
@@ -60,18 +64,14 @@ export default function AlarmAlertDetailModal({
                                 {signalLabel}
                             </Typography>
                         )}
-                        <Typography
-                            component='pre'
-                            sx={{
-                                fontFamily: 'monospace',
+                        <AlarmAlertMessageContent
+                            message={message}
+                            messageIcon={messageIcon}
+                            typographySx={{
                                 fontSize: 14,
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word',
                                 m: 0,
                             }}
-                        >
-                            {message}
-                        </Typography>
+                        />
                         {timestamp && (
                             <Typography
                                 sx={{
@@ -85,32 +85,19 @@ export default function AlarmAlertDetailModal({
                             </Typography>
                         )}
                     </Box>
-                    <Stack
-                        direction='column'
-                        spacing={0.5}
+                    <Box
                         sx={{
                             flexShrink: 0,
                             alignSelf: 'center',
-                            alignItems: 'center',
                         }}
                     >
-                        {showTrackFocus ? (
-                            <IconButton
-                                size='small'
-                                aria-label='center map on track'
-                                onClick={onFocusTrack}
-                            >
-                                <GpsFixedIcon fontSize='small'/>
-                            </IconButton>
-                        ) : null}
-                        <IconButton
-                            size='small'
-                            aria-label='delete alarm'
-                            onClick={onDelete}
-                        >
-                            <DeleteIcon fontSize='small'/>
-                        </IconButton>
-                    </Stack>
+                        <AlarmAlertActionButtons
+                            alert={actionAlert}
+                            onFocusTrack={onFocusTrack}
+                            onOpenLink={onOpenLink}
+                            onDelete={onDelete}
+                        />
+                    </Box>
                 </Stack>
             </Box>
         </Modal>

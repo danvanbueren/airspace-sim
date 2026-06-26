@@ -517,6 +517,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - On-map track attention flags (amber, monospace, synchronized flash) pinned beside tracks; up to five lines with overflow summary. Emergency IFF codes (`7500`, `7600`, `7700`) raise both attention flags and alarm alerts.
 - Automatic drop of uncorrelated tracks after a countdown (invisible DROP-RISK, then visible DROP attention, then removal); drop protect and recover actions in the context menu.
 - Settings page matrix for inhibiting track attentions and alarm alert types; central signal registry in `app/simulation/signalDefinitions.js`.
+- Modular seed alarm alerts on page load (`app/content/seedAlarmAlerts.js`); system notices can include a left-side icon and external link action.
 - Familiar platform silhouettes with MIL-STD-2525 fallback, callsign labels, and speed-scaled heading vectors on the map.
 - Optional **airport** and **air route** overlay layers.
 - Bearing/range drawing, context menus, and line removal controls.
