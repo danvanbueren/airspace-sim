@@ -1,38 +1,44 @@
 'use client'
 
+import {useRef} from 'react'
 import {Box, Button, Stack, Typography} from '@mui/material'
 import buildInfo from '@/app/buildInfo'
 import ClassificationBar from '@/app/components/global/ClassificationBar'
+import {useMobileFallbackFitScale} from '@/app/hooks/global/useMobileFallbackFitScale'
 
 const MOBILE_BAR_SX = {
-    minHeight: 'clamp(1.75rem, 6dvh, 2.5rem)',
-    maxHeight: 'clamp(1.75rem, 6dvh, 2.5rem)',
+    flexShrink: 0,
+    minHeight: '1.75rem',
+    maxHeight: '1.75rem',
     '& .MuiTypography-root': {
-        fontSize: 'clamp(14px, 3.5dvh, 18px)',
+        fontSize: '0.875rem',
     },
 }
+
+const EMOJI_TITLE_GAP = '0.5rem'
+const SECTION_GAP = '1.75rem'
 
 const HEADING_SX = {
     fontWeight: 600,
     lineHeight: 1.2,
-    fontSize: 'clamp(20px, 6dvh, 32px)',
+    fontSize: '1.625rem',
 }
 
 const WARNING_ICON_SX = {
-    fontSize: 'clamp(2.75rem, 11dvh, 4.5rem)',
+    fontSize: '2.75rem',
     lineHeight: 1,
 }
 
 const BODY_SX = {
     lineHeight: 1.5,
-    fontSize: 'clamp(16px, 3.8dvh, 22px)',
+    fontSize: '0.9375rem',
 }
-
-const CONTENT_GAP = 'clamp(0.75rem, 2.5dvh, 1.5rem)'
-const CONTENT_PADDING_Y = 'clamp(0.75rem, 2dvh, 1.5rem)'
 
 export default function UnsupportedMobilePage() {
     const info = buildInfo()
+    const mainRef = useRef(null)
+    const contentRef = useRef(null)
+    const {scale, margins, ready} = useMobileFallbackFitScale(mainRef, contentRef)
 
     return (
         <Box
@@ -49,68 +55,92 @@ export default function UnsupportedMobilePage() {
             <ClassificationBar sx={MOBILE_BAR_SX}/>
             <Box
                 component="main"
+                ref={mainRef}
                 sx={{
                     flex: '1 1 auto',
                     minHeight: 0,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    WebkitOverflowScrolling: 'touch',
+                    overflow: 'hidden',
                     display: 'flex',
-                    flexDirection: 'column',
+                    width: '100%',
                 }}
             >
-                <Stack
-                    spacing={0}
+                <Box
                     sx={{
-                        width: '100%',
-                        maxWidth: '26rem',
-                        mx: 'auto',
-                        my: 'auto',
-                        px: 3,
-                        py: CONTENT_PADDING_Y,
-                        textAlign: 'center',
-                        gap: CONTENT_GAP,
                         boxSizing: 'border-box',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flex: '1 1 auto',
+                        minHeight: 0,
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        pl: `${margins.horizontal}px`,
+                        pr: `${margins.horizontal}px`,
+                        pt: `${margins.vertical}px`,
+                        pb: `${margins.vertical}px`,
                     }}
                 >
                     <Box
-                        component="span"
-                        role="img"
-                        aria-hidden="true"
-                        sx={WARNING_ICON_SX}
-                    >
-                        ⚠️
-                    </Box>
-
-                    <Typography component="h1" variant="inherit" sx={HEADING_SX}>
-                        Unsupported Device
-                    </Typography>
-
-                    <Typography variant="inherit" sx={BODY_SX}>
-                        {info.projectName} is designed for desktop browsers with keyboard and mouse controls. Touch input and small viewports are not supported in this release.
-                    </Typography>
-
-                    <Typography variant="inherit" sx={BODY_SX}>
-                        Please open this app on a desktop or laptop computer for the full simulator experience.
-                    </Typography>
-
-                    <Button
-                        variant="outlined"
-                        size="large"
-                        href={info.githubIssuesLink}
-                        target="_blank"
+                        ref={contentRef}
                         sx={{
-                            alignSelf: 'center',
-                            minHeight: 'clamp(40px, 10dvh, 52px)',
-                            px: 4,
-                            py: 1,
-                            fontSize: 'clamp(16px, 3.8dvh, 21px)',
-                            lineHeight: 1.3,
+                            width: '100%',
+                            transform: `scale(${scale})`,
+                            transformOrigin: 'center center',
+                            visibility: ready ? 'visible' : 'hidden',
                         }}
                     >
-                        Report an issue
-                    </Button>
-                </Stack>
+                        <Stack
+                            spacing={0}
+                            sx={{
+                                width: '100%',
+                                boxSizing: 'border-box',
+                                textAlign: 'center',
+                            }}
+                        >
+                            <Box
+                                component="span"
+                                role="img"
+                                aria-hidden="true"
+                                sx={WARNING_ICON_SX}
+                            >
+                                ⚠️
+                            </Box>
+
+                            <Typography
+                                component="h1"
+                                variant="inherit"
+                                sx={{...HEADING_SX, mt: EMOJI_TITLE_GAP}}
+                            >
+                                Unsupported Device
+                            </Typography>
+
+                            <Typography variant="inherit" sx={{...BODY_SX, mt: SECTION_GAP}}>
+                                {info.projectName} is designed for desktop browsers with keyboard and mouse controls. Touch input and small viewports are not supported in this release.
+                            </Typography>
+
+                            <Typography variant="inherit" sx={{...BODY_SX, mt: SECTION_GAP}}>
+                                Please open this app on a desktop or laptop computer for the full simulator experience.
+                            </Typography>
+
+                            <Button
+                                variant="outlined"
+                                size="large"
+                                href={info.githubIssuesLink}
+                                target="_blank"
+                                sx={{
+                                    alignSelf: 'center',
+                                    mt: SECTION_GAP,
+                                    minHeight: '2.75rem',
+                                    px: 2.5,
+                                    fontSize: '0.9375rem',
+                                    lineHeight: 1.3,
+                                }}
+                            >
+                                Report an issue
+                            </Button>
+                        </Stack>
+                    </Box>
+                </Box>
             </Box>
             <ClassificationBar sx={MOBILE_BAR_SX}/>
         </Box>
