@@ -366,46 +366,25 @@ function resizePreviewOverlay(map, overlay) {
     overlay.style.height = `${height}px`
 }
 
-function buildNormalizedLineScreenSegments(map, line, steps = 48) {
+function buildLineScreenSegments(map, line) {
     const canvas = map.getCanvas()
     const maxScreenJumpX = canvas.clientWidth / 2
     const maxScreenJumpY = canvas.clientHeight / 2
-    const segments = []
-    let currentSegment = []
+    const startPoint = map.project([line.start.lng, line.start.lat])
+    const endPoint = map.project([line.end.lng, line.end.lat])
+    const segment = [
+        {x: startPoint.x, y: startPoint.y},
+        {x: endPoint.x, y: endPoint.y},
+    ]
 
-    for (let step = 0; step <= steps; step += 1) {
-        const progress = step / steps
-        const lng = line.start.lng + ((line.end.lng - line.start.lng) * progress)
-        const lat = line.start.lat + ((line.end.lat - line.start.lat) * progress)
-        const projected = map.project([lng, lat])
-        const point = {x: projected.x, y: projected.y}
+    const deltaX = Math.abs(segment[1].x - segment[0].x)
+    const deltaY = Math.abs(segment[1].y - segment[0].y)
 
-        if (currentSegment.length > 0) {
-            const previousPoint = currentSegment[currentSegment.length - 1]
-            const deltaX = Math.abs(point.x - previousPoint.x)
-            const deltaY = Math.abs(point.y - previousPoint.y)
-
-            if (deltaX > maxScreenJumpX || deltaY > maxScreenJumpY) {
-                if (currentSegment.length >= 2) {
-                    segments.push(currentSegment)
-                }
-
-                currentSegment = [point]
-                continue
-            }
-        }
-
-        currentSegment.push(point)
+    if (deltaX > maxScreenJumpX || deltaY > maxScreenJumpY) {
+        return []
     }
 
-    if (currentSegment.length >= 2) {
-        segments.push(currentSegment)
-    }
-
-    return segments.length > 0 ? segments : [[
-        map.project([line.start.lng, line.start.lat]),
-        map.project([line.end.lng, line.end.lat]),
-    ].map((point) => ({x: point.x, y: point.y}))]
+    return [segment]
 }
 
 function strokeScreenSegments(context, segments, scaleX, scaleY) {
@@ -458,7 +437,7 @@ function drawPreviewOnOverlay(map, overlay, line, lineColor) {
 
     getLineWorldCopyOffsets(map, line).forEach((worldCopyOffset) => {
         const copiedLine = buildCopiedLine(line, worldCopyOffset)
-        const segments = buildNormalizedLineScreenSegments(map, copiedLine)
+        const segments = buildLineScreenSegments(map, copiedLine)
 
         strokeScreenSegments(context, segments, scaleX, scaleY)
     })
