@@ -21,6 +21,8 @@ import {
     PERFORMANCE_TARGET_FRAME_MS,
 } from '@/app/simulation/performanceFrameSegments'
 import PerformanceFrameTimeChart from './PerformanceFrameTimeChart'
+import FpsStatChip from './FpsStatChip'
+import FrameMsStatChip from './FrameMsStatChip'
 
 const MONO_LABEL_SX = {
     fontFamily: 'monospace',
@@ -212,27 +214,31 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                     }}
                 >
                     <Grid container spacing={0.5}>
-                        <Grid size={3}>
-                            <StatChip label='FPS:' value={metrics.fps} />
-                        </Grid>
-
-                        <Grid size={3}>
-                            <StatChip
-                                label='Throttle:'
-                                value={`${Math.round((1 - metrics.loadFactor) * 100)}%`}
-                                warn={metrics.loadFactor < 0.85}
+                        <Grid size={6}>
+                            <FpsStatChip
+                                lowFps={metrics.lowFps}
+                                avgFps={metrics.fps}
                             />
                         </Grid>
                         <Grid size={6}>
                             <StatChip label='Tracks Displayed:' value={metrics.visibleTrackCount} />
                         </Grid>
                         <Grid size={6}>
-                            <StatChip label='Frame Time:' value={metrics.frameMs + ' ms'} />
+                            <FrameMsStatChip
+                                peakMs={metrics.peakFrameMs}
+                                avgMs={metrics.frameMs}
+                            />
                         </Grid>
                         <Grid size={6}>
                             <StatChip label='Tracks Total:' value={metrics.firmTrackCount} />
                         </Grid>
-
+                        <Grid size={12}>
+                            <StatChip
+                                label='Throttle:'
+                                value={`${Math.round((1 - metrics.loadFactor) * 100)}%`}
+                                warn={metrics.loadFactor < 0.85}
+                            />
+                        </Grid>
                     </Grid>
                 </Typography>
 
@@ -308,11 +314,7 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                         color: 'rgba(255, 255, 255, 0.55)',
                     }}
                 >
-                    Colored bar segments show peak measured compute for each workload during that
-                    1 s period. The horizontal line marks average compute for the same period;
-                    it turns green at or below {PERFORMANCE_TARGET_FRAME_MS} ms, yellow above
-                    {PERFORMANCE_TARGET_FRAME_MS} ms but at or below {PERFORMANCE_50FPS_BUDGET_MS} ms,
-                    and red above {PERFORMANCE_50FPS_BUDGET_MS} ms.
+                    {`Colored bar segments show peak measured compute for each workload during each 1 s period. The horizontal line marks average compute for that period; it is colored red when above ${PERFORMANCE_50FPS_BUDGET_MS} ms, yellow when above ${PERFORMANCE_TARGET_FRAME_MS} ms, and green otherwise.`}
                 </Typography>
             </Stack>
         </Card>

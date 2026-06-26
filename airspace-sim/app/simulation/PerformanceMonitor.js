@@ -399,12 +399,30 @@ export class PerformanceMonitor {
         return Math.max(PERFORMANCE_TARGET_FRAME_MS, p95, 1)
     }
 
+    getLivePeakMeasuredMs() {
+        const inFlightMeasuredMs = getMeasuredFrameMs(this.currentFrame)
+
+        return Math.max(this.currentBucket.maxMeasuredMs, inFlightMeasuredMs)
+    }
+
+    getLiveLowFps() {
+        const {maxFrameMs} = this.currentBucket
+
+        if (maxFrameMs > 0) {
+            return 1000 / maxFrameMs
+        }
+
+        return this.smoothed.fps
+    }
+
     getMetrics() {
         const rates = this.getRates()
 
         return {
             fps: round(this.smoothed.fps, 1),
+            lowFps: round(this.getLiveLowFps(), 1),
             frameMs: round(this.smoothed.frameMs, 2),
+            peakFrameMs: round(this.getLivePeakMeasuredMs(), 2),
             simTickMs: round(this.smoothed.simTickMs, 2),
             trackSymbolsSetDataMs: round(this.smoothed.trackSymbolsSetDataMs, 2),
             trackVectorsSetDataMs: round(this.smoothed.trackVectorsSetDataMs, 2),
