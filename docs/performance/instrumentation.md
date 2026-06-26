@@ -30,13 +30,13 @@ A **horizontal tick** on each bar marks the **average measured compute** for tha
 
 Per-bucket **averages** are still recorded alongside these peaks for stats and future use.
 
-**FPS** reflects display refresh rate (RAF spacing, ~60 on a 60 Hz panel, higher on high-refresh displays). **Frame (ms)** shows live peak/average measured compute in the form `peak/avg` (same instrumented work as the chart, excluding idle time between frames). Decimal precision shrinks automatically if the stat does not fit its column.
+**FPS** reflects display refresh rate (RAF spacing, ~60 on a 60 Hz panel, higher on high-refresh displays). **Frame (peak/avg)** shows live peak/average measured compute as `Frame (peak/avg): #/# ms` (same instrumented work as the chart, excluding idle time between frames). Decimal precision shrinks automatically if the stat does not fit its column.
 
 A **yellow dashed horizontal line** at **16.67 ms** marks the 60 fps budget and is drawn above the bars so it stays visible.
 
 ### Compact stats
 
-Above the chart: FPS (display refresh), frame time as `Frame (ms): peak/avg` (measured compute), tracks in view (viewport), firm track total, adaptive throttle % (highlighted above 15%).
+Above the chart: FPS (display refresh), frame time as `Frame (peak/avg): #/# ms`, tracks in view (viewport), firm track total, adaptive throttle % (highlighted above 15%).
 
 ### Update rate
 

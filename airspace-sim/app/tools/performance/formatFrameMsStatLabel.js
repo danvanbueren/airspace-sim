@@ -18,7 +18,7 @@ export function formatFrameMsStatLabel(
     peakFractionDigits = DEFAULT_FRACTION_DIGITS,
     avgFractionDigits = DEFAULT_FRACTION_DIGITS,
 ) {
-    return `Frame (ms): ${formatMsValue(peakMs, peakFractionDigits)}/${formatMsValue(avgMs, avgFractionDigits)}`
+    return `Frame (peak/avg): ${formatMsValue(peakMs, peakFractionDigits)}/${formatMsValue(avgMs, avgFractionDigits)} ms`
 }
 
 export function resolveFittedFrameMsStatLabel(peakMs, avgMs, fits) {

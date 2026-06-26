@@ -312,11 +312,7 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                         color: 'rgba(255, 255, 255, 0.55)',
                     }}
                 >
-                    Colored bar segments show peak measured compute for each workload during that
-                    1 s period. The horizontal line marks average compute for the same period;
-                    it turns green at or below {PERFORMANCE_TARGET_FRAME_MS} ms, yellow above
-                    {PERFORMANCE_TARGET_FRAME_MS} ms but at or below {PERFORMANCE_50FPS_BUDGET_MS} ms,
-                    and red above {PERFORMANCE_50FPS_BUDGET_MS} ms.
+                    {`Colored bar segments show peak measured compute for each workload during each 1 s period. The horizontal line marks average compute for that period; it turns green at or below ${PERFORMANCE_TARGET_FRAME_MS} ms, yellow above ${PERFORMANCE_TARGET_FRAME_MS} ms but at or below ${PERFORMANCE_50FPS_BUDGET_MS} ms, and red above ${PERFORMANCE_50FPS_BUDGET_MS} ms.`}
                 </Typography>
             </Stack>
         </Card>
