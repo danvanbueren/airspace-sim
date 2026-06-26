@@ -94,6 +94,7 @@ describe('PerformanceMonitor', () => {
         assert.ok(metrics.fps > 55)
         assert.ok(metrics.frameMs > 4)
         assert.ok(metrics.frameMs < 6)
+        assert.equal(metrics.peakFrameMs, 5)
     })
 
     it('tracks smoothed metrics and snapshot fields', () => {

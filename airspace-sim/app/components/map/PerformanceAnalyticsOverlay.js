@@ -21,6 +21,7 @@ import {
     PERFORMANCE_TARGET_FRAME_MS,
 } from '@/app/simulation/performanceFrameSegments'
 import PerformanceFrameTimeChart from './PerformanceFrameTimeChart'
+import FrameMsStatChip from './FrameMsStatChip'
 
 const MONO_LABEL_SX = {
     fontFamily: 'monospace',
@@ -227,7 +228,10 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                             <StatChip label='Tracks Displayed:' value={metrics.visibleTrackCount} />
                         </Grid>
                         <Grid size={6}>
-                            <StatChip label='Frame Time:' value={metrics.frameMs + ' ms'} />
+                            <FrameMsStatChip
+                                peakMs={metrics.peakFrameMs}
+                                avgMs={metrics.frameMs}
+                            />
                         </Grid>
                         <Grid size={6}>
                             <StatChip label='Tracks Total:' value={metrics.firmTrackCount} />
