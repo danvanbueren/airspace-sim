@@ -97,11 +97,16 @@ export default function SettingsModalLookAndFeelPage() {
                     >
                         {Object.values(BEARING_RANGE_BEHAVIOR_MODES).map((mode) => (
                             <MenuItem key={mode.value} value={mode.value}>
-                                {mode.label} — {mode.description}
+                                {mode.label}
                             </MenuItem>
                         ))}
                     </Select>
                 </FormControl>
+
+                <Typography variant='body2' color='text.secondary' sx={{mt: 1}}>
+                    {BEARING_RANGE_BEHAVIOR_MODES[appSettings.bearingRangeBehavior]?.description
+                        ?? BEARING_RANGE_BEHAVIOR_MODES.temporary_default.description}
+                </Typography>
             </Box>
 
             <SettingsModalPageRestoreFooter
