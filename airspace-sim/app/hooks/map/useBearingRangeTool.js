@@ -419,7 +419,7 @@ function drawDashedScreenLine(context, fromPoint, toPoint, scaleX, scaleY, lineC
     context.restore()
 }
 
-function drawPreviewOnOverlay(map, overlay, line, lineColor) {
+function drawPreviewOnOverlay(map, overlay, line, lineColor, {showNormalizationGuide = false} = {}) {
     const context = overlay.getContext('2d')
 
     if (!context) {
@@ -442,7 +442,7 @@ function drawPreviewOnOverlay(map, overlay, line, lineColor) {
         strokeScreenSegments(context, segments, scaleX, scaleY)
     })
 
-    if (line.isEndNormalized && line.startPoint && line.endPoint) {
+    if (showNormalizationGuide && line.isEndNormalized && line.startPoint && line.endPoint) {
         const canvas = map.getCanvas()
         const bounds = canvas.getBoundingClientRect()
         const startPoint = {
@@ -632,7 +632,9 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         resizePreviewOverlay(map, overlay)
-        drawPreviewOnOverlay(map, overlay, previewLine, lineColorRef.current)
+        drawPreviewOnOverlay(map, overlay, previewLine, lineColorRef.current, {
+            showNormalizationGuide: isDraggingRef.current,
+        })
     }, [mapRef])
 
     clearDragPreviewRef.current = clearDragPreview
@@ -944,6 +946,17 @@ export function useBearingRangeTool(mapRef, enabled, {
             linesRef.current = nextLines
             clearPreviewLabelMarkersRef.current()
             setLines(nextLines)
+            previewLineRef.current = lineToCommit
+
+            if (previewOverlayRef.current) {
+                drawPreviewOnOverlay(
+                    map,
+                    previewOverlayRef.current,
+                    lineToCommit,
+                    lineColorRef.current,
+                    {showNormalizationGuide: false},
+                )
+            }
 
             const isHandoffCancelled = () => (
                 handoffCancelled || pendingCommitGenerationRef.current !== commitGeneration
@@ -1063,6 +1076,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 previewOverlayRef.current,
                 previewLine,
                 lineColorRef.current,
+                {showNormalizationGuide: true},
             )
             updatePreviewLabelMarkersRef.current(previewLine)
         }
