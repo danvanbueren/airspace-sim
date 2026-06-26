@@ -255,12 +255,21 @@ function isCommittedLineRendered(map, lineId, sampleMapPoints) {
     })
 }
 
-function waitForCommittedLineRendered(map, lineId, line, {timeoutMs = 3000} = {}) {
-    const sampleMapPoints = getLineSampleMapPoints(map, line)
+function waitForCommittedLineRendered(map, lineId, line, {
+    timeoutMs = 1500,
+    isCancelled = () => false,
+} = {}) {
     const deadline = performance.now() + timeoutMs
 
     return new Promise((resolve) => {
         const attempt = () => {
+            if (isCancelled()) {
+                resolve(false)
+                return
+            }
+
+            const sampleMapPoints = getLineSampleMapPoints(map, line)
+
             if (isCommittedLineRendered(map, lineId, sampleMapPoints)) {
                 resolve(true)
                 return
@@ -273,6 +282,8 @@ function waitForCommittedLineRendered(map, lineId, line, {timeoutMs = 3000} = {}
 
             map.once('idle', attempt)
         }
+
+        const sampleMapPoints = getLineSampleMapPoints(map, line)
 
         if (isCommittedLineRendered(map, lineId, sampleMapPoints)) {
             resolve(true)
@@ -445,6 +456,10 @@ export function useBearingRangeTool(mapRef, enabled, {
     const clearPreviewLabelMarkersRef = useRef(() => {})
     const updatePreviewLabelMarkersRef = useRef(() => {})
     const pendingCommitGenerationRef = useRef(0)
+    const handoffDataReadyRef = useRef(false)
+    const handoffInProgressRef = useRef(false)
+    const handoffCancelFnRef = useRef(null)
+    const redrawPreviewOverlayRef = useRef(() => {})
 
     bearingRangeBindingsRef.current = bearingRangeBindings
     mapCursorBindingsRef.current = mapCursorBindings
@@ -538,13 +553,35 @@ export function useBearingRangeTool(mapRef, enabled, {
         previewLineRef.current = null
         removePreviewOverlay(previewOverlayRef.current)
         previewOverlayRef.current = null
+        handoffDataReadyRef.current = false
+        handoffInProgressRef.current = false
     }, [])
+
+    const cancelHandoffWait = useCallback(() => {
+        handoffCancelFnRef.current?.()
+        handoffCancelFnRef.current = null
+        handoffDataReadyRef.current = false
+    }, [])
+
+    const redrawPreviewOverlay = useCallback(() => {
+        const map = mapRef.current
+        const previewLine = previewLineRef.current
+        const overlay = previewOverlayRef.current
+
+        if (!map || !previewLine || !overlay) {
+            return
+        }
+
+        resizePreviewOverlay(map, overlay)
+        drawPreviewOnOverlay(map, overlay, previewLine, lineColorRef.current)
+    }, [mapRef])
 
     clearDragPreviewRef.current = clearDragPreview
     removeDragPreviewRef.current = removeDragPreview
     hidePreviewOverlayOnlyRef.current = hidePreviewOverlayOnly
     clearPreviewLabelMarkersRef.current = clearPreviewLabelMarkers
     updatePreviewLabelMarkersRef.current = updatePreviewLabelMarkers
+    redrawPreviewOverlayRef.current = redrawPreviewOverlay
 
     const rehydrateLayers = useCallback(() => {
         if (rehydrateTimeoutRef.current) {
@@ -629,10 +666,30 @@ export function useBearingRangeTool(mapRef, enabled, {
             syncCommittedLinesToMap()
         }
 
-        const handleResize = () => {
-            if (previewOverlayRef.current) {
-                resizePreviewOverlay(map, previewOverlayRef.current)
+        const handleViewChange = () => {
+            if (!previewOverlayRef.current || !previewLineRef.current) {
+                return
             }
+
+            if (isDraggingRef.current || handoffInProgressRef.current) {
+                redrawPreviewOverlayRef.current()
+
+                if (handoffInProgressRef.current && handoffDataReadyRef.current) {
+                    cancelHandoffWait()
+                    hidePreviewOverlayOnlyRef.current()
+                }
+
+                return
+            }
+
+            if (handoffDataReadyRef.current) {
+                cancelHandoffWait()
+                hidePreviewOverlayOnlyRef.current()
+            }
+        }
+
+        const handleResize = () => {
+            handleViewChange()
         }
 
         rehydrateLayers()
@@ -640,11 +697,15 @@ export function useBearingRangeTool(mapRef, enabled, {
         map.on('style.load', handleStyleLoad)
         map.on('idle', handleIdle)
         map.on('resize', handleResize)
+        map.on('move', handleViewChange)
+        map.on('zoom', handleViewChange)
 
         return () => {
             map.off('style.load', handleStyleLoad)
             map.off('idle', handleIdle)
             map.off('resize', handleResize)
+            map.off('move', handleViewChange)
+            map.off('zoom', handleViewChange)
 
             if (rehydrateTimeoutRef.current) {
                 window.clearTimeout(rehydrateTimeoutRef.current)
@@ -801,27 +862,49 @@ export function useBearingRangeTool(mapRef, enabled, {
             const lineToCommit = createLine(dragStart, endPoint)
             const nextLines = [...linesRef.current, lineToCommit]
             const commitGeneration = pendingCommitGenerationRef.current
+            let handoffCancelled = false
+
+            handoffDataReadyRef.current = false
+            handoffInProgressRef.current = true
+            handoffCancelFnRef.current = () => {
+                handoffCancelled = true
+            }
 
             linesRef.current = nextLines
             clearPreviewLabelMarkersRef.current()
             setLines(nextLines)
 
+            const isHandoffCancelled = () => (
+                handoffCancelled || pendingCommitGenerationRef.current !== commitGeneration
+            )
+
             void (async () => {
-                ensureCommittedLineLayer(map, lineColorRef.current, appliedLineColorRef)
+                try {
+                    ensureCommittedLineLayer(map, lineColorRef.current, appliedLineColorRef)
 
-                const committed = await setCommittedLineDataAsync(map, nextLines)
+                    const committed = await setCommittedLineDataAsync(map, nextLines)
 
-                if (!committed || pendingCommitGenerationRef.current !== commitGeneration) {
-                    return
+                    if (!committed || isHandoffCancelled()) {
+                        return
+                    }
+
+                    handoffDataReadyRef.current = true
+
+                    await waitForCommittedLineRendered(
+                        map,
+                        lineToCommit.id,
+                        lineToCommit,
+                        {isCancelled: isHandoffCancelled},
+                    )
+                } finally {
+                    handoffCancelFnRef.current = null
+                    handoffDataReadyRef.current = false
+                    handoffInProgressRef.current = false
+
+                    if (!isHandoffCancelled()) {
+                        hidePreviewOverlayOnlyRef.current()
+                    }
                 }
-
-                await waitForCommittedLineRendered(map, lineToCommit.id, lineToCommit)
-
-                if (pendingCommitGenerationRef.current !== commitGeneration) {
-                    return
-                }
-
-                hidePreviewOverlayOnlyRef.current()
             })()
         }
 
@@ -844,6 +927,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             canvas.setPointerCapture?.(event.pointerId)
 
             pendingCommitGenerationRef.current += 1
+            cancelHandoffWait()
             isDraggingRef.current = true
             dragStartRef.current = {
                 time: performance.now(), ...getDragPoint(event),
