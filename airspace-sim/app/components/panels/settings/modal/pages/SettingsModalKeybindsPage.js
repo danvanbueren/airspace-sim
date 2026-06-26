@@ -11,6 +11,7 @@ import {
 import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 import DeferredTextField from '@/app/components/global/DeferredTextField'
 import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
+import {buildControlReference} from '@/app/tools/settings/controlReference'
 
 const KEYBINDS_SENSITIVITY_FIELDS = [
     {
@@ -49,6 +50,12 @@ const KEYBOARD_BINDINGS = [{
     key: 'centerMap',
     label: 'Center Map',
     description: 'Center the camera on the cursor position without changing zoom. Leave unbound to use only the mouse button below.',
+},]
+
+const BEARING_RANGE_KEYBOARD_BINDINGS = [{
+    key: 'persistModifier',
+    label: 'Persist Line Modifier',
+    description: 'Hold while releasing a bearing/range draw to keep the line on the map. Without this key, lines disappear when the draw button is released.',
 },]
 
 const MOUSE_BUTTON_OPTIONS = [{
@@ -97,8 +104,25 @@ function normalizeCapturedKey(event) {
 
     if (key === ' ') return ' '
     if (key === 'esc') return 'escape'
+    if (key === 'shift' || key === 'control' || key === 'alt' || key === 'meta') {
+        return key
+    }
 
     return key
+}
+
+function parseBindingTarget(bindingTarget) {
+    if (!bindingTarget) {
+        return null
+    }
+
+    const [section, bindingKey] = bindingTarget.split(':')
+
+    if (!section || !bindingKey) {
+        return null
+    }
+
+    return {section, bindingKey}
 }
 
 function toFiniteNumber(value, fallbackValue) {
@@ -144,6 +168,15 @@ export default function SettingsModalKeybindsPage() {
         }))
     }, [updateControlBindings])
 
+    const updateBearingRangeKeyboardBinding = useCallback((bindingKey, nextValue) => {
+        updateControlBindings((currentBindings) => ({
+            ...currentBindings, bearingRangeTool: {
+                ...currentBindings.bearingRangeTool,
+                [bindingKey]: [nextValue],
+            },
+        }))
+    }, [updateControlBindings])
+
     const updateMapCursorBinding = useCallback((bindingKey, nextValue) => {
         updateControlBindings((currentBindings) => ({
             ...currentBindings, mapCursor: {
@@ -153,15 +186,26 @@ export default function SettingsModalKeybindsPage() {
         }))
     }, [updateControlBindings])
 
-    const handleCaptureKey = useCallback((event, bindingKey) => {
+    const handleCaptureKey = useCallback((event, bindingTarget) => {
         event.preventDefault()
         event.stopPropagation()
 
+        const parsedTarget = parseBindingTarget(bindingTarget)
+
+        if (!parsedTarget) {
+            return
+        }
+
         const nextKey = normalizeCapturedKey(event)
 
-        updateKeyboardCameraBinding(bindingKey, nextKey)
+        if (parsedTarget.section === 'keyboardCamera') {
+            updateKeyboardCameraBinding(parsedTarget.bindingKey, nextKey)
+        } else if (parsedTarget.section === 'bearingRangeTool') {
+            updateBearingRangeKeyboardBinding(parsedTarget.bindingKey, nextKey)
+        }
+
         setListeningForBinding(null)
-    }, [updateKeyboardCameraBinding])
+    }, [updateKeyboardCameraBinding, updateBearingRangeKeyboardBinding])
 
     useEffect(() => {
         if (!listeningForBinding) return
@@ -190,8 +234,27 @@ export default function SettingsModalKeybindsPage() {
     const currentListeningLabel = useMemo(() => {
         if (!listeningForBinding) return null
 
-        return KEYBOARD_BINDINGS.find((binding) => binding.key === listeningForBinding)?.label
+        const parsedTarget = parseBindingTarget(listeningForBinding)
+
+        if (!parsedTarget) {
+            return null
+        }
+
+        if (parsedTarget.section === 'keyboardCamera') {
+            return KEYBOARD_BINDINGS.find((binding) => binding.key === parsedTarget.bindingKey)?.label
+        }
+
+        if (parsedTarget.section === 'bearingRangeTool') {
+            return BEARING_RANGE_KEYBOARD_BINDINGS.find((binding) => binding.key === parsedTarget.bindingKey)?.label
+        }
+
+        return null
     }, [listeningForBinding])
+
+    const controlReferenceSections = useMemo(
+        () => buildControlReference(controlBindings),
+        [controlBindings],
+    )
 
     return (<Box sx={{display: 'flex', flexDirection: 'column', gap: 3}}>
         <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'flex-start', gap: 2}}>
@@ -217,7 +280,8 @@ export default function SettingsModalKeybindsPage() {
         <Stack spacing={2}>
             {KEYBOARD_BINDINGS.map((binding) => {
                 const currentKey = keyboardCamera[binding.key]?.[0]
-                const isListening = listeningForBinding === binding.key
+                const bindingTarget = `keyboardCamera:${binding.key}`
+                const isListening = listeningForBinding === bindingTarget
 
                 return (<Box
                     key={binding.key}
@@ -245,7 +309,7 @@ export default function SettingsModalKeybindsPage() {
 
                     <Button
                         variant={isListening ? 'contained' : 'outlined'}
-                        onClick={() => setListeningForBinding(binding.key)}
+                        onClick={() => setListeningForBinding(bindingTarget)}
                         sx={{
                             minWidth: 150, justifySelf: {
                                 xs: 'stretch', md: 'end',
@@ -365,6 +429,42 @@ export default function SettingsModalKeybindsPage() {
                 </FormControl>
 
                 <FormControl fullWidth>
+                    <InputLabel id='map-grab-button-label'>
+                        Track Select Button
+                    </InputLabel>
+                    <Select
+                        labelId='map-grab-button-label'
+                        label='Track Select Button'
+                        value={normalizeMouseButtonValue(mapCursor.grabButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateMapCursorBinding('grabButton', normalizeMouseButtonValue(event.target.value))}
+                        variant='outlined'
+                    >
+                        {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                        </MenuItem>))}
+                    </Select>
+                </FormControl>
+
+                <FormControl fullWidth>
+                    <InputLabel id='map-pointer-button-label'>
+                        Pointer Cursor Button
+                    </InputLabel>
+                    <Select
+                        labelId='map-pointer-button-label'
+                        label='Pointer Cursor Button'
+                        value={normalizeMouseButtonValue(mapCursor.pointerButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateMapCursorBinding('pointerButton', normalizeMouseButtonValue(event.target.value))}
+                        variant='outlined'
+                    >
+                        {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                        </MenuItem>))}
+                    </Select>
+                </FormControl>
+
+                <FormControl fullWidth>
                     <InputLabel id='bearing-range-draw-button-label'>
                         Bearing/Range Draw Button
                     </InputLabel>
@@ -403,6 +503,73 @@ export default function SettingsModalKeybindsPage() {
 
             <Divider/>
 
+            <Stack spacing={2}>
+                <Stack spacing={1}>
+                    <Typography variant='h6' sx={{fontWeight: 'bold'}}>
+                        Bearing/Range Keyboard Modifier
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                        Click a binding, then press the modifier key you want to assign.
+                    </Typography>
+                </Stack>
+
+                {BEARING_RANGE_KEYBOARD_BINDINGS.map((binding) => {
+                    const currentKey = bearingRangeTool[binding.key]?.[0]
+                    const bindingTarget = `bearingRangeTool:${binding.key}`
+                    const isListening = listeningForBinding === bindingTarget
+
+                    return (<Box
+                        key={binding.key}
+                        sx={{
+                            display: 'grid',
+                            gridTemplateColumns: {
+                                xs: '1fr', md: '1fr auto',
+                            },
+                            gap: 2,
+                            alignItems: 'center',
+                            border: 1,
+                            borderColor: isListening ? 'primary.main' : 'divider',
+                            borderRadius: 2,
+                            p: 2,
+                        }}
+                    >
+                        <Box>
+                            <Typography sx={{fontWeight: 'bold'}}>
+                                {binding.label}
+                            </Typography>
+                            <Typography variant='body2' color='text.secondary'>
+                                {binding.description}
+                            </Typography>
+                        </Box>
+
+                        <Button
+                            variant={isListening ? 'contained' : 'outlined'}
+                            onClick={() => setListeningForBinding(bindingTarget)}
+                            sx={{
+                                minWidth: 150, justifySelf: {
+                                    xs: 'stretch', md: 'end',
+                                },
+                            }}
+                        >
+                            {isListening ? 'Press Key...' : formatKeyName(currentKey)}
+                        </Button>
+
+                        {isListening && currentListeningLabel && (
+                            <Alert
+                                severity='info'
+                                sx={{
+                                    gridColumn: '1 / -1',
+                                }}
+                            >
+                                Listening for new keybind: <strong>{currentListeningLabel}</strong>
+                            </Alert>
+                        )}
+                    </Box>)
+                })}
+            </Stack>
+
+            <Divider/>
+
             <Typography variant='h6' sx={{fontWeight: 'bold'}}>
                 Line and Context Menu Sensitivity
             </Typography>
@@ -430,6 +597,78 @@ export default function SettingsModalKeybindsPage() {
                     />
                 ))}
             </Box>
+        </Stack>
+
+        <Divider/>
+
+        <Stack spacing={2}>
+            <Stack spacing={1}>
+                <Typography variant='h6' sx={{fontWeight: 'bold'}}>
+                    Complete Control Reference
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                    Every map control combination, including fixed shortcuts that are not individually rebindable today.
+                </Typography>
+            </Stack>
+
+            {controlReferenceSections.map((section) => (
+                <Box
+                    key={section.title}
+                    sx={{
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        p: 2,
+                    }}
+                >
+                    <Typography sx={{fontWeight: 'bold', mb: 1.5}}>
+                        {section.title}
+                    </Typography>
+
+                    <Stack spacing={1.5}>
+                        {section.entries.map((entry) => (
+                            <Box
+                                key={`${section.title}-${entry.action}`}
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: {
+                                        xs: '1fr', md: '1fr auto',
+                                    },
+                                    gap: 1,
+                                    alignItems: 'start',
+                                }}
+                            >
+                                <Box>
+                                    <Typography sx={{fontWeight: 'bold'}}>
+                                        {entry.action}
+                                    </Typography>
+                                    {entry.notes && (
+                                        <Typography variant='body2' color='text.secondary'>
+                                            {entry.notes}
+                                        </Typography>
+                                    )}
+                                </Box>
+
+                                <Chip
+                                    label={entry.combo}
+                                    size='small'
+                                    sx={{
+                                        justifySelf: {
+                                            xs: 'start', md: 'end',
+                                        },
+                                        maxWidth: '100%',
+                                        height: 'auto',
+                                        '& .MuiChip-label': {
+                                            whiteSpace: 'normal',
+                                            py: 0.5,
+                                        },
+                                    }}
+                                />
+                            </Box>
+                        ))}
+                    </Stack>
+                </Box>
+            ))}
         </Stack>
 
         <SettingsModalPageRestoreFooter

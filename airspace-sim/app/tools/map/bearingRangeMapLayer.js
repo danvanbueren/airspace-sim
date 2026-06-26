@@ -70,12 +70,10 @@ export function ensureBearingRangeLayer(map, lineColor, appliedLineColorRef) {
     }
 }
 
-export async function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef) {
-    if (!map) {
+export function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef) {
+    if (!map || !map.isStyleLoaded()) {
         return false
     }
-
-    await waitForStyleReady(map)
 
     ensureBearingRangeLayer(map, lineColor, appliedLineColorRef)
 
@@ -85,14 +83,22 @@ export async function setBearingRangeLines(map, lines, lineColor, appliedLineCol
         return false
     }
 
-    const featureCollection = buildFeatureCollection(lines)
-
-    source.setData(featureCollection)
-    await source.setData(featureCollection, true)
+    source.setData(buildFeatureCollection(lines))
     moveLayerToTop(map)
     map.triggerRepaint()
 
     return true
+}
+
+export async function rehydrateBearingRangeLines(map, lines, lineColor, appliedLineColorRef) {
+    if (!map) {
+        return false
+    }
+
+    await waitForStyleReady(map)
+    appliedLineColorRef.current = null
+
+    return setBearingRangeLines(map, lines, lineColor, appliedLineColorRef)
 }
 
 export function getBearingRangeLineAtMapPoint(map, mapPoint, lines) {

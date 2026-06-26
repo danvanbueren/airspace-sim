@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {
+    eventModifierKeysMatchBinding,
     getMouseEventButton,
     getMouseEventButtons,
     mouseButtonMatchesBinding,
@@ -17,6 +18,7 @@ import {
 import {BearingRangeLabelManager} from '../../tools/map/bearingRangeLabels.js'
 import {
     getBearingRangeLineAtMapPoint,
+    rehydrateBearingRangeLines,
     setBearingRangeLines,
 } from '../../tools/map/bearingRangeMapLayer.js'
 import {
@@ -41,8 +43,6 @@ export function useBearingRangeTool(mapRef, enabled, {
     const labelManagerRef = useRef(new BearingRangeLabelManager())
     const appliedLineColorRef = useRef(null)
     const lineColorRef = useRef(lineColor)
-    const linesRevisionRef = useRef(0)
-    const mapWritePromiseRef = useRef(Promise.resolve())
 
     const bindingsRef = useRef(controlBindings.bearingRangeTool)
     const mapCursorBindingsRef = useRef(controlBindings.mapCursor)
@@ -58,46 +58,6 @@ export function useBearingRangeTool(mapRef, enabled, {
     const [lines, setLines] = useState([])
     const [isDrawingBearingRangeLine, setIsDrawingBearingRangeLine] = useState(false)
     const [labelWorldVersion, setLabelWorldVersion] = useState(0)
-
-    const flushLinesToMap = useCallback(() => {
-        const map = mapRef.current
-
-        if (!map) {
-            return Promise.resolve(false)
-        }
-
-        const revision = linesRevisionRef.current
-
-        mapWritePromiseRef.current = mapWritePromiseRef.current
-            .catch(() => {})
-            .then(async () => {
-                const mapInstance = mapRef.current
-
-                if (!mapInstance) {
-                    return false
-                }
-
-                await setBearingRangeLines(
-                    mapInstance,
-                    linesRef.current,
-                    lineColorRef.current,
-                    appliedLineColorRef,
-                )
-
-                if (linesRevisionRef.current !== revision) {
-                    await setBearingRangeLines(
-                        mapInstance,
-                        linesRef.current,
-                        lineColorRef.current,
-                        appliedLineColorRef,
-                    )
-                }
-
-                return true
-            })
-
-        return mapWritePromiseRef.current
-    }, [mapRef])
 
     const syncLabels = useCallback((previewLine = null) => {
         const map = mapRef.current
@@ -127,33 +87,45 @@ export function useBearingRangeTool(mapRef, enabled, {
         drawPreviewOnOverlay(map, overlay, previewLine, lineColorRef.current, {showNormalizationGuide})
     }, [])
 
-    const commitLines = useCallback((nextLines, {previewLine = null} = {}) => {
+    const writeLinesToMap = useCallback((nextLines, {previewLine = null} = {}) => {
         linesRef.current = nextLines
-        linesRevisionRef.current += 1
         setLines(nextLines)
 
-        const writePromise = flushLinesToMap()
+        const map = mapRef.current
+
+        if (map) {
+            setBearingRangeLines(map, nextLines, lineColorRef.current, appliedLineColorRef)
+        }
 
         syncLabels(previewLine)
-
-        return writePromise
-    }, [flushLinesToMap, syncLabels])
+    }, [mapRef, syncLabels])
 
     const removeBearingRangeLine = useCallback((lineId) => {
         clearPreview()
-        commitLines(linesRef.current.filter((line) => line.id !== lineId))
-    }, [clearPreview, commitLines])
+        writeLinesToMap(linesRef.current.filter((line) => line.id !== lineId))
+    }, [clearPreview, writeLinesToMap])
 
     const clearBearingRangeLines = useCallback(() => {
         clearPreview()
-        commitLines([])
-    }, [clearPreview, commitLines])
+        writeLinesToMap([])
+    }, [clearPreview, writeLinesToMap])
 
     const rehydrateAfterStyleLoad = useCallback(() => {
-        appliedLineColorRef.current = null
-        void flushLinesToMap()
-        syncLabels()
-    }, [flushLinesToMap, syncLabels])
+        const map = mapRef.current
+
+        if (!map) {
+            return
+        }
+
+        void rehydrateBearingRangeLines(
+            map,
+            linesRef.current,
+            lineColorRef.current,
+            appliedLineColorRef,
+        ).then(() => {
+            syncLabels()
+        })
+    }, [mapRef, syncLabels])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) {
@@ -224,8 +196,13 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         appliedLineColorRef.current = null
-        void flushLinesToMap()
-    }, [enabled, lineColor, flushLinesToMap])
+
+        const map = mapRef.current
+
+        if (map) {
+            setBearingRangeLines(map, linesRef.current, lineColorRef.current, appliedLineColorRef)
+        }
+    }, [enabled, lineColor, mapRef])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) {
@@ -320,11 +297,17 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
-            const lineToCommit = createBearingRangeLine(drag.start, endPoint)
+            const shouldPersistLine = eventModifierKeysMatchBinding(event, bindings.persistModifier)
 
-            void commitLines([...linesRef.current, lineToCommit]).finally(() => {
-                clearPreview()
-            })
+            clearPreview()
+
+            if (!shouldPersistLine) {
+                syncLabels()
+                return
+            }
+
+            const lineToCommit = createBearingRangeLine(drag.start, endPoint)
+            writeLinesToMap([...linesRef.current, lineToCommit])
         }
 
         const handlePointerDown = (event) => {
@@ -419,11 +402,13 @@ export function useBearingRangeTool(mapRef, enabled, {
             const cursorBindings = mapCursorBindingsRef.current
             const buttons = getMouseEventButtons(event)
             const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
+            const persistModifierActive = eventModifierKeysMatchBinding(event, bindings.persistModifier)
 
             if (
                 pressedMouseButtonsMatchBinding(buttons, cursorBindings.dragButton)
                 || pressedMouseButtonsMatchBinding(buttons, bindings.drawButton)
                 || shiftKey
+                || persistModifierActive
             ) {
                 clearHoverCursor()
                 return
@@ -503,7 +488,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
             ])
         }
-    }, [enabled, mapRef, clearPreview, commitLines, redrawPreview, syncLabels])
+    }, [enabled, mapRef, clearPreview, writeLinesToMap, redrawPreview, syncLabels])
 
     return {
         lines,
