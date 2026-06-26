@@ -158,7 +158,7 @@ export function setBearingRangeLines(map, lines, ...) {
 - [x] Add **Persist Line Modifier** click-to-capture row to `SettingsModalKeybindsPage.js` (`bearingRangeTool:persistModifier`).
 - [x] Extend key-capture listener to handle both `keyboardCamera:*` and `bearingRangeTool:*` binding targets.
 - [x] Expose `grabButton` and `pointerButton` in the Mouse Controls grid (currently only drag, center, draw, context menu).
-- [x] Add **Complete Control Reference** — extract `buildControlReference(controlBindings)` (pure function) and render grouped MUI cards on Settings → Usage Guide per [required entries](#complete-control-reference--required-entries).
+- [x] Add **Complete Control Reference** section — extract `buildControlReference(controlBindings)` (pure function) and render grouped MUI cards per [required entries](#complete-control-reference--required-entries).
 - [x] List fixed combos (box zoom, scroll wheel) with a note that they are not individually rebindable today.
 - [x] Reset Keybinds page restores `persistModifier: ['shift']`.
 - [ ] Manual test matrix — [Keybinds UI](#keybinds-ui-phase-4b) rows.
@@ -291,7 +291,7 @@ Bindings that already exist in `ControlBindingsContext` but were **hidden from t
 |---|-------------|
 | R16 | Settings → Keybinds exposes **Persist Line Modifier** with click-to-capture UI (same pattern as camera keys). |
 | R17 | Settings → Keybinds exposes **all mouse bindings** used by the map: drag, center, grab, pointer, draw, context menu. |
-| R18 | Settings → Usage Guide includes a **Complete Control Reference** section listing every operator control combo, updating dynamically when bindings change. |
+| R18 | Settings → Keybinds includes a **Complete Control Reference** section listing every operator control combo, updating dynamically when bindings change. |
 | R19 | Fixed combos (not individually rebindable today) are still listed with a note — e.g. box zoom = `Shift + Left Mouse + drag`. |
 
 ### Track-attached permanent lines (Phase 5)
@@ -439,8 +439,7 @@ Settings changes (Phase 4 — complete):
 | File | Change |
 |------|--------|
 | `app/contexts/ControlBindingsContext.js` | `persistModifier`, `eventModifierKeysMatchBinding`, normalization keys |
-| `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js` | Persist modifier row, full mouse controls, Unbind All button |
-| `app/components/panels/settings/modal/pages/SettingsModalUsageGuidePage.js` | Complete Control Reference (read-only) |
+| `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js` | Persist modifier row, full mouse controls, Complete Control Reference |
 
 ### Data model
 
@@ -718,7 +717,7 @@ File: `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js`
 
 Use binding target format `bearingRangeTool:persistModifier` (or equivalent) so one key-capture listener handles both `keyboardCamera:*` and `bearingRangeTool:*` sections.
 
-4. **Complete Control Reference** — read-only reference cards on Settings → Usage Guide (see below). Line/context menu sensitivity fields live on Settings → Advanced.
+4. **Complete Control Reference** — read-only reference cards (see below). Line/context menu sensitivity fields live on Settings → Advanced.
 
 ### Complete Control Reference — required entries
 
