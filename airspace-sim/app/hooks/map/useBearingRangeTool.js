@@ -41,6 +41,8 @@ export function useBearingRangeTool(mapRef, enabled, {
     const labelManagerRef = useRef(new BearingRangeLabelManager())
     const appliedLineColorRef = useRef(null)
     const lineColorRef = useRef(lineColor)
+    const linesRevisionRef = useRef(0)
+    const mapWritePromiseRef = useRef(Promise.resolve())
 
     const bindingsRef = useRef(controlBindings.bearingRangeTool)
     const mapCursorBindingsRef = useRef(controlBindings.mapCursor)
@@ -57,14 +59,44 @@ export function useBearingRangeTool(mapRef, enabled, {
     const [isDrawingBearingRangeLine, setIsDrawingBearingRangeLine] = useState(false)
     const [labelWorldVersion, setLabelWorldVersion] = useState(0)
 
-    const applyLinesToMap = useCallback(() => {
+    const flushLinesToMap = useCallback(() => {
         const map = mapRef.current
 
         if (!map) {
-            return false
+            return Promise.resolve(false)
         }
 
-        return setBearingRangeLines(map, linesRef.current, lineColorRef.current, appliedLineColorRef)
+        const revision = linesRevisionRef.current
+
+        mapWritePromiseRef.current = mapWritePromiseRef.current
+            .catch(() => {})
+            .then(async () => {
+                const mapInstance = mapRef.current
+
+                if (!mapInstance) {
+                    return false
+                }
+
+                await setBearingRangeLines(
+                    mapInstance,
+                    linesRef.current,
+                    lineColorRef.current,
+                    appliedLineColorRef,
+                )
+
+                if (linesRevisionRef.current !== revision) {
+                    await setBearingRangeLines(
+                        mapInstance,
+                        linesRef.current,
+                        lineColorRef.current,
+                        appliedLineColorRef,
+                    )
+                }
+
+                return true
+            })
+
+        return mapWritePromiseRef.current
     }, [mapRef])
 
     const syncLabels = useCallback((previewLine = null) => {
@@ -97,10 +129,15 @@ export function useBearingRangeTool(mapRef, enabled, {
 
     const commitLines = useCallback((nextLines, {previewLine = null} = {}) => {
         linesRef.current = nextLines
+        linesRevisionRef.current += 1
         setLines(nextLines)
-        applyLinesToMap()
+
+        const writePromise = flushLinesToMap()
+
         syncLabels(previewLine)
-    }, [applyLinesToMap, syncLabels])
+
+        return writePromise
+    }, [flushLinesToMap, syncLabels])
 
     const removeBearingRangeLine = useCallback((lineId) => {
         clearPreview()
@@ -114,9 +151,9 @@ export function useBearingRangeTool(mapRef, enabled, {
 
     const rehydrateAfterStyleLoad = useCallback(() => {
         appliedLineColorRef.current = null
-        applyLinesToMap()
+        void flushLinesToMap()
         syncLabels()
-    }, [applyLinesToMap, syncLabels])
+    }, [flushLinesToMap, syncLabels])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) {
@@ -187,8 +224,8 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         appliedLineColorRef.current = null
-        applyLinesToMap()
-    }, [enabled, lineColor, applyLinesToMap])
+        void flushLinesToMap()
+    }, [enabled, lineColor, flushLinesToMap])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) {
@@ -259,13 +296,14 @@ export function useBearingRangeTool(mapRef, enabled, {
             releasePointerCapture(event)
             setIsDrawingBearingRangeLine(false)
             mapCursorRef.current.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW)
-            clearPreview()
 
             const shouldOpenContextMenu = mouseButtonMatchesBinding(eventButton, bindings.contextMenuButton)
                 && deltaTime <= bindings.contextMenuMaxMs
                 && deltaPixels <= bindings.contextMenuMaxPixels
 
             if (shouldOpenContextMenu) {
+                clearPreview()
+
                 onContextMenuRef.current?.({
                     point: endPoint.point,
                     mapPoint: endPoint.mapPoint,
@@ -277,12 +315,16 @@ export function useBearingRangeTool(mapRef, enabled, {
             }
 
             if (deltaPixels < bindings.minPersistedLinePixels) {
+                clearPreview()
                 syncLabels()
                 return
             }
 
             const lineToCommit = createBearingRangeLine(drag.start, endPoint)
-            commitLines([...linesRef.current, lineToCommit])
+
+            void commitLines([...linesRef.current, lineToCommit]).finally(() => {
+                clearPreview()
+            })
         }
 
         const handlePointerDown = (event) => {

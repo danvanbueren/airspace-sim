@@ -136,8 +136,6 @@ export function setBearingRangeLines(map, lines) {
 ```
 
 - **Always synchronous.** No async `setData`, no queues, no revision refs.
-- Typical line counts (dozens, not thousands) make this fine.
-- If perf becomes an issue later, add **one** serialized async path behind this function—not scattered call sites.
 
 ### Preview canvas rules
 

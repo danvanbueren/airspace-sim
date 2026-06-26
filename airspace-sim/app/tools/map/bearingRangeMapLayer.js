@@ -28,12 +28,28 @@ function moveLayerToTop(map) {
     }
 }
 
+async function waitForStyleReady(map) {
+    if (map.isStyleLoaded()) {
+        return
+    }
+
+    await new Promise((resolve) => {
+        if (map.isStyleLoaded()) {
+            resolve()
+            return
+        }
+
+        map.once('idle', resolve)
+    })
+}
+
 export function ensureBearingRangeLayer(map, lineColor, appliedLineColorRef) {
     if (!map.getSource(BEARING_RANGE_SOURCE_ID)) {
         map.addSource(BEARING_RANGE_SOURCE_ID, {
             type: 'geojson',
             data: EMPTY_FEATURE_COLLECTION,
             lineMetrics: true,
+            generateId: true,
         })
     }
 
@@ -54,10 +70,12 @@ export function ensureBearingRangeLayer(map, lineColor, appliedLineColorRef) {
     }
 }
 
-export function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef) {
-    if (!map?.isStyleLoaded()) {
+export async function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef) {
+    if (!map) {
         return false
     }
+
+    await waitForStyleReady(map)
 
     ensureBearingRangeLayer(map, lineColor, appliedLineColorRef)
 
@@ -67,9 +85,12 @@ export function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef)
         return false
     }
 
-    source.setData(buildFeatureCollection(lines))
-    map.triggerRepaint()
+    const featureCollection = buildFeatureCollection(lines)
+
+    source.setData(featureCollection)
+    await source.setData(featureCollection, true)
     moveLayerToTop(map)
+    map.triggerRepaint()
 
     return true
 }
