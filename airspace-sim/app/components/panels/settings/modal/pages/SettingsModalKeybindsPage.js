@@ -8,6 +8,7 @@ import {
 import {
     MOUSE_BUTTONS, useControlBindings,
 } from '../../../../../contexts/ControlBindingsContext'
+import {useAppSettings} from '../../../../../contexts/AppSettingsContext'
 import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 import DeferredTextField from '@/app/components/global/DeferredTextField'
 import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
@@ -135,6 +136,7 @@ export default function SettingsModalKeybindsPage() {
     const {
         controlBindings, updateControlBindings, resetControlBindings, clearAllControlBindings,
     } = useControlBindings()
+    const {appSettings} = useAppSettings()
 
     const [listeningForBinding, setListeningForBinding] = useState(null)
 
@@ -252,8 +254,10 @@ export default function SettingsModalKeybindsPage() {
     }, [listeningForBinding])
 
     const controlReferenceSections = useMemo(
-        () => buildControlReference(controlBindings),
-        [controlBindings],
+        () => buildControlReference(controlBindings, {
+            bearingRangeBehavior: appSettings.bearingRangeBehavior,
+        }),
+        [controlBindings, appSettings.bearingRangeBehavior],
     )
 
     return (<Box sx={{display: 'flex', flexDirection: 'column', gap: 3}}>

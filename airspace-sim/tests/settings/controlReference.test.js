@@ -58,6 +58,25 @@ describe('buildControlReference', () => {
         assert.ok(bearingRangeSection.entries.some((entry) => entry.action.includes('Keep bearing/range line')))
     })
 
+    it('describes inverted behavior for permanent_default mode', () => {
+        const sections = buildControlReference(MOCK_CONTROL_BINDINGS, {
+            bearingRangeBehavior: 'permanent_default',
+        })
+        const bearingRangeSection = sections.find((section) => section.title === 'Bearing/Range Lines')
+
+        assert.ok(bearingRangeSection.entries.some((entry) => entry.notes?.includes('unless the persist modifier')))
+    })
+
+    it('describes always permanent mode without modifier rows', () => {
+        const sections = buildControlReference(MOCK_CONTROL_BINDINGS, {
+            bearingRangeBehavior: 'always_permanent',
+        })
+        const bearingRangeSection = sections.find((section) => section.title === 'Bearing/Range Lines')
+
+        assert.equal(bearingRangeSection.entries.length, 3)
+        assert.ok(bearingRangeSection.entries.some((entry) => entry.action.includes('Measure and keep')))
+    })
+
     it('documents fixed box zoom and scroll wheel controls', () => {
         const sections = buildControlReference(MOCK_CONTROL_BINDINGS)
         const navigationSection = sections.find((section) => section.title === 'Mouse Map Navigation')

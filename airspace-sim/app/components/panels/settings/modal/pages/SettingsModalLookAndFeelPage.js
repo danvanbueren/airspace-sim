@@ -10,6 +10,7 @@ import {
     Typography,
 } from '@mui/material'
 import {
+    BEARING_RANGE_BEHAVIOR_MODES,
     DEFAULT_APP_SETTINGS,
     GRID_REFERENCE_SYSTEMS,
     useAppSettings,
@@ -23,7 +24,12 @@ const GRID_REFERENCE_EXAMPLE_LAT = 38.8977
 const GRID_REFERENCE_EXAMPLE_LNG = -77.0365
 
 export default function SettingsModalLookAndFeelPage() {
-    const {appSettings, setGridReferenceSystem, updateAppSettings} = useAppSettings()
+    const {
+        appSettings,
+        setGridReferenceSystem,
+        setBearingRangeBehavior,
+        updateAppSettings,
+    } = useAppSettings()
 
     return (
         <Stack spacing={3}>
@@ -69,13 +75,43 @@ export default function SettingsModalLookAndFeelPage() {
                 </Typography>
             </Box>
 
+            <Box>
+                <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
+                    Bearing/Range Behavior
+                </Typography>
+
+                <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
+                    Choose whether drawn measurements stay on the map by default. The persist modifier
+                    in Settings → Keybinds still applies for modes that use it.
+                </Typography>
+
+                <FormControl fullWidth size='small'>
+                    <InputLabel id='bearing-range-behavior-label'>
+                        Line Persistence
+                    </InputLabel>
+                    <Select
+                        labelId='bearing-range-behavior-label'
+                        label='Line Persistence'
+                        value={appSettings.bearingRangeBehavior}
+                        onChange={(event) => setBearingRangeBehavior(event.target.value)}
+                    >
+                        {Object.values(BEARING_RANGE_BEHAVIOR_MODES).map((mode) => (
+                            <MenuItem key={mode.value} value={mode.value}>
+                                {mode.label} — {mode.description}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+            </Box>
+
             <SettingsModalPageRestoreFooter
                 pageLabel='Reset Look & Feel Page'
-                pageHint='Resets grid reference settings on this page only.'
+                pageHint='Resets look and feel settings on this page only.'
                 onPageReset={() => {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
                         gridReferenceSystem: DEFAULT_APP_SETTINGS.gridReferenceSystem,
+                        bearingRangeBehavior: DEFAULT_APP_SETTINGS.bearingRangeBehavior,
                     }))
                 }}
             />

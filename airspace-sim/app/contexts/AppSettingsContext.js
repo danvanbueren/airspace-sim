@@ -18,6 +18,10 @@ import {
     ALERT_SIGNAL_IDS,
     ATTENTION_SIGNAL_IDS,
 } from '@/app/simulation/signalDefinitions'
+import {
+    DEFAULT_BEARING_RANGE_BEHAVIOR,
+    normalizeBearingRangeBehavior,
+} from '@/app/tools/map/bearingRangeBehavior'
 
 export const APP_SETTINGS_COOKIE_NAME = 'appSettings'
 
@@ -68,8 +72,11 @@ export const QUALITY_PRESET_OPTIONS = SELECTABLE_QUALITY_PRESET_OPTIONS
 
 export {QUALITY_PRESET_CUSTOM} from '@/app/simulation/constants'
 
+export {BEARING_RANGE_BEHAVIOR_MODES, DEFAULT_BEARING_RANGE_BEHAVIOR} from '@/app/tools/map/bearingRangeBehavior'
+
 export const DEFAULT_APP_SETTINGS = {
     gridReferenceSystem: GRID_REFERENCE_SYSTEMS.dd.value,
+    bearingRangeBehavior: DEFAULT_BEARING_RANGE_BEHAVIOR,
     inhibitedAttentions: [],
     inhibitedAlerts: [],
     showPerformanceOverlay: false,
@@ -180,6 +187,7 @@ function normalizeSettings(settings) {
             settings?.inhibitedAlerts,
             ALERT_SIGNAL_IDS,
         ),
+        bearingRangeBehavior: normalizeBearingRangeBehavior(settings?.bearingRangeBehavior),
     }
 }
 
@@ -229,6 +237,13 @@ export function AppSettingsProvider({children, initialSettings}) {
         updateAppSettings((currentSettings) => ({
             ...currentSettings,
             gridReferenceSystem,
+        }))
+    }, [updateAppSettings])
+
+    const setBearingRangeBehavior = useCallback((bearingRangeBehavior) => {
+        updateAppSettings((currentSettings) => ({
+            ...currentSettings,
+            bearingRangeBehavior,
         }))
     }, [updateAppSettings])
 
@@ -288,6 +303,7 @@ export function AppSettingsProvider({children, initialSettings}) {
         updateAppSettings,
         updateSimulationSettings,
         setGridReferenceSystem,
+        setBearingRangeBehavior,
         resetAppSettings,
     }), [
         appSettings,
@@ -295,6 +311,7 @@ export function AppSettingsProvider({children, initialSettings}) {
         updateAppSettings,
         updateSimulationSettings,
         setGridReferenceSystem,
+        setBearingRangeBehavior,
         resetAppSettings,
     ])
 

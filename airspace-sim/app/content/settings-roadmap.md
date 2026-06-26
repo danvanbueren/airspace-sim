@@ -31,6 +31,7 @@ Planned work for Airspace Simulator, grouped chronologically. Completed items li
 - ✅ Click-to-center map camera with rebindable key or mouse button — [`523fc9d`](https://github.com/danvanbueren/airspace-sim/commit/523fc9d)
 - ✅ Temporary vs permanent bearing/range lines with rebindable persist modifier — [`2294fef`](https://github.com/danvanbueren/airspace-sim/commit/2294fef)
 - ✅ Complete Control Reference in Settings → Keybinds — [`2294fef`](https://github.com/danvanbueren/airspace-sim/commit/2294fef)
+- ✅ Bearing/range persistence behavior selector in Settings → Look & Feel — pending commit link
 
 ### Operator interface
 

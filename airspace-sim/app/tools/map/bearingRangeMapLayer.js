@@ -71,7 +71,27 @@ export function ensureBearingRangeLayer(map, lineColor, appliedLineColorRef) {
 }
 
 export function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef) {
-    if (!map || !map.isStyleLoaded()) {
+    if (!map) {
+        return false
+    }
+
+    const featureCollection = buildFeatureCollection(lines)
+    const existingSource = map.getSource(BEARING_RANGE_SOURCE_ID)
+
+    if (existingSource) {
+        existingSource.setData(featureCollection)
+
+        if (appliedLineColorRef.current !== lineColor && map.getLayer(BEARING_RANGE_LAYER_ID)) {
+            map.setPaintProperty(BEARING_RANGE_LAYER_ID, 'line-color', lineColor)
+            appliedLineColorRef.current = lineColor
+        }
+
+        moveLayerToTop(map)
+        map.triggerRepaint()
+        return true
+    }
+
+    if (!map.isStyleLoaded()) {
         return false
     }
 
@@ -83,7 +103,7 @@ export function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef)
         return false
     }
 
-    source.setData(buildFeatureCollection(lines))
+    source.setData(featureCollection)
     moveLayerToTop(map)
     map.triggerRepaint()
 

@@ -25,6 +25,8 @@ User-facing behavior is also summarized in the [repository root README](../READM
 | Thin hook orchestrator | ✅ On `main` | Sync map writes; preview cleared in same handler tick as commit |
 | Temporary vs permanent lines | ✅ On `main` | `persistModifier` gate in `finishDrag`; default Shift on release |
 | Keybinds UI + control reference | ✅ On `main` | `SettingsModalKeybindsPage.js`, `controlReference.js` |
+| Behavior mode selector (Look & Feel) | ✅ On `main` | `bearingRangeBehavior.js`, `SettingsModalLookAndFeelPage.js` |
+| Map layer sync reliability | ⚠️ Improved | Existing-source `setData` + idle retry; monitor for residual ghosts |
 | Track-attached endpoints (line snapping) | ❌ Not started | Spec below (Phase 5) |
 | Preview → commit transition | ✅ On `main` | Sync `setBearingRangeLines`; no `mapWritePromiseRef` queue |
 
@@ -44,6 +46,8 @@ Phase 3b  Fix preview→commit flash (sync map writes)          ✅
 Phase 4   Temporary vs permanent commit gate                   ✅
    ↓
 Phase 4b  Keybinds UI + Complete Control Reference             ✅
+   ↓
+Phase 4c  Look & Feel behavior mode selector                   ✅
    ↓
 Phase 5   Track-attached endpoints (line snapping)             ← next
    ↓
@@ -105,6 +109,29 @@ void commitLines([...linesRef.current, lineToCommit]).finally(() => {
 - [x] Update `settings-roadmap.md` when shipped.
 
 **Note:** Phase 4 and 4b can land in the **same PR** — they are one user-facing feature.
+
+### Phase 4c — Look & Feel behavior mode selector
+
+**Problem:** Operators want different default commit behavior without re-binding the persist modifier every session.
+
+**Modes** (`appSettings.bearingRangeBehavior`, Settings → Look & Feel):
+
+| Mode | Default on release | Persist modifier on release |
+|------|-------------------|----------------------------|
+| `temporary_default` | Temporary measurement | Commit permanent line |
+| `permanent_default` | Permanent line | Temporary measurement only |
+| `always_permanent` | Permanent line | Ignored |
+| `never_permanent` | Temporary measurement | Ignored |
+
+**Checklist:**
+
+- [x] Add `bearingRangeBehavior` to `AppSettingsContext` with normalization and cookie persistence.
+- [x] Add **Bearing/Range Behavior** Select to `SettingsModalLookAndFeelPage.js`.
+- [x] Add pure `shouldPersistBearingRangeLine(behaviorMode, modifierActive)` in `bearingRangeBehavior.js`.
+- [x] Gate `finishDrag` via behavior mode + persist modifier.
+- [x] Update Complete Control Reference text per active behavior mode.
+- [x] Improve map layer sync: update existing GeoJSON source without `isStyleLoaded` guard; idle retry when first write fails.
+- [ ] Manual test matrix — all four modes + clear/delete still immediate.
 
 ### Phase 5 — Track-attached endpoints (line snapping)
 
@@ -186,7 +213,19 @@ Bindings that already exist in `ControlBindingsContext` but were **hidden from t
 | R12 | The persist modifier is **rebindable** in Settings → Keybinds (`bearingRangeTool.persistModifier`, keyboard chord array). |
 | R13 | Temporary preview during drag behaves exactly like today (R1–R6); only the **commit gate** changes. |
 | R14 | Context menu, hover hit-test, delete, and clear-all apply **only to permanent** lines in `lines[]`. |
-| R15 | If `persistModifier` is unbound (`[]`), **no drag can produce a permanent line** — all measurements are temporary. |
+| R15 | If `persistModifier` is unbound (`[]`), **no drag can produce a permanent line** in modifier-driven modes — all measurements are temporary. |
+
+### Behavior mode selector (Phase 4c)
+
+| # | Requirement |
+|---|-------------|
+| R26 | Settings → Look & Feel exposes a **Bearing/Range Behavior** select with four modes: temporary by default, permanent by default (inverted), always permanent, never permanent. |
+| R27 | `temporary_default` matches Phase 4 behavior: release without modifier discards; modifier on release commits. |
+| R28 | `permanent_default` inverts Phase 4: release commits; modifier on release discards. |
+| R29 | `always_permanent` commits every valid drag regardless of modifier state. |
+| R30 | `never_permanent` never commits regardless of modifier state. |
+| R31 | Complete Control Reference updates its bearing/range entries when the behavior mode changes. |
+| R32 | Committed lines must update the MapLibre layer immediately on commit, delete, and clear-all — labels and map geometry stay in sync. |
 
 ### Keybinds documentation (Phase 4b)
 
@@ -319,7 +358,8 @@ Geometry, rendering, input, and layer management in one ~1,280-line hook — unt
 | `app/tools/settings/controlReference.js` | Pure `buildControlReference(controlBindings)` for Settings → Keybinds |
 | `app/tools/settings/controlBindingMatchers.js` | `eventModifierKeysMatchBinding` helper |
 | `tests/map/bearingRangeGeometry.test.js` | Geometry unit tests. |
-| `tests/settings/controlReference.test.js` | Control reference and modifier matcher tests. |
+| `app/tools/map/bearingRangeBehavior.js` | Behavior mode constants + `shouldPersistBearingRangeLine` |
+| `tests/map/bearingRangeBehavior.test.js` | Behavior mode unit tests |
 
 #### To add (Phase 5)
 
@@ -330,11 +370,11 @@ Geometry, rendering, input, and layer management in one ~1,280-line hook — unt
 | `tests/map/bearingRangeTrackSnap.test.js` | Snap selection, line recomputation, freeze-on-drop behavior. |
 | `tests/map/trackHitTest.test.js` | Optional; mock `queryRenderedFeatures` if needed. |
 
-Settings changes stay in existing files:
+Settings changes (Phase 4 — complete):
 
-| File | Phase 4 change |
-|------|----------------|
-| `app/contexts/ControlBindingsContext.js` | Add `persistModifier`, `eventModifierKeysMatchBinding`, normalization keys |
+| File | Change |
+|------|--------|
+| `app/contexts/ControlBindingsContext.js` | `persistModifier`, `eventModifierKeysMatchBinding`, normalization keys |
 | `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js` | Persist modifier row, full mouse controls, Complete Control Reference |
 
 ### Data model
@@ -727,6 +767,7 @@ const {
 | Hook size | ~500 lines | ≤ 350 after Phase 5 extractions |
 | Temporary vs permanent | ✅ Release without modifier discards; persist modifier commits | Done in Phase 4 |
 | Keybinds reference | ✅ Full mouse bindings, persist modifier, Complete Control Reference | Done in Phase 4b |
+| Map layer sync | ⚠️ Improved | Existing-source `setData` without `isStyleLoaded` guard; idle retry on failed first write — [Phase 4c](#phase-4c--look--feel-behavior-mode-selector) |
 | Track snap / line snapping | Not implemented | Phase 5 |
 
 ---

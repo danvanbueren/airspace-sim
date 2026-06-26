@@ -67,9 +67,63 @@ function mouseHold(button) {
     return `${label} hold`
 }
 
-export function buildControlReference(controlBindings) {
-    const {keyboardCamera, mapCursor, bearingRangeTool} = controlBindings
+function buildBearingRangeReferenceEntries(bearingRangeTool, bearingRangeBehavior) {
     const persistModifierLabel = formatKeyList(bearingRangeTool.persistModifier)
+    const drawCombo = mouseCombo(bearingRangeTool.drawButton)
+
+    switch (bearingRangeBehavior) {
+        case 'permanent_default':
+            return [
+                {
+                    action: 'Measure bearing/range (temporary)',
+                    combo: persistModifierLabel === 'Unbound'
+                        ? 'Unavailable — no temporary-only measurements'
+                        : `${drawCombo} + hold ${persistModifierLabel} on release`,
+                    notes: 'Uses the persist line modifier binding',
+                },
+                {
+                    action: 'Keep bearing/range line on map',
+                    combo: drawCombo,
+                    notes: 'Lines stay on the map unless the persist modifier is held on release',
+                },
+            ]
+        case 'always_permanent':
+            return [
+                {
+                    action: 'Measure and keep bearing/range line',
+                    combo: drawCombo,
+                    notes: 'Every measurement is kept on the map',
+                },
+            ]
+        case 'never_permanent':
+            return [
+                {
+                    action: 'Measure bearing/range (temporary)',
+                    combo: drawCombo,
+                    notes: 'Measurements always disappear on release',
+                },
+            ]
+        case 'temporary_default':
+        default:
+            return [
+                {
+                    action: 'Measure bearing/range (temporary)',
+                    combo: drawCombo,
+                    notes: 'Disappears on release unless the persist modifier is held',
+                },
+                {
+                    action: 'Keep bearing/range line on map',
+                    combo: persistModifierLabel === 'Unbound'
+                        ? 'Unbound — no permanent lines'
+                        : `${drawCombo} + hold ${persistModifierLabel} on release`,
+                    notes: 'Uses the persist line modifier binding',
+                },
+            ]
+    }
+}
+
+export function buildControlReference(controlBindings, {bearingRangeBehavior = 'temporary_default'} = {}) {
+    const {keyboardCamera, mapCursor, bearingRangeTool} = controlBindings
     const centerKeyLabel = formatKeyList(keyboardCamera.centerMap)
     const panSpeedModifierLabel = formatKeyList(keyboardCamera.panSpeedModifier)
 
@@ -153,18 +207,7 @@ export function buildControlReference(controlBindings) {
         {
             title: 'Bearing/Range Lines',
             entries: [
-                {
-                    action: 'Measure bearing/range (temporary)',
-                    combo: mouseCombo(bearingRangeTool.drawButton),
-                    notes: 'Disappears on release unless the persist modifier is held',
-                },
-                {
-                    action: 'Keep bearing/range line on map',
-                    combo: persistModifierLabel === 'Unbound'
-                        ? 'Unbound — no permanent lines'
-                        : `${mouseCombo(bearingRangeTool.drawButton)} + hold ${persistModifierLabel} on release`,
-                    notes: 'Uses the persist line modifier binding',
-                },
+                ...buildBearingRangeReferenceEntries(bearingRangeTool, bearingRangeBehavior),
                 {
                     action: 'Open map context menu',
                     combo: mouseClick(bearingRangeTool.contextMenuButton),

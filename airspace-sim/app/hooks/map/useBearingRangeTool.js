@@ -8,6 +8,10 @@ import {
     useControlBindings,
 } from '../../contexts/ControlBindingsContext'
 import {
+    bearingRangeBehaviorUsesPersistModifier,
+    shouldPersistBearingRangeLine,
+} from '../../tools/map/bearingRangeBehavior.js'
+import {
     MAP_CURSOR_PRIORITIES,
     MAP_CURSOR_REQUESTS,
 } from './useMapCursorState'
@@ -32,7 +36,7 @@ const BEARING_RANGE_DRAW_CURSOR = 'pointer'
 const BEARING_RANGE_CONTEXT_MENU_CURSOR = 'context-menu'
 
 export function useBearingRangeTool(mapRef, enabled, {
-    onContextMenu, lineColor = '#fff', mapCursor,
+    onContextMenu, lineColor = '#fff', mapCursor, bearingRangeBehavior = 'temporary_default',
 } = {}) {
     const {controlBindings} = useControlBindings()
 
@@ -48,12 +52,15 @@ export function useBearingRangeTool(mapRef, enabled, {
     const mapCursorBindingsRef = useRef(controlBindings.mapCursor)
     const mapCursorRef = useRef(mapCursor)
     const onContextMenuRef = useRef(onContextMenu)
+    const bearingRangeBehaviorRef = useRef(bearingRangeBehavior)
+    const mapFlushListenerRef = useRef(null)
 
     bindingsRef.current = controlBindings.bearingRangeTool
     mapCursorBindingsRef.current = controlBindings.mapCursor
     mapCursorRef.current = mapCursor
     onContextMenuRef.current = onContextMenu
     lineColorRef.current = lineColor
+    bearingRangeBehaviorRef.current = bearingRangeBehavior
 
     const [lines, setLines] = useState([])
     const [isDrawingBearingRangeLine, setIsDrawingBearingRangeLine] = useState(false)
@@ -87,18 +94,63 @@ export function useBearingRangeTool(mapRef, enabled, {
         drawPreviewOnOverlay(map, overlay, previewLine, lineColorRef.current, {showNormalizationGuide})
     }, [])
 
+    const cancelScheduledMapFlush = useCallback(() => {
+        const map = mapRef.current
+        const listener = mapFlushListenerRef.current
+
+        if (map && listener) {
+            map.off('idle', listener)
+        }
+
+        mapFlushListenerRef.current = null
+    }, [mapRef])
+
+    const flushLinesToMapLayer = useCallback(() => {
+        const map = mapRef.current
+
+        if (!map) {
+            return false
+        }
+
+        return setBearingRangeLines(
+            map,
+            linesRef.current,
+            lineColorRef.current,
+            appliedLineColorRef,
+        )
+    }, [mapRef])
+
+    const scheduleMapFlush = useCallback(() => {
+        const map = mapRef.current
+
+        if (!map || mapFlushListenerRef.current) {
+            return
+        }
+
+        const handleIdle = () => {
+            mapFlushListenerRef.current = null
+
+            if (flushLinesToMapLayer()) {
+                return
+            }
+
+            scheduleMapFlush()
+        }
+
+        mapFlushListenerRef.current = handleIdle
+        map.once('idle', handleIdle)
+    }, [mapRef, flushLinesToMapLayer])
+
     const writeLinesToMap = useCallback((nextLines, {previewLine = null} = {}) => {
         linesRef.current = nextLines
         setLines(nextLines)
 
-        const map = mapRef.current
-
-        if (map) {
-            setBearingRangeLines(map, nextLines, lineColorRef.current, appliedLineColorRef)
+        if (!flushLinesToMapLayer()) {
+            scheduleMapFlush()
         }
 
         syncLabels(previewLine)
-    }, [mapRef, syncLabels])
+    }, [flushLinesToMapLayer, scheduleMapFlush, syncLabels])
 
     const removeBearingRangeLine = useCallback((lineId) => {
         clearPreview()
@@ -197,12 +249,14 @@ export function useBearingRangeTool(mapRef, enabled, {
 
         appliedLineColorRef.current = null
 
-        const map = mapRef.current
-
-        if (map) {
-            setBearingRangeLines(map, linesRef.current, lineColorRef.current, appliedLineColorRef)
+        if (!flushLinesToMapLayer()) {
+            scheduleMapFlush()
         }
-    }, [enabled, lineColor, mapRef])
+    }, [enabled, lineColor, flushLinesToMapLayer, scheduleMapFlush])
+
+    useEffect(() => () => {
+        cancelScheduledMapFlush()
+    }, [cancelScheduledMapFlush])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) {
@@ -297,7 +351,11 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
-            const shouldPersistLine = eventModifierKeysMatchBinding(event, bindings.persistModifier)
+            const modifierActive = eventModifierKeysMatchBinding(event, bindings.persistModifier)
+            const shouldPersistLine = shouldPersistBearingRangeLine(
+                bearingRangeBehaviorRef.current,
+                modifierActive,
+            )
 
             clearPreview()
 
@@ -402,7 +460,8 @@ export function useBearingRangeTool(mapRef, enabled, {
             const cursorBindings = mapCursorBindingsRef.current
             const buttons = getMouseEventButtons(event)
             const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
-            const persistModifierActive = eventModifierKeysMatchBinding(event, bindings.persistModifier)
+            const persistModifierActive = bearingRangeBehaviorUsesPersistModifier(bearingRangeBehaviorRef.current)
+                && eventModifierKeysMatchBinding(event, bindings.persistModifier)
 
             if (
                 pressedMouseButtonsMatchBinding(buttons, cursorBindings.dragButton)
@@ -473,6 +532,7 @@ export function useBearingRangeTool(mapRef, enabled, {
 
         return () => {
             stopWindowPointerTracking()
+            cancelScheduledMapFlush()
             canvas.removeEventListener('pointerdown', handlePointerDown)
             canvas.removeEventListener('pointermove', handlePointerMove)
             canvas.removeEventListener('pointerup', handlePointerUp)
@@ -488,7 +548,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
             ])
         }
-    }, [enabled, mapRef, clearPreview, writeLinesToMap, redrawPreview, syncLabels])
+    }, [enabled, mapRef, clearPreview, writeLinesToMap, redrawPreview, syncLabels, cancelScheduledMapFlush])
 
     return {
         lines,

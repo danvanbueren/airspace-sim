@@ -55,7 +55,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const theme = useTheme()
     const {raiseAlarmAlert, registerMap} = useAlarmAlertActions()
     const {upsertManualTrack, dropTrack, recoverTrack, setDropProtect, getTrack, getSimulationTimestamp} = useSimulation()
-    const {simulationSettings} = useAppSettings()
+    const {appSettings, simulationSettings} = useAppSettings()
     const performanceInstrumentation = usePerformanceInstrumentation()
     const {isToggleActive} = useSensorDisplay()
     const mapContainerRef = useRef(null)
@@ -147,6 +147,7 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
         onContextMenu: handleMapContextMenu,
         lineColor: theme.palette.mode === 'dark' ? '#fff' : '#111',
         mapCursor,
+        bearingRangeBehavior: appSettings.bearingRangeBehavior,
     })
 
     const handleRemoveBearingRangeLine = useCallback((lineId) => {
