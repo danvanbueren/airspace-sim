@@ -468,6 +468,8 @@ Sensor and overlay visibility are display-only toggles:
 |---------|------|
 | Grid reference display format | Coordinate format for the cursor tooltip and context menu |
 | Bearing/range line persistence | Default commit behavior: temporary by default, permanent by default (inverted), always permanent, or never permanent |
+| Keyboard pan speed | Base WASD pan rate in pixels per second |
+| Keyboard pan speed modifier | Multiplier applied while holding the speed modifier key |
 
 #### Advanced
 

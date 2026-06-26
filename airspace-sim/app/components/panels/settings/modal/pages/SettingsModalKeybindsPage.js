@@ -3,7 +3,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {
-    Alert, Box, Button, Chip, Divider, FormControl, IconButton, InputLabel, Link, MenuItem, Select, Slider, Stack, Tooltip, Typography,
+    Alert, Box, Button, Chip, Divider, FormControl, IconButton, InputLabel, Link, MenuItem, Select, Stack, Tooltip, Typography,
 } from '@mui/material'
 import {
     MOUSE_BUTTONS, useControlBindings,
@@ -127,15 +127,6 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
         updateControlBindings((currentBindings) => ({
             ...currentBindings, keyboardCamera: {
                 ...currentBindings.keyboardCamera, [bindingKey]: [nextValue],
-            },
-        }))
-    }, [updateControlBindings])
-
-    const updateKeyboardCameraNumber = useCallback((bindingKey, nextValue) => {
-        updateControlBindings((currentBindings) => ({
-            ...currentBindings, keyboardCamera: {
-                ...currentBindings.keyboardCamera,
-                [bindingKey]: toFiniteNumber(nextValue, currentBindings.keyboardCamera[bindingKey]),
             },
         }))
     }, [updateControlBindings])
@@ -359,46 +350,6 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
                     isListening: listeningForBinding === bindingTarget,
                 })
             })}
-        </Stack>
-
-        <Divider/>
-
-        <Stack spacing={2}>
-            <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                Camera Speed
-            </Typography>
-
-            <Box>
-                <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'center'}}>
-                    <Typography sx={{fontWeight: 'bold'}}>
-                        Pan Speed
-                    </Typography>
-                    <Chip label={`${keyboardCamera.regularPanSpeed} px/sec`} size='small'/>
-                </Stack>
-                <Slider
-                    value={keyboardCamera.regularPanSpeed}
-                    min={250}
-                    max={5000}
-                    step={50}
-                    onChange={(_, value) => updateKeyboardCameraNumber('regularPanSpeed', value)}
-                />
-            </Box>
-
-            <Box>
-                <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'center'}}>
-                    <Typography sx={{fontWeight: 'bold'}}>
-                        Speed Modifier
-                    </Typography>
-                    <Chip label={`${keyboardCamera.panSpeedMultiplier}x`} size='small'/>
-                </Stack>
-                <Slider
-                    value={keyboardCamera.panSpeedMultiplier}
-                    min={0.05}
-                    max={5.0}
-                    step={0.05}
-                    onChange={(_, value) => updateKeyboardCameraNumber('panSpeedMultiplier', value)}
-                />
-            </Box>
         </Stack>
 
         <Divider/>

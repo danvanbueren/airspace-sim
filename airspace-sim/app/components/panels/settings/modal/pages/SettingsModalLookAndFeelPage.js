@@ -2,10 +2,12 @@
 
 import {
     Box,
+    Chip,
     FormControl,
     InputLabel,
     MenuItem,
     Select,
+    Slider,
     Stack,
     Typography,
 } from '@mui/material'
@@ -16,12 +18,22 @@ import {
     useAppSettings,
 } from '@/app/contexts/AppSettingsContext'
 import {
+    DEFAULT_CONTROL_BINDINGS,
+    useControlBindings,
+} from '@/app/contexts/ControlBindingsContext'
+import {
     formatCoordinatePairForGridReferenceSystem,
 } from '@/app/tools/formatting/GridReferenceFormatting'
 import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 
 const GRID_REFERENCE_EXAMPLE_LAT = 38.8977
 const GRID_REFERENCE_EXAMPLE_LNG = -77.0365
+
+function toFiniteNumber(value, fallbackValue) {
+    const numericValue = Array.isArray(value) ? value[0] : value
+    const parsed = Number(numericValue)
+    return Number.isFinite(parsed) ? parsed : fallbackValue
+}
 
 export default function SettingsModalLookAndFeelPage() {
     const {
@@ -30,6 +42,18 @@ export default function SettingsModalLookAndFeelPage() {
         setBearingRangeBehavior,
         updateAppSettings,
     } = useAppSettings()
+    const {controlBindings, updateControlBindings} = useControlBindings()
+    const keyboardCamera = controlBindings.keyboardCamera
+
+    const updateKeyboardCameraNumber = (bindingKey, nextValue) => {
+        updateControlBindings((currentBindings) => ({
+            ...currentBindings,
+            keyboardCamera: {
+                ...currentBindings.keyboardCamera,
+                [bindingKey]: toFiniteNumber(nextValue, currentBindings.keyboardCamera[bindingKey]),
+            },
+        }))
+    }
 
     return (
         <Stack spacing={3}>
@@ -120,6 +144,50 @@ export default function SettingsModalLookAndFeelPage() {
                 </Typography>
             </Box>
 
+            <Box>
+                <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
+                    Camera Speed
+                </Typography>
+
+                <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
+                    Keyboard pan rate and multiplier applied while holding the speed modifier key.
+                </Typography>
+
+                <Stack spacing={2}>
+                    <Box>
+                        <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'center'}}>
+                            <Typography sx={{fontWeight: 'bold'}}>
+                                Pan Speed
+                            </Typography>
+                            <Chip label={`${keyboardCamera.regularPanSpeed} px/sec`} size='small'/>
+                        </Stack>
+                        <Slider
+                            value={keyboardCamera.regularPanSpeed}
+                            min={250}
+                            max={5000}
+                            step={50}
+                            onChange={(_, value) => updateKeyboardCameraNumber('regularPanSpeed', value)}
+                        />
+                    </Box>
+
+                    <Box>
+                        <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'center'}}>
+                            <Typography sx={{fontWeight: 'bold'}}>
+                                Speed Modifier
+                            </Typography>
+                            <Chip label={`${keyboardCamera.panSpeedMultiplier}x`} size='small'/>
+                        </Stack>
+                        <Slider
+                            value={keyboardCamera.panSpeedMultiplier}
+                            min={0.05}
+                            max={5.0}
+                            step={0.05}
+                            onChange={(_, value) => updateKeyboardCameraNumber('panSpeedMultiplier', value)}
+                        />
+                    </Box>
+                </Stack>
+            </Box>
+
             <SettingsModalPageRestoreFooter
                 pageLabel='Reset Look & Feel Page'
                 pageHint='Resets look and feel settings on this page only.'
@@ -128,6 +196,14 @@ export default function SettingsModalLookAndFeelPage() {
                         ...currentSettings,
                         gridReferenceSystem: DEFAULT_APP_SETTINGS.gridReferenceSystem,
                         bearingRangeBehavior: DEFAULT_APP_SETTINGS.bearingRangeBehavior,
+                    }))
+                    updateControlBindings((currentBindings) => ({
+                        ...currentBindings,
+                        keyboardCamera: {
+                            ...currentBindings.keyboardCamera,
+                            regularPanSpeed: DEFAULT_CONTROL_BINDINGS.keyboardCamera.regularPanSpeed,
+                            panSpeedMultiplier: DEFAULT_CONTROL_BINDINGS.keyboardCamera.panSpeedMultiplier,
+                        },
                     }))
                 }}
             />

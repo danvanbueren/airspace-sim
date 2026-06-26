@@ -697,9 +697,8 @@ File: `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js`
 
 ### New / expanded sections
 
-1. **Keyboard Camera Controls** — existing (WASD, speed modifier, center map key).
-2. **Camera Speed** — existing sliders.
-3. **Mouse Controls** — expand to six selectors:
+1. **Keyboard Camera Controls** — existing (WASD, speed modifier, center map key). Pan speed sliders live on Settings → Look & Feel.
+2. **Mouse Controls** — expand to six selectors:
 
 | Setting key | Section | Label |
 |-------------|---------|-------|
@@ -710,7 +709,7 @@ File: `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js`
 | `drawButton` | `bearingRangeTool` | Bearing/Range Draw Button |
 | `contextMenuButton` | `bearingRangeTool` | Context Menu Button |
 
-4. **Bearing/Range Keyboard Modifier** — new click-to-capture row:
+3. **Bearing/Range Keyboard Modifier** — click-to-capture row grouped with other keyboard bindings on the Keybinds page.
 
 | Key | Label | Description |
 |-----|-------|-------------|
@@ -718,8 +717,7 @@ File: `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js`
 
 Use binding target format `bearingRangeTool:persistModifier` (or equivalent) so one key-capture listener handles both `keyboardCamera:*` and `bearingRangeTool:*` sections.
 
-5. **Line and Context Menu Sensitivity** — existing `DeferredTextField` trio.
-6. **Complete Control Reference** — read-only reference cards (see below).
+4. **Complete Control Reference** — read-only reference cards (see below). Line/context menu sensitivity fields live on Settings → Advanced.
 
 ### Complete Control Reference — required entries
 
