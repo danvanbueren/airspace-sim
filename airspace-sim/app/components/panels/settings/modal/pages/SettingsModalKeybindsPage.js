@@ -1,8 +1,9 @@
 'use client'
 
 import {useCallback, useEffect, useMemo, useState} from 'react'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import {
-    Alert, Box, Button, Chip, Divider, FormControl, InputLabel, MenuItem, Select, Slider, Stack, Typography,
+    Alert, Box, Button, Chip, Divider, FormControl, IconButton, InputLabel, MenuItem, Select, Slider, Stack, Tooltip, Typography,
 } from '@mui/material'
 import {
     MOUSE_BUTTONS, useControlBindings,
@@ -51,6 +52,8 @@ const KEYBOARD_BINDINGS = [{
 },]
 
 const MOUSE_BUTTON_OPTIONS = [{
+    label: 'Unbound', value: MOUSE_BUTTONS.unbound,
+}, {
     label: 'Left Mouse', value: MOUSE_BUTTONS.left,
 }, {
     label: 'Middle Mouse', value: MOUSE_BUTTONS.middle,
@@ -98,7 +101,7 @@ function toFiniteNumber(value, fallbackValue) {
 
 export default function SettingsModalKeybindsPage() {
     const {
-        controlBindings, updateControlBindings, resetControlBindings,
+        controlBindings, updateControlBindings, resetControlBindings, clearAllControlBindings,
     } = useControlBindings()
 
     const [listeningForBinding, setListeningForBinding] = useState(null)
@@ -171,6 +174,11 @@ export default function SettingsModalKeybindsPage() {
         setListeningForBinding(null)
     }, [resetControlBindings])
 
+    const handleUnbindAll = useCallback(() => {
+        clearAllControlBindings()
+        setListeningForBinding(null)
+    }, [clearAllControlBindings])
+
     const currentListeningLabel = useMemo(() => {
         if (!listeningForBinding) return null
 
@@ -178,13 +186,24 @@ export default function SettingsModalKeybindsPage() {
     }, [listeningForBinding])
 
     return (<Box sx={{display: 'flex', flexDirection: 'column', gap: 3}}>
-        <Stack spacing={1}>
-            <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                Keyboard Camera Controls
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-                Click a binding, then press the key you want to assign.
-            </Typography>
+        <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'flex-start', gap: 2}}>
+            <Stack spacing={1} sx={{flex: 1}}>
+                <Typography variant='h6' sx={{fontWeight: 'bold'}}>
+                    Keyboard Camera Controls
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                    Click a binding, then press the key you want to assign.
+                </Typography>
+            </Stack>
+            <Tooltip title='Unbind all keybinds'>
+                <IconButton
+                    aria-label='Unbind all keybinds'
+                    onClick={handleUnbindAll}
+                    sx={{mt: -0.5}}
+                >
+                    <DeleteOutlineIcon/>
+                </IconButton>
+            </Tooltip>
         </Stack>
 
         <Stack spacing={2}>
