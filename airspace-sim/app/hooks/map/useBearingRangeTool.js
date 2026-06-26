@@ -214,6 +214,75 @@ function setCommittedLineData(map, lines) {
     return true
 }
 
+async function setCommittedLineDataAsync(map, lines) {
+    const source = map.getSource(COMMITTED_SOURCE_ID)
+
+    if (!source) {
+        return false
+    }
+
+    await source.setData(buildFeatureCollection(lines), true)
+    map.triggerRepaint()
+    moveCommittedLayerToTop(map)
+
+    return true
+}
+
+function getLineSampleMapPoints(map, line) {
+    const points = [
+        map.project([line.start.lng, line.start.lat]),
+        map.project([line.midpoint.lng, line.midpoint.lat]),
+        map.project([line.end.lng, line.end.lat]),
+    ]
+
+    return points.map((point) => ({x: point.x, y: point.y}))
+}
+
+function isCommittedLineRendered(map, lineId, sampleMapPoints) {
+    if (!map.getLayer(COMMITTED_LAYER_ID)) {
+        return false
+    }
+
+    return sampleMapPoints.some((point) => {
+        const features = map.queryRenderedFeatures([
+            [point.x - 8, point.y - 8],
+            [point.x + 8, point.y + 8],
+        ], {
+            layers: [COMMITTED_LAYER_ID],
+        })
+
+        return features.some((feature) => feature.properties?.id === lineId)
+    })
+}
+
+function waitForCommittedLineRendered(map, lineId, line, {timeoutMs = 3000} = {}) {
+    const sampleMapPoints = getLineSampleMapPoints(map, line)
+    const deadline = performance.now() + timeoutMs
+
+    return new Promise((resolve) => {
+        const attempt = () => {
+            if (isCommittedLineRendered(map, lineId, sampleMapPoints)) {
+                resolve(true)
+                return
+            }
+
+            if (performance.now() >= deadline) {
+                resolve(false)
+                return
+            }
+
+            map.once('idle', attempt)
+        }
+
+        if (isCommittedLineRendered(map, lineId, sampleMapPoints)) {
+            resolve(true)
+            return
+        }
+
+        map.once('idle', attempt)
+    })
+}
+
 function createPreviewOverlay(map) {
     const mapCanvas = map.getCanvas()
     const host = mapCanvas.parentElement
@@ -317,7 +386,10 @@ export function useBearingRangeTool(mapRef, enabled, {
     const isDraggingRef = useRef(false)
     const clearDragPreviewRef = useRef(() => {})
     const removeDragPreviewRef = useRef(() => {})
+    const hidePreviewOverlayOnlyRef = useRef(() => {})
+    const clearPreviewLabelMarkersRef = useRef(() => {})
     const updatePreviewLabelMarkersRef = useRef(() => {})
+    const pendingCommitGenerationRef = useRef(0)
 
     bearingRangeBindingsRef.current = bearingRangeBindings
     mapCursorBindingsRef.current = mapCursorBindings
@@ -407,8 +479,16 @@ export function useBearingRangeTool(mapRef, enabled, {
         previewOverlayRef.current = null
     }, [clearPreviewLabelMarkers])
 
+    const hidePreviewOverlayOnly = useCallback(() => {
+        previewLineRef.current = null
+        removePreviewOverlay(previewOverlayRef.current)
+        previewOverlayRef.current = null
+    }, [])
+
     clearDragPreviewRef.current = clearDragPreview
     removeDragPreviewRef.current = removeDragPreview
+    hidePreviewOverlayOnlyRef.current = hidePreviewOverlayOnly
+    clearPreviewLabelMarkersRef.current = clearPreviewLabelMarkers
     updatePreviewLabelMarkersRef.current = updatePreviewLabelMarkers
 
     const rehydrateLayers = useCallback(() => {
@@ -665,13 +745,29 @@ export function useBearingRangeTool(mapRef, enabled, {
 
             const lineToCommit = createLine(dragStart, endPoint)
             const nextLines = [...linesRef.current, lineToCommit]
+            const commitGeneration = pendingCommitGenerationRef.current
 
             linesRef.current = nextLines
-            removeDragPreviewRef.current()
-            ensureCommittedLineLayer(map, lineColorRef.current, appliedLineColorRef)
-            setCommittedLineData(map, nextLines)
-            moveCommittedLayerToTop(map)
+            clearPreviewLabelMarkersRef.current()
             setLines(nextLines)
+
+            void (async () => {
+                ensureCommittedLineLayer(map, lineColorRef.current, appliedLineColorRef)
+
+                const committed = await setCommittedLineDataAsync(map, nextLines)
+
+                if (!committed || pendingCommitGenerationRef.current !== commitGeneration) {
+                    return
+                }
+
+                await waitForCommittedLineRendered(map, lineToCommit.id, lineToCommit)
+
+                if (pendingCommitGenerationRef.current !== commitGeneration) {
+                    return
+                }
+
+                hidePreviewOverlayOnlyRef.current()
+            })()
         }
 
         const handlePointerDown = (event) => {
@@ -692,6 +788,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             activePointerIdRef.current = event.pointerId
             canvas.setPointerCapture?.(event.pointerId)
 
+            pendingCommitGenerationRef.current += 1
             isDraggingRef.current = true
             dragStartRef.current = {
                 time: performance.now(), ...getDragPoint(event),
