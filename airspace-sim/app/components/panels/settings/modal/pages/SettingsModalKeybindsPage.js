@@ -3,16 +3,18 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {
-    Alert, Box, Button, Chip, Divider, FormControl, IconButton, InputLabel, MenuItem, Select, Slider, Stack, Tooltip, Typography,
+    Alert, Box, Button, Chip, Divider, FormControl, IconButton, InputLabel, Link, MenuItem, Select, Slider, Stack, Tooltip, Typography,
 } from '@mui/material'
 import {
     MOUSE_BUTTONS, useControlBindings,
 } from '../../../../../contexts/ControlBindingsContext'
-import {useAppSettings} from '../../../../../contexts/AppSettingsContext'
+import {BEARING_RANGE_BEHAVIOR_MODES, useAppSettings} from '../../../../../contexts/AppSettingsContext'
 import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 import DeferredTextField from '@/app/components/global/DeferredTextField'
 import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
 import {buildControlReference} from '@/app/tools/settings/controlReference'
+import {bearingRangeBehaviorUsesPersistModifier} from '@/app/tools/map/bearingRangeBehavior'
+import {SETTINGS_PAGE_TITLES} from '../../settingsPageConfig'
 
 const KEYBINDS_SENSITIVITY_FIELDS = [
     {
@@ -132,7 +134,7 @@ function toFiniteNumber(value, fallbackValue) {
     return Number.isFinite(parsed) ? parsed : fallbackValue
 }
 
-export default function SettingsModalKeybindsPage() {
+export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
     const {
         controlBindings, updateControlBindings, resetControlBindings, clearAllControlBindings,
     } = useControlBindings()
@@ -259,6 +261,10 @@ export default function SettingsModalKeybindsPage() {
         }),
         [controlBindings, appSettings.bearingRangeBehavior],
     )
+
+    const persistModifierInactive = !bearingRangeBehaviorUsesPersistModifier(appSettings.bearingRangeBehavior)
+    const activeBehaviorLabel = BEARING_RANGE_BEHAVIOR_MODES[appSettings.bearingRangeBehavior]?.label
+        ?? BEARING_RANGE_BEHAVIOR_MODES.temporary_default.label
 
     return (<Box sx={{display: 'flex', flexDirection: 'column', gap: 3}}>
         <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'flex-start', gap: 2}}>
@@ -566,6 +572,27 @@ export default function SettingsModalKeybindsPage() {
                                 }}
                             >
                                 Listening for new keybind: <strong>{currentListeningLabel}</strong>
+                            </Alert>
+                        )}
+
+                        {persistModifierInactive && (
+                            <Alert
+                                severity='warning'
+                                sx={{
+                                    gridColumn: '1 / -1',
+                                }}
+                            >
+                                This key has no effect while Line Persistence is set to{' '}
+                                <strong>{activeBehaviorLabel}</strong>.{' '}
+                                <Link
+                                    component='button'
+                                    type='button'
+                                    onClick={() => onOpenSettingsPage?.('lookAndFeel')}
+                                    sx={{verticalAlign: 'baseline'}}
+                                >
+                                    Change it in {SETTINGS_PAGE_TITLES.lookAndFeel}
+                                </Link>
+                                .
                             </Alert>
                         )}
                     </Box>)

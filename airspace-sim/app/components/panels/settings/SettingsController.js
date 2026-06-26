@@ -64,6 +64,7 @@ export default function SettingsController({modalOpen, setModalOpen}) {
             setOpen={setModalOpen}
             state={modalState}
             buildData={buildData}
+            onOpenSettingsPage={setModalState}
         />
         <SettingsToolbelt
             toolbeltOpen={toolbeltOpen}

@@ -15,7 +15,7 @@ import {
     SETTINGS_PAGE_TITLES,
 } from '../settingsPageConfig'
 
-export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_PAGE_ID, buildData}) {
+export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_PAGE_ID, buildData, onOpenSettingsPage}) {
     const pageScrollRef = useRef(null)
 
     useEffect(() => {
@@ -47,7 +47,7 @@ export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_P
             case 'advanced':
                 return <SettingsModalAdvancedPage/>
             case 'keybinds':
-                return <SettingsModalKeybindsPage/>
+                return <SettingsModalKeybindsPage onOpenSettingsPage={onOpenSettingsPage}/>
             case 'alerts':
                 return <SettingsModalAlertsAttentionsPage/>
             case 'roadmap':
