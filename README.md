@@ -485,14 +485,14 @@ Near-term and exploratory work includes:
 - Reference point creation and management.
 - Pre-built training scenarios and recurring tactical picture templates.
 - End-to-end control loops for mission practice.
-- Automated picture call calculations inspired by ParrotSour workflows.
+- Automated picture call calculations inspired by [ParrotSour](https://github.com/jemccarthy13/parrotsour) workflows.
 - Additional fuel, weapons, timeline, and mission-planning concepts represented with unclassified simulated data only.
 
 The in-app **Settings → Roadmap** page (`app/content/settings-roadmap.md`) is the live checklist with completed items and commit links.
 
 ## Context
 
-Airspace Simulator is a spiritual successor to John McCarthy's [ParrotSour](https://parrotsour.com/), with a focus on making command and control practice more approachable in a modern web application. The long-term goal is to provide a training sandbox where aircrew, operators, controllers, students, and hobbyist developers can rehearse airspace management concepts without relying on classified systems or operational data.
+Airspace Simulator is a spiritual successor to [John McCarthy](https://github.com/jemccarthy13)'s [ParrotSour](https://github.com/jemccarthy13/parrotsour), with a focus on making command and control practice more approachable in a modern web application. The long-term goal is to provide a training sandbox where aircrew, operators, controllers, students, and hobbyist developers can rehearse airspace management concepts without relying on classified systems or operational data.
 
 The mission is to build a practical, extensible, and transparent simulator that can support:
 
