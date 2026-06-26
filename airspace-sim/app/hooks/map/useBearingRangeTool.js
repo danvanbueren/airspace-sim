@@ -325,7 +325,49 @@ function resizePreviewOverlay(map, overlay) {
     overlay.style.height = `${height}px`
 }
 
-function drawPreviewOnOverlay(overlay, dragStart, currentPoint, lineColor) {
+function buildNormalizedLineScreenSegments(map, line, steps = 48) {
+    const canvas = map.getCanvas()
+    const maxScreenJumpX = canvas.clientWidth / 2
+    const maxScreenJumpY = canvas.clientHeight / 2
+    const segments = []
+    let currentSegment = []
+
+    for (let step = 0; step <= steps; step += 1) {
+        const progress = step / steps
+        const lng = line.start.lng + ((line.end.lng - line.start.lng) * progress)
+        const lat = line.start.lat + ((line.end.lat - line.start.lat) * progress)
+        const projected = map.project([lng, lat])
+        const point = {x: projected.x, y: projected.y}
+
+        if (currentSegment.length > 0) {
+            const previousPoint = currentSegment[currentSegment.length - 1]
+            const deltaX = Math.abs(point.x - previousPoint.x)
+            const deltaY = Math.abs(point.y - previousPoint.y)
+
+            if (deltaX > maxScreenJumpX || deltaY > maxScreenJumpY) {
+                if (currentSegment.length >= 2) {
+                    segments.push(currentSegment)
+                }
+
+                currentSegment = [point]
+                continue
+            }
+        }
+
+        currentSegment.push(point)
+    }
+
+    if (currentSegment.length >= 2) {
+        segments.push(currentSegment)
+    }
+
+    return segments.length > 0 ? segments : [[
+        map.project([line.start.lng, line.start.lat]),
+        map.project([line.end.lng, line.end.lat]),
+    ].map((point) => ({x: point.x, y: point.y}))]
+}
+
+function drawPreviewOnOverlay(map, overlay, line, lineColor) {
     const context = overlay.getContext('2d')
 
     if (!context) {
@@ -334,16 +376,29 @@ function drawPreviewOnOverlay(overlay, dragStart, currentPoint, lineColor) {
 
     const scaleX = overlay.width / overlay.clientWidth
     const scaleY = overlay.height / overlay.clientHeight
+    const segments = buildNormalizedLineScreenSegments(map, line)
 
     context.clearRect(0, 0, overlay.width, overlay.height)
     context.strokeStyle = lineColor
     context.lineWidth = 4 * scaleX
     context.lineCap = 'round'
     context.lineJoin = 'round'
-    context.beginPath()
-    context.moveTo(dragStart.mapPoint.x * scaleX, dragStart.mapPoint.y * scaleY)
-    context.lineTo(currentPoint.mapPoint.x * scaleX, currentPoint.mapPoint.y * scaleY)
-    context.stroke()
+
+    segments.forEach((segment) => {
+        context.beginPath()
+        segment.forEach((point, index) => {
+            const x = point.x * scaleX
+            const y = point.y * scaleY
+
+            if (index === 0) {
+                context.moveTo(x, y)
+                return
+            }
+
+            context.lineTo(x, y)
+        })
+        context.stroke()
+    })
 }
 
 function clearPreviewOverlay(overlay) {
@@ -842,9 +897,9 @@ export function useBearingRangeTool(mapRef, enabled, {
             }
 
             drawPreviewOnOverlay(
+                map,
                 previewOverlayRef.current,
-                dragStart,
-                currentPoint,
+                previewLine,
                 lineColorRef.current,
             )
             updatePreviewLabelMarkersRef.current(previewLine)
