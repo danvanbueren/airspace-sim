@@ -8,7 +8,7 @@ This folder is for contributor-facing documentation that is **not** shown in the
 
 | Path | Description |
 |------|-------------|
-| [bearing-range-tool-rewrite-plan.md](bearing-range-tool-rewrite-plan.md) | Bearing/range tool rewrite plan: modular architecture, temporary vs permanent lines, track-attached endpoints |
+| [bearing-range-tool-rewrite-plan.md](bearing-range-tool-rewrite-plan.md) | Bearing/range tool rewrite plan: modular architecture, temporary vs permanent lines, keybinds/control reference, track-attached endpoints |
 | [performance/](performance/README.md) | Performance investigation, validation results, and optimization roadmap |
 
 ## Conventions

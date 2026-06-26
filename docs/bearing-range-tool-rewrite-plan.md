@@ -7,8 +7,8 @@ This document is the **single source of truth** for how the bearing/range system
 
 1. Why the original monolithic hook was rewritten.
 2. What has already landed on `main`.
-3. What still needs to be built (temporary vs permanent lines, track snapping).
-4. Exact data models, file boundaries, and test expectations so a future agent can implement the remaining work **without re-discovering requirements in chat**.
+3. What still needs to be built (temporary vs permanent lines, track snapping, keybinds documentation).
+4. Exact data models, file boundaries, control bindings, and test expectations so a future agent can implement the remaining work **without re-discovering requirements in chat**.
 
 User-facing behavior is also summarized in the [repository root README](../README.md). In-app roadmap items live in `airspace-sim/app/content/settings-roadmap.md`.
 
@@ -23,10 +23,44 @@ User-facing behavior is also summarized in the [repository root README](../READM
 | MapLibre committed layer | ✅ On `main` | `bearingRangeMapLayer.js` |
 | Label manager | ✅ On `main` | `bearingRangeLabels.js` |
 | Thin hook orchestrator | ⚠️ Partial | `useBearingRangeTool.js` is modular but still uses async map writes and a write queue — see [Known gaps](#known-gaps-vs-this-plan) |
-| Temporary vs permanent lines | ❌ Not on `main` | Designed on branch `cursor/bearing-range-temp-lines-keybinds-fdde`; spec below |
-| Track-attached endpoints | ❌ Not started | Spec below (this document) |
+| Temporary vs permanent lines | ❌ Not on `main` | Spec + prototype below; **do not merge** [PR #72](https://github.com/danvanbueren/airspace-sim/pull/72) |
+| Keybinds UI + control reference | ❌ Not on `main` | Spec below; prototyped on same abandoned branch |
+| Track-attached endpoints | ❌ Not started | Spec below (Phase 5) |
 
-**Historical context:** [PR #73](https://github.com/danvanbueren/airspace-sim/pull/73) accumulated incremental fixes on top of a dual-renderer design. The pre-rewrite hook was ~1,280 lines, mixed geometry/canvas/MapLibre/input/labels, and had unreliable deletes/commits. Phases 1–3 below addressed that split. Phases 4–5 are the next product increments.
+**Historical context:** [PR #73](https://github.com/danvanbueren/airspace-sim/pull/73) accumulated incremental fixes on top of a dual-renderer design. The pre-rewrite hook was ~1,280 lines, mixed geometry/canvas/MapLibre/input/labels, and had unreliable deletes/commits. Phases 1–3 on `main` addressed that split. Phases 4–5 are the next product increments.
+
+**Abandoned prototype:** [PR #72](https://github.com/danvanbueren/airspace-sim/pull/72) (`cursor/bearing-range-temp-lines-keybinds-fdde`, commits `3b79e41` / `2fafb69`) implemented Phase 4 against the **old monolithic hook** before the modular rewrite landed. The PR will be **deleted**. All useful behavior from that effort is captured in this document — re-implement on top of modular `main`, do not cherry-pick the PR diff.
+
+---
+
+## Operator requirements (June 2026)
+
+These are the product decisions that motivated Phase 4. A future agent should treat them as fixed unless the operator says otherwise.
+
+### Bearing/range interaction model
+
+| Gesture | Expected behavior |
+|---------|-------------------|
+| Draw-button drag (default: right-drag) | Show a **live** bearing/range measurement while dragging. |
+| Release draw button **without** persist modifier | Measurement **disappears**. Nothing is added to `lines[]`. |
+| Release draw button **while holding** persist modifier (default: `Shift`) | Line is **committed permanently** to `lines[]`. |
+| Short draw-button click (no drag) | Open context menu (map or line actions). |
+| Hover over permanent line | Context-menu cursor. |
+| Context menu on permanent line | Remove one line / clear all lines. |
+
+**Important:** Temporary preview during drag must feel identical to today's preview (R1–R6). Only the **commit gate on release** changes.
+
+### Keybinds and discoverability
+
+Operators must be able to:
+
+1. **Rebind the persist modifier** in Settings → Keybinds (not hard-coded to Shift in UI forever).
+2. See **every map control combination** documented in the Keybinds tab — including combos that are not individually rebindable (e.g. Shift + left-drag box zoom, scroll-wheel zoom).
+
+Bindings that already exist in `ControlBindingsContext` but were **hidden from the settings UI** must be exposed:
+
+- `mapCursor.grabButton` — track select
+- `mapCursor.pointerButton` — pointer cursor while held
 
 ---
 
@@ -50,24 +84,32 @@ User-facing behavior is also summarized in the [repository root README](../READM
 
 | # | Requirement |
 |---|-------------|
-| R10 | A right-drag (draw-button) measurement is **temporary by default**: the preview disappears on release and **nothing is committed** to `lines[]`. |
+| R10 | A draw-button drag measurement is **temporary by default**: the preview disappears on release and **nothing is committed** to `lines[]`. |
 | R11 | Holding the **persist modifier** (default: `Shift`) **on release** commits the line to `lines[]` — this is a **permanent** line. |
 | R12 | The persist modifier is **rebindable** in Settings → Keybinds (`bearingRangeTool.persistModifier`, keyboard chord array). |
 | R13 | Temporary preview during drag behaves exactly like today (R1–R6); only the **commit gate** changes. |
 | R14 | Context menu, hover hit-test, delete, and clear-all apply **only to permanent** lines in `lines[]`. |
+| R15 | If `persistModifier` is unbound (`[]`), **no drag can produce a permanent line** — all measurements are temporary. |
 
-**Reference implementation:** branch `cursor/bearing-range-temp-lines-keybinds-fdde` (commit `3b79e41`). Merge or re-implement on top of current modular layout.
+### Keybinds documentation (Phase 4b)
+
+| # | Requirement |
+|---|-------------|
+| R16 | Settings → Keybinds exposes **Persist Line Modifier** with click-to-capture UI (same pattern as camera keys). |
+| R17 | Settings → Keybinds exposes **all mouse bindings** used by the map: drag, center, grab, pointer, draw, context menu. |
+| R18 | Settings → Keybinds includes a **Complete Control Reference** section listing every operator control combo, updating dynamically when bindings change. |
+| R19 | Fixed combos (not individually rebindable today) are still listed with a note — e.g. box zoom = `Shift + Left Mouse + drag`. |
 
 ### Track-attached permanent lines (Phase 5)
 
 | # | Requirement |
 |---|-------------|
-| R15 | When a **permanent** line is committed (R11), each endpoint is evaluated **independently** for track snap. Start only, end only, or **both** may attach. |
-| R16 | Snap detection uses **screen space (pixels)**, not nautical miles. Anything generally on or near rendered track symbology should qualify at any zoom level. |
-| R17 | Snap is evaluated **once at commit time** (creation). Endpoints do **not** retroactively snap if a track later moves under a free endpoint. |
-| R18 | After commit, any endpoint bound to a track **follows that track's geographic position** as the simulation updates (bearing/range label recomputed). |
-| R19 | **Temporary** lines (preview only, not committed) never get track bindings and never follow tracks. |
-| R20 | Free endpoints (no snap at commit) stay fixed in geographic space. |
+| R20 | When a **permanent** line is committed (R11), each endpoint is evaluated **independently** for track snap. Start only, end only, or **both** may attach. |
+| R21 | Snap detection uses **screen space (pixels)**, not nautical miles. Anything generally on or near rendered track symbology should qualify at any zoom level. |
+| R22 | Snap is evaluated **once at commit time** (creation). Endpoints do **not** retroactively snap if a track later moves under a free endpoint. |
+| R23 | After commit, any endpoint bound to a track **follows that track's geographic position** as the simulation updates (bearing/range label recomputed). |
+| R24 | **Temporary** lines (preview only, not committed) never get track bindings and never follow tracks. |
+| R25 | Free endpoints (no snap at commit) stay fixed in geographic space. |
 
 #### Snap detection (screen space)
 
@@ -99,8 +141,6 @@ This is intentionally **wider** than the 6 px track hover/pick padding (`TRACK_H
 **Anchor point:** Snap to the track's **geographic center** (symbol point), using the same coordinate normalization as `useTrackMapLayer` (`longitude`/`latitude`, `coordinates[]`, or `lng`/`lat`).
 
 #### Bound track lifecycle (recommended defaults)
-
-These are product decisions. Defaults below let an agent ship without blocking on further input; change only if the operator confirms otherwise.
 
 | Event | Default behavior |
 |-------|------------------|
@@ -185,10 +225,17 @@ Geometry, rendering, input, and layer management in one ~1,280-line hook — unt
 
 | File | Responsibility |
 |------|----------------|
-| `app/tools/map/trackHitTest.js` | Shared `queryTrackAtMapPoint(map, mapPoint, { paddingPx })` and `findSnapTrackAtMapPoint(map, mapPoint, options)`. Extract from `useTrackMapLayer.js` so track pick and bearing-range snap share one implementation. |
-| `app/tools/map/bearingRangeTrackSnap.js` | Pure helpers: `applyTrackSnapToEndpoint`, `updateLineFromTracks(line, trackById)`, `getTrackLngLat(track)`. Unit-testable with mocked positions. |
+| `app/tools/map/trackHitTest.js` | Shared `queryTrackAtMapPoint(map, mapPoint, { paddingPx })` and `findSnapTrackAtMapPoint(map, mapPoint, options)`. Extract from `useTrackMapLayer.js`. |
+| `app/tools/map/bearingRangeTrackSnap.js` | Pure helpers: `applyTrackSnapToEndpoint`, `updateLineFromTracks(line, trackById)`, `getTrackLngLat(track)`. Unit-testable. |
 | `tests/map/bearingRangeTrackSnap.test.js` | Snap selection, line recomputation, freeze-on-drop behavior. |
 | `tests/map/trackHitTest.test.js` | Optional; mock `queryRenderedFeatures` if needed. |
+
+Settings changes stay in existing files:
+
+| File | Phase 4 change |
+|------|----------------|
+| `app/contexts/ControlBindingsContext.js` | Add `persistModifier`, `eventModifierKeysMatchBinding`, normalization keys |
+| `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js` | Persist modifier row, full mouse controls, Complete Control Reference |
 
 ### Data model
 
@@ -224,8 +271,8 @@ type BearingRangeLine = {
 ```
 
 - `startTrackId` / `endTrackId` are set **only** when `shouldPersistLine` is true **and** snap succeeds at commit.
-- Recompute `start`/`end`/bearing/range/midpoint via `createBearingRangeLine` (or a dedicated `updateBearingRangeLineGeometry`) whenever bound track positions change.
-- Refresh `*Point` / `*MapPoint` via `map.project` after geometry updates (label anchor direction uses screen points).
+- Recompute geometry via `createBearingRangeLine` whenever bound track positions change.
+- Refresh `*Point` / `*MapPoint` via `map.project` after geometry updates.
 
 #### Drag state (temporary, never in `lines[]`)
 
@@ -237,7 +284,7 @@ type DragState = {
 }
 ```
 
-Preview lines are derived from `drag` on each `pointermove`; they are **never** committed unless R11 is satisfied on `pointerup`.
+Preview is derived from `drag` on each `pointermove`; it is **never** committed unless R11 is satisfied on `pointerup`.
 
 ---
 
@@ -263,13 +310,79 @@ Preview lines are derived from `drag` on each `pointermove`; they are **never** 
               └─ done
 ```
 
+### `finishDrag` logic (Phase 4) — implement in modular hook
+
+This is the exact decision tree from the PR #72 prototype, adapted for the modular `finishDrag` / `handlePointerUp` handler. **This is the only behavior change for Phase 4** — preview rendering stays the same.
+
+```javascript
+function finishDrag(event, dragStart, endPoint) {
+  const deltaTime = performance.now() - dragStart.time
+  const deltaPixels = getDistancePixels(dragStart.point, endPoint.point)
+
+  // 1. Context menu gesture (short click, minimal movement)
+  const shouldOpenContextMenu =
+    mouseButtonMatchesBinding(eventButton, bindings.contextMenuButton)
+    && deltaTime <= bindings.contextMenuMaxMs
+    && deltaPixels <= bindings.contextMenuMaxPixels
+
+  if (shouldOpenContextMenu) {
+    clearPreview()
+    onContextMenu?.({ point, mapPoint, lngLat, line: hitTestPermanentLine(endPoint) })
+    return
+  }
+
+  // 2. Too short to measure
+  if (deltaPixels < bindings.minPersistedLinePixels) {
+    clearPreview()
+    return
+  }
+
+  // 3. Commit gate — temporary vs permanent
+  const shouldPersistLine = eventModifierKeysMatchBinding(event, bindings.persistModifier)
+
+  clearPreview()
+
+  if (!shouldPersistLine) {
+    return  // temporary measurement only; lines[] unchanged
+  }
+
+  // 4. Permanent commit (Phase 5 adds track snap before append)
+  const line = createBearingRangeLine(dragStart, endPoint)
+  appendToLines(line)
+  setBearingRangeLines(map, lines)  // same tick, sync preferred
+  labels.sync(lines)
+}
+```
+
+**Order matters:** evaluate context-menu gesture **before** minimum-length discard, same as today.
+
+### Hover cursor (Phase 4)
+
+While idle (not dragging), show context-menu cursor when hovering a **permanent** line. **Suppress** hover cursor when:
+
+- Any drag is in progress.
+- Map drag button is pressed (`mapCursor.dragButton`).
+- Draw button is pressed (`bearingRangeTool.drawButton`).
+- **Box-zoom modifier is active:** `event.shiftKey` (hard-coded today in `useRemappableMapDragPan`, `useMapCursor`).
+- **Persist modifier is active:** `eventModifierKeysMatchBinding(event, bindings.persistModifier)`.
+
+The PR #72 prototype used:
+
+```javascript
+const modifierKeyActive =
+  event.shiftKey
+  || eventModifierKeysMatchBinding(event, bindings.persistModifier)
+```
+
+Keep both checks so box-zoom Shift and a rebound persist modifier (e.g. Control) both suppress line hover.
+
 ### Commit path (permanent line, Phase 4 + 5)
 
 On `pointerup` when `shouldPersistLine` is true and the line meets minimum pixel length:
 
 ```
 1. Build draft line from drag start/end (createBearingRangeLine).
-2. For each endpoint mapPoint:
+2. [Phase 5] For each endpoint mapPoint:
      a. findSnapTrackAtMapPoint(map, mapPoint, { paddingPx: snapPaddingPx })
      b. If track found → set *TrackId and override endpoint lngLat from track position.
 3. Recompute final line geometry (bearing/range/midpoint).
@@ -300,8 +413,168 @@ If any line changed → setBearingRangeLines + labels.sync
 **React effect guidance** (see `airspace-sim/AGENTS.md`):
 
 - Pass `simulationSnapshot.tracks` from `MapView` into `useBearingRangeTool`.
-- Store tracks in a **ref** inside the sync effect; depend on a stable tick signal (e.g. `simulationSnapshot.evaluationTime`) or shallow position hash — **not** `tracks ?? []` inline in deps.
+- Store tracks in a **ref** inside the sync effect; depend on a stable tick signal (e.g. `simulationSnapshot.evaluationTime`) — **not** `tracks ?? []` inline in deps.
 - Bail out with equality check before `setLines` to avoid re-render loops.
+
+---
+
+## Control bindings (complete reference)
+
+All bindings persist in the `controlBindings` cookie via `ControlBindingsContext`.
+
+### Default values
+
+```javascript
+// app/contexts/ControlBindingsContext.js — DEFAULT_CONTROL_BINDINGS
+
+keyboardCamera: {
+  panUp: ['w'],
+  panLeft: ['a'],
+  panDown: ['s'],
+  panRight: ['d'],
+  panSpeedModifier: ['shift'],
+  panSpeedMultiplier: 2.5,
+  regularPanSpeed: 1000,
+  centerMap: [],                    // unbound by default; optional key for center-at-cursor
+},
+
+mapCursor: {
+  dragButton: MOUSE_BUTTONS.left,   // pan map
+  grabButton: MOUSE_BUTTONS.left,   // click track → Track Management window
+  pointerButton: MOUSE_BUTTONS.right, // hold → pointer cursor
+  centerButton: MOUSE_BUTTONS.middle, // click → center map at cursor
+},
+
+bearingRangeTool: {
+  drawButton: MOUSE_BUTTONS.right,
+  contextMenuButton: MOUSE_BUTTONS.right,
+  persistModifier: ['shift'],       // Phase 4 — hold on release to commit line
+  contextMenuMaxMs: 250,
+  contextMenuMaxPixels: 6,
+  minPersistedLinePixels: 24,
+},
+```
+
+### Phase 4 additions to `ControlBindingsContext`
+
+1. Add `persistModifier: ['shift']` to `bearingRangeTool` defaults.
+2. Add `BEARING_RANGE_KEYBOARD_BINDING_KEYS = ['persistModifier']` for normalize/clear/unbind logic (mirror `KEYBOARD_BINDING_KEYS` pattern).
+3. Add exported helper:
+
+```javascript
+export function eventModifierKeysMatchBinding(event, bindingKeys) {
+  if (!bindingKeys?.length) return false
+  return bindingKeys.some((key) => {
+    const k = key.toLowerCase()
+    if (k === 'shift') return event.shiftKey
+    if (k === 'control') return event.ctrlKey
+    if (k === 'alt') return event.altKey
+    if (k === 'meta') return event.metaKey
+    return false
+  })
+}
+```
+
+Use this on `pointerup` for the persist gate. Supports Shift, Control, Alt, Meta — not arbitrary letter keys (those are not modifier flags on mouse events).
+
+### Sensitivity settings (already in Keybinds UI)
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `contextMenuMaxMs` | `250` | Max press duration for context-menu click |
+| `contextMenuMaxPixels` | `6` | Max movement for context-menu click |
+| `minPersistedLinePixels` | `24` | Min drag length before preview/commit is considered |
+
+---
+
+## Keybinds settings UI (Phase 4b)
+
+File: `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js`
+
+### New / expanded sections
+
+1. **Keyboard Camera Controls** — existing (WASD, speed modifier, center map key).
+2. **Camera Speed** — existing sliders.
+3. **Mouse Controls** — expand to six selectors:
+
+| Setting key | Section | Label |
+|-------------|---------|-------|
+| `dragButton` | `mapCursor` | Map Drag Button |
+| `centerButton` | `mapCursor` | Center Map Button |
+| `grabButton` | `mapCursor` | Track Select Button |
+| `pointerButton` | `mapCursor` | Pointer Cursor Button |
+| `drawButton` | `bearingRangeTool` | Bearing/Range Draw Button |
+| `contextMenuButton` | `bearingRangeTool` | Context Menu Button |
+
+4. **Bearing/Range Keyboard Modifier** — new click-to-capture row:
+
+| Key | Label | Description |
+|-----|-------|-------------|
+| `persistModifier` | Persist Line Modifier | Hold while releasing a bearing/range draw to keep the line on the map. Without this key, lines disappear when the draw button is released. |
+
+Use binding target format `bearingRangeTool:persistModifier` (or equivalent) so one key-capture listener handles both `keyboardCamera:*` and `bearingRangeTool:*` sections.
+
+5. **Line and Context Menu Sensitivity** — existing `DeferredTextField` trio.
+6. **Complete Control Reference** — read-only reference cards (see below).
+
+### Complete Control Reference — required entries
+
+Build dynamically from current `controlBindings` so labels update when the operator changes bindings. Group by category:
+
+#### Keyboard Camera
+
+| Action | Combo (default) | Notes |
+|--------|-----------------|-------|
+| Pan north | `W` | |
+| Pan east | `D` | |
+| Pan south | `S` | |
+| Pan west | `A` | |
+| Pan faster | `Shift + movement keys` | Uses `panSpeedModifier` binding |
+| Center map at cursor | `Center Map key` or `Middle Mouse click` | If center key unbound, show mouse button |
+
+#### Mouse Map Navigation
+
+| Action | Combo (default) | Notes |
+|--------|-----------------|-------|
+| Pan map | `Left Mouse + drag` | `mapCursor.dragButton` |
+| Box zoom to area | `Shift + Left Mouse + drag` | **Fixed** — not rebindable today; `useRemappableMapDragPan` skips pan when `event.shiftKey && button === 0`; `map.boxZoom` enabled |
+| Center map at cursor | `Middle Mouse click` | `mapCursor.centerButton` |
+| Zoom in or out | `Scroll wheel` | MapLibre default; also Fixed Function Panel buttons |
+
+#### Tracks
+
+| Action | Combo (default) | Notes |
+|--------|-----------------|-------|
+| Open Track Management window | `Left Mouse click on track` | `mapCursor.grabButton` |
+| Dismiss transient track windows | `Left Mouse click on empty map` | Persistent windows stay until closed |
+| Pointer cursor | `Right Mouse hold` | `mapCursor.pointerButton` |
+
+#### Bearing/Range Lines
+
+| Action | Combo (default) | Notes |
+|--------|-----------------|-------|
+| Measure bearing/range (temporary) | `Right Mouse + drag` | Disappears on release |
+| Keep bearing/range line on map | `Right Mouse + drag + hold Shift on release` | Uses `persistModifier` binding |
+| Open map context menu | `Right Mouse click` | Short click; sensitivity limits apply |
+| Open line context menu | `Right Mouse click on line` | Hit-tests permanent lines only |
+
+#### Track Management Windows
+
+| Action | Combo | Notes |
+|--------|-------|-------|
+| Focus window for keyboard input | Click window header or body | Claims keyboard custody; disables map camera keys |
+| Commit text field edits | `Enter` or click away | Deferred text field pattern; Enter blurs |
+
+#### Fixed / non-rebindable combos to document explicitly
+
+These are **not** missing from the product — they are intentionally fixed today. List them so operators are not surprised:
+
+- `Shift + Left Mouse + drag` → box zoom (`useRemappableMapDragPan.js`, `useMapCursor.js`)
+- `Shift` held over map → `nesw-resize` cursor (box-zoom mode indicator)
+- Scroll wheel over map → zoom in/out (MapLibre `scrollZoom`, enabled by default)
+- Fixed Function Panel → Zoom In / Zoom Out buttons (`MapStateProvider.zoomIn` / `zoomOut`)
+
+**Implementation tip:** extract a pure `buildControlReference(controlBindings)` function (can live in the settings page file or `app/tools/settings/controlReference.js`) and map sections to MUI cards with `Chip` labels for combos. The PR #72 prototype used this pattern successfully.
 
 ---
 
@@ -319,42 +592,40 @@ const {
   isDrawingBearingRangeLine,
 } = useBearingRangeTool(mapRef, mapReady, {
   onContextMenu: handleMapContextMenu,
-  lineColor: ...,
+  lineColor: theme.palette.mode === 'dark' ? '#fff' : '#111',
   mapCursor,
   // Phase 5:
   tracks: simulationSnapshot?.tracks ?? EMPTY_TRACKS,
-  getTrackAtMapPoint: trackMapLayer.getTrackAtMapPoint, // or import shared hit-test
+  getTrackAtMapPoint: trackMapLayer.getTrackAtMapPoint,
   trackSnapIconSize: 40,
 })
 ```
 
-`EMPTY_TRACKS` must be a module-level constant (never `?? []` in effect deps).
+- Hide cursor coordinate overlay while drawing: `isDrawingBearingRangeLine ? null : cursorInfo`
+- Context menu receives `line` from hit-test for remove/clear actions
+- `EMPTY_TRACKS` must be a **module-level constant** (never `?? []` in effect deps)
 
-### `ControlBindingsContext.js` (Phase 4)
+### Related map interaction files
 
-Add to `bearingRangeTool`:
-
-```javascript
-persistModifier: ['shift'],  // keyboard chord; rebindable in Settings → Keybinds
-```
-
-Use `eventModifierKeysMatchBinding(event, bindings.persistModifier)` on `pointerup` (same helper as temp-lines branch).
-
-### `useTrackMapLayer.js`
-
-Replace inline `queryRenderedFeatures` duplication with imports from `trackHitTest.js`. Keep `getTrackAtMapPoint` as a thin wrapper with `TRACK_HIT_TEST_PADDING` (6 px) for **pick/hover**; bearing-range snap uses the wider padding from `bearingRangeTrackSnap.js`.
+| File | Bearing/range interaction |
+|------|---------------------------|
+| `useMapContextMenuState.js` | Opens menu at click point; passes `line` for line actions |
+| `MapContextMenu.js` | Remove one / clear all bearing-range lines |
+| `useMapCursorState.js` | `BEARING_RANGE_HOVER`, `BEARING_RANGE_DRAW` cursor requests |
+| `useRemappableMapDragPan.js` | Shift+left skips pan; enables `map.boxZoom` |
+| `useMapCursor.js` | Shift → `nesw-resize` cursor over map |
+| `useTrackMapLayer.js` | Track pick via `grabButton`; shares hit-test layers with Phase 5 snap |
 
 ---
 
 ## Known gaps vs this plan
 
-The modular rewrite on `main` is a major improvement but **does not yet fully match** the original Phase 3 target:
-
-| Gap | Current behavior | Target |
-|-----|------------------|--------|
+| Gap | Current behavior on `main` | Target |
+|-----|---------------------------|--------|
 | Map writes | `setBearingRangeLines` is `async` with `waitForStyleReady`; hook uses `mapWritePromiseRef` queue | Synchronous `setData` + `triggerRepaint` from handlers; rehydrate on `style.load` only |
 | Hook size | ~515 lines | ≤ 350 after Phase 4–5 extractions |
 | Temporary vs permanent | Every valid drag commits | Phase 4 gate on persist modifier |
+| Keybinds reference | Partial mouse bindings only | Phase 4b complete reference |
 | Track snap | Not implemented | Phase 5 |
 
 Resolve the async write queue when touching the hook for Phase 4 — do not add a third sync mechanism for track follow.
@@ -377,10 +648,20 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 
 ### Phase 4 — Temporary vs permanent lines
 
-1. Add `persistModifier` to control bindings + Settings → Keybinds UI (see temp-lines branch).
-2. Gate `finishDrag` commit on `eventModifierKeysMatchBinding`.
-3. Update README and settings roadmap when shipped.
+1. Add `persistModifier` + `eventModifierKeysMatchBinding` to `ControlBindingsContext.js`.
+2. Gate `finishDrag` / `handlePointerUp` commit on `eventModifierKeysMatchBinding` (see [finishDrag logic](#finishdrag-logic-phase-4--implement-in-modular-hook)).
+3. Update hover-cursor suppression for persist modifier.
 4. Manual test: release without modifier → no line; release with modifier → line persists.
+5. Update README when shipped.
+
+### Phase 4b — Keybinds UI and control reference
+
+1. Add **Persist Line Modifier** capture row to `SettingsModalKeybindsPage.js`.
+2. Expose `grabButton` and `pointerButton` in mouse controls grid.
+3. Add **Complete Control Reference** section per [required entries](#complete-control-reference--required-entries).
+4. Update `settings-roadmap.md` when shipped.
+
+**Do not merge PR #72.** Re-implement these UI changes on current `main`; the prototype diff is a reference only.
 
 ### Phase 5 — Track-attached endpoints
 
@@ -388,7 +669,7 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 2. Add `bearingRangeTrackSnap.js` + tests.
 3. Extend `BearingRangeLine` with `startTrackId` / `endTrackId`.
 4. Snap at commit in `finishDrag` (permanent lines only).
-5. Add track-follow `useEffect` in hook (or `useBearingRangeTrackSync.js` if hook grows).
+5. Add track-follow effect (or `useBearingRangeTrackSync.js` if hook grows).
 6. Wire `tracks` from `MapView`.
 7. Manual + unit tests per matrix below.
 
@@ -396,6 +677,7 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 
 - Integration test: `setData` call order on rapid draw/delete.
 - Promote lines to a small React context if other tools need overlays.
+- Consider making box-zoom modifier rebindable (today hard-coded to Shift).
 
 ---
 
@@ -406,12 +688,12 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 | Scenario | Expected |
 |----------|----------|
 | Drag short line (< min pixels) | No preview, no commit |
-| Drag long line | Solid preview during drag; line on map after release (until Phase 4 changes commit rules) |
+| Drag long line | Solid preview during drag; committed behavior depends on Phase 4 gate |
 | Drag across antimeridian | Dashed guide during drag; solid normalized line; world copies at low zoom |
-| Draw 10+ lines quickly | All remain visible |
+| Draw 10+ lines quickly | All permanent lines remain visible |
 | Clear all | Map empty immediately; labels gone |
 | Delete one | That line gone immediately |
-| Clear all → draw new line | New line visible and stays |
+| Clear all → draw new line | New line visible and stays (with persist modifier) |
 | Pan/zoom during drag | Preview tracks correctly |
 | Pan/zoom after commit | Lines and labels track |
 | Right-click context menu on line | Opens menu; delete works |
@@ -422,9 +704,21 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 | Scenario | Expected |
 |----------|----------|
 | Drag and release **without** persist modifier | Preview clears; **no** line in `lines[]` |
-| Drag and release **with** persist modifier held | Line committed |
-| Rebind persist modifier in Settings | New binding honored after save |
+| Drag and release **with** persist modifier held | Line committed to `lines[]` |
+| Rebind persist modifier in Settings | New binding honored after cookie save |
+| Unbind persist modifier | No drag can create permanent lines |
 | Context menu after temporary measure | No line to delete; clear-all unchanged if no permanent lines |
+| Hover over permanent line | Context-menu cursor |
+| Hover while holding persist modifier | No line hover cursor |
+
+### Keybinds UI (Phase 4b)
+
+| Scenario | Expected |
+|----------|----------|
+| Change persist modifier to Control | Reference section shows Control; commit works with Control held on release |
+| Change draw button to Middle Mouse | Reference and drawing both use new button |
+| Complete Control Reference | Lists all sections in [required entries](#complete-control-reference--required-entries) |
+| Reset Keybinds page | Restores defaults including `persistModifier: ['shift']` |
 
 ### Track snap (Phase 5)
 
@@ -450,9 +744,10 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 3. Preview canvas used **only** while `drag !== null`.
 4. Delete/clear immediate with 20+ lines (manual matrix).
 5. No `handoff*`, `flushChain`, or revision-based async write queues.
-6. Temporary vs permanent behavior matches R10–R14.
-7. Track snap matches R15–R20 with screen-space detection.
-8. Unit tests cover geometry and track-snap recomputation.
+6. Temporary vs permanent behavior matches R10–R15.
+7. Keybinds page documents all operator controls per R16–R19.
+8. Track snap matches R20–R25 with screen-space detection.
+9. Unit tests cover geometry and track-snap recomputation.
 
 ---
 
@@ -463,11 +758,16 @@ Use this as a literal work order. Do not skip steps.
 - [ ] Read this document end-to-end.
 - [ ] Read `airspace-sim/AGENTS.md` (React effect deps, deferred settings patterns).
 - [ ] Run `npm test` in `airspace-sim/` before and after changes.
-- [ ] **Phase 4:** Implement persist modifier gate; port keybind UI from `cursor/bearing-range-temp-lines-keybinds-fdde` if not merged.
+- [ ] Confirm you are on **modular** `main` (geometry/map layer/labels split exists). **Do not merge PR #72.**
+- [ ] **Phase 4:** Add `persistModifier` + `eventModifierKeysMatchBinding` to `ControlBindingsContext.js`.
+- [ ] **Phase 4:** Gate `finishDrag` commit per [finishDrag logic](#finishdrag-logic-phase-4--implement-in-modular-hook).
+- [ ] **Phase 4:** Update hover-cursor suppression for persist modifier.
 - [ ] **Phase 4:** Remove or simplify async `mapWritePromiseRef` while touching `finishDrag`.
+- [ ] **Phase 4b:** Add persist modifier row + expanded mouse controls to `SettingsModalKeybindsPage.js`.
+- [ ] **Phase 4b:** Add Complete Control Reference per [required entries](#complete-control-reference--required-entries).
 - [ ] **Phase 5:** Create `trackHitTest.js`; dedupe from `useTrackMapLayer.js`.
 - [ ] **Phase 5:** Create `bearingRangeTrackSnap.js` + tests **before** wiring the hook.
-- [ ] **Phase 5:** Extend `createBearingRangeLine` or add `rebuildBearingRangeLineFromBindings` for track updates.
+- [ ] **Phase 5:** Extend line model with `startTrackId` / `endTrackId`.
 - [ ] **Phase 5:** Wire `tracks` from `MapView` with `EMPTY_TRACKS` constant.
 - [ ] Update README + `settings-roadmap.md` when user-visible behavior ships.
 - [ ] Manual test matrix — all rows.
@@ -476,6 +776,12 @@ Use this as a literal work order. Do not skip steps.
 
 ## Recommendation
 
-**Do not patch the old monolith.** The modular layout on `main` is the foundation. Ship Phase 4 (temporary/permanent) before Phase 5 (track snap) — snap applies only to permanent lines and depends on the commit gate.
+**Do not patch the old monolith. Do not merge PR #72.** The modular layout on `main` is the foundation.
+
+Ship in order:
+
+1. **Phase 4** — temporary vs permanent commit gate.
+2. **Phase 4b** — keybinds UI and complete control reference (can land in the same PR as Phase 4).
+3. **Phase 5** — track-attached endpoints (snap applies only to permanent lines).
 
 The experience should feel boring: drag → see line → release (with modifier if permanent) → line is on the map → attached ends follow tracks → delete → line is gone. If any step needs a state machine with more than a handful of explicit states, the design has slipped.
