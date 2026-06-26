@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl'
 import {
     getMouseEventButton,
     getMouseEventButtons,
+    eventModifierKeysMatchBinding,
     mouseButtonMatchesBinding,
     pressedMouseButtonsMatchBinding,
     useControlBindings,
@@ -411,12 +412,13 @@ export function useBearingRangeTool(mapRef, enabled, {
             }
 
             const buttons = getMouseEventButtons(event)
-            const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
+            const modifierKeyActive = event.shiftKey
+                || eventModifierKeysMatchBinding(event, bearingRangeBindings.persistModifier)
 
             if (
                 pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.dragButton)
                 || pressedMouseButtonsMatchBinding(buttons, bearingRangeBindings.drawButton)
-                || shiftKey
+                || modifierKeyActive
             ) {
                 clearHoverCursor()
                 return
@@ -523,9 +525,16 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
-            const lineToCommit = createLine(dragStart, endPoint)
+            const shouldPersistLine = eventModifierKeysMatchBinding(event, bearingRangeBindings.persistModifier)
 
             clearPreviewLine()
+
+            if (!shouldPersistLine) {
+                return
+            }
+
+            const lineToCommit = createLine(dragStart, endPoint)
+
             setLines((currentLines) => [...currentLines, lineToCommit])
         }
 

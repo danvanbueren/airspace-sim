@@ -36,6 +36,7 @@ export const DEFAULT_CONTROL_BINDINGS = {
     bearingRangeTool: {
         drawButton: MOUSE_BUTTONS.right,
         contextMenuButton: MOUSE_BUTTONS.right,
+        persistModifier: ['shift'],
         contextMenuMaxMs: 250,
         contextMenuMaxPixels: 6,
         minPersistedLinePixels: 24,
@@ -63,6 +64,10 @@ const BEARING_RANGE_BINDING_KEYS = [
     'contextMenuButton',
 ]
 
+const BEARING_RANGE_KEYBOARD_BINDING_KEYS = [
+    'persistModifier',
+]
+
 function clearBindingSection(bindings, bindingKeys) {
     return bindingKeys.reduce((clearedBindings, bindingKey) => ({
         ...clearedBindings,
@@ -76,10 +81,13 @@ export const UNBOUND_CONTROL_BINDINGS = {
         ...clearedBindings,
         [bindingKey]: MOUSE_BUTTONS.unbound,
     }), {...DEFAULT_CONTROL_BINDINGS.mapCursor}),
-    bearingRangeTool: BEARING_RANGE_BINDING_KEYS.reduce((clearedBindings, bindingKey) => ({
-        ...clearedBindings,
-        [bindingKey]: MOUSE_BUTTONS.unbound,
-    }), {...DEFAULT_CONTROL_BINDINGS.bearingRangeTool}),
+    bearingRangeTool: {
+        ...BEARING_RANGE_BINDING_KEYS.reduce((clearedBindings, bindingKey) => ({
+            ...clearedBindings,
+            [bindingKey]: MOUSE_BUTTONS.unbound,
+        }), {...DEFAULT_CONTROL_BINDINGS.bearingRangeTool}),
+        ...clearBindingSection(DEFAULT_CONTROL_BINDINGS.bearingRangeTool, BEARING_RANGE_KEYBOARD_BINDING_KEYS),
+    },
 }
 
 function buildClearedControlBindings(currentBindings) {
@@ -90,10 +98,13 @@ function buildClearedControlBindings(currentBindings) {
             ...clearedBindings,
             [bindingKey]: MOUSE_BUTTONS.unbound,
         }), {...currentBindings.mapCursor}),
-        bearingRangeTool: BEARING_RANGE_BINDING_KEYS.reduce((clearedBindings, bindingKey) => ({
-            ...clearedBindings,
-            [bindingKey]: MOUSE_BUTTONS.unbound,
-        }), {...currentBindings.bearingRangeTool}),
+        bearingRangeTool: {
+            ...BEARING_RANGE_BINDING_KEYS.reduce((clearedBindings, bindingKey) => ({
+                ...clearedBindings,
+                [bindingKey]: MOUSE_BUTTONS.unbound,
+            }), {...currentBindings.bearingRangeTool}),
+            ...clearBindingSection(currentBindings.bearingRangeTool, BEARING_RANGE_KEYBOARD_BINDING_KEYS),
+        },
     }
 }
 
@@ -142,11 +153,19 @@ function normalizeBindings(bindings) {
             MAP_CURSOR_BINDING_KEYS,
             DEFAULT_CONTROL_BINDINGS.mapCursor,
         ),
-        bearingRangeTool: normalizeMouseButtonBindings(
-            bindings?.bearingRangeTool,
-            BEARING_RANGE_BINDING_KEYS,
-            DEFAULT_CONTROL_BINDINGS.bearingRangeTool,
-        ),
+        bearingRangeTool: {
+            ...normalizeMouseButtonBindings(
+                bindings?.bearingRangeTool,
+                BEARING_RANGE_BINDING_KEYS,
+                DEFAULT_CONTROL_BINDINGS.bearingRangeTool,
+            ),
+            ...BEARING_RANGE_KEYBOARD_BINDING_KEYS.reduce((normalizedBindings, bindingKey) => ({
+                ...normalizedBindings,
+                [bindingKey]: Array.isArray(bindings?.bearingRangeTool?.[bindingKey])
+                    ? bindings.bearingRangeTool[bindingKey]
+                    : DEFAULT_CONTROL_BINDINGS.bearingRangeTool[bindingKey],
+            }), {}),
+        },
     }
 }
 
@@ -273,4 +292,21 @@ export function keyMatchesBinding(eventKey, bindingKeys) {
     const normalizedEventKey = normalizeKey(eventKey)
 
     return bindingKeys.some((key) => normalizeKey(key) === normalizedEventKey)
+}
+
+export function eventModifierKeysMatchBinding(event, bindingKeys) {
+    if (!bindingKeys?.length) {
+        return false
+    }
+
+    return bindingKeys.some((key) => {
+        const normalizedKey = normalizeKey(key)
+
+        if (normalizedKey === 'shift') return event.shiftKey
+        if (normalizedKey === 'control') return event.ctrlKey
+        if (normalizedKey === 'alt') return event.altKey
+        if (normalizedKey === 'meta') return event.metaKey
+
+        return false
+    })
 }
