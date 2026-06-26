@@ -442,27 +442,30 @@ function drawPreviewOnOverlay(map, overlay, line, lineColor) {
         strokeScreenSegments(context, segments, scaleX, scaleY)
     })
 
-    if (line.isEndNormalized && line.rawEnd) {
-        const cursorPoint = map.project([line.rawEnd.lng, line.rawEnd.lat])
+    if (line.isEndNormalized && line.startPoint && line.endPoint) {
+        const canvas = map.getCanvas()
+        const bounds = canvas.getBoundingClientRect()
+        const startPoint = {
+            x: line.startPoint.x - bounds.left,
+            y: line.startPoint.y - bounds.top,
+        }
+        const cursorPoint = {
+            x: line.endPoint.x - bounds.left,
+            y: line.endPoint.y - bounds.top,
+        }
 
-        if (Number.isFinite(cursorPoint.x) && Number.isFinite(cursorPoint.y)) {
-            getLineWorldCopyOffsets(map, line).forEach((worldCopyOffset) => {
-                const copiedStart = buildCopiedLine(line, worldCopyOffset).start
-                const startPoint = map.project([copiedStart.lng, copiedStart.lat])
-
-                if (!Number.isFinite(startPoint.x) || !Number.isFinite(startPoint.y)) {
-                    return
-                }
-
-                drawDashedScreenLine(
-                    context,
-                    {x: cursorPoint.x, y: cursorPoint.y},
-                    {x: startPoint.x, y: startPoint.y},
-                    scaleX,
-                    scaleY,
-                    lineColor,
-                )
-            })
+        if (
+            Number.isFinite(startPoint.x) && Number.isFinite(startPoint.y)
+            && Number.isFinite(cursorPoint.x) && Number.isFinite(cursorPoint.y)
+        ) {
+            drawDashedScreenLine(
+                context,
+                startPoint,
+                cursorPoint,
+                scaleX,
+                scaleY,
+                lineColor,
+            )
         }
     }
 }
