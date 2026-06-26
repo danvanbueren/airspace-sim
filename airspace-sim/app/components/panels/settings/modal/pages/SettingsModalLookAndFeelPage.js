@@ -18,6 +18,11 @@ import {
     useAppSettings,
 } from '@/app/contexts/AppSettingsContext'
 import {
+    COLOR_MODE_OPTIONS,
+    DEFAULT_COLOR_MODE,
+    useColorMode,
+} from '@/app/contexts/CustomThemeContext'
+import {
     DEFAULT_CONTROL_BINDINGS,
     useControlBindings,
 } from '@/app/contexts/ControlBindingsContext'
@@ -43,6 +48,7 @@ export default function SettingsModalLookAndFeelPage() {
         updateAppSettings,
     } = useAppSettings()
     const {controlBindings, updateControlBindings} = useControlBindings()
+    const {mode: colorMode, setColorMode} = useColorMode()
     const keyboardCamera = controlBindings.keyboardCamera
 
     const updateKeyboardCameraNumber = (bindingKey, nextValue) => {
@@ -57,6 +63,50 @@ export default function SettingsModalLookAndFeelPage() {
 
     return (
         <Stack spacing={3}>
+            <Box>
+                <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
+                    Color Mode
+                </Typography>
+
+                <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
+                    Map basemap and application theme.
+                </Typography>
+
+                <FormControl fullWidth size='small'>
+                    <InputLabel id='color-mode-label'>
+                        Color Mode
+                    </InputLabel>
+                    <Select
+                        labelId='color-mode-label'
+                        label='Color Mode'
+                        value={colorMode}
+                        onChange={(event) => setColorMode(event.target.value)}
+                    >
+                        {Object.values(COLOR_MODE_OPTIONS).map((option) => (
+                            <MenuItem key={option.value} value={option.value}>
+                                {option.label}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
+
+                <Typography
+                    variant='caption'
+                    component='div'
+                    sx={{
+                        mt: 1,
+                        color: 'grey.600',
+                    }}
+                >
+                    {Object.values(COLOR_MODE_OPTIONS).map((option, index) => (
+                        <span key={option.value}>
+                            {index > 0 ? ' · ' : ''}
+                            {option.label}: {option.description}
+                        </span>
+                    ))}
+                </Typography>
+            </Box>
+
             <Box>
                 <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
                     Grid Reference System
@@ -192,6 +242,7 @@ export default function SettingsModalLookAndFeelPage() {
                 pageLabel='Reset Look & Feel Page'
                 pageHint='Resets look and feel settings on this page only.'
                 onPageReset={() => {
+                    setColorMode(DEFAULT_COLOR_MODE)
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
                         gridReferenceSystem: DEFAULT_APP_SETTINGS.gridReferenceSystem,

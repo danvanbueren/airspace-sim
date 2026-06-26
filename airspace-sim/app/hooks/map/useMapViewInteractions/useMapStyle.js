@@ -26,7 +26,7 @@ function whenStyleReady(map, callback) {
     }
 }
 
-function scheduleWaterLabelPaint(map, handleStyleLoad) {
+function scheduleWaterLabelPaint(map, style, handleStyleLoad) {
     map.on('style.load', handleStyleLoad)
 
     const cleanupReadyWait = map.isStyleLoaded()
@@ -66,11 +66,11 @@ export function useMapStyle(mapRef, style, mapCreationStyle) {
         }
 
         if (appliedStyleRef.current === style) {
-            return scheduleWaterLabelPaint(map, handleStyleLoad)
+            return scheduleWaterLabelPaint(map, style, handleStyleLoad)
         }
 
         let cancelled = false
-        let cleanupConfirm = null
+        let cleanupStyleLoad = null
 
         const applyStyleChange = () => {
             if (cancelled || appliedStyleRef.current === style || pendingStyleRef.current === style) {
@@ -78,17 +78,23 @@ export function useMapStyle(mapRef, style, mapCreationStyle) {
             }
 
             pendingStyleRef.current = style
-            map.setStyle(style)
 
-            cleanupConfirm = whenStyleReady(map, () => {
-                if (cancelled || pendingStyleRef.current !== style || !map.isStyleLoaded()) {
+            const handleNewStyleLoad = () => {
+                if (cancelled || pendingStyleRef.current !== style) {
                     return
                 }
 
                 appliedStyleRef.current = style
                 pendingStyleRef.current = null
                 handleStyleLoad()
-            })
+            }
+
+            map.once('style.load', handleNewStyleLoad)
+            cleanupStyleLoad = () => {
+                map.off('style.load', handleNewStyleLoad)
+            }
+
+            map.setStyle(style)
         }
 
         const cleanupReadyWait = whenStyleReady(map, applyStyleChange)
@@ -101,7 +107,7 @@ export function useMapStyle(mapRef, style, mapCreationStyle) {
             }
 
             cleanupReadyWait()
-            cleanupConfirm?.()
+            cleanupStyleLoad?.()
         }
     }, [mapRef, style, mapCreationStyle])
 }

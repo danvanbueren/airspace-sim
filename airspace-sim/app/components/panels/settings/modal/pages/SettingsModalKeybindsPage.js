@@ -1,16 +1,14 @@
 'use client'
 
 import {useCallback, useEffect, useMemo, useState} from 'react'
-import DeleteIcon from '@mui/icons-material/Delete'
 import {
-    Alert, Box, Button, Chip, Divider, FormControl, IconButton, InputLabel, Link, MenuItem, Select, Stack, Tooltip, Typography,
+    Alert, Box, Button, Divider, FormControl, InputLabel, Link, MenuItem, Select, Stack, Typography,
 } from '@mui/material'
 import {
     MOUSE_BUTTONS, useControlBindings,
 } from '../../../../../contexts/ControlBindingsContext'
 import {BEARING_RANGE_BEHAVIOR_MODES, useAppSettings} from '../../../../../contexts/AppSettingsContext'
 import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
-import {buildControlReference} from '@/app/tools/settings/controlReference'
 import {bearingRangeBehaviorUsesPersistModifier} from '@/app/tools/map/bearingRangeBehavior'
 import {SETTINGS_PAGE_TITLES} from '../../settingsPageConfig'
 
@@ -223,13 +221,6 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
         return null
     }, [listeningForBinding])
 
-    const controlReferenceSections = useMemo(
-        () => buildControlReference(controlBindings, {
-            bearingRangeBehavior: appSettings.bearingRangeBehavior,
-        }),
-        [controlBindings, appSettings.bearingRangeBehavior],
-    )
-
     const persistModifierInactive = !bearingRangeBehaviorUsesPersistModifier(appSettings.bearingRangeBehavior)
     const activeBehaviorLabel = BEARING_RANGE_BEHAVIOR_MODES[appSettings.bearingRangeBehavior]?.label
         ?? BEARING_RANGE_BEHAVIOR_MODES.temporary_default.label
@@ -310,24 +301,13 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
     )
 
     return (<Box sx={{display: 'flex', flexDirection: 'column', gap: 3}}>
-        <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'flex-start', gap: 2}}>
-            <Stack spacing={1} sx={{flex: 1}}>
-                <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                    Keyboard Controls
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                    Click a binding, then press the key you want to assign.
-                </Typography>
-            </Stack>
-            <Tooltip title='Unbind all keybinds'>
-                <IconButton
-                    aria-label='Unbind all keybinds'
-                    onClick={handleUnbindAll}
-                    sx={{mt: -0.5}}
-                >
-                    <DeleteIcon/>
-                </IconButton>
-            </Tooltip>
+        <Stack spacing={1}>
+            <Typography variant='h6' sx={{fontWeight: 'bold'}}>
+                Keyboard Controls
+            </Typography>
+            <Typography variant='body2' color='text.secondary'>
+                Click a binding, then press the key you want to assign.
+            </Typography>
         </Stack>
 
         <Stack spacing={2}>
@@ -483,75 +463,20 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
 
         <Divider/>
 
-        <Stack spacing={2}>
-            <Stack spacing={1}>
-                <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                    Complete Control Reference
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                    Every map control combination, including fixed shortcuts that are not individually rebindable today.
-                </Typography>
-            </Stack>
-
-            {controlReferenceSections.map((section) => (
-                <Box
-                    key={section.title}
-                    sx={{
-                        border: 1,
-                        borderColor: 'divider',
-                        borderRadius: 2,
-                        p: 2,
-                    }}
-                >
-                    <Typography sx={{fontWeight: 'bold', mb: 1.5}}>
-                        {section.title}
-                    </Typography>
-
-                    <Stack spacing={1.5}>
-                        {section.entries.map((entry) => (
-                            <Box
-                                key={`${section.title}-${entry.action}`}
-                                sx={{
-                                    display: 'grid',
-                                    gridTemplateColumns: {
-                                        xs: '1fr', md: '1fr auto',
-                                    },
-                                    gap: 1,
-                                    alignItems: 'start',
-                                }}
-                            >
-                                <Box>
-                                    <Typography sx={{fontWeight: 'bold'}}>
-                                        {entry.action}
-                                    </Typography>
-                                    {entry.notes && (
-                                        <Typography variant='body2' color='text.secondary'>
-                                            {entry.notes}
-                                        </Typography>
-                                    )}
-                                </Box>
-
-                                <Chip
-                                    label={entry.combo}
-                                    size='small'
-                                    sx={{
-                                        justifySelf: {
-                                            xs: 'start', md: 'end',
-                                        },
-                                        maxWidth: '100%',
-                                        height: 'auto',
-                                        '& .MuiChip-label': {
-                                            whiteSpace: 'normal',
-                                            py: 0.5,
-                                        },
-                                    }}
-                                />
-                            </Box>
-                        ))}
-                    </Stack>
-                </Box>
-            ))}
-        </Stack>
+        <Button
+            fullWidth
+            variant='contained'
+            onClick={handleUnbindAll}
+            sx={{
+                bgcolor: 'grey.600',
+                color: 'common.white',
+                '&:hover': {
+                    bgcolor: 'grey.700',
+                },
+            }}
+        >
+            Unbind All Keybinds
+        </Button>
 
         <SettingsModalPageRestoreFooter
             pageLabel='Reset Keybinds Page'

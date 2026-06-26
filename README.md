@@ -466,6 +466,7 @@ Sensor and overlay visibility are display-only toggles:
 
 | Setting | Role |
 |---------|------|
+| Color mode | Light or dark map basemap and application theme |
 | Grid reference display format | Coordinate format for the cursor tooltip and context menu |
 | Bearing/range line persistence | Default commit behavior: temporary by default, permanent by default (inverted), always permanent, or never permanent |
 | Keyboard pan speed | Base WASD pan rate in pixels per second |
@@ -526,7 +527,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - Optional **airport** and **air route** overlay layers.
 - Bearing/range measurements with configurable persistence (Settings → Look & Feel) and rebindable persist modifier (Settings → Keybinds).
 - Bearing/range line context menus and line removal controls (permanent lines only).
-- Complete Control Reference in Settings → Keybinds documenting every map control combo.
+- Complete Control Reference in Settings → Usage Guide documenting every map control combo (with a link to Keybinds for rebinding).
 - Cursor coordinate overlay with selectable grid reference systems.
 - Supported coordinate displays include DD, DDM, DMS, GARS, Geohash, GEOREF, Killbox-style GARS, and MGRS.
 - Configurable keyboard and mouse controls persisted in browser cookies, including click-to-center on the map.

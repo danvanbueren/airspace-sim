@@ -10,6 +10,7 @@ import SettingsModalKeybindsPage from './pages/SettingsModalKeybindsPage'
 import SettingsModalRoadmapPage from './pages/SettingsModalRoadmapPage'
 import SettingsModalAboutPage from './pages/SettingsModalAboutPage'
 import SettingsModalAlertsAttentionsPage from './pages/SettingsModalAlertsAttentionsPage'
+import SettingsModalUsageGuidePage from './pages/SettingsModalUsageGuidePage'
 import {
     DEFAULT_SETTINGS_PAGE_ID,
     SETTINGS_PAGE_TITLES,
@@ -54,6 +55,8 @@ export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_P
                 return <SettingsModalRoadmapPage/>
             case 'about':
                 return <SettingsModalAboutPage/>
+            case 'usageGuide':
+                return <SettingsModalUsageGuidePage onOpenSettingsPage={onOpenSettingsPage}/>
             default:
                 return 'UNKNOWN MODAL STATE'
         }
@@ -88,15 +91,21 @@ export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_P
                                 onClick={object.onModalClick}
                             />))}
 
-                            <Divider/>
+                            {buildData.sections.map((section, sectionIndex) => {
+                                if (section.type === 'divider') {
+                                    return <Divider key={`SettingsModal-Divider-${sectionIndex}`}/>
+                                }
 
-                            {buildData.full.map((object, index) => (<SettingsModalGenericButton
-                                key={'SettingsModal-Full-' + object.name + '-' + index}
-                                icon={object.icon}
-                                tooltip={object.tooltip}
-                                onClick={object.onModalClick}
-                                selected={object.name === state}
-                            />))}
+                                return section.items.map((object, index) => (
+                                    <SettingsModalGenericButton
+                                        key={`SettingsModal-Page-${object.name}-${sectionIndex}-${index}`}
+                                        icon={object.icon}
+                                        tooltip={object.tooltip}
+                                        onClick={object.onModalClick}
+                                        selected={object.name === state}
+                                    />
+                                ))
+                            })}
 
                         </Box>
                     </Box>
