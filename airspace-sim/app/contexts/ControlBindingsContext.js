@@ -97,6 +97,36 @@ function buildClearedControlBindings(currentBindings) {
     }
 }
 
+function normalizeMouseButtonBinding(value, fallbackButton) {
+    const parsed = Number(value)
+
+    if (
+        parsed === MOUSE_BUTTONS.unbound
+        || parsed === MOUSE_BUTTONS.left
+        || parsed === MOUSE_BUTTONS.middle
+        || parsed === MOUSE_BUTTONS.right
+    ) {
+        return parsed
+    }
+
+    return fallbackButton
+}
+
+function normalizeMouseButtonBindings(bindings, bindingKeys, defaultBindings) {
+    const mergedBindings = {
+        ...defaultBindings,
+        ...bindings,
+    }
+
+    return bindingKeys.reduce((normalizedBindings, bindingKey) => ({
+        ...normalizedBindings,
+        [bindingKey]: normalizeMouseButtonBinding(
+            bindings?.[bindingKey],
+            defaultBindings[bindingKey],
+        ),
+    }), mergedBindings)
+}
+
 function normalizeKey(key) {
     return key.toLowerCase()
 }
@@ -107,14 +137,16 @@ function normalizeBindings(bindings) {
             ...DEFAULT_CONTROL_BINDINGS.keyboardCamera,
             ...bindings?.keyboardCamera,
         },
-        mapCursor: {
-            ...DEFAULT_CONTROL_BINDINGS.mapCursor,
-            ...bindings?.mapCursor,
-        },
-        bearingRangeTool: {
-            ...DEFAULT_CONTROL_BINDINGS.bearingRangeTool,
-            ...bindings?.bearingRangeTool,
-        },
+        mapCursor: normalizeMouseButtonBindings(
+            bindings?.mapCursor,
+            MAP_CURSOR_BINDING_KEYS,
+            DEFAULT_CONTROL_BINDINGS.mapCursor,
+        ),
+        bearingRangeTool: normalizeMouseButtonBindings(
+            bindings?.bearingRangeTool,
+            BEARING_RANGE_BINDING_KEYS,
+            DEFAULT_CONTROL_BINDINGS.bearingRangeTool,
+        ),
     }
 }
 

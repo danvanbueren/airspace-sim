@@ -1,7 +1,7 @@
 'use client'
 
 import {useCallback, useEffect, useMemo, useState} from 'react'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import DeleteIcon from '@mui/icons-material/Delete'
 import {
     Alert, Box, Button, Chip, Divider, FormControl, IconButton, InputLabel, MenuItem, Select, Slider, Stack, Tooltip, Typography,
 } from '@mui/material'
@@ -80,8 +80,16 @@ function formatKeyName(key) {
     return labels[key.toLowerCase()] ?? key.toUpperCase()
 }
 
+function normalizeMouseButtonValue(value) {
+    const parsed = Number(value)
+
+    return MOUSE_BUTTON_OPTIONS.some((option) => option.value === parsed)
+        ? parsed
+        : MOUSE_BUTTONS.unbound
+}
+
 function getMouseButtonLabel(value) {
-    return MOUSE_BUTTON_OPTIONS.find((option) => option.value === value)?.label ?? `Button ${value}`
+    return MOUSE_BUTTON_OPTIONS.find((option) => option.value === normalizeMouseButtonValue(value))?.label ?? 'Unbound'
 }
 
 function normalizeCapturedKey(event) {
@@ -201,7 +209,7 @@ export default function SettingsModalKeybindsPage() {
                     onClick={handleUnbindAll}
                     sx={{mt: -0.5}}
                 >
-                    <DeleteOutlineIcon/>
+                    <DeleteIcon/>
                 </IconButton>
             </Tooltip>
         </Stack>
@@ -304,9 +312,14 @@ export default function SettingsModalKeybindsPage() {
         <Divider/>
 
         <Stack spacing={2}>
-            <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                Mouse Controls
-            </Typography>
+            <Stack spacing={1}>
+                <Typography variant='h6' sx={{fontWeight: 'bold'}}>
+                    Mouse Controls
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                    Choose a mouse button for each action, or select Unbound to disable it.
+                </Typography>
+            </Stack>
 
             <Box
                 sx={{
@@ -322,8 +335,9 @@ export default function SettingsModalKeybindsPage() {
                     <Select
                         labelId='map-drag-button-label'
                         label='Map Drag Button'
-                        value={mapCursor.dragButton}
-                        onChange={(event) => updateMapCursorBinding('dragButton', event.target.value)}
+                        value={normalizeMouseButtonValue(mapCursor.dragButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateMapCursorBinding('dragButton', normalizeMouseButtonValue(event.target.value))}
                         variant='outlined'
                     >
                         {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
@@ -339,8 +353,9 @@ export default function SettingsModalKeybindsPage() {
                     <Select
                         labelId='map-center-button-label'
                         label='Center Map Button'
-                        value={mapCursor.centerButton}
-                        onChange={(event) => updateMapCursorBinding('centerButton', event.target.value)}
+                        value={normalizeMouseButtonValue(mapCursor.centerButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateMapCursorBinding('centerButton', normalizeMouseButtonValue(event.target.value))}
                         variant='outlined'
                     >
                         {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
@@ -356,8 +371,9 @@ export default function SettingsModalKeybindsPage() {
                     <Select
                         labelId='bearing-range-draw-button-label'
                         label='Bearing/Range Draw Button'
-                        value={bearingRangeTool.drawButton}
-                        onChange={(event) => updateBearingRangeBinding('drawButton', event.target.value)}
+                        value={normalizeMouseButtonValue(bearingRangeTool.drawButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateBearingRangeBinding('drawButton', normalizeMouseButtonValue(event.target.value))}
                         variant='outlined'
                     >
                         {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
@@ -373,8 +389,9 @@ export default function SettingsModalKeybindsPage() {
                     <Select
                         labelId='bearing-range-context-menu-button-label'
                         label='Context Menu Button'
-                        value={bearingRangeTool.contextMenuButton}
-                        onChange={(event) => updateBearingRangeBinding('contextMenuButton', event.target.value)}
+                        value={normalizeMouseButtonValue(bearingRangeTool.contextMenuButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateBearingRangeBinding('contextMenuButton', normalizeMouseButtonValue(event.target.value))}
                         variant='outlined'
                     >
                         {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
