@@ -1,6 +1,6 @@
 # Bearing Range Tool — Rewrite Plan
 
-**Status:** Proposed (March 2026)  
+**Status:** Implemented (March 2026)  
 **Context:** [PR #73](https://github.com/danvanbueren/airspace-sim/pull/73) accumulated incremental fixes on top of a dual-renderer design. The hook (`useBearingRangeTool.js`) is ~1,280 lines and mixes geometry, canvas drawing, MapLibre lifecycle, pointer input, label DOM, and several overlapping sync mechanisms. Deletes and commits are unreliable; the code is hard to reason about.
 
 This document captures requirements, root causes, and a **clean-slate architecture** intended for a focused rewrite—not more patches.
