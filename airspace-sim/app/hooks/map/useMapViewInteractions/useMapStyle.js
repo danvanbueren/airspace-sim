@@ -1,6 +1,11 @@
 import {useEffect, useRef} from 'react'
 import {applyWaterLabelPaint} from '../../../tools/map/mapWaterLabelPaint'
 
+const STYLE_LABELS = {
+    'map-styles/voyager-gl-style.json': 'Voyager',
+    'map-styles/dark-matter-gl-style.json': 'Dark Matter',
+}
+
 function whenStyleReady(map, callback) {
     if (map.isStyleLoaded()) {
         callback()
@@ -26,10 +31,27 @@ function whenStyleReady(map, callback) {
     }
 }
 
+function getLoadedStyleLabel(map) {
+    try {
+        return map.getStyle()?.name ?? null
+    } catch {
+        return null
+    }
+}
+
+function mapMatchesRequestedStyle(map, style) {
+    const expectedLabel = STYLE_LABELS[style]
+
+    if (!expectedLabel) {
+        return false
+    }
+
+    return getLoadedStyleLabel(map) === expectedLabel
+}
+
 export function useMapStyle(mapRef, style, mapCreationStyle, mapReady = false) {
-    const confirmedStyleRef = useRef(null)
+    const requestedStyleRef = useRef(null)
     const mapInstanceRef = useRef(null)
-    const requestIdRef = useRef(0)
 
     useEffect(() => {
         const map = mapRef.current
@@ -40,11 +62,9 @@ export function useMapStyle(mapRef, style, mapCreationStyle, mapReady = false) {
 
         if (mapInstanceRef.current !== map) {
             mapInstanceRef.current = map
-            confirmedStyleRef.current = mapCreationStyle
-            requestIdRef.current = 0
+            requestedStyleRef.current = mapCreationStyle
         }
 
-        const requestId = ++requestIdRef.current
         let cancelled = false
         const cleanups = []
 
@@ -60,15 +80,6 @@ export function useMapStyle(mapRef, style, mapCreationStyle, mapReady = false) {
             }
         }
 
-        const confirmStyle = () => {
-            if (cancelled || requestId !== requestIdRef.current) {
-                return
-            }
-
-            confirmedStyleRef.current = style
-            paint()
-        }
-
         const handleStyleLoad = () => {
             paint()
         }
@@ -76,7 +87,12 @@ export function useMapStyle(mapRef, style, mapCreationStyle, mapReady = false) {
         map.on('style.load', handleStyleLoad)
         registerCleanup(() => map.off('style.load', handleStyleLoad))
 
-        if (confirmedStyleRef.current === style) {
+        const styleAlreadyApplied = (
+            requestedStyleRef.current === style
+            && mapMatchesRequestedStyle(map, style)
+        )
+
+        if (styleAlreadyApplied) {
             if (map.isStyleLoaded()) {
                 paint()
             }
@@ -87,31 +103,31 @@ export function useMapStyle(mapRef, style, mapCreationStyle, mapReady = false) {
             }
         }
 
-        const trySetStyle = () => {
-            if (cancelled || requestId !== requestIdRef.current) {
+        requestedStyleRef.current = style
+
+        const swapStyle = () => {
+            if (cancelled) {
                 return
             }
 
-            if (confirmedStyleRef.current === style) {
-                return
+            const onStyleLoaded = () => {
+                if (!cancelled) {
+                    paint()
+                }
             }
 
-            const onNewStyleLoaded = () => {
-                confirmStyle()
-            }
-
-            map.once('style.load', onNewStyleLoaded)
-            registerCleanup(() => map.off('style.load', onNewStyleLoaded))
+            map.once('style.load', onStyleLoaded)
+            registerCleanup(() => map.off('style.load', onStyleLoaded))
 
             try {
                 map.setStyle(style, {diff: false})
             } catch {
-                map.off('style.load', onNewStyleLoaded)
-                registerCleanup(whenStyleReady(map, trySetStyle))
+                map.off('style.load', onStyleLoaded)
+                registerCleanup(whenStyleReady(map, swapStyle))
             }
         }
 
-        registerCleanup(whenStyleReady(map, trySetStyle))
+        swapStyle()
 
         return () => {
             cancelled = true

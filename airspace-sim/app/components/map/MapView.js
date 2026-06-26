@@ -3,6 +3,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {createPortal} from 'react-dom'
 import {useTheme} from '@mui/material/styles'
+import {useColorMode} from '../../contexts/CustomThemeContext'
 import {useCursorHooks} from '../../hooks/map/useCursorHooks'
 import {useMapLibreMap} from '../../hooks/map/useMapLibreMap'
 import {useMeasuredElementSize} from '../../hooks/global/useMeasuredElementSize'
@@ -53,6 +54,7 @@ const EMPTY_TRACKS = []
 
 export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
     const theme = useTheme()
+    const {mode: colorMode} = useColorMode()
     const {raiseAlarmAlert, registerMap} = useAlarmAlertActions()
     const {upsertManualTrack, dropTrack, recoverTrack, setDropProtect, getTrack, getSimulationTimestamp} = useSimulation()
     const {appSettings, simulationSettings} = useAppSettings()
@@ -68,12 +70,12 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const trackManagementWindowsRef = useRef([])
     const trackMapLayerGetTrackRef = useRef(null)
     const syncTrackManagementWindowsFromLiveTracksRef = useRef(null)
-    const mapStyle = MAP_STYLES[theme.palette.mode]
+    const mapStyle = MAP_STYLES[colorMode]
 
     const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
         mapContainerRef,
         initialStyle: mapStyle,
-        colorMode: theme.palette.mode,
+        colorMode,
         onError: (message) => {
             raiseAlarmAlert({
                 signalId: 'MAP_ERROR',
