@@ -5,31 +5,48 @@ import buildInfo from '@/app/buildInfo'
 import ClassificationBar from '@/app/components/global/ClassificationBar'
 
 const MOBILE_BAR_SX = {
-    minHeight: 'clamp(1.75rem, 6dvh, 2.5rem)',
-    maxHeight: 'clamp(1.75rem, 6dvh, 2.5rem)',
+    minHeight: 'clamp(1.75rem, 5dvh, 2.5rem)',
+    maxHeight: 'clamp(1.75rem, 5dvh, 2.5rem)',
     '& .MuiTypography-root': {
-        fontSize: 'clamp(14px, 3.5dvh, 18px)',
+        fontSize: 'clamp(0.875rem, 2.5vw + 0.5dvh, 1.125rem)',
     },
 }
 
 const HEADING_SX = {
     fontWeight: 600,
     lineHeight: 1.2,
-    fontSize: 'clamp(20px, 6dvh, 32px)',
+    fontSize: 'clamp(1.5rem, 5vw + 1.5dvh, 2.5rem)',
 }
 
 const WARNING_ICON_SX = {
-    fontSize: 'clamp(2.75rem, 11dvh, 4.5rem)',
+    fontSize: 'clamp(3rem, 12vw + 2dvh, 5rem)',
     lineHeight: 1,
 }
 
 const BODY_SX = {
     lineHeight: 1.5,
-    fontSize: 'clamp(16px, 3.8dvh, 22px)',
+    fontSize: 'clamp(1.0625rem, 3.5vw + 0.75dvh, 1.375rem)',
 }
 
-const CONTENT_GAP = 'clamp(0.75rem, 2.5dvh, 1.5rem)'
-const CONTENT_PADDING_Y = 'clamp(0.75rem, 2dvh, 1.5rem)'
+const CONTENT_GAP = 'clamp(0.875rem, 3vw + 1dvh, 1.75rem)'
+const CONTENT_PADDING_X = 'clamp(1rem, 5vw, 2rem)'
+const CONTENT_PADDING_Y = 'clamp(1rem, 3dvh, 2rem)'
+
+const CONTENT_STACK_SX = {
+    width: '100%',
+    boxSizing: 'border-box',
+    mx: 'auto',
+    px: CONTENT_PADDING_X,
+    py: CONTENT_PADDING_Y,
+    textAlign: 'center',
+    gap: CONTENT_GAP,
+    '@media (orientation: portrait)': {
+        maxWidth: '100%',
+    },
+    '@media (orientation: landscape)': {
+        maxWidth: 'min(50vw, 40rem)',
+    },
+}
 
 export default function UnsupportedMobilePage() {
     const info = buildInfo()
@@ -57,21 +74,14 @@ export default function UnsupportedMobilePage() {
                     WebkitOverflowScrolling: 'touch',
                     display: 'flex',
                     flexDirection: 'column',
+                    alignItems: 'stretch',
+                    justifyContent: 'center',
+                    width: '100%',
                 }}
             >
                 <Stack
                     spacing={0}
-                    sx={{
-                        width: '100%',
-                        maxWidth: '26rem',
-                        mx: 'auto',
-                        my: 'auto',
-                        px: 3,
-                        py: CONTENT_PADDING_Y,
-                        textAlign: 'center',
-                        gap: CONTENT_GAP,
-                        boxSizing: 'border-box',
-                    }}
+                    sx={CONTENT_STACK_SX}
                 >
                     <Box
                         component="span"
@@ -101,10 +111,10 @@ export default function UnsupportedMobilePage() {
                         target="_blank"
                         sx={{
                             alignSelf: 'center',
-                            minHeight: 'clamp(40px, 10dvh, 52px)',
-                            px: 4,
+                            minHeight: 'clamp(2.75rem, 8vw + 2dvh, 3.5rem)',
+                            px: 'clamp(1.25rem, 5vw, 2rem)',
                             py: 1,
-                            fontSize: 'clamp(16px, 3.8dvh, 21px)',
+                            fontSize: 'clamp(1.0625rem, 3.5vw + 0.75dvh, 1.3125rem)',
                             lineHeight: 1.3,
                         }}
                     >
