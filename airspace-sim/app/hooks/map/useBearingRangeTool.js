@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import maplibregl from 'maplibre-gl'
 import {
     getMouseEventButton,
@@ -12,11 +12,14 @@ import {
     MAP_CURSOR_REQUESTS,
 } from './useMapCursorState'
 
-const LINE_SOURCE_ID = 'bearing-range-lines-source'
-const LINE_LAYER_ID = 'bearing-range-lines-layer'
+const COMMITTED_SOURCE_ID = 'bearing-range-lines-source'
+const COMMITTED_LAYER_ID = 'bearing-range-lines-layer'
+const PREVIEW_SOURCE_ID = 'bearing-range-preview-source'
+const PREVIEW_LAYER_ID = 'bearing-range-preview-layer'
 const BEARING_RANGE_DRAW_CURSOR = 'pointer'
 const BEARING_RANGE_CONTEXT_MENU_CURSOR = 'context-menu'
 const PREVIEW_LINE_ID = 'bearing-range-preview-line'
+const EMPTY_FEATURE_COLLECTION = {type: 'FeatureCollection', features: []}
 
 function toRadians(value) {
     return value * Math.PI / 180
@@ -113,48 +116,6 @@ function buildFeatureCollection(lines) {
     }
 }
 
-function ensureLineLayer(map, lineColor) {
-    if (!map.getSource(LINE_SOURCE_ID)) {
-        map.addSource(LINE_SOURCE_ID, {
-            type: 'geojson', data: buildFeatureCollection([]),
-        })
-    }
-
-    if (!map.getLayer(LINE_LAYER_ID)) {
-        map.addLayer({
-            id: LINE_LAYER_ID, type: 'line', source: LINE_SOURCE_ID, paint: {
-                'line-color': lineColor, 'line-width': 4, 'line-opacity': ['get', 'opacity'],
-            }, layout: {
-                'line-cap': 'round', 'line-join': 'round',
-            },
-        })
-
-        moveBearingRangeLayerToTop(map)
-        return
-    }
-
-    map.setPaintProperty(LINE_LAYER_ID, 'line-color', lineColor)
-    map.setPaintProperty(LINE_LAYER_ID, 'line-opacity', ['get', 'opacity'])
-    moveBearingRangeLayerToTop(map)
-}
-
-function moveBearingRangeLayerToTop(map) {
-    if (map.getLayer(LINE_LAYER_ID)) {
-        map.moveLayer(LINE_LAYER_ID)
-    }
-}
-
-function updateLineSource(map, visibleLines) {
-    const source = map.getSource(LINE_SOURCE_ID)
-
-    if (!source) {
-        return
-    }
-
-    source.setData(buildFeatureCollection(visibleLines))
-    map.triggerRepaint()
-}
-
 function createLabelElement(line) {
     const element = document.createElement('div')
 
@@ -190,6 +151,88 @@ function getDistancePixels(startPoint, endPoint) {
     return Math.hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y,)
 }
 
+function getLinePaint(lineColor) {
+    return {
+        'line-color': lineColor,
+        'line-width': 4,
+        'line-opacity': ['get', 'opacity'],
+    }
+}
+
+function getLineLayout() {
+    return {
+        'line-cap': 'round',
+        'line-join': 'round',
+    }
+}
+
+function moveBearingRangeLayersToTop(map) {
+    if (map.getLayer(COMMITTED_LAYER_ID)) {
+        map.moveLayer(COMMITTED_LAYER_ID)
+    }
+
+    if (map.getLayer(PREVIEW_LAYER_ID)) {
+        map.moveLayer(PREVIEW_LAYER_ID)
+    }
+}
+
+function ensureBearingRangeLayers(map, lineColor, appliedLineColorRef) {
+    if (!map.getSource(COMMITTED_SOURCE_ID)) {
+        map.addSource(COMMITTED_SOURCE_ID, {
+            type: 'geojson',
+            data: EMPTY_FEATURE_COLLECTION,
+        })
+    }
+
+    if (!map.getSource(PREVIEW_SOURCE_ID)) {
+        map.addSource(PREVIEW_SOURCE_ID, {
+            type: 'geojson',
+            data: EMPTY_FEATURE_COLLECTION,
+        })
+    }
+
+    if (!map.getLayer(COMMITTED_LAYER_ID)) {
+        map.addLayer({
+            id: COMMITTED_LAYER_ID,
+            type: 'line',
+            source: COMMITTED_SOURCE_ID,
+            paint: getLinePaint(lineColor),
+            layout: getLineLayout(),
+        })
+    }
+
+    if (!map.getLayer(PREVIEW_LAYER_ID)) {
+        map.addLayer({
+            id: PREVIEW_LAYER_ID,
+            type: 'line',
+            source: PREVIEW_SOURCE_ID,
+            paint: getLinePaint(lineColor),
+            layout: getLineLayout(),
+        })
+    }
+
+    if (appliedLineColorRef.current !== lineColor) {
+        map.setPaintProperty(COMMITTED_LAYER_ID, 'line-color', lineColor)
+        map.setPaintProperty(PREVIEW_LAYER_ID, 'line-color', lineColor)
+        appliedLineColorRef.current = lineColor
+    }
+
+    moveBearingRangeLayersToTop(map)
+}
+
+function setGeoJsonSourceData(map, sourceId, data) {
+    const source = map.getSource(sourceId)
+
+    if (!source) {
+        return false
+    }
+
+    source.setData(data)
+    map.triggerRepaint()
+
+    return true
+}
+
 export function useBearingRangeTool(mapRef, enabled, {
     onContextMenu, lineColor = '#fff', mapCursor,
 } = {},) {
@@ -198,27 +241,30 @@ export function useBearingRangeTool(mapRef, enabled, {
     const bearingRangeBindings = controlBindings.bearingRangeTool
 
     const labelsRef = useRef([])
+    const previewLabelMarkersRef = useRef([])
     const dragStartRef = useRef(null)
     const previewLineRef = useRef(null)
     const linesRef = useRef([])
     const lineColorRef = useRef(lineColor)
-    const visibleLinesRef = useRef([])
+    const appliedLineColorRef = useRef(null)
     const rehydrateTimeoutRef = useRef(null)
-    const syncFrameRef = useRef(null)
-    const viewChangeFrameRef = useRef(null)
+    const previewSyncFrameRef = useRef(null)
     const bearingRangeBindingsRef = useRef(bearingRangeBindings)
     const mapCursorBindingsRef = useRef(mapCursorBindings)
     const mapCursorRef = useRef(mapCursor)
     const onContextMenuRef = useRef(onContextMenu)
     const activePointerIdRef = useRef(null)
+    const isDraggingRef = useRef(false)
+    const clearPreviewRef = useRef(() => {})
+    const schedulePreviewSyncRef = useRef(() => {})
 
     bearingRangeBindingsRef.current = bearingRangeBindings
     mapCursorBindingsRef.current = mapCursorBindings
     mapCursorRef.current = mapCursor
     onContextMenuRef.current = onContextMenu
+    lineColorRef.current = lineColor
 
     const [lines, setLines] = useState([])
-    const [previewLine, setPreviewLine] = useState(null)
     const [isDrawingBearingRangeLine, setIsDrawingBearingRangeLine] = useState(false)
     const [labelWorldVersion, setLabelWorldVersion] = useState(0)
 
@@ -226,32 +272,109 @@ export function useBearingRangeTool(mapRef, enabled, {
         linesRef.current = lines
     }, [lines])
 
-    const visibleLines = useMemo(() => {
-        return previewLine ? [...lines, previewLine] : lines
-    }, [lines, previewLine])
-
-    useEffect(() => {
-        lineColorRef.current = lineColor
-    }, [lineColor])
-
-    useEffect(() => {
-        visibleLinesRef.current = visibleLines
-    }, [visibleLines])
-
-    const applyLineLayerToMap = useCallback(() => {
+    const syncCommittedLinesToMap = useCallback(() => {
         const map = mapRef.current
 
-        if (!map || !map.isStyleLoaded()) {
+        if (!map?.isStyleLoaded()) {
             return false
         }
 
-        ensureLineLayer(map, lineColorRef.current)
-        updateLineSource(map, visibleLinesRef.current)
+        ensureBearingRangeLayers(map, lineColorRef.current, appliedLineColorRef)
+        setGeoJsonSourceData(map, COMMITTED_SOURCE_ID, buildFeatureCollection(linesRef.current))
 
         return true
     }, [mapRef])
 
-    const rehydrateLineLayer = useCallback(() => {
+    const syncPreviewLineToMap = useCallback((previewLine = previewLineRef.current) => {
+        const map = mapRef.current
+
+        if (!map?.isStyleLoaded()) {
+            return false
+        }
+
+        ensureBearingRangeLayers(map, lineColorRef.current, appliedLineColorRef)
+
+        const previewData = previewLine
+            ? buildFeatureCollection([previewLine])
+            : EMPTY_FEATURE_COLLECTION
+
+        setGeoJsonSourceData(map, PREVIEW_SOURCE_ID, previewData)
+
+        return true
+    }, [mapRef])
+
+    const clearPreviewLabelMarkers = useCallback(() => {
+        previewLabelMarkersRef.current.forEach((marker) => marker.remove())
+        previewLabelMarkersRef.current = []
+    }, [])
+
+    const updatePreviewLabelMarkers = useCallback((line) => {
+        const map = mapRef.current
+
+        if (!map || !line) {
+            clearPreviewLabelMarkers()
+            return
+        }
+
+        const isMoreVertical = Math.abs(line.endPoint.y - line.startPoint.y) > Math.abs(line.endPoint.x - line.startPoint.x)
+        const labelLongitudes = getLabelLongitudeCopies(map, line.midpoint.lng)
+        const labelText = formatBearingRange(line)
+
+        if (previewLabelMarkersRef.current.length !== labelLongitudes.length) {
+            clearPreviewLabelMarkers()
+
+            previewLabelMarkersRef.current = labelLongitudes.map((lng) => {
+                const element = createLabelElement(line)
+
+                return new maplibregl.Marker({
+                    element,
+                    anchor: isMoreVertical ? 'left' : 'bottom',
+                    offset: isMoreVertical ? [14, 0] : [0, -12],
+                })
+                    .setLngLat({lng, lat: line.midpoint.lat})
+                    .addTo(map)
+            })
+
+            return
+        }
+
+        previewLabelMarkersRef.current.forEach((marker, index) => {
+            const lng = labelLongitudes[index]
+            const element = marker.getElement()
+
+            if (element.textContent !== labelText) {
+                element.textContent = labelText
+            }
+
+            marker.setLngLat({lng, lat: line.midpoint.lat})
+        })
+    }, [clearPreviewLabelMarkers, mapRef])
+
+    const clearPreview = useCallback(() => {
+        previewLineRef.current = null
+        clearPreviewLabelMarkers()
+        syncPreviewLineToMap(null)
+    }, [clearPreviewLabelMarkers, syncPreviewLineToMap])
+
+    const schedulePreviewSync = useCallback(() => {
+        if (previewSyncFrameRef.current) {
+            return
+        }
+
+        previewSyncFrameRef.current = requestAnimationFrame(() => {
+            previewSyncFrameRef.current = null
+
+            const previewLine = previewLineRef.current
+
+            syncPreviewLineToMap(previewLine)
+            updatePreviewLabelMarkers(previewLine)
+        })
+    }, [syncPreviewLineToMap, updatePreviewLabelMarkers])
+
+    clearPreviewRef.current = clearPreview
+    schedulePreviewSyncRef.current = schedulePreviewSync
+
+    const rehydrateLayers = useCallback(() => {
         if (rehydrateTimeoutRef.current) {
             window.clearTimeout(rehydrateTimeoutRef.current)
             rehydrateTimeoutRef.current = null
@@ -269,73 +392,30 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
-            applyLineLayerToMap()
+            appliedLineColorRef.current = null
+            syncCommittedLinesToMap()
+            syncPreviewLineToMap()
+            moveBearingRangeLayersToTop(map)
         }
 
         attemptRehydrate()
-    }, [applyLineLayerToMap, mapRef])
-
-    const scheduleSyncLineLayer = useCallback(() => {
-        if (syncFrameRef.current) {
-            return
-        }
-
-        syncFrameRef.current = requestAnimationFrame(() => {
-            syncFrameRef.current = null
-
-            if (applyLineLayerToMap()) {
-                return
-            }
-
-            rehydrateLineLayer()
-        })
-    }, [applyLineLayerToMap, rehydrateLineLayer])
-
-    const syncLineLayerNow = useCallback(() => {
-        if (syncFrameRef.current) {
-            cancelAnimationFrame(syncFrameRef.current)
-            syncFrameRef.current = null
-        }
-
-        if (applyLineLayerToMap()) {
-            return
-        }
-
-        rehydrateLineLayer()
-    }, [applyLineLayerToMap, rehydrateLineLayer])
-
-    const updatePreviewLine = useCallback((line) => {
-        previewLineRef.current = line
-        visibleLinesRef.current = line ? [...linesRef.current, line] : linesRef.current
-        syncLineLayerNow()
-        setPreviewLine(line)
-    }, [syncLineLayerNow])
-
-    const clearPreviewLine = useCallback(() => {
-        previewLineRef.current = null
-        visibleLinesRef.current = linesRef.current
-        syncLineLayerNow()
-        setPreviewLine(null)
-    }, [syncLineLayerNow])
+    }, [mapRef, syncCommittedLinesToMap, syncPreviewLineToMap])
 
     const removeBearingRangeLine = useCallback((lineId) => {
         setLines((currentLines) => {
             const nextLines = currentLines.filter((line) => line.id !== lineId)
             linesRef.current = nextLines
-            visibleLinesRef.current = previewLineRef.current ? [...nextLines, previewLineRef.current] : nextLines
-            syncLineLayerNow()
+            syncCommittedLinesToMap()
             return nextLines
         })
-        clearPreviewLine()
-    }, [clearPreviewLine, syncLineLayerNow])
+    }, [syncCommittedLinesToMap])
 
     const clearBearingRangeLines = useCallback(() => {
         linesRef.current = []
-        visibleLinesRef.current = []
-        syncLineLayerNow()
         setLines([])
-        clearPreviewLine()
-    }, [clearPreviewLine, syncLineLayerNow])
+        clearPreview()
+        syncCommittedLinesToMap()
+    }, [clearPreview, syncCommittedLinesToMap])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) return
@@ -363,56 +443,52 @@ export function useBearingRangeTool(mapRef, enabled, {
         const map = mapRef.current
 
         const handleStyleLoad = () => {
-            rehydrateLineLayer()
+            rehydrateLayers()
         }
 
-        const handleViewChange = () => {
-            if (viewChangeFrameRef.current) {
+        const handleIdle = () => {
+            if (!map.isStyleLoaded()) {
                 return
             }
 
-            viewChangeFrameRef.current = requestAnimationFrame(() => {
-                viewChangeFrameRef.current = null
-                scheduleSyncLineLayer()
-            })
+            const layersMissing = !map.getLayer(COMMITTED_LAYER_ID) || !map.getLayer(PREVIEW_LAYER_ID)
+
+            if (layersMissing) {
+                rehydrateLayers()
+                return
+            }
+
+            moveBearingRangeLayersToTop(map)
         }
 
-        rehydrateLineLayer()
+        rehydrateLayers()
 
         map.on('style.load', handleStyleLoad)
-        map.once('idle', handleStyleLoad)
-        map.on('move', handleViewChange)
-        map.on('zoom', handleViewChange)
+        map.on('idle', handleIdle)
 
         return () => {
             map.off('style.load', handleStyleLoad)
-            map.off('move', handleViewChange)
-            map.off('zoom', handleViewChange)
+            map.off('idle', handleIdle)
 
             if (rehydrateTimeoutRef.current) {
                 window.clearTimeout(rehydrateTimeoutRef.current)
                 rehydrateTimeoutRef.current = null
             }
 
-            if (syncFrameRef.current) {
-                cancelAnimationFrame(syncFrameRef.current)
-                syncFrameRef.current = null
-            }
-
-            if (viewChangeFrameRef.current) {
-                cancelAnimationFrame(viewChangeFrameRef.current)
-                viewChangeFrameRef.current = null
+            if (previewSyncFrameRef.current) {
+                cancelAnimationFrame(previewSyncFrameRef.current)
+                previewSyncFrameRef.current = null
             }
         }
-    }, [mapRef, enabled, rehydrateLineLayer, scheduleSyncLineLayer])
+    }, [enabled, mapRef, rehydrateLayers, syncCommittedLinesToMap, syncPreviewLineToMap])
 
     useEffect(() => {
-        if (!enabled || !mapRef.current) {
+        if (!enabled || !mapRef.current || isDraggingRef.current) {
             return
         }
 
-        scheduleSyncLineLayer()
-    }, [mapRef, enabled, visibleLines, lineColor, scheduleSyncLineLayer])
+        syncCommittedLinesToMap()
+    }, [enabled, lines, lineColor, mapRef, syncCommittedLinesToMap])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) return
@@ -422,9 +498,8 @@ export function useBearingRangeTool(mapRef, enabled, {
         labelsRef.current.forEach((marker) => marker.remove())
         labelsRef.current = []
 
-        visibleLines.forEach((line) => {
+        lines.forEach((line) => {
             const isMoreVertical = Math.abs(line.endPoint.y - line.startPoint.y) > Math.abs(line.endPoint.x - line.startPoint.x)
-
             const labelLongitudes = getLabelLongitudeCopies(map, line.midpoint.lng)
 
             labelLongitudes.forEach((lng) => {
@@ -446,7 +521,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             labelsRef.current.forEach((marker) => marker.remove())
             labelsRef.current = []
         }
-    }, [mapRef, enabled, visibleLines, labelWorldVersion])
+    }, [mapRef, enabled, lines, labelWorldVersion])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) return
@@ -468,10 +543,12 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const getBearingRangeLineAtPoint = (dragPoint) => {
-            if (!map.getLayer(LINE_LAYER_ID)) return null
+            const layers = [COMMITTED_LAYER_ID, PREVIEW_LAYER_ID].filter((layerId) => map.getLayer(layerId))
+
+            if (layers.length === 0) return null
 
             const features = map.queryRenderedFeatures([[dragPoint.mapPoint.x - 6, dragPoint.mapPoint.y - 6], [dragPoint.mapPoint.x + 6, dragPoint.mapPoint.y + 6],], {
-                layers: [LINE_LAYER_ID],
+                layers,
             },)
 
             const lineId = features.find((feature) => feature.properties?.id !== PREVIEW_LINE_ID)?.properties?.id
@@ -507,12 +584,12 @@ export function useBearingRangeTool(mapRef, enabled, {
             }
 
             const bindings = bearingRangeBindingsRef.current
-            const mapCursorBindings = mapCursorBindingsRef.current
+            const cursorBindings = mapCursorBindingsRef.current
             const buttons = getMouseEventButtons(event)
             const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
 
             if (
-                pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.dragButton)
+                pressedMouseButtonsMatchBinding(buttons, cursorBindings.dragButton)
                 || pressedMouseButtonsMatchBinding(buttons, bindings.drawButton)
                 || shiftKey
             ) {
@@ -547,6 +624,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             const deltaTime = performance.now() - dragStart.time
             const deltaPixels = getDistancePixels(dragStart.point, endPoint.point)
 
+            isDraggingRef.current = false
             dragStartRef.current = null
             releasePointerCapture(event)
             setIsDrawingBearingRangeLine(false)
@@ -557,7 +635,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 && deltaPixels <= bindings.contextMenuMaxPixels
 
             if (shouldOpenContextMenu) {
-                clearPreviewLine()
+                clearPreviewRef.current()
 
                 onContextMenuRef.current?.({
                     point: endPoint.point,
@@ -570,7 +648,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             }
 
             if (deltaPixels < bindings.minPersistedLinePixels) {
-                clearPreviewLine()
+                clearPreviewRef.current()
                 return
             }
 
@@ -579,9 +657,10 @@ export function useBearingRangeTool(mapRef, enabled, {
 
             linesRef.current = nextLines
             previewLineRef.current = null
-            visibleLinesRef.current = nextLines
-            syncLineLayerNow()
-            setPreviewLine(null)
+            clearPreviewLabelMarkers()
+            setGeoJsonSourceData(map, PREVIEW_SOURCE_ID, EMPTY_FEATURE_COLLECTION)
+            setGeoJsonSourceData(map, COMMITTED_SOURCE_ID, buildFeatureCollection(nextLines))
+            moveBearingRangeLayersToTop(map)
             setLines(nextLines)
         }
 
@@ -603,12 +682,13 @@ export function useBearingRangeTool(mapRef, enabled, {
             activePointerIdRef.current = event.pointerId
             canvas.setPointerCapture?.(event.pointerId)
 
+            isDraggingRef.current = true
             dragStartRef.current = {
                 time: performance.now(), ...getDragPoint(event),
             }
 
             setIsDrawingBearingRangeLine(true)
-            clearPreviewLine()
+            clearPreviewRef.current()
         }
 
         const handlePointerMove = (event) => {
@@ -635,13 +715,17 @@ export function useBearingRangeTool(mapRef, enabled, {
             const deltaPixels = getDistancePixels(dragStart.point, currentPoint.point)
 
             if (deltaPixels < bindings.minPersistedLinePixels) {
-                clearPreviewLine()
+                if (previewLineRef.current) {
+                    clearPreviewRef.current()
+                }
+
                 return
             }
 
-            updatePreviewLine(createLine(dragStart, currentPoint, {
+            previewLineRef.current = createLine(dragStart, currentPoint, {
                 id: PREVIEW_LINE_ID, isPreview: true,
-            }))
+            })
+            schedulePreviewSyncRef.current()
         }
 
         const handlePointerUp = (event) => {
@@ -685,10 +769,11 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
+            isDraggingRef.current = false
             releasePointerCapture(event)
             dragStartRef.current = null
             setIsDrawingBearingRangeLine(false)
-            clearPreviewLine()
+            clearPreviewRef.current()
             mapCursorRef.current.clearCursorRequests([
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
@@ -702,10 +787,11 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const cancelDrag = () => {
+            isDraggingRef.current = false
             releasePointerCapture()
             dragStartRef.current = null
             setIsDrawingBearingRangeLine(false)
-            clearPreviewLine()
+            clearPreviewRef.current()
             mapCursorRef.current.clearCursorRequests([
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
@@ -736,13 +822,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
             ])
         }
-    }, [
-        mapRef,
-        enabled,
-        clearPreviewLine,
-        updatePreviewLine,
-        syncLineLayerNow,
-    ])
+    }, [mapRef, enabled])
 
     return {
         lines, isDrawingBearingRangeLine, removeBearingRangeLine, clearBearingRangeLines,
