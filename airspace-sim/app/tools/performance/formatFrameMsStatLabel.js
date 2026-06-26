@@ -1,16 +1,13 @@
+import {
+    formatNumericValue,
+    formatPeakAvgStatLabel,
+    resolveFittedPeakAvgStatLabel,
+} from './formatPeakAvgStatLabel.js'
+
 const DEFAULT_FRACTION_DIGITS = 2
+const FRAME_STAT_LABEL_PREFIX = 'Frame (peak/avg)'
 
-export function formatMsValue(value, fractionDigits = DEFAULT_FRACTION_DIGITS) {
-    if (!Number.isFinite(value)) {
-        return '0'
-    }
-
-    if (fractionDigits <= 0) {
-        return String(Math.round(value))
-    }
-
-    return value.toFixed(fractionDigits)
-}
+export {formatNumericValue as formatMsValue}
 
 export function formatFrameMsStatLabel(
     peakMs,
@@ -18,35 +15,17 @@ export function formatFrameMsStatLabel(
     peakFractionDigits = DEFAULT_FRACTION_DIGITS,
     avgFractionDigits = DEFAULT_FRACTION_DIGITS,
 ) {
-    return `Frame (peak/avg): ${formatMsValue(peakMs, peakFractionDigits)}/${formatMsValue(avgMs, avgFractionDigits)} ms`
+    return formatPeakAvgStatLabel(FRAME_STAT_LABEL_PREFIX, peakMs, avgMs, {
+        suffix: 'ms',
+        leadingFractionDigits: peakFractionDigits,
+        avgFractionDigits,
+    })
 }
 
 export function resolveFittedFrameMsStatLabel(peakMs, avgMs, fits) {
-    let peakFractionDigits = DEFAULT_FRACTION_DIGITS
-    let avgFractionDigits = DEFAULT_FRACTION_DIGITS
-    let label = formatFrameMsStatLabel(
-        peakMs,
-        avgMs,
-        peakFractionDigits,
-        avgFractionDigits,
-    )
-
-    while (!fits(label) && (peakFractionDigits > 0 || avgFractionDigits > 0)) {
-        if (peakFractionDigits >= avgFractionDigits && peakFractionDigits > 0) {
-            peakFractionDigits -= 1
-        } else if (avgFractionDigits > 0) {
-            avgFractionDigits -= 1
-        } else {
-            peakFractionDigits -= 1
-        }
-
-        label = formatFrameMsStatLabel(
-            peakMs,
-            avgMs,
-            peakFractionDigits,
-            avgFractionDigits,
-        )
-    }
-
-    return label
+    return resolveFittedPeakAvgStatLabel(FRAME_STAT_LABEL_PREFIX, peakMs, avgMs, fits, {
+        suffix: 'ms',
+        leadingFractionDigits: DEFAULT_FRACTION_DIGITS,
+        avgFractionDigits: DEFAULT_FRACTION_DIGITS,
+    })
 }

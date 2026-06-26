@@ -21,6 +21,7 @@ import {
     PERFORMANCE_TARGET_FRAME_MS,
 } from '@/app/simulation/performanceFrameSegments'
 import PerformanceFrameTimeChart from './PerformanceFrameTimeChart'
+import FpsStatChip from './FpsStatChip'
 import FrameMsStatChip from './FrameMsStatChip'
 
 const MONO_LABEL_SX = {
@@ -213,15 +214,10 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                     }}
                 >
                     <Grid container spacing={0.5}>
-                        <Grid size={3}>
-                            <StatChip label='FPS:' value={metrics.fps} />
-                        </Grid>
-
-                        <Grid size={3}>
-                            <StatChip
-                                label='Throttle:'
-                                value={`${Math.round((1 - metrics.loadFactor) * 100)}%`}
-                                warn={metrics.loadFactor < 0.85}
+                        <Grid size={6}>
+                            <FpsStatChip
+                                lowFps={metrics.lowFps}
+                                avgFps={metrics.fps}
                             />
                         </Grid>
                         <Grid size={6}>
@@ -236,7 +232,13 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                         <Grid size={6}>
                             <StatChip label='Tracks Total:' value={metrics.firmTrackCount} />
                         </Grid>
-
+                        <Grid size={12}>
+                            <StatChip
+                                label='Throttle:'
+                                value={`${Math.round((1 - metrics.loadFactor) * 100)}%`}
+                                warn={metrics.loadFactor < 0.85}
+                            />
+                        </Grid>
                     </Grid>
                 </Typography>
 

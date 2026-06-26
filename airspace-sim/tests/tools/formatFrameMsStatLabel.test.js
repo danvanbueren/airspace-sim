@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {
+    formatFpsStatLabel,
+    resolveFittedFpsStatLabel,
+} from '../../app/tools/performance/formatFpsStatLabel.js'
+import {
     formatFrameMsStatLabel,
     formatMsValue,
     resolveFittedFrameMsStatLabel,
@@ -26,5 +30,19 @@ describe('formatFrameMsStatLabel', () => {
         ))
 
         assert.equal(label, 'Frame (peak/avg): 1235/79 ms')
+    })
+})
+
+describe('formatFpsStatLabel', () => {
+    it('formats low and average fps with one decimal place by default', () => {
+        assert.equal(formatFpsStatLabel(58.54, 60), 'FPS (low/avg): 58.5/60.0')
+    })
+
+    it('reduces decimal precision one digit at a time until the label fits', () => {
+        const label = resolveFittedFpsStatLabel(58.54, 60, (candidate) => (
+            candidate.length <= 22
+        ))
+
+        assert.equal(label, 'FPS (low/avg): 59/60.0')
     })
 })
