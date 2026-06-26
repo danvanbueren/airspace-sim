@@ -2,22 +2,22 @@ export const BEARING_RANGE_BEHAVIOR_MODES = {
     temporary_default: {
         value: 'temporary_default',
         label: 'Temporary by default',
-        description: 'Measurements disappear on release. Hold the persist modifier to keep a line on the map.',
+        description: 'Discard on release; hold persist modifier to keep.',
     },
     permanent_default: {
         value: 'permanent_default',
         label: 'Permanent by default',
-        description: 'Lines stay on the map by default. Hold the persist modifier for a temporary measurement only.',
+        description: 'Keep on release; hold persist modifier to discard.',
     },
     always_permanent: {
         value: 'always_permanent',
         label: 'Always permanent',
-        description: 'Every measurement is kept on the map.',
+        description: 'Always keep lines.',
     },
     never_permanent: {
         value: 'never_permanent',
         label: 'Never permanent',
-        description: 'Measurements always disappear on release.',
+        description: 'Never keep lines.',
     },
 }
 

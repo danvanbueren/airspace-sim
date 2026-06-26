@@ -103,22 +103,21 @@ export default function SettingsModalLookAndFeelPage() {
                     </Select>
                 </FormControl>
 
-                <Stack spacing={0.75} sx={{mt: 1}}>
-                    {Object.values(BEARING_RANGE_BEHAVIOR_MODES).map((mode) => (
-                        <Typography
-                            key={mode.value}
-                            variant='caption'
-                            color='text.disabled'
-                            component='div'
-                        >
-                            <Box component='span' sx={{fontWeight: 'bold'}}>
-                                {mode.label}
-                            </Box>
-                            {' — '}
-                            {mode.description}
-                        </Typography>
+                <Typography
+                    variant='caption'
+                    component='div'
+                    sx={{
+                        mt: 1,
+                        color: 'grey.600',
+                    }}
+                >
+                    {Object.values(BEARING_RANGE_BEHAVIOR_MODES).map((mode, index) => (
+                        <span key={mode.value}>
+                            {index > 0 ? ' · ' : ''}
+                            {mode.label}: {mode.description}
+                        </span>
                     ))}
-                </Stack>
+                </Typography>
             </Box>
 
             <SettingsModalPageRestoreFooter
