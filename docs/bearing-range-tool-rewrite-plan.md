@@ -26,7 +26,7 @@ User-facing behavior is also summarized in the [repository root README](../READM
 | Temporary vs permanent lines | ✅ On `main` | `persistModifier` gate in `finishDrag`; default Shift on release |
 | Keybinds UI + control reference | ✅ On `main` | `SettingsModalKeybindsPage.js`, `controlReference.js` |
 | Behavior mode selector (Look & Feel) | ✅ On `main` | `bearingRangeBehavior.js`, `SettingsModalLookAndFeelPage.js` |
-| Map layer sync reliability | ⚠️ Improved | Existing-source `setData` + idle retry; monitor for residual ghosts |
+| Map layer sync reliability | ⚠️ Improved | Phase 3c — existing-source `setData` + idle retry; [manual verification pending](#phase-3c--map-layer-sync-labels-vs-geometry-desync) |
 | Track-attached endpoints (line snapping) | ❌ Not started | Spec below (Phase 5) |
 | Preview → commit transition | ✅ On `main` | Sync `setBearingRangeLines`; no `mapWritePromiseRef` queue |
 
@@ -38,10 +38,12 @@ User-facing behavior is also summarized in the [repository root README](../READM
 
 ## Forward action plan
 
-Ship in this order. Phases 3b, 4, and 4b are complete on `main`. **Phase 5 is next.**
+Ship in this order. Phases 3b–4c are complete on `main`. **Phase 5 is next.**
 
 ```
 Phase 3b  Fix preview→commit flash (sync map writes)          ✅
+   ↓
+Phase 3c  Map layer sync (labels vs geometry desync)         ✅
    ↓
 Phase 4   Temporary vs permanent commit gate                   ✅
    ↓
@@ -77,6 +79,60 @@ void commitLines([...linesRef.current, lineToCommit]).finally(() => {
 - [x] Verify `syncLabels()` does not briefly show a preview label after the canvas is cleared (preview label should clear with `clearPreview()` or when `dragRef` is nulled).
 - [ ] Manual test: drag and release 20+ lines rapidly — no flash, no ghost lines, no missing lines.
 - [ ] Manual test: delete one / clear all still immediate.
+
+### Phase 3c — Map layer sync (labels vs geometry desync)
+
+**Problem:** After Phase 3b landed, operators reported committed lines and clear/delete behaving inconsistently on the **MapLibre layer** even though midpoint labels looked correct.
+
+**Reported symptoms:**
+
+| Symptom | What the operator sees |
+|---------|------------------------|
+| Missing commit | Preview disappears on release; label may appear but **no line** on the map (or line appears only after a later pan/zoom) |
+| Stale geometry on clear | **Clear all** or **delete one** removes labels immediately but **lines remain** on the map |
+| Intermittent recovery | A failed write sometimes “fixes itself” after map movement because a later effect or `idle` handler finally flushed `linesRef` to the source |
+
+**Root cause (Phase 3b regression):** Phase 3b correctly removed the async write queue and made `setBearingRangeLines` synchronous, but the first cut gated **every** write on `map.isStyleLoaded()`. When that guard returned `false`, the function exited without calling `setData` — yet `writeLinesToMap` in `useBearingRangeTool.js` had already updated `linesRef` and called `syncLabels()`. Labels follow `linesRef`; the GeoJSON source kept its **previous** feature collection. That split explains all three symptoms: labels and map geometry diverged silently with no thrown error.
+
+```javascript
+// Phase 3b (buggy) — silent failure left stale map geometry
+export function setBearingRangeLines(map, lines, ...) {
+    if (!map || !map.isStyleLoaded()) {
+        return false  // labels already updated; map layer unchanged
+    }
+    // ...
+}
+```
+
+**Fix (landed with Phase 4c work):** Keep sync writes from Phase 3b, but never let a failed map write go unretried.
+
+1. **Split the hot path in `bearingRangeMapLayer.js`:**
+   - If `bearing-range-lines-source` **already exists** → call `source.setData(...)` immediately. Do **not** require `isStyleLoaded()` for routine commit/delete/clear updates.
+   - If the source does **not** exist yet → only then require `isStyleLoaded()`, call `ensureBearingRangeLayer`, then `setData`.
+   - `rehydrateBearingRangeLines` remains **async** (`waitForStyleReady`) and is used only from `style.load` rehydrate — not from pointer handlers.
+
+2. **Retry failed writes in `useBearingRangeTool.js`:**
+   - `flushLinesToMapLayer()` calls sync `setBearingRangeLines` and returns success/failure.
+   - `writeLinesToMap` (commit, delete one, clear all) calls `flushLinesToMapLayer()`; on `false`, registers `scheduleMapFlush()` → `map.once('idle', ...)` until the write succeeds.
+   - `cancelScheduledMapFlush()` runs on hook teardown so idle listeners do not leak.
+
+**Target behavior:** `linesRef`, midpoint labels, and MapLibre `setData` always reflect the same `lines[]` after commit, delete, and clear-all. A failed first write must retry automatically — never leave the map showing geometry that labels no longer describe.
+
+**Checklist:**
+
+- [x] Update existing-source path in `setBearingRangeLines` to skip `isStyleLoaded` guard.
+- [x] Add `flushLinesToMapLayer` + `scheduleMapFlush` idle retry in `useBearingRangeTool.js`.
+- [x] Keep `rehydrateBearingRangeLines` async for `style.load` only.
+- [ ] Manual test: commit permanent line — line visible same frame as preview clears.
+- [ ] Manual test: clear all with 10+ lines — map and labels empty together.
+- [ ] Manual test: delete one line — map and labels update together.
+- [ ] Manual test: rapid draw/delete 20+ lines — no ghost lines, no missing lines.
+
+**Do not regress:**
+
+- Do not reintroduce `mapWritePromiseRef`, revision-retry queues, or `.finally(() => clearPreview())`.
+- Do not make commit/delete/clear hot paths `async` again.
+- Do not update labels before a map write without either succeeding or scheduling `scheduleMapFlush`.
 
 ### Phase 4 — Temporary vs permanent lines
 
@@ -130,7 +186,7 @@ void commitLines([...linesRef.current, lineToCommit]).finally(() => {
 - [x] Add pure `shouldPersistBearingRangeLine(behaviorMode, modifierActive)` in `bearingRangeBehavior.js`.
 - [x] Gate `finishDrag` via behavior mode + persist modifier.
 - [x] Update Complete Control Reference text per active behavior mode.
-- [x] Improve map layer sync: update existing GeoJSON source without `isStyleLoaded` guard; idle retry when first write fails.
+- [x] Improve map layer sync: update existing GeoJSON source without `isStyleLoaded` guard; idle retry when first write fails. See [Phase 3c](#phase-3c--map-layer-sync-labels-vs-geometry-desync).
 - [ ] Manual test matrix — all four modes + clear/delete still immediate.
 
 ### Phase 5 — Track-attached endpoints (line snapping)
@@ -226,6 +282,8 @@ Bindings that already exist in `ControlBindingsContext` but were **hidden from t
 | R30 | `never_permanent` never commits regardless of modifier state. |
 | R31 | Complete Control Reference updates its bearing/range entries when the behavior mode changes. |
 | R32 | Committed lines must update the MapLibre layer immediately on commit, delete, and clear-all — labels and map geometry stay in sync. |
+| R33 | A failed `setBearingRangeLines` on the hot path must schedule an idle retry; map geometry must not lag behind `linesRef` / labels. |
+| R34 | Routine updates to an **existing** GeoJSON source must not be blocked by `map.isStyleLoaded()` — only first source/layer creation may wait for style readiness. |
 
 ### Keybinds documentation (Phase 4b)
 
@@ -301,7 +359,13 @@ Preview on canvas (fast) and committed lines on MapLibre (correct for hit-testin
 
 Concurrent `setData` paths (sync, async, idle re-sync, effect re-sync) produced **stale geometry wins** — deleted lines reappearing, new lines vanishing.
 
-**Rule going forward:** One write API; prefer **synchronous** `setData` from explicit handler calls + style rehydrate only.
+**Rule going forward:** One write API; prefer **synchronous** `setData` from explicit handler calls + style rehydrate only. If a sync write cannot run yet (source not created), **retry on `idle`** — never update labels ahead of a silently skipped map write. See [Phase 3c](#phase-3c--map-layer-sync-labels-vs-geometry-desync).
+
+### 2b. Labels updated but map write skipped (Phase 3b regression)
+
+Phase 3b fixed preview flash by syncing `clearPreview()` with `setData`, but an over-broad `isStyleLoaded()` guard caused `setBearingRangeLines` to return `false` while `linesRef` and labels had already advanced. Operators saw tooltips without lines, or ghost lines after clear-all.
+
+**Rule going forward:** `linesRef`, labels, and GeoJSON `setData` are one logical write. Either all three succeed in the handler tick, or `scheduleMapFlush()` retries until the map catches up.
 
 ### 3. Duplicate label systems
 
@@ -352,7 +416,7 @@ Geometry, rendering, input, and layer management in one ~1,280-line hook — unt
 |------|----------------|
 | `app/tools/map/bearingRangeGeometry.js` | Pure math: normalize lng, bearing/range, midpoint, `isEndpointNormalized`, world-copy offsets, `createBearingRangeLine`, feature builders. **Unit-testable.** |
 | `app/tools/map/bearingRangePreviewCanvas.js` | Create/resize/clear/draw overlay; screen segments + dashed guide. No React. |
-| `app/tools/map/bearingRangeMapLayer.js` | `ensureBearingRangeLayer`, `setBearingRangeLines`, `getBearingRangeLineAtMapPoint`. |
+| `app/tools/map/bearingRangeMapLayer.js` | `ensureBearingRangeLayer`, sync `setBearingRangeLines`, async `rehydrateBearingRangeLines`, `getBearingRangeLineAtMapPoint`. |
 | `app/tools/map/bearingRangeLabels.js` | `BearingRangeLabelManager` — create/update/remove midpoint markers. |
 | `app/hooks/map/useBearingRangeTool.js` | State machine, pointer listeners, orchestration. **Target ≤ 350 lines** after Phase 5. |
 | `app/tools/settings/controlReference.js` | Pure `buildControlReference(controlBindings)` for Settings → Keybinds |
@@ -767,7 +831,7 @@ const {
 | Hook size | ~500 lines | ≤ 350 after Phase 5 extractions |
 | Temporary vs permanent | ✅ Release without modifier discards; persist modifier commits | Done in Phase 4 |
 | Keybinds reference | ✅ Full mouse bindings, persist modifier, Complete Control Reference | Done in Phase 4b |
-| Map layer sync | ⚠️ Improved | Existing-source `setData` without `isStyleLoaded` guard; idle retry on failed first write — [Phase 4c](#phase-4c--look--feel-behavior-mode-selector) |
+| Map layer sync | ⚠️ Improved | Phase 3c fix landed; idle retry + existing-source `setData` — [details](#phase-3c--map-layer-sync-labels-vs-geometry-desync) |
 | Track snap / line snapping | Not implemented | Phase 5 |
 
 ---
@@ -793,6 +857,12 @@ const {
 2. Remove `mapWritePromiseRef` queue from `useBearingRangeTool.js`.
 3. Call `clearPreview()` synchronously in `finishDrag` — not in `.finally()` after async write.
 4. Manual test: no flash on release; rapid draw/delete still correct.
+
+### Phase 3c — Map layer sync (labels vs geometry desync)
+
+1. Split `setBearingRangeLines`: existing source → immediate `setData`; new source → wait for `isStyleLoaded`.
+2. Add `flushLinesToMapLayer` + `scheduleMapFlush` idle retry in `useBearingRangeTool.js`.
+3. Manual test: commit, delete, and clear-all keep map geometry and labels in sync.
 
 ### Phase 4 — Temporary vs permanent lines
 
@@ -857,6 +927,16 @@ const {
 | Rapid draw 10+ lines | All lines visible; no preview ghosts left on canvas |
 | Delete one during/after draw | Immediate removal; no preview canvas leftover |
 | Style reload mid-session | Lines reappear; no flash on next draw |
+
+### Map layer sync (Phase 3c)
+
+| Scenario | Expected |
+|----------|----------|
+| Commit permanent line | MapLibre line visible in the **same interaction** as preview clear; label and line both present |
+| Clear all with 10+ lines | Map empty and labels gone **together** — no ghost lines |
+| Delete one line | That line removed from map and labels **together** |
+| Write while style loading (source not yet created) | `scheduleMapFlush` retries on `idle`; geometry eventually matches `linesRef` |
+| Write with existing source | `setData` runs even if `isStyleLoaded()` is false — no silent skip |
 
 ### Temporary vs permanent (Phase 4)
 
@@ -927,6 +1007,12 @@ Use this as a literal work order. Do not skip steps.
 - [x] Remove `mapWritePromiseRef` and revision-retry loop (`useBearingRangeTool.js`).
 - [x] Move `clearPreview()` into synchronous `finishDrag` — remove `.finally(() => clearPreview())` pattern.
 - [ ] Manual test: [Preview→commit transition](#previewcommit-transition-phase-3b) matrix.
+
+### Phase 3c — Map layer sync
+
+- [x] Split existing-source vs new-source paths in `setBearingRangeLines` (`bearingRangeMapLayer.js`).
+- [x] Add `flushLinesToMapLayer` + `scheduleMapFlush` idle retry (`useBearingRangeTool.js`).
+- [ ] Manual test: [Map layer sync](#map-layer-sync-phase-3c) matrix.
 
 ### Phase 4 — Temporary vs permanent
 
