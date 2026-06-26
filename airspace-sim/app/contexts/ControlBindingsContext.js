@@ -22,11 +22,13 @@ export const DEFAULT_CONTROL_BINDINGS = {
         panSpeedModifier: ['shift'],
         panSpeedMultiplier: 2.5,
         regularPanSpeed: 1000,
+        centerMap: [],
     },
     mapCursor: {
         dragButton: MOUSE_BUTTONS.left,
         grabButton: MOUSE_BUTTONS.left,
         pointerButton: MOUSE_BUTTONS.right,
+        centerButton: MOUSE_BUTTONS.middle,
     },
     bearingRangeTool: {
         drawButton: MOUSE_BUTTONS.right,

@@ -44,6 +44,10 @@ const KEYBOARD_BINDINGS = [{
     key: 'panSpeedModifier',
     label: 'Speed Modifier Key',
     description: 'Hold while panning to apply the speed modifier below.',
+}, {
+    key: 'centerMap',
+    label: 'Center Map',
+    description: 'Center the camera on the cursor position without changing zoom. Leave unbound to use only the mouse button below.',
 },]
 
 const MOUSE_BUTTON_OPTIONS = [{
@@ -301,6 +305,23 @@ export default function SettingsModalKeybindsPage() {
                         label='Map Drag Button'
                         value={mapCursor.dragButton}
                         onChange={(event) => updateMapCursorBinding('dragButton', event.target.value)}
+                        variant='outlined'
+                    >
+                        {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                        </MenuItem>))}
+                    </Select>
+                </FormControl>
+
+                <FormControl fullWidth>
+                    <InputLabel id='map-center-button-label'>
+                        Center Map Button
+                    </InputLabel>
+                    <Select
+                        labelId='map-center-button-label'
+                        label='Center Map Button'
+                        value={mapCursor.centerButton}
+                        onChange={(event) => updateMapCursorBinding('centerButton', event.target.value)}
                         variant='outlined'
                     >
                         {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>

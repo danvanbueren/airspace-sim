@@ -225,7 +225,7 @@ The simulator UI is a Next.js client application. Simulation state is produced i
 - **Track layer** — [`useTrackMapLayer`](airspace-sim/app/hooks/map/useTrackMapLayer.js) renders familiar platform silhouettes (default) or full MIL-STD-2525 symbols when info fields are enabled; draws callsign labels and heading/velocity vectors; only tracks inside the expanded viewport are drawn, with icon and vector size scaled by zoom.
 - **Sensor layers** — [`useSensorDetectionMapLayer`](airspace-sim/app/hooks/map/useSensorDetectionMapLayer.js) renders radar/IFF tick marks; geometry is recomputed on pan/zoom so tick size stays proportional to zoom.
 - **Overlays** — [`useAirportMapLayer`](airspace-sim/app/hooks/map/useAirportMapLayer.js) and [`useAirRouteMapLayer`](airspace-sim/app/hooks/map/useAirRouteMapLayer.js) for optional airport/route context.
-- **Interactions** — Map pan/zoom, context menu (with inline grid-reference picker), bearing/range lines, track pick, draggable track management windows with keyboard custody and focus stacking, and map-click dismissal of transient windows.
+- **Interactions** — Map pan/zoom, click-to-center (default middle mouse; rebindable in Settings → Keybinds), context menu (with inline grid-reference picker), bearing/range lines, track pick, draggable track management windows with keyboard custody and focus stacking, and map-click dismissal of transient windows.
 
 Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles/) (Voyager for light mode, Dark Matter for dark mode). Water-feature and track label colors are adjusted at runtime for readability in each theme.
 
@@ -522,7 +522,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - Bearing/range drawing, context menus, and line removal controls.
 - Cursor coordinate overlay with selectable grid reference systems.
 - Supported coordinate displays include DD, DDM, DMS, GARS, Geohash, GEOREF, Killbox-style GARS, and MGRS.
-- Configurable keyboard and mouse controls persisted in browser cookies.
+- Configurable keyboard and mouse controls persisted in browser cookies, including click-to-center on the map.
 - In-app settings, keybinds, about, and markdown-backed roadmap pages.
 - Node test suites for formatting, simulation, and symbol helpers (`npm test`).
 - Error forwarding into an in-app alert panel for easier testing feedback.
