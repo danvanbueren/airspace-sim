@@ -7,7 +7,7 @@ This document is the **single source of truth** for how the bearing/range system
 
 1. Why the original monolithic hook was rewritten.
 2. What has already landed on `main`.
-3. What still needs to be built (temporary vs permanent lines, track snapping, keybinds documentation).
+3. What still needs to be built (preview→commit flash fix, temporary vs permanent lines, track snapping, keybinds documentation).
 4. Exact data models, file boundaries, control bindings, and test expectations so a future agent can implement the remaining work **without re-discovering requirements in chat**.
 
 User-facing behavior is also summarized in the [repository root README](../README.md). In-app roadmap items live in `airspace-sim/app/content/settings-roadmap.md`.
@@ -25,11 +25,108 @@ User-facing behavior is also summarized in the [repository root README](../READM
 | Thin hook orchestrator | ⚠️ Partial | `useBearingRangeTool.js` is modular but still uses async map writes and a write queue — see [Known gaps](#known-gaps-vs-this-plan) |
 | Temporary vs permanent lines | ❌ Not on `main` | Spec + prototype below; **do not merge** [PR #72](https://github.com/danvanbueren/airspace-sim/pull/72) |
 | Keybinds UI + control reference | ❌ Not on `main` | Spec below; prototyped on same abandoned branch |
-| Track-attached endpoints | ❌ Not started | Spec below (Phase 5) |
+| Track-attached endpoints (line snapping) | ❌ Not started | Spec below (Phase 5) |
+| Preview → commit transition | ⚠️ Flash on release | Async map write defers `clearPreview()` — see [Phase 3b](#phase-3b--fix-previewcommit-flash-prerequisite) |
 
 **Historical context:** [PR #73](https://github.com/danvanbueren/airspace-sim/pull/73) accumulated incremental fixes on top of a dual-renderer design. The pre-rewrite hook was ~1,280 lines, mixed geometry/canvas/MapLibre/input/labels, and had unreliable deletes/commits. Phases 1–3 on `main` addressed that split. Phases 4–5 are the next product increments.
 
 **Abandoned prototype:** [PR #72](https://github.com/danvanbueren/airspace-sim/pull/72) (`cursor/bearing-range-temp-lines-keybinds-fdde`, commits `3b79e41` / `2fafb69`) implemented Phase 4 against the **old monolithic hook** before the modular rewrite landed. The PR will be **deleted**. All useful behavior from that effort is captured in this document — re-implement on top of modular `main`, do not cherry-pick the PR diff.
+
+---
+
+## Forward action plan
+
+Ship in this order. **Do not start Phase 4 until Phase 3b is done** — the flash bug is a symptom of the async write handoff that Phase 4 will make worse if left in place.
+
+```
+Phase 3b  Fix preview→commit flash (sync map writes)
+   ↓
+Phase 4   Temporary vs permanent commit gate
+   ↓
+Phase 4b  Keybinds UI + Complete Control Reference
+   ↓
+Phase 5   Track-attached endpoints (line snapping)
+   ↓
+Phase 6   Hardening (optional)
+```
+
+### Phase 3b — Fix preview→commit flash (prerequisite)
+
+**Problem:** On mouse release, the preview line flashes or briefly disappears before the committed MapLibre line appears.
+
+**Root cause (current `main`):** `finishDrag` in `useBearingRangeTool.js` calls `commitLines(...)`, which queues an **async** `setBearingRangeLines` via `mapWritePromiseRef`. `clearPreview()` runs only in `.finally()` after that promise resolves — so for one or more frames the preview canvas is still visible while the map layer is also updating, or the preview vanishes before the layer paints.
+
+```javascript
+// Current (buggy) — preview cleared after async write
+void commitLines([...linesRef.current, lineToCommit]).finally(() => {
+    clearPreview()
+})
+```
+
+**Target behavior:** Preview canvas exists **only** while `drag !== null`. On release, `clearPreview()` runs **synchronously in the same handler tick** as the map `setData` call. No overlap, no gap.
+
+**Checklist:**
+
+- [ ] Make `setBearingRangeLines` synchronous — remove `waitForStyleReady` from the hot path; keep async wait only inside `ensureBearingRangeLayer` on first style attach or in `style.load` rehydrate.
+- [ ] Remove `mapWritePromiseRef` and the revision-retry loop in `flushLinesToMap`.
+- [ ] In `finishDrag`, call `clearPreview()` **before** or **immediately after** sync `setBearingRangeLines` in the same synchronous block — never in `.finally()` on an async promise.
+- [ ] Verify `syncLabels()` does not briefly show a preview label after the canvas is cleared (preview label should clear with `clearPreview()` or when `dragRef` is nulled).
+- [ ] Manual test: drag and release 20+ lines rapidly — no flash, no ghost lines, no missing lines.
+- [ ] Manual test: delete one / clear all still immediate.
+
+### Phase 4 — Temporary vs permanent lines
+
+**Problem:** Every valid drag currently commits permanently. Operators cannot measure without leaving lines on the map.
+
+**Checklist:**
+
+- [ ] Add `persistModifier: ['shift']` to `DEFAULT_CONTROL_BINDINGS.bearingRangeTool` in `ControlBindingsContext.js`.
+- [ ] Add `BEARING_RANGE_KEYBOARD_BINDING_KEYS = ['persistModifier']` and wire into normalize / clear / unbind logic.
+- [ ] Export `eventModifierKeysMatchBinding(event, bindingKeys)` helper (Shift, Control, Alt, Meta only).
+- [ ] Gate `finishDrag` commit per [finishDrag logic](#finishdrag-logic-phase-4--implement-in-modular-hook): release without modifier → `clearPreview()` only; release with modifier → commit.
+- [ ] Update hover-cursor suppression: also suppress when `eventModifierKeysMatchBinding(event, bindings.persistModifier)` (keep hard-coded `event.shiftKey` for box-zoom).
+- [ ] If `persistModifier` is unbound (`[]`), no drag produces a permanent line.
+- [ ] Manual test matrix — [Temporary vs permanent](#temporary-vs-permanent-phase-4) rows.
+- [ ] Update root `README.md` bearing/range interaction description when shipped.
+
+### Phase 4b — Keybinds UI and control reference
+
+**Problem:** Operators cannot rebind the persist modifier; map controls are not fully documented in Settings.
+
+**Checklist:**
+
+- [ ] Add **Persist Line Modifier** click-to-capture row to `SettingsModalKeybindsPage.js` (`bearingRangeTool:persistModifier`).
+- [ ] Extend key-capture listener to handle both `keyboardCamera:*` and `bearingRangeTool:*` binding targets.
+- [ ] Expose `grabButton` and `pointerButton` in the Mouse Controls grid (currently only drag, center, draw, context menu).
+- [ ] Add **Complete Control Reference** section — extract `buildControlReference(controlBindings)` (pure function) and render grouped MUI cards per [required entries](#complete-control-reference--required-entries).
+- [ ] List fixed combos (box zoom, scroll wheel) with a note that they are not individually rebindable today.
+- [ ] Reset Keybinds page restores `persistModifier: ['shift']`.
+- [ ] Manual test matrix — [Keybinds UI](#keybinds-ui-phase-4b) rows.
+- [ ] Update `settings-roadmap.md` when shipped.
+
+**Note:** Phase 4 and 4b can land in the **same PR** — they are one user-facing feature.
+
+### Phase 5 — Track-attached endpoints (line snapping)
+
+**Problem:** Permanent line endpoints do not snap to tracks or follow track movement.
+
+**Checklist:**
+
+- [ ] Create `app/tools/map/trackHitTest.js` — extract `queryTrackAtMapPoint` / `findSnapTrackAtMapPoint` from `useTrackMapLayer.js`; add `SNAP_MARGIN_PX = 8`.
+- [ ] Create `app/tools/map/bearingRangeTrackSnap.js` + `tests/map/bearingRangeTrackSnap.test.js` **before** wiring the hook.
+- [ ] Extend `BearingRangeLine` with `startTrackId` / `endTrackId` (null = free geographic endpoint).
+- [ ] At permanent commit only: screen-space snap per endpoint via `findSnapTrackAtMapPoint`; recompute geometry with `createBearingRangeLine`.
+- [ ] Add track-follow sync effect (or `useBearingRangeTrackSync.js` if hook exceeds ~350 lines): depend on `simulationSnapshot.evaluationTime`, store tracks in ref, bail out on equality before `setLines`.
+- [ ] Wire `tracks` from `MapView` with module-level `EMPTY_TRACKS` constant.
+- [ ] On track drop: freeze endpoint at last position, clear `*TrackId`.
+- [ ] Temporary lines never get track bindings.
+- [ ] Manual + unit test matrix — [Track snap](#track-snap-phase-5) rows.
+
+### Phase 6 — Hardening (optional, after 4–5)
+
+- [ ] Integration test: `setData` call order on rapid draw/delete.
+- [ ] Promote lines to a small React context if other tools need overlays.
+- [ ] Consider making box-zoom modifier rebindable (today hard-coded to Shift).
 
 ---
 
@@ -340,7 +437,7 @@ function finishDrag(event, dragStart, endPoint) {
   // 3. Commit gate — temporary vs permanent
   const shouldPersistLine = eventModifierKeysMatchBinding(event, bindings.persistModifier)
 
-  clearPreview()
+  clearPreview()  // synchronous — same tick as map write; never defer to async .finally()
 
   if (!shouldPersistLine) {
     return  // temporary measurement only; lines[] unchanged
@@ -349,7 +446,7 @@ function finishDrag(event, dragStart, endPoint) {
   // 4. Permanent commit (Phase 5 adds track snap before append)
   const line = createBearingRangeLine(dragStart, endPoint)
   appendToLines(line)
-  setBearingRangeLines(map, lines)  // same tick, sync preferred
+  setBearingRangeLines(map, lines)  // sync setData + triggerRepaint
   labels.sync(lines)
 }
 ```
@@ -622,13 +719,14 @@ const {
 
 | Gap | Current behavior on `main` | Target |
 |-----|---------------------------|--------|
+| Preview→commit flash | `clearPreview()` deferred to `.finally()` after async `setBearingRangeLines`; preview and map layer briefly overlap or gap | Sync `clearPreview()` + sync `setData` in same handler tick — [Phase 3b](#phase-3b--fix-previewcommit-flash-prerequisite) |
 | Map writes | `setBearingRangeLines` is `async` with `waitForStyleReady`; hook uses `mapWritePromiseRef` queue | Synchronous `setData` + `triggerRepaint` from handlers; rehydrate on `style.load` only |
 | Hook size | ~515 lines | ≤ 350 after Phase 4–5 extractions |
 | Temporary vs permanent | Every valid drag commits | Phase 4 gate on persist modifier |
-| Keybinds reference | Partial mouse bindings only | Phase 4b complete reference |
-| Track snap | Not implemented | Phase 5 |
+| Keybinds reference | Partial mouse bindings only (`dragButton`, `centerButton`, `drawButton`, `contextMenuButton`) | Phase 4b: `grabButton`, `pointerButton`, persist modifier, Complete Control Reference |
+| Track snap / line snapping | Not implemented | Phase 5 |
 
-Resolve the async write queue when touching the hook for Phase 4 — do not add a third sync mechanism for track follow.
+Resolve the async write queue in **Phase 3b** before adding the Phase 4 commit gate — do not add a third sync mechanism for track follow.
 
 ---
 
@@ -644,7 +742,15 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 
 ### Phase 3 — Rewrite hook ⚠️
 
-1. Modular orchestrator landed; finish by removing async write queue per [Known gaps](#known-gaps-vs-this-plan).
+1. Modular orchestrator landed.
+2. **Remaining:** finish by removing async write queue and fixing preview→commit flash — see [Phase 3b](#phase-3b--fix-previewcommit-flash-prerequisite).
+
+### Phase 3b — Fix preview→commit flash (prerequisite for Phase 4)
+
+1. Make `setBearingRangeLines` synchronous on the commit/delete/clear hot path.
+2. Remove `mapWritePromiseRef` queue from `useBearingRangeTool.js`.
+3. Call `clearPreview()` synchronously in `finishDrag` — not in `.finally()` after async write.
+4. Manual test: no flash on release; rapid draw/delete still correct.
 
 ### Phase 4 — Temporary vs permanent lines
 
@@ -653,6 +759,8 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 3. Update hover-cursor suppression for persist modifier.
 4. Manual test: release without modifier → no line; release with modifier → line persists.
 5. Update README when shipped.
+
+**Depends on Phase 3b** — do not implement the commit gate on top of the async preview handoff.
 
 ### Phase 4b — Keybinds UI and control reference
 
@@ -688,7 +796,7 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 | Scenario | Expected |
 |----------|----------|
 | Drag short line (< min pixels) | No preview, no commit |
-| Drag long line | Solid preview during drag; committed behavior depends on Phase 4 gate |
+| Drag long line, release | Solid preview during drag; **no flash** on release; line commits (until Phase 4: only with persist modifier) |
 | Drag across antimeridian | Dashed guide during drag; solid normalized line; world copies at low zoom |
 | Draw 10+ lines quickly | All permanent lines remain visible |
 | Clear all | Map empty immediately; labels gone |
@@ -698,6 +806,15 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 | Pan/zoom after commit | Lines and labels track |
 | Right-click context menu on line | Opens menu; delete works |
 | Style reload / theme change | Lines reappear with correct color |
+
+### Preview→commit transition (Phase 3b)
+
+| Scenario | Expected |
+|----------|----------|
+| Release after long drag | Preview clears and committed line appears in the **same frame** — no flash, no double line, no brief blank |
+| Rapid draw 10+ lines | All lines visible; no preview ghosts left on canvas |
+| Delete one during/after draw | Immediate removal; no preview canvas leftover |
+| Style reload mid-session | Lines reappear; no flash on next draw |
 
 ### Temporary vs permanent (Phase 4)
 
@@ -741,7 +858,7 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 
 1. `useBearingRangeTool.js` ≤ ~350 lines; bearing-range code ≤ ~1,000 lines across modules (excluding tests).
 2. **One** code path writes committed geometry to the map (sync `setData` from handlers + style rehydrate).
-3. Preview canvas used **only** while `drag !== null`.
+3. Preview canvas used **only** while `drag !== null`; **no flash** on release (Phase 3b).
 4. Delete/clear immediate with 20+ lines (manual matrix).
 5. No `handoff*`, `flushChain`, or revision-based async write queues.
 6. Temporary vs permanent behavior matches R10–R15.
@@ -755,22 +872,44 @@ Resolve the async write queue when touching the hook for Phase 4 — do not add 
 
 Use this as a literal work order. Do not skip steps.
 
+### Before you start
+
 - [ ] Read this document end-to-end.
 - [ ] Read `airspace-sim/AGENTS.md` (React effect deps, deferred settings patterns).
 - [ ] Run `npm test` in `airspace-sim/` before and after changes.
 - [ ] Confirm you are on **modular** `main` (geometry/map layer/labels split exists). **Do not merge PR #72.**
-- [ ] **Phase 4:** Add `persistModifier` + `eventModifierKeysMatchBinding` to `ControlBindingsContext.js`.
-- [ ] **Phase 4:** Gate `finishDrag` commit per [finishDrag logic](#finishdrag-logic-phase-4--implement-in-modular-hook).
-- [ ] **Phase 4:** Update hover-cursor suppression for persist modifier.
-- [ ] **Phase 4:** Remove or simplify async `mapWritePromiseRef` while touching `finishDrag`.
-- [ ] **Phase 4b:** Add persist modifier row + expanded mouse controls to `SettingsModalKeybindsPage.js`.
-- [ ] **Phase 4b:** Add Complete Control Reference per [required entries](#complete-control-reference--required-entries).
-- [ ] **Phase 5:** Create `trackHitTest.js`; dedupe from `useTrackMapLayer.js`.
-- [ ] **Phase 5:** Create `bearingRangeTrackSnap.js` + tests **before** wiring the hook.
-- [ ] **Phase 5:** Extend line model with `startTrackId` / `endTrackId`.
-- [ ] **Phase 5:** Wire `tracks` from `MapView` with `EMPTY_TRACKS` constant.
-- [ ] Update README + `settings-roadmap.md` when user-visible behavior ships.
-- [ ] Manual test matrix — all rows.
+
+### Phase 3b — Fix flash (do first)
+
+- [ ] Make `setBearingRangeLines` sync on commit/delete/clear path (`bearingRangeMapLayer.js`).
+- [ ] Remove `mapWritePromiseRef` and revision-retry loop (`useBearingRangeTool.js`).
+- [ ] Move `clearPreview()` into synchronous `finishDrag` — remove `.finally(() => clearPreview())` pattern.
+- [ ] Manual test: [Preview→commit transition](#previewcommit-transition-phase-3b) matrix.
+
+### Phase 4 — Temporary vs permanent
+
+- [ ] Add `persistModifier` + `eventModifierKeysMatchBinding` to `ControlBindingsContext.js`.
+- [ ] Gate `finishDrag` commit per [finishDrag logic](#finishdrag-logic-phase-4--implement-in-modular-hook).
+- [ ] Update hover-cursor suppression for persist modifier.
+- [ ] Manual test: [Temporary vs permanent](#temporary-vs-permanent-phase-4) matrix.
+
+### Phase 4b — Keybinds UI
+
+- [ ] Add persist modifier row + expanded mouse controls to `SettingsModalKeybindsPage.js`.
+- [ ] Add Complete Control Reference per [required entries](#complete-control-reference--required-entries).
+- [ ] Manual test: [Keybinds UI](#keybinds-ui-phase-4b) matrix.
+
+### Phase 5 — Line snapping
+
+- [ ] Create `trackHitTest.js`; dedupe from `useTrackMapLayer.js`.
+- [ ] Create `bearingRangeTrackSnap.js` + tests **before** wiring the hook.
+- [ ] Extend line model with `startTrackId` / `endTrackId`.
+- [ ] Wire `tracks` from `MapView` with `EMPTY_TRACKS` constant.
+- [ ] Manual test: [Track snap](#track-snap-phase-5) matrix.
+
+### Ship docs
+
+- [ ] Update root `README.md` + `settings-roadmap.md` when user-visible behavior ships.
 
 ---
 
@@ -780,8 +919,9 @@ Use this as a literal work order. Do not skip steps.
 
 Ship in order:
 
-1. **Phase 4** — temporary vs permanent commit gate.
-2. **Phase 4b** — keybinds UI and complete control reference (can land in the same PR as Phase 4).
-3. **Phase 5** — track-attached endpoints (snap applies only to permanent lines).
+1. **Phase 3b** — fix preview→commit flash (sync map writes, remove write queue). **Blocker for everything below.**
+2. **Phase 4** — temporary vs permanent commit gate.
+3. **Phase 4b** — keybinds UI and complete control reference (can land in the same PR as Phase 4).
+4. **Phase 5** — track-attached endpoints / line snapping (snap applies only to permanent lines).
 
-The experience should feel boring: drag → see line → release (with modifier if permanent) → line is on the map → attached ends follow tracks → delete → line is gone. If any step needs a state machine with more than a handful of explicit states, the design has slipped.
+The experience should feel boring: drag → see line → release (with modifier if permanent) → line is on the map with no flash → attached ends follow tracks → delete → line is gone. If any step needs a state machine with more than a handful of explicit states, the design has slipped.
