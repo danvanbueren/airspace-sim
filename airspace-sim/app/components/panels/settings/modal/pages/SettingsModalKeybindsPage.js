@@ -1,8 +1,9 @@
 'use client'
 
 import {useCallback, useEffect, useMemo, useState} from 'react'
+import DeleteIcon from '@mui/icons-material/Delete'
 import {
-    Alert, Box, Button, Chip, Divider, FormControl, InputLabel, MenuItem, Select, Slider, Stack, Typography,
+    Alert, Box, Button, Chip, Divider, FormControl, IconButton, InputLabel, MenuItem, Select, Slider, Stack, Tooltip, Typography,
 } from '@mui/material'
 import {
     MOUSE_BUTTONS, useControlBindings,
@@ -44,9 +45,15 @@ const KEYBOARD_BINDINGS = [{
     key: 'panSpeedModifier',
     label: 'Speed Modifier Key',
     description: 'Hold while panning to apply the speed modifier below.',
+}, {
+    key: 'centerMap',
+    label: 'Center Map',
+    description: 'Center the camera on the cursor position without changing zoom. Leave unbound to use only the mouse button below.',
 },]
 
 const MOUSE_BUTTON_OPTIONS = [{
+    label: 'Unbound', value: MOUSE_BUTTONS.unbound,
+}, {
     label: 'Left Mouse', value: MOUSE_BUTTONS.left,
 }, {
     label: 'Middle Mouse', value: MOUSE_BUTTONS.middle,
@@ -73,8 +80,16 @@ function formatKeyName(key) {
     return labels[key.toLowerCase()] ?? key.toUpperCase()
 }
 
+function normalizeMouseButtonValue(value) {
+    const parsed = Number(value)
+
+    return MOUSE_BUTTON_OPTIONS.some((option) => option.value === parsed)
+        ? parsed
+        : MOUSE_BUTTONS.unbound
+}
+
 function getMouseButtonLabel(value) {
-    return MOUSE_BUTTON_OPTIONS.find((option) => option.value === value)?.label ?? `Button ${value}`
+    return MOUSE_BUTTON_OPTIONS.find((option) => option.value === normalizeMouseButtonValue(value))?.label ?? 'Unbound'
 }
 
 function normalizeCapturedKey(event) {
@@ -94,7 +109,7 @@ function toFiniteNumber(value, fallbackValue) {
 
 export default function SettingsModalKeybindsPage() {
     const {
-        controlBindings, updateControlBindings, resetControlBindings,
+        controlBindings, updateControlBindings, resetControlBindings, clearAllControlBindings,
     } = useControlBindings()
 
     const [listeningForBinding, setListeningForBinding] = useState(null)
@@ -167,6 +182,11 @@ export default function SettingsModalKeybindsPage() {
         setListeningForBinding(null)
     }, [resetControlBindings])
 
+    const handleUnbindAll = useCallback(() => {
+        clearAllControlBindings()
+        setListeningForBinding(null)
+    }, [clearAllControlBindings])
+
     const currentListeningLabel = useMemo(() => {
         if (!listeningForBinding) return null
 
@@ -174,13 +194,24 @@ export default function SettingsModalKeybindsPage() {
     }, [listeningForBinding])
 
     return (<Box sx={{display: 'flex', flexDirection: 'column', gap: 3}}>
-        <Stack spacing={1}>
-            <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                Keyboard Camera Controls
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-                Click a binding, then press the key you want to assign.
-            </Typography>
+        <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'flex-start', gap: 2}}>
+            <Stack spacing={1} sx={{flex: 1}}>
+                <Typography variant='h6' sx={{fontWeight: 'bold'}}>
+                    Keyboard Camera Controls
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                    Click a binding, then press the key you want to assign.
+                </Typography>
+            </Stack>
+            <Tooltip title='Unbind all keybinds'>
+                <IconButton
+                    aria-label='Unbind all keybinds'
+                    onClick={handleUnbindAll}
+                    sx={{mt: -0.5}}
+                >
+                    <DeleteIcon/>
+                </IconButton>
+            </Tooltip>
         </Stack>
 
         <Stack spacing={2}>
@@ -281,9 +312,14 @@ export default function SettingsModalKeybindsPage() {
         <Divider/>
 
         <Stack spacing={2}>
-            <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                Mouse Controls
-            </Typography>
+            <Stack spacing={1}>
+                <Typography variant='h6' sx={{fontWeight: 'bold'}}>
+                    Mouse Controls
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                    Choose a mouse button for each action, or select Unbound to disable it.
+                </Typography>
+            </Stack>
 
             <Box
                 sx={{
@@ -299,8 +335,27 @@ export default function SettingsModalKeybindsPage() {
                     <Select
                         labelId='map-drag-button-label'
                         label='Map Drag Button'
-                        value={mapCursor.dragButton}
-                        onChange={(event) => updateMapCursorBinding('dragButton', event.target.value)}
+                        value={normalizeMouseButtonValue(mapCursor.dragButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateMapCursorBinding('dragButton', normalizeMouseButtonValue(event.target.value))}
+                        variant='outlined'
+                    >
+                        {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                        </MenuItem>))}
+                    </Select>
+                </FormControl>
+
+                <FormControl fullWidth>
+                    <InputLabel id='map-center-button-label'>
+                        Center Map Button
+                    </InputLabel>
+                    <Select
+                        labelId='map-center-button-label'
+                        label='Center Map Button'
+                        value={normalizeMouseButtonValue(mapCursor.centerButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateMapCursorBinding('centerButton', normalizeMouseButtonValue(event.target.value))}
                         variant='outlined'
                     >
                         {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
@@ -316,8 +371,9 @@ export default function SettingsModalKeybindsPage() {
                     <Select
                         labelId='bearing-range-draw-button-label'
                         label='Bearing/Range Draw Button'
-                        value={bearingRangeTool.drawButton}
-                        onChange={(event) => updateBearingRangeBinding('drawButton', event.target.value)}
+                        value={normalizeMouseButtonValue(bearingRangeTool.drawButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateBearingRangeBinding('drawButton', normalizeMouseButtonValue(event.target.value))}
                         variant='outlined'
                     >
                         {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>
@@ -333,8 +389,9 @@ export default function SettingsModalKeybindsPage() {
                     <Select
                         labelId='bearing-range-context-menu-button-label'
                         label='Context Menu Button'
-                        value={bearingRangeTool.contextMenuButton}
-                        onChange={(event) => updateBearingRangeBinding('contextMenuButton', event.target.value)}
+                        value={normalizeMouseButtonValue(bearingRangeTool.contextMenuButton)}
+                        renderValue={(selected) => getMouseButtonLabel(selected)}
+                        onChange={(event) => updateBearingRangeBinding('contextMenuButton', normalizeMouseButtonValue(event.target.value))}
                         variant='outlined'
                     >
                         {MOUSE_BUTTON_OPTIONS.map((option) => (<MenuItem key={option.value} value={option.value}>

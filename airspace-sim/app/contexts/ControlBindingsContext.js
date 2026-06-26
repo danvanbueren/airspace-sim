@@ -10,7 +10,10 @@ import {
 export const CONTROL_BINDINGS_COOKIE_NAME = 'controlBindings'
 
 export const MOUSE_BUTTONS = {
-    left: 0, middle: 1, right: 2,
+    unbound: -1,
+    left: 0,
+    middle: 1,
+    right: 2,
 }
 
 export const DEFAULT_CONTROL_BINDINGS = {
@@ -22,11 +25,13 @@ export const DEFAULT_CONTROL_BINDINGS = {
         panSpeedModifier: ['shift'],
         panSpeedMultiplier: 2.5,
         regularPanSpeed: 1000,
+        centerMap: [],
     },
     mapCursor: {
         dragButton: MOUSE_BUTTONS.left,
         grabButton: MOUSE_BUTTONS.left,
         pointerButton: MOUSE_BUTTONS.right,
+        centerButton: MOUSE_BUTTONS.middle,
     },
     bearingRangeTool: {
         drawButton: MOUSE_BUTTONS.right,
@@ -35,6 +40,91 @@ export const DEFAULT_CONTROL_BINDINGS = {
         contextMenuMaxPixels: 6,
         minPersistedLinePixels: 24,
     },
+}
+
+const KEYBOARD_BINDING_KEYS = [
+    'panUp',
+    'panLeft',
+    'panDown',
+    'panRight',
+    'panSpeedModifier',
+    'centerMap',
+]
+
+const MAP_CURSOR_BINDING_KEYS = [
+    'dragButton',
+    'grabButton',
+    'pointerButton',
+    'centerButton',
+]
+
+const BEARING_RANGE_BINDING_KEYS = [
+    'drawButton',
+    'contextMenuButton',
+]
+
+function clearBindingSection(bindings, bindingKeys) {
+    return bindingKeys.reduce((clearedBindings, bindingKey) => ({
+        ...clearedBindings,
+        [bindingKey]: [],
+    }), {...bindings})
+}
+
+export const UNBOUND_CONTROL_BINDINGS = {
+    keyboardCamera: clearBindingSection(DEFAULT_CONTROL_BINDINGS.keyboardCamera, KEYBOARD_BINDING_KEYS),
+    mapCursor: MAP_CURSOR_BINDING_KEYS.reduce((clearedBindings, bindingKey) => ({
+        ...clearedBindings,
+        [bindingKey]: MOUSE_BUTTONS.unbound,
+    }), {...DEFAULT_CONTROL_BINDINGS.mapCursor}),
+    bearingRangeTool: BEARING_RANGE_BINDING_KEYS.reduce((clearedBindings, bindingKey) => ({
+        ...clearedBindings,
+        [bindingKey]: MOUSE_BUTTONS.unbound,
+    }), {...DEFAULT_CONTROL_BINDINGS.bearingRangeTool}),
+}
+
+function buildClearedControlBindings(currentBindings) {
+    return {
+        ...currentBindings,
+        keyboardCamera: clearBindingSection(currentBindings.keyboardCamera, KEYBOARD_BINDING_KEYS),
+        mapCursor: MAP_CURSOR_BINDING_KEYS.reduce((clearedBindings, bindingKey) => ({
+            ...clearedBindings,
+            [bindingKey]: MOUSE_BUTTONS.unbound,
+        }), {...currentBindings.mapCursor}),
+        bearingRangeTool: BEARING_RANGE_BINDING_KEYS.reduce((clearedBindings, bindingKey) => ({
+            ...clearedBindings,
+            [bindingKey]: MOUSE_BUTTONS.unbound,
+        }), {...currentBindings.bearingRangeTool}),
+    }
+}
+
+function normalizeMouseButtonBinding(value, fallbackButton) {
+    const parsed = Number(value)
+
+    if (
+        parsed === MOUSE_BUTTONS.unbound
+        || parsed === MOUSE_BUTTONS.left
+        || parsed === MOUSE_BUTTONS.middle
+        || parsed === MOUSE_BUTTONS.right
+    ) {
+        return parsed
+    }
+
+    return fallbackButton
+}
+
+function normalizeMouseButtonBindings(bindings, bindingKeys, defaultBindings) {
+    const mergedBindings = {
+        ...defaultBindings,
+        ...bindings,
+    }
+
+    return bindingKeys.reduce((normalizedBindings, bindingKey) => ({
+        ...normalizedBindings,
+        [bindingKey]: normalizeMouseButtonBinding(
+            bindings?.[bindingKey],
+            defaultBindings[bindingKey],
+        ),
+    }), mergedBindings)
 }
 
 function normalizeKey(key) {
@@ -47,14 +137,16 @@ function normalizeBindings(bindings) {
             ...DEFAULT_CONTROL_BINDINGS.keyboardCamera,
             ...bindings?.keyboardCamera,
         },
-        mapCursor: {
-            ...DEFAULT_CONTROL_BINDINGS.mapCursor,
-            ...bindings?.mapCursor,
-        },
-        bearingRangeTool: {
-            ...DEFAULT_CONTROL_BINDINGS.bearingRangeTool,
-            ...bindings?.bearingRangeTool,
-        },
+        mapCursor: normalizeMouseButtonBindings(
+            bindings?.mapCursor,
+            MAP_CURSOR_BINDING_KEYS,
+            DEFAULT_CONTROL_BINDINGS.mapCursor,
+        ),
+        bearingRangeTool: normalizeMouseButtonBindings(
+            bindings?.bearingRangeTool,
+            BEARING_RANGE_BINDING_KEYS,
+            DEFAULT_CONTROL_BINDINGS.bearingRangeTool,
+        ),
     }
 }
 
@@ -103,9 +195,20 @@ export function ControlBindingsProvider({children, initialBindings}) {
         setControlBindings(DEFAULT_CONTROL_BINDINGS)
     }, [])
 
+    const clearAllControlBindings = useCallback(() => {
+        setControlBindings((currentBindings) => {
+            const nextBindings = normalizeBindings(buildClearedControlBindings(currentBindings))
+            writeControlBindingsCookie(nextBindings)
+            return nextBindings
+        })
+    }, [])
+
     const value = useMemo(() => ({
-        controlBindings, updateControlBindings, resetControlBindings,
-    }), [controlBindings, updateControlBindings, resetControlBindings])
+        controlBindings,
+        updateControlBindings,
+        resetControlBindings,
+        clearAllControlBindings,
+    }), [controlBindings, updateControlBindings, resetControlBindings, clearAllControlBindings])
 
     return (<ControlBindingsContext.Provider value={value}>
         {children}
@@ -127,10 +230,18 @@ export function pressedKeysMatchBinding(pressedKeys, bindingKeys) {
 }
 
 export function mouseButtonMatchesBinding(eventButton, bindingButton) {
+    if (bindingButton === MOUSE_BUTTONS.unbound) {
+        return false
+    }
+
     return eventButton === bindingButton
 }
 
 export function pressedMouseButtonsMatchBinding(eventButtons, bindingButton) {
+    if (bindingButton === MOUSE_BUTTONS.unbound) {
+        return false
+    }
+
     const buttonMasks = {
         [MOUSE_BUTTONS.left]: 1,
         [MOUSE_BUTTONS.middle]: 4,

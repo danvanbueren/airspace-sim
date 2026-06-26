@@ -28,6 +28,7 @@ Planned work for Airspace Simulator, grouped chronologically. Completed items li
 ### Map & scope tools
 
 - ✅ Dark map water and track label readability — [`1e82879`](https://github.com/danvanbueren/airspace-sim/commit/1e82879)
+- ✅ Click-to-center map camera with rebindable key or mouse button — [`523fc9d`](https://github.com/danvanbueren/airspace-sim/commit/523fc9d)
 
 ### Operator interface
 
