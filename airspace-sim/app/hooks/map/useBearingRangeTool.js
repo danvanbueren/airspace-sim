@@ -206,6 +206,16 @@ export function useBearingRangeTool(mapRef, enabled, {
     const rehydrateTimeoutRef = useRef(null)
     const syncFrameRef = useRef(null)
     const viewChangeFrameRef = useRef(null)
+    const bearingRangeBindingsRef = useRef(bearingRangeBindings)
+    const mapCursorBindingsRef = useRef(mapCursorBindings)
+    const mapCursorRef = useRef(mapCursor)
+    const onContextMenuRef = useRef(onContextMenu)
+    const activePointerIdRef = useRef(null)
+
+    bearingRangeBindingsRef.current = bearingRangeBindings
+    mapCursorBindingsRef.current = mapCursorBindings
+    mapCursorRef.current = mapCursor
+    onContextMenuRef.current = onContextMenu
 
     const [lines, setLines] = useState([])
     const [previewLine, setPreviewLine] = useState(null)
@@ -281,30 +291,51 @@ export function useBearingRangeTool(mapRef, enabled, {
         })
     }, [applyLineLayerToMap, rehydrateLineLayer])
 
-    const setCurrentPreviewLine = useCallback((line) => {
+    const syncLineLayerNow = useCallback(() => {
+        if (syncFrameRef.current) {
+            cancelAnimationFrame(syncFrameRef.current)
+            syncFrameRef.current = null
+        }
+
+        if (applyLineLayerToMap()) {
+            return
+        }
+
+        rehydrateLineLayer()
+    }, [applyLineLayerToMap, rehydrateLineLayer])
+
+    const updatePreviewLine = useCallback((line) => {
         previewLineRef.current = line
+        visibleLinesRef.current = line ? [...linesRef.current, line] : linesRef.current
+        syncLineLayerNow()
         setPreviewLine(line)
-    }, [])
+    }, [syncLineLayerNow])
 
     const clearPreviewLine = useCallback(() => {
         previewLineRef.current = null
+        visibleLinesRef.current = linesRef.current
+        syncLineLayerNow()
         setPreviewLine(null)
-    }, [])
+    }, [syncLineLayerNow])
 
     const removeBearingRangeLine = useCallback((lineId) => {
         setLines((currentLines) => {
             const nextLines = currentLines.filter((line) => line.id !== lineId)
             linesRef.current = nextLines
+            visibleLinesRef.current = previewLineRef.current ? [...nextLines, previewLineRef.current] : nextLines
+            syncLineLayerNow()
             return nextLines
         })
         clearPreviewLine()
-    }, [clearPreviewLine])
+    }, [clearPreviewLine, syncLineLayerNow])
 
     const clearBearingRangeLines = useCallback(() => {
         linesRef.current = []
+        visibleLinesRef.current = []
+        syncLineLayerNow()
         setLines([])
         clearPreviewLine()
-    }, [clearPreviewLine])
+    }, [clearPreviewLine, syncLineLayerNow])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) return
@@ -451,7 +482,22 @@ export function useBearingRangeTool(mapRef, enabled, {
         }
 
         const clearHoverCursor = () => {
-            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER)
+            mapCursorRef.current.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER)
+        }
+
+        const releasePointerCapture = (event) => {
+            const pointerId = event?.pointerId ?? activePointerIdRef.current
+
+            if (pointerId === null || activePointerIdRef.current === null) {
+                activePointerIdRef.current = null
+                return
+            }
+
+            if (activePointerIdRef.current === pointerId && canvas.hasPointerCapture?.(pointerId)) {
+                canvas.releasePointerCapture(pointerId)
+            }
+
+            activePointerIdRef.current = null
         }
 
         const updateCursor = (event) => {
@@ -460,12 +506,14 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
+            const bindings = bearingRangeBindingsRef.current
+            const mapCursorBindings = mapCursorBindingsRef.current
             const buttons = getMouseEventButtons(event)
             const shiftKey = event.shiftKey ?? event.originalEvent?.shiftKey
 
             if (
                 pressedMouseButtonsMatchBinding(buttons, mapCursorBindings.dragButton)
-                || pressedMouseButtonsMatchBinding(buttons, bearingRangeBindings.drawButton)
+                || pressedMouseButtonsMatchBinding(buttons, bindings.drawButton)
                 || shiftKey
             ) {
                 clearHoverCursor()
@@ -475,7 +523,7 @@ export function useBearingRangeTool(mapRef, enabled, {
             const hoveredLine = getBearingRangeLineAtPoint(getDragPoint(event))
 
             if (hoveredLine) {
-                mapCursor.requestCursor(
+                mapCursorRef.current.requestCursor(
                     MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
                     BEARING_RANGE_CONTEXT_MENU_CURSOR,
                     MAP_CURSOR_PRIORITIES.CONTEXT,
@@ -486,79 +534,32 @@ export function useBearingRangeTool(mapRef, enabled, {
             clearHoverCursor()
         }
 
-        const handleMouseDown = (event) => {
-            if (!mouseButtonMatchesBinding(getMouseEventButton(event), bearingRangeBindings.drawButton))
-                return
-
-            event.preventDefault()
-            clearHoverCursor()
-            mapCursor.requestCursor(
-                MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
-                BEARING_RANGE_DRAW_CURSOR,
-                MAP_CURSOR_PRIORITIES.ACTIVE,
-            )
-
-            dragStartRef.current = {
-                time: performance.now(), ...getDragPoint(event),
-            }
-
-            setIsDrawingBearingRangeLine(true)
-            clearPreviewLine()
-        }
-
-        const handleMouseMove = (event) => {
+        const finishDrag = (event) => {
             const dragStart = dragStartRef.current
 
             if (!dragStart) {
-                updateCursor(event)
                 return
             }
 
-            event.preventDefault()
-            mapCursor.requestCursor(
-                MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
-                BEARING_RANGE_DRAW_CURSOR,
-                MAP_CURSOR_PRIORITIES.ACTIVE,
-            )
-
-            const currentPoint = getDragPoint(event)
-            const deltaPixels = getDistancePixels(dragStart.point, currentPoint.point)
-
-            if (deltaPixels < bearingRangeBindings.minPersistedLinePixels) {
-                clearPreviewLine()
-                return
-            }
-
-            setCurrentPreviewLine(createLine(dragStart, currentPoint, {
-                id: PREVIEW_LINE_ID, isPreview: true,
-            }))
-        }
-
-        const handleMouseUp = (event) => {
-            const dragStart = dragStartRef.current
+            const bindings = bearingRangeBindingsRef.current
             const eventButton = getMouseEventButton(event)
-
-            if (!mouseButtonMatchesBinding(eventButton, bearingRangeBindings.drawButton) || !dragStart)
-                return
-
-            event.preventDefault()
-
             const endPoint = getDragPoint(event)
             const deltaTime = performance.now() - dragStart.time
             const deltaPixels = getDistancePixels(dragStart.point, endPoint.point)
 
             dragStartRef.current = null
+            releasePointerCapture(event)
             setIsDrawingBearingRangeLine(false)
-            mapCursor.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW)
+            mapCursorRef.current.clearCursorRequest(MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW)
 
-            const shouldOpenContextMenu = mouseButtonMatchesBinding(eventButton, bearingRangeBindings.contextMenuButton)
-                && deltaTime <= bearingRangeBindings.contextMenuMaxMs
-                && deltaPixels <= bearingRangeBindings.contextMenuMaxPixels
+            const shouldOpenContextMenu = mouseButtonMatchesBinding(eventButton, bindings.contextMenuButton)
+                && deltaTime <= bindings.contextMenuMaxMs
+                && deltaPixels <= bindings.contextMenuMaxPixels
 
             if (shouldOpenContextMenu) {
                 clearPreviewLine()
 
-                onContextMenu?.({
+                onContextMenuRef.current?.({
                     point: endPoint.point,
                     mapPoint: endPoint.mapPoint,
                     lngLat: endPoint.lngLat,
@@ -568,51 +569,169 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
-            if (deltaPixels < bearingRangeBindings.minPersistedLinePixels) {
+            if (deltaPixels < bindings.minPersistedLinePixels) {
                 clearPreviewLine()
                 return
             }
 
             const lineToCommit = createLine(dragStart, endPoint)
+            const nextLines = [...linesRef.current, lineToCommit]
 
+            linesRef.current = nextLines
+            previewLineRef.current = null
+            visibleLinesRef.current = nextLines
+            syncLineLayerNow()
+            setPreviewLine(null)
+            setLines(nextLines)
+        }
+
+        const handlePointerDown = (event) => {
+            const bindings = bearingRangeBindingsRef.current
+
+            if (!mouseButtonMatchesBinding(event.button, bindings.drawButton)) {
+                return
+            }
+
+            event.preventDefault()
+            clearHoverCursor()
+            mapCursorRef.current.requestCursor(
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
+                BEARING_RANGE_DRAW_CURSOR,
+                MAP_CURSOR_PRIORITIES.ACTIVE,
+            )
+
+            activePointerIdRef.current = event.pointerId
+            canvas.setPointerCapture?.(event.pointerId)
+
+            dragStartRef.current = {
+                time: performance.now(), ...getDragPoint(event),
+            }
+
+            setIsDrawingBearingRangeLine(true)
             clearPreviewLine()
-            setLines((currentLines) => [...currentLines, lineToCommit])
+        }
+
+        const handlePointerMove = (event) => {
+            const dragStart = dragStartRef.current
+
+            if (!dragStart) {
+                updateCursor(event)
+                return
+            }
+
+            if (activePointerIdRef.current !== null && event.pointerId !== activePointerIdRef.current) {
+                return
+            }
+
+            event.preventDefault()
+            mapCursorRef.current.requestCursor(
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
+                BEARING_RANGE_DRAW_CURSOR,
+                MAP_CURSOR_PRIORITIES.ACTIVE,
+            )
+
+            const bindings = bearingRangeBindingsRef.current
+            const currentPoint = getDragPoint(event)
+            const deltaPixels = getDistancePixels(dragStart.point, currentPoint.point)
+
+            if (deltaPixels < bindings.minPersistedLinePixels) {
+                clearPreviewLine()
+                return
+            }
+
+            updatePreviewLine(createLine(dragStart, currentPoint, {
+                id: PREVIEW_LINE_ID, isPreview: true,
+            }))
+        }
+
+        const handlePointerUp = (event) => {
+            const dragStart = dragStartRef.current
+
+            if (!dragStart) {
+                return
+            }
+
+            if (activePointerIdRef.current !== null && event.pointerId !== activePointerIdRef.current) {
+                return
+            }
+
+            const bindings = bearingRangeBindingsRef.current
+            const hasPointerCapture = activePointerIdRef.current !== null
+                && event.pointerId === activePointerIdRef.current
+                && canvas.hasPointerCapture?.(event.pointerId)
+            const drawButtonStillPressed = pressedMouseButtonsMatchBinding(
+                getMouseEventButtons(event),
+                bindings.drawButton,
+            )
+
+            if (!hasPointerCapture && drawButtonStillPressed) {
+                return
+            }
+
+            event.preventDefault()
+            finishDrag(event)
         }
 
         const handleContextMenu = (event) => {
-            if (mouseButtonMatchesBinding(getMouseEventButton(event), bearingRangeBindings.contextMenuButton))
+            const bindings = bearingRangeBindingsRef.current
+
+            if (mouseButtonMatchesBinding(getMouseEventButton(event), bindings.contextMenuButton)) {
                 event.preventDefault()
+            }
         }
 
-        const handleMouseLeave = () => {
-            clearHoverCursor()
-        }
+        const handlePointerCancel = (event) => {
+            if (activePointerIdRef.current !== null && event.pointerId !== activePointerIdRef.current) {
+                return
+            }
 
-        const cancelDrag = () => {
+            releasePointerCapture(event)
             dragStartRef.current = null
             setIsDrawingBearingRangeLine(false)
             clearPreviewLine()
-            mapCursor.clearCursorRequests([
+            mapCursorRef.current.clearCursorRequests([
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
             ])
         }
 
-        canvas.addEventListener('mousedown', handleMouseDown)
-        canvas.addEventListener('mousemove', handleMouseMove)
-        window.addEventListener('mouseup', handleMouseUp)
+        const handleMouseLeave = () => {
+            if (!dragStartRef.current) {
+                clearHoverCursor()
+            }
+        }
+
+        const cancelDrag = () => {
+            releasePointerCapture()
+            dragStartRef.current = null
+            setIsDrawingBearingRangeLine(false)
+            clearPreviewLine()
+            mapCursorRef.current.clearCursorRequests([
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
+                MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
+            ])
+        }
+
+        canvas.addEventListener('pointerdown', handlePointerDown)
+        canvas.addEventListener('pointermove', handlePointerMove)
+        canvas.addEventListener('pointerup', handlePointerUp)
+        canvas.addEventListener('pointercancel', handlePointerCancel)
+        window.addEventListener('pointerup', handlePointerUp)
         canvas.addEventListener('mouseleave', handleMouseLeave)
         canvas.addEventListener('contextmenu', handleContextMenu)
         window.addEventListener('blur', cancelDrag)
 
         return () => {
-            canvas.removeEventListener('mousedown', handleMouseDown)
-            canvas.removeEventListener('mousemove', handleMouseMove)
-            window.removeEventListener('mouseup', handleMouseUp)
+            canvas.removeEventListener('pointerdown', handlePointerDown)
+            canvas.removeEventListener('pointermove', handlePointerMove)
+            canvas.removeEventListener('pointerup', handlePointerUp)
+            canvas.removeEventListener('pointercancel', handlePointerCancel)
+            window.removeEventListener('pointerup', handlePointerUp)
             canvas.removeEventListener('mouseleave', handleMouseLeave)
             canvas.removeEventListener('contextmenu', handleContextMenu)
             window.removeEventListener('blur', cancelDrag)
-            mapCursor.clearCursorRequests([
+            releasePointerCapture()
+            mapCursorRef.current.clearCursorRequests([
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
             ])
@@ -620,12 +739,9 @@ export function useBearingRangeTool(mapRef, enabled, {
     }, [
         mapRef,
         enabled,
-        onContextMenu,
         clearPreviewLine,
-        setCurrentPreviewLine,
-        mapCursor,
-        mapCursorBindings,
-        bearingRangeBindings,
+        updatePreviewLine,
+        syncLineLayerNow,
     ])
 
     return {
