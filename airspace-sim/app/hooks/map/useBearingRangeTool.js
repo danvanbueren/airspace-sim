@@ -262,7 +262,7 @@ function setCommittedLineData(map, lines) {
     return true
 }
 
-async function setCommittedLineDataAsync(map, lines) {
+async function flushCommittedLineData(map, lines) {
     const source = map.getSource(COMMITTED_SOURCE_ID)
 
     if (!source) {
@@ -569,6 +569,10 @@ export function useBearingRangeTool(mapRef, enabled, {
     const handoffCancelFnRef = useRef(null)
     const redrawPreviewOverlayRef = useRef(() => {})
     const syncCommittedLinesToMapRef = useRef(() => {})
+    const publishLinesRef = useRef(() => 0)
+    const requestCommittedLinesFlushRef = useRef(() => Promise.resolve())
+    const committedLinesRevisionRef = useRef(0)
+    const committedLinesFlushChainRef = useRef(Promise.resolve())
 
     bearingRangeBindingsRef.current = bearingRangeBindings
     mapCursorBindingsRef.current = mapCursorBindings
@@ -597,6 +601,47 @@ export function useBearingRangeTool(mapRef, enabled, {
 
         return true
     }, [mapRef])
+
+    const publishLines = useCallback((nextLines) => {
+        linesRef.current = nextLines
+        committedLinesRevisionRef.current += 1
+        setLines(nextLines)
+        return committedLinesRevisionRef.current
+    }, [])
+
+    const flushCommittedLinesToMap = useCallback(async (revisionAtStart) => {
+        const map = mapRef.current
+
+        if (!map?.isStyleLoaded()) {
+            return
+        }
+
+        ensureCommittedLineLayer(map, lineColorRef.current, appliedLineColorRef)
+        await flushCommittedLineData(map, linesRef.current)
+
+        if (committedLinesRevisionRef.current !== revisionAtStart) {
+            await flushCommittedLinesToMap(committedLinesRevisionRef.current)
+        }
+    }, [mapRef])
+
+    const requestCommittedLinesFlush = useCallback(({immediate = false} = {}) => {
+        const map = mapRef.current
+        const revision = committedLinesRevisionRef.current
+
+        if (immediate) {
+            syncCommittedLinesToMap()
+        }
+
+        if (!map) {
+            return committedLinesFlushChainRef.current
+        }
+
+        committedLinesFlushChainRef.current = committedLinesFlushChainRef.current
+            .catch(() => {})
+            .then(() => flushCommittedLinesToMap(revision))
+
+        return committedLinesFlushChainRef.current
+    }, [flushCommittedLinesToMap, syncCommittedLinesToMap])
 
     const clearPreviewLabelMarkers = useCallback(() => {
         previewLabelMarkersRef.current.forEach((marker) => marker.remove())
@@ -694,6 +739,8 @@ export function useBearingRangeTool(mapRef, enabled, {
     updatePreviewLabelMarkersRef.current = updatePreviewLabelMarkers
     redrawPreviewOverlayRef.current = redrawPreviewOverlay
     syncCommittedLinesToMapRef.current = syncCommittedLinesToMap
+    publishLinesRef.current = publishLines
+    requestCommittedLinesFlushRef.current = requestCommittedLinesFlush
 
     const rehydrateLayers = useCallback(() => {
         if (rehydrateTimeoutRef.current) {
@@ -726,26 +773,23 @@ export function useBearingRangeTool(mapRef, enabled, {
         handoffInProgressRef.current = false
         handoffDataReadyRef.current = false
         hidePreviewOverlayOnly()
+        committedLinesFlushChainRef.current = Promise.resolve()
     }, [cancelHandoffWait, hidePreviewOverlayOnly])
 
     const removeBearingRangeLine = useCallback((lineId) => {
         cancelPendingCommits()
 
-        setLines((currentLines) => {
-            const nextLines = currentLines.filter((line) => line.id !== lineId)
-            linesRef.current = nextLines
-            return nextLines
-        })
-        syncCommittedLinesToMap()
-    }, [cancelPendingCommits, syncCommittedLinesToMap])
+        publishLines(linesRef.current.filter((line) => line.id !== lineId))
+        removeDragPreview()
+        requestCommittedLinesFlush({immediate: true})
+    }, [cancelPendingCommits, publishLines, removeDragPreview, requestCommittedLinesFlush])
 
     const clearBearingRangeLines = useCallback(() => {
         cancelPendingCommits()
-        linesRef.current = []
-        setLines([])
+        publishLines([])
         removeDragPreview()
-        syncCommittedLinesToMap()
-    }, [cancelPendingCommits, removeDragPreview, syncCommittedLinesToMap])
+        requestCommittedLinesFlush({immediate: true})
+    }, [cancelPendingCommits, publishLines, removeDragPreview, requestCommittedLinesFlush])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) return
@@ -993,9 +1037,8 @@ export function useBearingRangeTool(mapRef, enabled, {
                 handoffCancelled = true
             }
 
-            linesRef.current = nextLines
+            publishLinesRef.current(nextLines)
             clearPreviewLabelMarkersRef.current()
-            setLines(nextLines)
             previewLineRef.current = lineToCommit
 
             if (previewOverlayRef.current) {
@@ -1008,22 +1051,17 @@ export function useBearingRangeTool(mapRef, enabled, {
                 )
             }
 
+            requestCommittedLinesFlushRef.current({immediate: true})
+
             const isHandoffCancelled = () => (
                 handoffCancelled || pendingCommitGenerationRef.current !== commitGeneration
             )
 
             void (async () => {
                 try {
-                    ensureCommittedLineLayer(map, lineColorRef.current, appliedLineColorRef)
-
-                    const committed = await setCommittedLineDataAsync(map, linesRef.current)
-
-                    if (!committed) {
-                        return
-                    }
+                    await committedLinesFlushChainRef.current
 
                     if (isHandoffCancelled()) {
-                        syncCommittedLinesToMapRef.current()
                         return
                     }
 
@@ -1041,7 +1079,7 @@ export function useBearingRangeTool(mapRef, enabled, {
                     handoffInProgressRef.current = false
 
                     if (isHandoffCancelled()) {
-                        syncCommittedLinesToMapRef.current()
+                        requestCommittedLinesFlushRef.current({immediate: true})
                     } else {
                         hidePreviewOverlayOnlyRef.current()
                     }
