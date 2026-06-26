@@ -82,12 +82,15 @@ function formatBearingRange(line) {
 function createLine(start, end, {id = crypto.randomUUID(), isPreview = false} = {}) {
     const normalizedEndLngLat = normalizeLngLatToShortestPath(start.lngLat, end.lngLat)
     const {bearingDegrees, rangeNauticalMiles} = calculateBearingAndRange(start.lngLat, normalizedEndLngLat)
+    const isEndNormalized = Math.abs(normalizedEndLngLat.lng - end.lngLat.lng) > 1e-6
 
     return {
         id,
         isPreview,
         start: start.lngLat,
         end: normalizedEndLngLat,
+        rawEnd: end.lngLat,
+        isEndNormalized,
         startPoint: start.point,
         endPoint: end.point,
         midpoint: getMidpoint(start.lngLat, normalizedEndLngLat),
@@ -137,17 +140,44 @@ function createLabelElement(line) {
     return element
 }
 
-function getLabelLongitudeCopies(map, midpointLng) {
+function getLineWorldCopyOffsets(map, line) {
     const bounds = map.getBounds()
     const west = bounds.getWest()
     const east = bounds.getEast()
-    const copies = []
+    const offsets = []
 
-    for (let lng = midpointLng - 720; lng <= midpointLng + 720; lng += 360) {
-        if (lng >= west - 360 && lng <= east + 360) copies.push(lng)
+    for (let worldCopyOffset = -720; worldCopyOffset <= 720; worldCopyOffset += 360) {
+        const midpointLng = line.midpoint.lng + worldCopyOffset
+
+        if (midpointLng >= west - 360 && midpointLng <= east + 360) {
+            offsets.push(worldCopyOffset)
+        }
     }
 
-    return copies.length > 0 ? copies : [midpointLng]
+    return offsets.length > 0 ? offsets : [0]
+}
+
+function getLabelLongitudeCopies(map, midpointLng) {
+    const referenceLine = {
+        midpoint: {lng: midpointLng, lat: 0},
+        start: {lng: midpointLng, lat: 0},
+        end: {lng: midpointLng, lat: 0},
+    }
+
+    return getLineWorldCopyOffsets(map, referenceLine).map((offset) => midpointLng + offset)
+}
+
+function buildCopiedLine(line, worldCopyOffset) {
+    if (worldCopyOffset === 0) {
+        return line
+    }
+
+    return {
+        ...line,
+        start: {lng: line.start.lng + worldCopyOffset, lat: line.start.lat},
+        end: {lng: line.end.lng + worldCopyOffset, lat: line.end.lat},
+        midpoint: {lng: line.midpoint.lng + worldCopyOffset, lat: line.midpoint.lat},
+    }
 }
 
 function getDistancePixels(startPoint, endPoint) {
@@ -378,23 +408,7 @@ function buildNormalizedLineScreenSegments(map, line, steps = 48) {
     ].map((point) => ({x: point.x, y: point.y}))]
 }
 
-function drawPreviewOnOverlay(map, overlay, line, lineColor) {
-    const context = overlay.getContext('2d')
-
-    if (!context) {
-        return
-    }
-
-    const scaleX = overlay.width / overlay.clientWidth
-    const scaleY = overlay.height / overlay.clientHeight
-    const segments = buildNormalizedLineScreenSegments(map, line)
-
-    context.clearRect(0, 0, overlay.width, overlay.height)
-    context.strokeStyle = lineColor
-    context.lineWidth = 4 * scaleX
-    context.lineCap = 'round'
-    context.lineJoin = 'round'
-
+function strokeScreenSegments(context, segments, scaleX, scaleY) {
     segments.forEach((segment) => {
         context.beginPath()
         segment.forEach((point, index) => {
@@ -410,6 +424,68 @@ function drawPreviewOnOverlay(map, overlay, line, lineColor) {
         })
         context.stroke()
     })
+}
+
+function drawDashedScreenLine(context, fromPoint, toPoint, scaleX, scaleY, lineColor) {
+    context.save()
+    context.setLineDash([10 * scaleX, 8 * scaleX])
+    context.globalAlpha = 0.7
+    context.strokeStyle = lineColor
+    context.lineWidth = 2 * scaleX
+    context.lineCap = 'round'
+    context.beginPath()
+    context.moveTo(fromPoint.x * scaleX, fromPoint.y * scaleY)
+    context.lineTo(toPoint.x * scaleX, toPoint.y * scaleY)
+    context.stroke()
+    context.restore()
+}
+
+function drawPreviewOnOverlay(map, overlay, line, lineColor) {
+    const context = overlay.getContext('2d')
+
+    if (!context) {
+        return
+    }
+
+    const scaleX = overlay.width / overlay.clientWidth
+    const scaleY = overlay.height / overlay.clientHeight
+
+    context.clearRect(0, 0, overlay.width, overlay.height)
+    context.strokeStyle = lineColor
+    context.lineWidth = 4 * scaleX
+    context.lineCap = 'round'
+    context.lineJoin = 'round'
+
+    getLineWorldCopyOffsets(map, line).forEach((worldCopyOffset) => {
+        const copiedLine = buildCopiedLine(line, worldCopyOffset)
+        const segments = buildNormalizedLineScreenSegments(map, copiedLine)
+
+        strokeScreenSegments(context, segments, scaleX, scaleY)
+    })
+
+    if (line.isEndNormalized && line.rawEnd) {
+        const cursorPoint = map.project([line.rawEnd.lng, line.rawEnd.lat])
+
+        if (Number.isFinite(cursorPoint.x) && Number.isFinite(cursorPoint.y)) {
+            getLineWorldCopyOffsets(map, line).forEach((worldCopyOffset) => {
+                const copiedStart = buildCopiedLine(line, worldCopyOffset).start
+                const startPoint = map.project([copiedStart.lng, copiedStart.lat])
+
+                if (!Number.isFinite(startPoint.x) || !Number.isFinite(startPoint.y)) {
+                    return
+                }
+
+                drawDashedScreenLine(
+                    context,
+                    {x: cursorPoint.x, y: cursorPoint.y},
+                    {x: startPoint.x, y: startPoint.y},
+                    scaleX,
+                    scaleY,
+                    lineColor,
+                )
+            })
+        }
+    }
 }
 
 function clearPreviewOverlay(overlay) {
