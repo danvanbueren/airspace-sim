@@ -103,10 +103,22 @@ export default function SettingsModalLookAndFeelPage() {
                     </Select>
                 </FormControl>
 
-                <Typography variant='body2' color='text.secondary' sx={{mt: 1}}>
-                    {BEARING_RANGE_BEHAVIOR_MODES[appSettings.bearingRangeBehavior]?.description
-                        ?? BEARING_RANGE_BEHAVIOR_MODES.temporary_default.description}
-                </Typography>
+                <Stack spacing={0.75} sx={{mt: 1}}>
+                    {Object.values(BEARING_RANGE_BEHAVIOR_MODES).map((mode) => (
+                        <Typography
+                            key={mode.value}
+                            variant='caption'
+                            color='text.disabled'
+                            component='div'
+                        >
+                            <Box component='span' sx={{fontWeight: 'bold'}}>
+                                {mode.label}
+                            </Box>
+                            {' — '}
+                            {mode.description}
+                        </Typography>
+                    ))}
+                </Stack>
             </Box>
 
             <SettingsModalPageRestoreFooter
