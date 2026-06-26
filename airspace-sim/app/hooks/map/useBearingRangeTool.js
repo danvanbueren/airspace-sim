@@ -346,9 +346,8 @@ function createPreviewOverlay(map) {
     overlay.style.width = '100%'
     overlay.style.height = '100%'
     overlay.style.pointerEvents = 'none'
-    overlay.style.zIndex = '2'
 
-    host.appendChild(overlay)
+    host.insertBefore(overlay, mapCanvas.nextSibling)
     resizePreviewOverlay(map, overlay)
 
     return overlay
