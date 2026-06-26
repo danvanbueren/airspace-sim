@@ -149,6 +149,13 @@ export const SIGNAL_DEFINITIONS = {
         description: 'Fixed function panel CENTER ON E-3 button placeholder alert.',
         priority: 60,
     },
+    SYSTEM_NOTICE: {
+        id: 'SYSTEM_NOTICE',
+        kind: SIGNAL_KIND.ALERT,
+        label: 'System Notice',
+        description: 'Operator notices seeded on page load (known issues, active work, etc.).',
+        priority: 5,
+    },
     MISC: {
         id: MISC_SIGNAL_ID,
         kind: SIGNAL_KIND.ALERT,

@@ -12,10 +12,12 @@ import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/hooks/global/ErrorForwarder'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import usePrefetchLatestGithubCommit from '@/app/hooks/global/usePrefetchLatestGithubCommit'
+import useSeedAlarmAlerts from '@/app/hooks/global/useSeedAlarmAlerts'
 
 export default function Home() {
 
     usePrefetchLatestGithubCommit()
+    useSeedAlarmAlerts()
 
     const [settingsModalOpen, setSettingsModalOpen] = useState(false)
     const [mapOverlayLayer, setMapOverlayLayer] = useState(null)
