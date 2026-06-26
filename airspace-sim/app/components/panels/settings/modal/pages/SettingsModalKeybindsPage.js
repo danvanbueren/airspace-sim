@@ -10,32 +10,9 @@ import {
 } from '../../../../../contexts/ControlBindingsContext'
 import {BEARING_RANGE_BEHAVIOR_MODES, useAppSettings} from '../../../../../contexts/AppSettingsContext'
 import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
-import DeferredTextField from '@/app/components/global/DeferredTextField'
-import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
 import {buildControlReference} from '@/app/tools/settings/controlReference'
 import {bearingRangeBehaviorUsesPersistModifier} from '@/app/tools/map/bearingRangeBehavior'
 import {SETTINGS_PAGE_TITLES} from '../../settingsPageConfig'
-
-const KEYBINDS_SENSITIVITY_FIELDS = [
-    {
-        key: 'contextMenuMaxMs',
-        label: 'Context Menu Timeout',
-        helperText: 'Milliseconds',
-        ...createDeferredNumericFieldConfig({min: 0, integer: true}),
-    },
-    {
-        key: 'contextMenuMaxPixels',
-        label: 'Context Menu Movement Limit',
-        helperText: 'Pixels',
-        ...createDeferredNumericFieldConfig({min: 0, integer: true}),
-    },
-    {
-        key: 'minPersistedLinePixels',
-        label: 'Minimum Line Length',
-        helperText: 'Pixels',
-        ...createDeferredNumericFieldConfig({min: 0, integer: true}),
-    },
-]
 
 const KEYBOARD_BINDINGS = [{
     key: 'panUp', label: 'Pan North', description: 'Pan the map north.',
@@ -266,11 +243,86 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
     const activeBehaviorLabel = BEARING_RANGE_BEHAVIOR_MODES[appSettings.bearingRangeBehavior]?.label
         ?? BEARING_RANGE_BEHAVIOR_MODES.temporary_default.label
 
+    const renderKeyboardBindingRow = (binding, {
+        bindingTarget,
+        currentKey,
+        isListening,
+    }) => (
+        <Box
+            key={bindingTarget}
+            sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                    xs: '1fr', md: '1fr auto',
+                },
+                gap: 2,
+                alignItems: 'center',
+                border: 1,
+                borderColor: isListening ? 'primary.main' : 'divider',
+                borderRadius: 2,
+                p: 2,
+            }}
+        >
+            <Box>
+                <Typography sx={{fontWeight: 'bold'}}>
+                    {binding.label}
+                </Typography>
+                <Typography variant='body2' color='text.secondary'>
+                    {binding.description}
+                </Typography>
+            </Box>
+
+            <Button
+                variant={isListening ? 'contained' : 'outlined'}
+                onClick={() => setListeningForBinding(bindingTarget)}
+                sx={{
+                    minWidth: 150, justifySelf: {
+                        xs: 'stretch', md: 'end',
+                    },
+                }}
+            >
+                {isListening ? 'Press Key...' : formatKeyName(currentKey)}
+            </Button>
+
+            {isListening && currentListeningLabel && (
+                <Alert
+                    severity='info'
+                    sx={{
+                        gridColumn: '1 / -1',
+                    }}
+                >
+                    Listening for new keybind: <strong>{currentListeningLabel}</strong>
+                </Alert>
+            )}
+
+            {binding.key === 'persistModifier' && persistModifierInactive && (
+                <Alert
+                    severity='warning'
+                    sx={{
+                        gridColumn: '1 / -1',
+                    }}
+                >
+                    This key has no effect while Line Persistence is set to{' '}
+                    <strong>{activeBehaviorLabel}</strong>.{' '}
+                    <Link
+                        component='button'
+                        type='button'
+                        onClick={() => onOpenSettingsPage?.('lookAndFeel')}
+                        sx={{verticalAlign: 'baseline'}}
+                    >
+                        Change it in {SETTINGS_PAGE_TITLES.lookAndFeel}
+                    </Link>
+                    .
+                </Alert>
+            )}
+        </Box>
+    )
+
     return (<Box sx={{display: 'flex', flexDirection: 'column', gap: 3}}>
         <Stack direction='row' sx={{justifyContent: 'space-between', alignItems: 'flex-start', gap: 2}}>
             <Stack spacing={1} sx={{flex: 1}}>
                 <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                    Keyboard Camera Controls
+                    Keyboard Controls
                 </Typography>
                 <Typography variant='body2' color='text.secondary'>
                     Click a binding, then press the key you want to assign.
@@ -289,57 +341,23 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
 
         <Stack spacing={2}>
             {KEYBOARD_BINDINGS.map((binding) => {
-                const currentKey = keyboardCamera[binding.key]?.[0]
                 const bindingTarget = `keyboardCamera:${binding.key}`
-                const isListening = listeningForBinding === bindingTarget
 
-                return (<Box
-                    key={binding.key}
-                    sx={{
-                        display: 'grid',
-                        gridTemplateColumns: {
-                            xs: '1fr', md: '1fr auto',
-                        },
-                        gap: 2,
-                        alignItems: 'center',
-                        border: 1,
-                        borderColor: isListening ? 'primary.main' : 'divider',
-                        borderRadius: 2,
-                        p: 2,
-                    }}
-                >
-                    <Box>
-                        <Typography sx={{fontWeight: 'bold'}}>
-                            {binding.label}
-                        </Typography>
-                        <Typography variant='body2' color='text.secondary'>
-                            {binding.description}
-                        </Typography>
-                    </Box>
+                return renderKeyboardBindingRow(binding, {
+                    bindingTarget,
+                    currentKey: keyboardCamera[binding.key]?.[0],
+                    isListening: listeningForBinding === bindingTarget,
+                })
+            })}
 
-                    <Button
-                        variant={isListening ? 'contained' : 'outlined'}
-                        onClick={() => setListeningForBinding(bindingTarget)}
-                        sx={{
-                            minWidth: 150, justifySelf: {
-                                xs: 'stretch', md: 'end',
-                            },
-                        }}
-                    >
-                        {isListening ? 'Press Key...' : formatKeyName(currentKey)}
-                    </Button>
+            {BEARING_RANGE_KEYBOARD_BINDINGS.map((binding) => {
+                const bindingTarget = `bearingRangeTool:${binding.key}`
 
-                    {isListening && currentListeningLabel && (
-                        <Alert
-                            severity='info'
-                            sx={{
-                                gridColumn: '1 / -1',
-                            }}
-                        >
-                            Listening for new keybind: <strong>{currentListeningLabel}</strong>
-                        </Alert>
-                    )}
-                </Box>)
+                return renderKeyboardBindingRow(binding, {
+                    bindingTarget,
+                    currentKey: bearingRangeTool[binding.key]?.[0],
+                    isListening: listeningForBinding === bindingTarget,
+                })
             })}
         </Stack>
 
@@ -509,124 +527,6 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
                         </MenuItem>))}
                     </Select>
                 </FormControl>
-            </Box>
-
-            <Divider/>
-
-            <Stack spacing={2}>
-                <Stack spacing={1}>
-                    <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                        Bearing/Range Keyboard Modifier
-                    </Typography>
-                    <Typography variant='body2' color='text.secondary'>
-                        Click a binding, then press the modifier key you want to assign.
-                    </Typography>
-                </Stack>
-
-                {BEARING_RANGE_KEYBOARD_BINDINGS.map((binding) => {
-                    const currentKey = bearingRangeTool[binding.key]?.[0]
-                    const bindingTarget = `bearingRangeTool:${binding.key}`
-                    const isListening = listeningForBinding === bindingTarget
-
-                    return (<Box
-                        key={binding.key}
-                        sx={{
-                            display: 'grid',
-                            gridTemplateColumns: {
-                                xs: '1fr', md: '1fr auto',
-                            },
-                            gap: 2,
-                            alignItems: 'center',
-                            border: 1,
-                            borderColor: isListening ? 'primary.main' : 'divider',
-                            borderRadius: 2,
-                            p: 2,
-                        }}
-                    >
-                        <Box>
-                            <Typography sx={{fontWeight: 'bold'}}>
-                                {binding.label}
-                            </Typography>
-                            <Typography variant='body2' color='text.secondary'>
-                                {binding.description}
-                            </Typography>
-                        </Box>
-
-                        <Button
-                            variant={isListening ? 'contained' : 'outlined'}
-                            onClick={() => setListeningForBinding(bindingTarget)}
-                            sx={{
-                                minWidth: 150, justifySelf: {
-                                    xs: 'stretch', md: 'end',
-                                },
-                            }}
-                        >
-                            {isListening ? 'Press Key...' : formatKeyName(currentKey)}
-                        </Button>
-
-                        {isListening && currentListeningLabel && (
-                            <Alert
-                                severity='info'
-                                sx={{
-                                    gridColumn: '1 / -1',
-                                }}
-                            >
-                                Listening for new keybind: <strong>{currentListeningLabel}</strong>
-                            </Alert>
-                        )}
-
-                        {persistModifierInactive && (
-                            <Alert
-                                severity='warning'
-                                sx={{
-                                    gridColumn: '1 / -1',
-                                }}
-                            >
-                                This key has no effect while Line Persistence is set to{' '}
-                                <strong>{activeBehaviorLabel}</strong>.{' '}
-                                <Link
-                                    component='button'
-                                    type='button'
-                                    onClick={() => onOpenSettingsPage?.('lookAndFeel')}
-                                    sx={{verticalAlign: 'baseline'}}
-                                >
-                                    Change it in {SETTINGS_PAGE_TITLES.lookAndFeel}
-                                </Link>
-                                .
-                            </Alert>
-                        )}
-                    </Box>)
-                })}
-            </Stack>
-
-            <Divider/>
-
-            <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                Line and Context Menu Sensitivity
-            </Typography>
-
-            <Box
-                sx={{
-                    display: 'grid', gridTemplateColumns: {
-                        xs: '1fr', md: '1fr 1fr 1fr',
-                    }, gap: 2,
-                }}
-            >
-                {KEYBINDS_SENSITIVITY_FIELDS.map((field) => (
-                    <DeferredTextField
-                        key={field.key}
-                        label={field.label}
-                        type='text'
-                        inputMode='numeric'
-                        committedValue={bearingRangeTool[field.key]}
-                        onCommit={(value) => updateBearingRangeBinding(field.key, value)}
-                        formatCommitted={field.formatCommitted}
-                        getDraftError={field.getDraftError}
-                        parseDraft={field.parseDraft}
-                        helperText={field.helperText}
-                        fullWidth
-                    />
-                ))}
             </Box>
         </Stack>
 

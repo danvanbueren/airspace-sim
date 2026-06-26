@@ -473,6 +473,7 @@ Sensor and overlay visibility are display-only toggles:
 
 | Setting | Role |
 |---------|------|
+| Context menu and bearing/range sensitivity | Timeout, movement limit, and minimum line length for map interactions |
 | Show performance analytics overlay | Live half-opacity map overlay with stacked frame-time history (1 s intervals, ~15 s window) broken down by pipeline stage |
 
 ### Development utilities

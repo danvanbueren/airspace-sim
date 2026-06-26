@@ -148,7 +148,7 @@ export function buildControlReference(controlBindings, {bearingRangeBehavior = '
                     combo: formatKeyList(keyboardCamera.panLeft),
                 },
                 {
-                    action: 'Pan faster',
+                    action: 'Modify Pan Speed',
                     combo: `${panSpeedModifierLabel} + movement keys`,
                     notes: 'Uses the speed modifier binding',
                 },
