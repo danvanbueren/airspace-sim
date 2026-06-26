@@ -79,10 +79,16 @@ function formatBearingRange(line) {
     return `${bearing}/${range}`
 }
 
+function isEndpointNormalized(startLngLat, rawEndLngLat) {
+    const normalizedEndLngLat = normalizeLngLatToShortestPath(startLngLat, rawEndLngLat)
+
+    return Math.abs(normalizedEndLngLat.lng - rawEndLngLat.lng) > 1e-6
+}
+
 function createLine(start, end, {id = crypto.randomUUID(), isPreview = false} = {}) {
     const normalizedEndLngLat = normalizeLngLatToShortestPath(start.lngLat, end.lngLat)
     const {bearingDegrees, rangeNauticalMiles} = calculateBearingAndRange(start.lngLat, normalizedEndLngLat)
-    const isEndNormalized = Math.abs(normalizedEndLngLat.lng - end.lngLat.lng) > 1e-6
+    const isEndNormalized = isEndpointNormalized(start.lngLat, end.lngLat)
 
     return {
         id,
@@ -93,6 +99,8 @@ function createLine(start, end, {id = crypto.randomUUID(), isPreview = false} = 
         isEndNormalized,
         startPoint: start.point,
         endPoint: end.point,
+        startMapPoint: start.mapPoint,
+        endMapPoint: end.mapPoint,
         midpoint: getMidpoint(start.lngLat, normalizedEndLngLat),
         bearingDegrees,
         rangeNauticalMiles,
@@ -140,6 +148,10 @@ function createLabelElement(line) {
     return element
 }
 
+function isLongitudeVisibleInBounds(lng, west, east) {
+    return lng >= west - 360 && lng <= east + 360
+}
+
 function getLineWorldCopyOffsets(map, line) {
     const bounds = map.getBounds()
     const west = bounds.getWest()
@@ -147,9 +159,15 @@ function getLineWorldCopyOffsets(map, line) {
     const offsets = []
 
     for (let worldCopyOffset = -720; worldCopyOffset <= 720; worldCopyOffset += 360) {
+        const startLng = line.start.lng + worldCopyOffset
+        const endLng = line.end.lng + worldCopyOffset
         const midpointLng = line.midpoint.lng + worldCopyOffset
 
-        if (midpointLng >= west - 360 && midpointLng <= east + 360) {
+        if (
+            isLongitudeVisibleInBounds(midpointLng, west, east)
+            || isLongitudeVisibleInBounds(startLng, west, east)
+            || isLongitudeVisibleInBounds(endLng, west, east)
+        ) {
             offsets.push(worldCopyOffset)
         }
     }
@@ -366,24 +384,46 @@ function resizePreviewOverlay(map, overlay) {
 }
 
 function buildLineScreenSegments(map, line) {
-    const canvas = map.getCanvas()
-    const maxScreenJumpX = canvas.clientWidth / 2
-    const maxScreenJumpY = canvas.clientHeight / 2
     const startPoint = map.project([line.start.lng, line.start.lat])
     const endPoint = map.project([line.end.lng, line.end.lat])
-    const segment = [
-        {x: startPoint.x, y: startPoint.y},
-        {x: endPoint.x, y: endPoint.y},
-    ]
 
-    const deltaX = Math.abs(segment[1].x - segment[0].x)
-    const deltaY = Math.abs(segment[1].y - segment[0].y)
-
-    if (deltaX > maxScreenJumpX || deltaY > maxScreenJumpY) {
+    if (
+        !Number.isFinite(startPoint.x) || !Number.isFinite(startPoint.y)
+        || !Number.isFinite(endPoint.x) || !Number.isFinite(endPoint.y)
+    ) {
         return []
     }
 
-    return [segment]
+    return [[
+        {x: startPoint.x, y: startPoint.y},
+        {x: endPoint.x, y: endPoint.y},
+    ]]
+}
+
+function getNormalizationGuideScreenPoints(map, line) {
+    if (line.startMapPoint && line.endMapPoint) {
+        return {
+            startPoint: {x: line.startMapPoint.x, y: line.startMapPoint.y},
+            cursorPoint: {x: line.endMapPoint.x, y: line.endMapPoint.y},
+        }
+    }
+
+    if (!line.startPoint || !line.endPoint) {
+        return null
+    }
+
+    const bounds = map.getCanvas().getBoundingClientRect()
+
+    return {
+        startPoint: {
+            x: line.startPoint.x - bounds.left,
+            y: line.startPoint.y - bounds.top,
+        },
+        cursorPoint: {
+            x: line.endPoint.x - bounds.left,
+            y: line.endPoint.y - bounds.top,
+        },
+    }
 }
 
 function strokeScreenSegments(context, segments, scaleX, scaleY) {
@@ -434,38 +474,49 @@ function drawPreviewOnOverlay(map, overlay, line, lineColor, {showNormalizationG
     context.lineCap = 'round'
     context.lineJoin = 'round'
 
-    getLineWorldCopyOffsets(map, line).forEach((worldCopyOffset) => {
+    const worldCopyOffsets = getLineWorldCopyOffsets(map, line)
+    let drewSolidLine = false
+
+    worldCopyOffsets.forEach((worldCopyOffset) => {
         const copiedLine = buildCopiedLine(line, worldCopyOffset)
         const segments = buildLineScreenSegments(map, copiedLine)
 
+        if (segments.length === 0) {
+            return
+        }
+
         strokeScreenSegments(context, segments, scaleX, scaleY)
+        drewSolidLine = true
     })
 
-    if (showNormalizationGuide && line.isEndNormalized && line.startPoint && line.endPoint) {
-        const canvas = map.getCanvas()
-        const bounds = canvas.getBoundingClientRect()
-        const startPoint = {
-            x: line.startPoint.x - bounds.left,
-            y: line.startPoint.y - bounds.top,
-        }
-        const cursorPoint = {
-            x: line.endPoint.x - bounds.left,
-            y: line.endPoint.y - bounds.top,
-        }
+    if (!drewSolidLine) {
+        strokeScreenSegments(context, buildLineScreenSegments(map, line), scaleX, scaleY)
+    }
 
-        if (
-            Number.isFinite(startPoint.x) && Number.isFinite(startPoint.y)
-            && Number.isFinite(cursorPoint.x) && Number.isFinite(cursorPoint.y)
-        ) {
-            drawDashedScreenLine(
-                context,
-                startPoint,
-                cursorPoint,
-                scaleX,
-                scaleY,
-                lineColor,
-            )
-        }
+    if (!showNormalizationGuide || !line.isEndNormalized) {
+        return
+    }
+
+    const guidePoints = getNormalizationGuideScreenPoints(map, line)
+
+    if (!guidePoints) {
+        return
+    }
+
+    const {startPoint, cursorPoint} = guidePoints
+
+    if (
+        Number.isFinite(startPoint.x) && Number.isFinite(startPoint.y)
+        && Number.isFinite(cursorPoint.x) && Number.isFinite(cursorPoint.y)
+    ) {
+        drawDashedScreenLine(
+            context,
+            startPoint,
+            cursorPoint,
+            scaleX,
+            scaleY,
+            lineColor,
+        )
     }
 }
 
