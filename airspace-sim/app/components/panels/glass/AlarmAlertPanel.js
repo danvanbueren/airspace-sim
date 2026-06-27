@@ -96,6 +96,7 @@ export default function AlarmAlertPanel() {
                 onDelete={handleModalDelete}
                 onFocusTrack={handleModalFocusTrack}
                 onOpenLink={handleModalOpenLink}
+                onFocusAlert={setFocusedAlertId}
             />
             {visibleAlerts.length > 0 && (
                 <BasicGlassPanel dense>

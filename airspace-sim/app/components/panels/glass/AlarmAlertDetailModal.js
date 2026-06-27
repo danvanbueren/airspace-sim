@@ -41,6 +41,7 @@ export default function AlarmAlertDetailModal({
     onDelete,
     onFocusTrack,
     onOpenLink,
+    onFocusAlert,
 }) {
     const scrollContainerRef = useRef(null)
     const alertItemRefs = useRef(new Map())
@@ -162,9 +163,10 @@ export default function AlarmAlertDetailModal({
                                 key={alert.id}
                                 alert={alert}
                                 variant='modal'
-                                highlighted={alert.id === focusedAlertId}
+                                outlined={alert.id === focusedAlertId}
                                 showDivider={index > 0}
                                 itemRef={setAlertItemRef(alert.id)}
+                                onContentClick={() => onFocusAlert?.(alert.id)}
                                 onFocusTrack={() => onFocusTrack?.(alert)}
                                 onOpenLink={() => onOpenLink?.(alert)}
                                 onDelete={() => onDelete?.(alert)}

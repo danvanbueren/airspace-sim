@@ -30,7 +30,7 @@ const VARIANT_STYLES = {
 export default function AlarmAlertListItem({
     alert,
     variant = 'panel',
-    highlighted = false,
+    outlined = false,
     showDivider = true,
     onContentClick = null,
     onFocusTrack,
@@ -66,10 +66,11 @@ export default function AlarmAlertListItem({
                 sx={{
                     borderRadius: 1,
                     px: 1,
-                    ...(highlighted
+                    ...(outlined
                         ? {
-                            color: 'info.contrastText',
-                            backgroundColor: 'info.main',
+                            outline: '2px solid',
+                            outlineColor: 'info.main',
+                            outlineOffset: -2,
                         }
                         : {
                             '&:hover': {
