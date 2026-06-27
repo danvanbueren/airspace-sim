@@ -123,41 +123,50 @@ export default function ActionPanel({
                                 minWidth: 0,
                             }}
                         >
-                            <IconButton
-                                size='small'
+                            <Box
                                 aria-label={`Drag ${panel.title}`}
                                 sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    flex: 1,
+                                    minWidth: 0,
                                     cursor: interactionsEnabled ? 'grab' : 'default',
                                     touchAction: 'none',
-                                    flexShrink: 0,
                                 }}
                                 onPointerDown={handleDragHandleActivate}
                                 onPointerMove={handleDragHandlePointerMove}
                                 onPointerUp={handleDragHandlePointerUp}
                                 onPointerCancel={handleDragHandlePointerUp}
                             >
-                                <DragIndicatorIcon fontSize='small'/>
-                            </IconButton>
-                            <Typography
-                                variant='h6'
-                                component='span'
-                                title={panel.title}
-                                sx={{
-                                    fontFamily: 'monospace',
-                                    fontWeight: 'bold',
-                                    flex: 1,
-                                    minWidth: 0,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                }}
-                            >
-                                {panel.title}
-                            </Typography>
+                                <DragIndicatorIcon
+                                    fontSize='small'
+                                    sx={{flexShrink: 0, opacity: 0.85}}
+                                />
+                                <Typography
+                                    variant='h6'
+                                    component='span'
+                                    title={panel.title}
+                                    sx={{
+                                        fontFamily: 'monospace',
+                                        fontWeight: 'bold',
+                                        flex: 1,
+                                        minWidth: 0,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    {panel.title}
+                                </Typography>
+                            </Box>
                             <IconButton
                                 size='small'
                                 aria-label={`Edit ${panel.title} settings`}
                                 sx={{flexShrink: 0}}
+                                onPointerDown={(event) => {
+                                    event.stopPropagation()
+                                }}
                                 onClick={handleEditSettings}
                             >
                                 <EditIcon fontSize='small'/>
