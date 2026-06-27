@@ -118,16 +118,12 @@ function applyResolvedPosition(setPosition, nextPosition) {
 }
 
 export function usePerformanceAnalyticsOverlayDrag({overlayRef, enabled}) {
-    const {containerRef: mapContainerRef, size: containerSize, isResizing, resizeGeneration} = useWorkspaceViewportContext()
+    const {containerRef: mapContainerRef, size: containerSize, isResizing, resizeGeneration, resizeLayoutTick} = useWorkspaceViewportContext()
     const [position, setPosition] = useState(null)
     const dragStateRef = useRef(null)
     const positionAnchorRef = useRef(null)
 
     const syncPositionFromAnchor = useCallback(() => {
-        if (isResizing) {
-            return
-        }
-
         const nextPosition = resolvePositionFromAnchor(
             positionAnchorRef,
             overlayRef,
@@ -139,7 +135,7 @@ export function usePerformanceAnalyticsOverlayDrag({overlayRef, enabled}) {
         }
 
         applyResolvedPosition(setPosition, nextPosition)
-    }, [containerSize, isResizing, overlayRef])
+    }, [containerSize, overlayRef])
 
     const commitPositionAnchor = useCallback((left, top) => {
         const overlaySize = getOverlaySize(overlayRef)
@@ -174,12 +170,12 @@ export function usePerformanceAnalyticsOverlayDrag({overlayRef, enabled}) {
     }, [commitPositionAnchor, containerSize, enabled, overlayRef, syncPositionFromAnchor])
 
     useLayoutEffect(() => {
-        if (!enabled || isResizing) {
+        if (!enabled) {
             return
         }
 
         syncPositionFromAnchor()
-    }, [containerSize, enabled, isResizing, overlayRef, resizeGeneration, syncPositionFromAnchor])
+    }, [containerSize, enabled, isResizing, overlayRef, resizeGeneration, resizeLayoutTick, syncPositionFromAnchor])
 
     const handlePanelPointerDown = useCallback((event) => {
         event.stopPropagation()

@@ -63,7 +63,7 @@ export function useFloatingActionPanelLayout({
     storedHeight,
     onLayoutCommit,
 }) {
-    const {containerRef: mapContainerRef, size: containerSize, isResizing, resizeGeneration} = useWorkspaceViewportContext()
+    const {containerRef: mapContainerRef, size: containerSize, isResizing, resizeGeneration, resizeLayoutTick} = useWorkspaceViewportContext()
     const minResizedHeight = getActionPanelMinResizedHeight(displayStyle)
     const contentMinHeight = ACTION_PANEL_MIN_HEIGHT_PX
 
@@ -121,7 +121,7 @@ export function useFloatingActionPanelLayout({
     }, [])
 
     const runPositionSync = useCallback((shouldCommitCorrections = false) => {
-        if (resizeStateRef.current || dragStateRef.current || isResizing) {
+        if (resizeStateRef.current || dragStateRef.current) {
             return true
         }
 
@@ -218,7 +218,6 @@ export function useFloatingActionPanelLayout({
         containerSize,
         contentMinHeight,
         displayStyle,
-        isResizing,
         itemIds,
         minResizedHeight,
         onLayoutCommit,
@@ -278,13 +277,11 @@ export function useFloatingActionPanelLayout({
     }, [displayStyle, itemIds, runPositionSync, storedAnchor, storedHeight, storedWidth])
 
     useLayoutEffect(() => {
-        if (isResizing) {
-            return
-        }
+        const shouldCommitCorrections = !isResizing
 
-        if (!runPositionSync(true)) {
+        if (!runPositionSync(shouldCommitCorrections)) {
             const frameRef = requestAnimationFrame(() => {
-                runPositionSync(true)
+                runPositionSync(shouldCommitCorrections)
             })
 
             return () => {
@@ -293,7 +290,7 @@ export function useFloatingActionPanelLayout({
         }
 
         return undefined
-    }, [containerSize, isResizing, resizeGeneration, runPositionSync])
+    }, [containerSize, isResizing, resizeGeneration, resizeLayoutTick, runPositionSync])
 
     const handlePanelPointerDown = useCallback((event) => {
         event.stopPropagation()

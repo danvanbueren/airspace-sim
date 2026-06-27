@@ -13,10 +13,12 @@ export function WorkspaceViewportProvider({containerRef, children}) {
         size: viewport.size,
         isResizing: viewport.isResizing,
         resizeGeneration: viewport.resizeGeneration,
+        resizeLayoutTick: viewport.resizeLayoutTick,
     }), [
         containerRef,
         viewport.isResizing,
         viewport.resizeGeneration,
+        viewport.resizeLayoutTick,
         viewport.size,
     ])
 
