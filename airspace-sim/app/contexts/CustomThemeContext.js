@@ -10,6 +10,21 @@ import {
 
 export const THEME_COOKIE_NAME = 'theme'
 
+export const COLOR_MODE_OPTIONS = {
+    light: {
+        value: 'light',
+        label: 'Light',
+        description: 'Bright map and UI for daytime or well-lit spaces.',
+    },
+    dark: {
+        value: 'dark',
+        label: 'Dark',
+        description: 'Dark map and UI for low-light environments.',
+    },
+}
+
+export const DEFAULT_COLOR_MODE = 'dark'
+
 const ColorModeContext = createContext(null)
 
 export function useColorMode() {
@@ -21,11 +36,11 @@ function normalizeColorMode(mode) {
 }
 
 function parseInitialMode(initialMode) {
-    return normalizeColorMode(parseCookieValue(initialMode, 'dark'))
+    return normalizeColorMode(parseCookieValue(initialMode, DEFAULT_COLOR_MODE))
 }
 
 function readBrowserMode() {
-    return normalizeColorMode(parseCookieValue(readCookieValue(THEME_COOKIE_NAME), 'dark'))
+    return normalizeColorMode(parseCookieValue(readCookieValue(THEME_COOKIE_NAME), DEFAULT_COLOR_MODE))
 }
 
 function writeThemeCookie(mode) {

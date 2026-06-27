@@ -29,6 +29,9 @@ Planned work for Airspace Simulator, grouped chronologically. Completed items li
 
 - ✅ Dark map water and track label readability — [`1e82879`](https://github.com/danvanbueren/airspace-sim/commit/1e82879)
 - ✅ Click-to-center map camera with rebindable key or mouse button — [`523fc9d`](https://github.com/danvanbueren/airspace-sim/commit/523fc9d)
+- ✅ Temporary vs permanent bearing/range lines with rebindable persist modifier — [`2294fef`](https://github.com/danvanbueren/airspace-sim/commit/2294fef)
+- ✅ Complete Control Reference in Settings → Usage Guide — [`2294fef`](https://github.com/danvanbueren/airspace-sim/commit/2294fef) (moved from Keybinds)
+- ✅ Bearing/range persistence behavior selector in Settings → Look & Feel — [`95f94c4`](https://github.com/danvanbueren/airspace-sim/commit/95f94c4)
 
 ### Operator interface
 
@@ -56,6 +59,7 @@ Planned work for Airspace Simulator, grouped chronologically. Completed items li
 
 ### Map & scope tools
 
+- 🔮 Track-attached bearing/range line endpoints (line snapping)
 - 🔮 Reference point creation and management
 
 ### Training & mission workflows

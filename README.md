@@ -225,7 +225,7 @@ The simulator UI is a Next.js client application. Simulation state is produced i
 - **Track layer** — [`useTrackMapLayer`](airspace-sim/app/hooks/map/useTrackMapLayer.js) renders familiar platform silhouettes (default) or full MIL-STD-2525 symbols when info fields are enabled; draws callsign labels and heading/velocity vectors; only tracks inside the expanded viewport are drawn, with icon and vector size scaled by zoom.
 - **Sensor layers** — [`useSensorDetectionMapLayer`](airspace-sim/app/hooks/map/useSensorDetectionMapLayer.js) renders radar/IFF tick marks; geometry is recomputed on pan/zoom so tick size stays proportional to zoom.
 - **Overlays** — [`useAirportMapLayer`](airspace-sim/app/hooks/map/useAirportMapLayer.js) and [`useAirRouteMapLayer`](airspace-sim/app/hooks/map/useAirRouteMapLayer.js) for optional airport/route context.
-- **Interactions** — Map pan/zoom, click-to-center (default middle mouse; rebindable in Settings → Keybinds), context menu (with inline grid-reference picker), bearing/range lines, track pick, draggable track management windows with keyboard custody and focus stacking, and map-click dismissal of transient windows.
+- **Interactions** — Map pan/zoom, click-to-center (default middle mouse; rebindable in Settings → Keybinds), context menu (with inline grid-reference picker), bearing/range measurements with configurable persistence (Settings → Look & Feel; default is temporary unless the persist modifier is held on release), track pick, draggable track management windows with keyboard custody and focus stacking, and map-click dismissal of transient windows.
 
 Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles/) (Voyager for light mode, Dark Matter for dark mode). Water-feature and track label colors are adjusted at runtime for readability in each theme.
 
@@ -236,7 +236,7 @@ Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles
 | Initiate manual track | Map context menu → Initiate Track | `upsertManualTrack` |
 | Edit track (including correlation mode) | Click symbol or context menu → Track Management window | `upsertManualTrack` (sets `userDirected`; converts auto tracks to manual) |
 | Drop track | Context menu on existing track | `dropTrack` |
-| Bearing/range | Context menu on map | Local map tool (not part of simulation engine) |
+| Bearing/range | Right-drag on map (behavior configurable in Settings → Look & Feel) | Local map tool (not part of simulation engine) |
 | Sensor/history visibility | Category Select Panel | Display toggles only (no sim logic) |
 | Map zoom | Fixed Function Panel → Zoom In / Zoom Out | `MapStateProvider` zoom helpers (display only) |
 
@@ -466,12 +466,17 @@ Sensor and overlay visibility are display-only toggles:
 
 | Setting | Role |
 |---------|------|
+| Color mode | Light or dark map basemap and application theme |
 | Grid reference display format | Coordinate format for the cursor tooltip and context menu |
+| Bearing/range line persistence | Default commit behavior: temporary by default, permanent by default (inverted), always permanent, or never permanent |
+| Keyboard pan speed | Base WASD pan rate in pixels per second |
+| Keyboard pan speed modifier | Multiplier applied while holding the speed modifier key |
 
 #### Advanced
 
 | Setting | Role |
 |---------|------|
+| Context menu and bearing/range sensitivity | Timeout, movement limit, and minimum line length for map interactions |
 | Show performance analytics overlay | Live half-opacity map overlay with stacked frame-time history (1 s intervals, ~15 s window) broken down by pipeline stage |
 
 ### Development utilities
@@ -520,7 +525,9 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - Modular seed alarm alerts on page load (`app/content/seedAlarmAlerts.js`); system notices can include a left-side icon and external link action.
 - Familiar platform silhouettes with MIL-STD-2525 fallback, callsign labels, and speed-scaled heading vectors on the map.
 - Optional **airport** and **air route** overlay layers.
-- Bearing/range drawing, context menus, and line removal controls.
+- Bearing/range measurements with configurable persistence (Settings → Look & Feel) and rebindable persist modifier (Settings → Keybinds).
+- Bearing/range line context menus and line removal controls (permanent lines only).
+- Complete Control Reference in Settings → Usage Guide documenting every map control combo (with a link to Keybinds for rebinding).
 - Cursor coordinate overlay with selectable grid reference systems.
 - Supported coordinate displays include DD, DDM, DMS, GARS, Geohash, GEOREF, Killbox-style GARS, and MGRS.
 - Configurable keyboard and mouse controls persisted in browser cookies, including click-to-center on the map.

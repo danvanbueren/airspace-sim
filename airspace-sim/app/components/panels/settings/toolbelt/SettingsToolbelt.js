@@ -82,14 +82,20 @@ export default function SettingsToolbelt({toolbeltOpen, setToolbeltOpen, buildDa
                             onClick={object.onToolbeltClick}
                         />))}
 
-                        <Divider/>
+                        {buildData.sections.map((section, sectionIndex) => {
+                            if (section.type === 'divider') {
+                                return <Divider key={`SettingsToolbelt-Divider-${sectionIndex}`}/>
+                            }
 
-                        {buildData.full.map((object, index) => (<SettingsToolbeltGenericButton
-                            key={'SettingsToolbelt-Full-' + object.name + '-' + index}
-                            icon={object.icon}
-                            tooltip={object.tooltip}
-                            onClick={object.onToolbeltClick}
-                        />))}
+                            return section.items.map((object, index) => (
+                                <SettingsToolbeltGenericButton
+                                    key={`SettingsToolbelt-Page-${object.name}-${sectionIndex}-${index}`}
+                                    icon={object.icon}
+                                    tooltip={object.tooltip}
+                                    onClick={object.onToolbeltClick}
+                                />
+                            ))
+                        })}
                     </Box>
                 </Collapse>
             </Box>

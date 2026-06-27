@@ -9,10 +9,11 @@ export default function SettingsModalPageRestoreFooter({
     pageHint,
     onPageReset,
     onAfterResetAll,
+    showTopDivider = true,
 }) {
     return (
         <Stack spacing={2}>
-            <Divider/>
+            {showTopDivider ? <Divider/> : null}
             <Stack spacing={1}>
                 <SettingsModalRestoreDefaultsSection
                     label={pageLabel}

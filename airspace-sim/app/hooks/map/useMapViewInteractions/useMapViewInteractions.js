@@ -20,7 +20,7 @@ export function useMapViewInteractions(
     const interactionsEnabled = mapReady && mapInteractionsEnabled
     const keyboardControlsEnabled = interactionsEnabled && keyboardCameraControlsEnabled
 
-    useMapStyle(mapRef, mapStyle, mapCreationStyle)
+    useMapStyle(mapRef, mapStyle, mapCreationStyle, mapReady)
     useKeyboardCameraControls(mapRef, keyboardControlsEnabled)
     useRemappableMapDragPan(mapRef, interactionsEnabled, mapCursor)
     useMapCenterOnClick(mapRef, interactionsEnabled, keyboardControlsEnabled)

@@ -7,7 +7,7 @@ This document is the **single source of truth** for how the bearing/range system
 
 1. Why the original monolithic hook was rewritten.
 2. What has already landed on `main`.
-3. What still needs to be built (preview→commit flash fix, temporary vs permanent lines, track snapping, keybinds documentation).
+3. What still needs to be built (track snapping).
 4. Exact data models, file boundaries, control bindings, and test expectations so a future agent can implement the remaining work **without re-discovering requirements in chat**.
 
 User-facing behavior is also summarized in the [repository root README](../README.md). In-app roadmap items live in `airspace-sim/app/content/settings-roadmap.md`.
@@ -22,11 +22,13 @@ User-facing behavior is also summarized in the [repository root README](../READM
 | Preview canvas overlay | ✅ On `main` | `bearingRangePreviewCanvas.js` |
 | MapLibre committed layer | ✅ On `main` | `bearingRangeMapLayer.js` |
 | Label manager | ✅ On `main` | `bearingRangeLabels.js` |
-| Thin hook orchestrator | ⚠️ Partial | `useBearingRangeTool.js` is modular but still uses async map writes and a write queue — see [Known gaps](#known-gaps-vs-this-plan) |
-| Temporary vs permanent lines | ❌ Not on `main` | Spec + prototype below; **do not merge** [PR #72](https://github.com/danvanbueren/airspace-sim/pull/72) |
-| Keybinds UI + control reference | ❌ Not on `main` | Spec below; prototyped on same abandoned branch |
+| Thin hook orchestrator | ✅ On `main` | Sync map writes; preview cleared in same handler tick as commit |
+| Temporary vs permanent lines | ✅ On `main` | `persistModifier` gate in `finishDrag`; default Shift on release |
+| Keybinds UI + control reference | ✅ On `main` | `SettingsModalKeybindsPage.js`, `controlReference.js` |
+| Behavior mode selector (Look & Feel) | ✅ On `main` | `bearingRangeBehavior.js`, `SettingsModalLookAndFeelPage.js` |
+| Map layer sync reliability | ⚠️ Improved | Phase 3c — existing-source `setData` + idle retry; [manual verification pending](#phase-3c--map-layer-sync-labels-vs-geometry-desync) |
 | Track-attached endpoints (line snapping) | ❌ Not started | Spec below (Phase 5) |
-| Preview → commit transition | ⚠️ Flash on release | Async map write defers `clearPreview()` — see [Phase 3b](#phase-3b--fix-previewcommit-flash-prerequisite) |
+| Preview → commit transition | ✅ On `main` | Sync `setBearingRangeLines`; no `mapWritePromiseRef` queue |
 
 **Historical context:** [PR #73](https://github.com/danvanbueren/airspace-sim/pull/73) accumulated incremental fixes on top of a dual-renderer design. The pre-rewrite hook was ~1,280 lines, mixed geometry/canvas/MapLibre/input/labels, and had unreliable deletes/commits. Phases 1–3 on `main` addressed that split. Phases 4–5 are the next product increments.
 
@@ -36,16 +38,20 @@ User-facing behavior is also summarized in the [repository root README](../READM
 
 ## Forward action plan
 
-Ship in this order. **Do not start Phase 4 until Phase 3b is done** — the flash bug is a symptom of the async write handoff that Phase 4 will make worse if left in place.
+Ship in this order. Phases 3b–4c are complete on `main`. **Phase 5 is next.**
 
 ```
-Phase 3b  Fix preview→commit flash (sync map writes)
+Phase 3b  Fix preview→commit flash (sync map writes)          ✅
    ↓
-Phase 4   Temporary vs permanent commit gate
+Phase 3c  Map layer sync (labels vs geometry desync)         ✅
    ↓
-Phase 4b  Keybinds UI + Complete Control Reference
+Phase 4   Temporary vs permanent commit gate                   ✅
    ↓
-Phase 5   Track-attached endpoints (line snapping)
+Phase 4b  Keybinds UI + Complete Control Reference             ✅
+   ↓
+Phase 4c  Look & Feel behavior mode selector                   ✅
+   ↓
+Phase 5   Track-attached endpoints (line snapping)             ← next
    ↓
 Phase 6   Hardening (optional)
 ```
@@ -67,12 +73,66 @@ void commitLines([...linesRef.current, lineToCommit]).finally(() => {
 
 **Checklist:**
 
-- [ ] Make `setBearingRangeLines` synchronous — remove `waitForStyleReady` from the hot path; keep async wait only inside `ensureBearingRangeLayer` on first style attach or in `style.load` rehydrate.
-- [ ] Remove `mapWritePromiseRef` and the revision-retry loop in `flushLinesToMap`.
-- [ ] In `finishDrag`, call `clearPreview()` **before** or **immediately after** sync `setBearingRangeLines` in the same synchronous block — never in `.finally()` on an async promise.
-- [ ] Verify `syncLabels()` does not briefly show a preview label after the canvas is cleared (preview label should clear with `clearPreview()` or when `dragRef` is nulled).
+- [x] Make `setBearingRangeLines` synchronous — remove `waitForStyleReady` from the hot path; keep async wait only inside `rehydrateBearingRangeLines` on `style.load` rehydrate.
+- [x] Remove `mapWritePromiseRef` and the revision-retry loop in `flushLinesToMap`.
+- [x] In `finishDrag`, call `clearPreview()` **before** or **immediately after** sync `setBearingRangeLines` in the same synchronous block — never in `.finally()` on an async promise.
+- [x] Verify `syncLabels()` does not briefly show a preview label after the canvas is cleared (preview label should clear with `clearPreview()` or when `dragRef` is nulled).
 - [ ] Manual test: drag and release 20+ lines rapidly — no flash, no ghost lines, no missing lines.
 - [ ] Manual test: delete one / clear all still immediate.
+
+### Phase 3c — Map layer sync (labels vs geometry desync)
+
+**Problem:** After Phase 3b landed, operators reported committed lines and clear/delete behaving inconsistently on the **MapLibre layer** even though midpoint labels looked correct.
+
+**Reported symptoms:**
+
+| Symptom | What the operator sees |
+|---------|------------------------|
+| Missing commit | Preview disappears on release; label may appear but **no line** on the map (or line appears only after a later pan/zoom) |
+| Stale geometry on clear | **Clear all** or **delete one** removes labels immediately but **lines remain** on the map |
+| Intermittent recovery | A failed write sometimes “fixes itself” after map movement because a later effect or `idle` handler finally flushed `linesRef` to the source |
+
+**Root cause (Phase 3b regression):** Phase 3b correctly removed the async write queue and made `setBearingRangeLines` synchronous, but the first cut gated **every** write on `map.isStyleLoaded()`. When that guard returned `false`, the function exited without calling `setData` — yet `writeLinesToMap` in `useBearingRangeTool.js` had already updated `linesRef` and called `syncLabels()`. Labels follow `linesRef`; the GeoJSON source kept its **previous** feature collection. That split explains all three symptoms: labels and map geometry diverged silently with no thrown error.
+
+```javascript
+// Phase 3b (buggy) — silent failure left stale map geometry
+export function setBearingRangeLines(map, lines, ...) {
+    if (!map || !map.isStyleLoaded()) {
+        return false  // labels already updated; map layer unchanged
+    }
+    // ...
+}
+```
+
+**Fix (landed with Phase 4c work):** Keep sync writes from Phase 3b, but never let a failed map write go unretried.
+
+1. **Split the hot path in `bearingRangeMapLayer.js`:**
+   - If `bearing-range-lines-source` **already exists** → call `source.setData(...)` immediately. Do **not** require `isStyleLoaded()` for routine commit/delete/clear updates.
+   - If the source does **not** exist yet → only then require `isStyleLoaded()`, call `ensureBearingRangeLayer`, then `setData`.
+   - `rehydrateBearingRangeLines` remains **async** (`waitForStyleReady`) and is used only from `style.load` rehydrate — not from pointer handlers.
+
+2. **Retry failed writes in `useBearingRangeTool.js`:**
+   - `flushLinesToMapLayer()` calls sync `setBearingRangeLines` and returns success/failure.
+   - `writeLinesToMap` (commit, delete one, clear all) calls `flushLinesToMapLayer()`; on `false`, registers `scheduleMapFlush()` → `map.once('idle', ...)` until the write succeeds.
+   - `cancelScheduledMapFlush()` runs on hook teardown so idle listeners do not leak.
+
+**Target behavior:** `linesRef`, midpoint labels, and MapLibre `setData` always reflect the same `lines[]` after commit, delete, and clear-all. A failed first write must retry automatically — never leave the map showing geometry that labels no longer describe.
+
+**Checklist:**
+
+- [x] Update existing-source path in `setBearingRangeLines` to skip `isStyleLoaded` guard.
+- [x] Add `flushLinesToMapLayer` + `scheduleMapFlush` idle retry in `useBearingRangeTool.js`.
+- [x] Keep `rehydrateBearingRangeLines` async for `style.load` only.
+- [ ] Manual test: commit permanent line — line visible same frame as preview clears.
+- [ ] Manual test: clear all with 10+ lines — map and labels empty together.
+- [ ] Manual test: delete one line — map and labels update together.
+- [ ] Manual test: rapid draw/delete 20+ lines — no ghost lines, no missing lines.
+
+**Do not regress:**
+
+- Do not reintroduce `mapWritePromiseRef`, revision-retry queues, or `.finally(() => clearPreview())`.
+- Do not make commit/delete/clear hot paths `async` again.
+- Do not update labels before a map write without either succeeding or scheduling `scheduleMapFlush`.
 
 ### Phase 4 — Temporary vs permanent lines
 
@@ -80,14 +140,14 @@ void commitLines([...linesRef.current, lineToCommit]).finally(() => {
 
 **Checklist:**
 
-- [ ] Add `persistModifier: ['shift']` to `DEFAULT_CONTROL_BINDINGS.bearingRangeTool` in `ControlBindingsContext.js`.
-- [ ] Add `BEARING_RANGE_KEYBOARD_BINDING_KEYS = ['persistModifier']` and wire into normalize / clear / unbind logic.
-- [ ] Export `eventModifierKeysMatchBinding(event, bindingKeys)` helper (Shift, Control, Alt, Meta only).
-- [ ] Gate `finishDrag` commit per [finishDrag logic](#finishdrag-logic-phase-4--implement-in-modular-hook): release without modifier → `clearPreview()` only; release with modifier → commit.
-- [ ] Update hover-cursor suppression: also suppress when `eventModifierKeysMatchBinding(event, bindings.persistModifier)` (keep hard-coded `event.shiftKey` for box-zoom).
-- [ ] If `persistModifier` is unbound (`[]`), no drag produces a permanent line.
+- [x] Add `persistModifier: ['shift']` to `DEFAULT_CONTROL_BINDINGS.bearingRangeTool` in `ControlBindingsContext.js`.
+- [x] Add `BEARING_RANGE_KEYBOARD_BINDING_KEYS = ['persistModifier']` and wire into normalize / clear / unbind logic.
+- [x] Export `eventModifierKeysMatchBinding(event, bindingKeys)` helper (Shift, Control, Alt, Meta only).
+- [x] Gate `finishDrag` commit per [finishDrag logic](#finishdrag-logic-phase-4--implement-in-modular-hook): release without modifier → `clearPreview()` only; release with modifier → commit.
+- [x] Update hover-cursor suppression: also suppress when `eventModifierKeysMatchBinding(event, bindings.persistModifier)` (keep hard-coded `event.shiftKey` for box-zoom).
+- [x] If `persistModifier` is unbound (`[]`), no drag produces a permanent line.
 - [ ] Manual test matrix — [Temporary vs permanent](#temporary-vs-permanent-phase-4) rows.
-- [ ] Update root `README.md` bearing/range interaction description when shipped.
+- [x] Update root `README.md` bearing/range interaction description when shipped.
 
 ### Phase 4b — Keybinds UI and control reference
 
@@ -95,16 +155,39 @@ void commitLines([...linesRef.current, lineToCommit]).finally(() => {
 
 **Checklist:**
 
-- [ ] Add **Persist Line Modifier** click-to-capture row to `SettingsModalKeybindsPage.js` (`bearingRangeTool:persistModifier`).
-- [ ] Extend key-capture listener to handle both `keyboardCamera:*` and `bearingRangeTool:*` binding targets.
-- [ ] Expose `grabButton` and `pointerButton` in the Mouse Controls grid (currently only drag, center, draw, context menu).
-- [ ] Add **Complete Control Reference** section — extract `buildControlReference(controlBindings)` (pure function) and render grouped MUI cards per [required entries](#complete-control-reference--required-entries).
-- [ ] List fixed combos (box zoom, scroll wheel) with a note that they are not individually rebindable today.
-- [ ] Reset Keybinds page restores `persistModifier: ['shift']`.
+- [x] Add **Persist Line Modifier** click-to-capture row to `SettingsModalKeybindsPage.js` (`bearingRangeTool:persistModifier`).
+- [x] Extend key-capture listener to handle both `keyboardCamera:*` and `bearingRangeTool:*` binding targets.
+- [x] Expose `grabButton` and `pointerButton` in the Mouse Controls grid (currently only drag, center, draw, context menu).
+- [x] Add **Complete Control Reference** section — extract `buildControlReference(controlBindings)` (pure function) and render grouped MUI cards per [required entries](#complete-control-reference--required-entries).
+- [x] List fixed combos (box zoom, scroll wheel) with a note that they are not individually rebindable today.
+- [x] Reset Keybinds page restores `persistModifier: ['shift']`.
 - [ ] Manual test matrix — [Keybinds UI](#keybinds-ui-phase-4b) rows.
-- [ ] Update `settings-roadmap.md` when shipped.
+- [x] Update `settings-roadmap.md` when shipped.
 
 **Note:** Phase 4 and 4b can land in the **same PR** — they are one user-facing feature.
+
+### Phase 4c — Look & Feel behavior mode selector
+
+**Problem:** Operators want different default commit behavior without re-binding the persist modifier every session.
+
+**Modes** (`appSettings.bearingRangeBehavior`, Settings → Look & Feel):
+
+| Mode | Default on release | Persist modifier on release |
+|------|-------------------|----------------------------|
+| `temporary_default` | Temporary measurement | Commit permanent line |
+| `permanent_default` | Permanent line | Temporary measurement only |
+| `always_permanent` | Permanent line | Ignored |
+| `never_permanent` | Temporary measurement | Ignored |
+
+**Checklist:**
+
+- [x] Add `bearingRangeBehavior` to `AppSettingsContext` with normalization and cookie persistence.
+- [x] Add **Bearing/Range Behavior** Select to `SettingsModalLookAndFeelPage.js`.
+- [x] Add pure `shouldPersistBearingRangeLine(behaviorMode, modifierActive)` in `bearingRangeBehavior.js`.
+- [x] Gate `finishDrag` via behavior mode + persist modifier.
+- [x] Update Complete Control Reference text per active behavior mode.
+- [x] Improve map layer sync: update existing GeoJSON source without `isStyleLoaded` guard; idle retry when first write fails. See [Phase 3c](#phase-3c--map-layer-sync-labels-vs-geometry-desync).
+- [ ] Manual test matrix — all four modes + clear/delete still immediate.
 
 ### Phase 5 — Track-attached endpoints (line snapping)
 
@@ -186,7 +269,21 @@ Bindings that already exist in `ControlBindingsContext` but were **hidden from t
 | R12 | The persist modifier is **rebindable** in Settings → Keybinds (`bearingRangeTool.persistModifier`, keyboard chord array). |
 | R13 | Temporary preview during drag behaves exactly like today (R1–R6); only the **commit gate** changes. |
 | R14 | Context menu, hover hit-test, delete, and clear-all apply **only to permanent** lines in `lines[]`. |
-| R15 | If `persistModifier` is unbound (`[]`), **no drag can produce a permanent line** — all measurements are temporary. |
+| R15 | If `persistModifier` is unbound (`[]`), **no drag can produce a permanent line** in modifier-driven modes — all measurements are temporary. |
+
+### Behavior mode selector (Phase 4c)
+
+| # | Requirement |
+|---|-------------|
+| R26 | Settings → Look & Feel exposes a **Bearing/Range Behavior** select with four modes: temporary by default, permanent by default (inverted), always permanent, never permanent. |
+| R27 | `temporary_default` matches Phase 4 behavior: release without modifier discards; modifier on release commits. |
+| R28 | `permanent_default` inverts Phase 4: release commits; modifier on release discards. |
+| R29 | `always_permanent` commits every valid drag regardless of modifier state. |
+| R30 | `never_permanent` never commits regardless of modifier state. |
+| R31 | Complete Control Reference updates its bearing/range entries when the behavior mode changes. |
+| R32 | Committed lines must update the MapLibre layer immediately on commit, delete, and clear-all — labels and map geometry stay in sync. |
+| R33 | A failed `setBearingRangeLines` on the hot path must schedule an idle retry; map geometry must not lag behind `linesRef` / labels. |
+| R34 | Routine updates to an **existing** GeoJSON source must not be blocked by `map.isStyleLoaded()` — only first source/layer creation may wait for style readiness. |
 
 ### Keybinds documentation (Phase 4b)
 
@@ -262,7 +359,13 @@ Preview on canvas (fast) and committed lines on MapLibre (correct for hit-testin
 
 Concurrent `setData` paths (sync, async, idle re-sync, effect re-sync) produced **stale geometry wins** — deleted lines reappearing, new lines vanishing.
 
-**Rule going forward:** One write API; prefer **synchronous** `setData` from explicit handler calls + style rehydrate only.
+**Rule going forward:** One write API; prefer **synchronous** `setData` from explicit handler calls + style rehydrate only. If a sync write cannot run yet (source not created), **retry on `idle`** — never update labels ahead of a silently skipped map write. See [Phase 3c](#phase-3c--map-layer-sync-labels-vs-geometry-desync).
+
+### 2b. Labels updated but map write skipped (Phase 3b regression)
+
+Phase 3b fixed preview flash by syncing `clearPreview()` with `setData`, but an over-broad `isStyleLoaded()` guard caused `setBearingRangeLines` to return `false` while `linesRef` and labels had already advanced. Operators saw tooltips without lines, or ghost lines after clear-all.
+
+**Rule going forward:** `linesRef`, labels, and GeoJSON `setData` are one logical write. Either all three succeed in the handler tick, or `scheduleMapFlush()` retries until the map catches up.
 
 ### 3. Duplicate label systems
 
@@ -313,12 +416,16 @@ Geometry, rendering, input, and layer management in one ~1,280-line hook — unt
 |------|----------------|
 | `app/tools/map/bearingRangeGeometry.js` | Pure math: normalize lng, bearing/range, midpoint, `isEndpointNormalized`, world-copy offsets, `createBearingRangeLine`, feature builders. **Unit-testable.** |
 | `app/tools/map/bearingRangePreviewCanvas.js` | Create/resize/clear/draw overlay; screen segments + dashed guide. No React. |
-| `app/tools/map/bearingRangeMapLayer.js` | `ensureBearingRangeLayer`, `setBearingRangeLines`, `getBearingRangeLineAtMapPoint`. |
+| `app/tools/map/bearingRangeMapLayer.js` | `ensureBearingRangeLayer`, sync `setBearingRangeLines`, async `rehydrateBearingRangeLines`, `getBearingRangeLineAtMapPoint`. |
 | `app/tools/map/bearingRangeLabels.js` | `BearingRangeLabelManager` — create/update/remove midpoint markers. |
-| `app/hooks/map/useBearingRangeTool.js` | State machine, pointer listeners, orchestration. **Target ≤ 350 lines** after Phase 4–5. |
+| `app/hooks/map/useBearingRangeTool.js` | State machine, pointer listeners, orchestration. **Target ≤ 350 lines** after Phase 5. |
+| `app/tools/settings/controlReference.js` | Pure `buildControlReference(controlBindings)` for Settings → Keybinds |
+| `app/tools/settings/controlBindingMatchers.js` | `eventModifierKeysMatchBinding` helper |
 | `tests/map/bearingRangeGeometry.test.js` | Geometry unit tests. |
+| `app/tools/map/bearingRangeBehavior.js` | Behavior mode constants + `shouldPersistBearingRangeLine` |
+| `tests/map/bearingRangeBehavior.test.js` | Behavior mode unit tests |
 
-#### To add (Phase 4–5)
+#### To add (Phase 5)
 
 | File | Responsibility |
 |------|----------------|
@@ -327,11 +434,11 @@ Geometry, rendering, input, and layer management in one ~1,280-line hook — unt
 | `tests/map/bearingRangeTrackSnap.test.js` | Snap selection, line recomputation, freeze-on-drop behavior. |
 | `tests/map/trackHitTest.test.js` | Optional; mock `queryRenderedFeatures` if needed. |
 
-Settings changes stay in existing files:
+Settings changes (Phase 4 — complete):
 
-| File | Phase 4 change |
-|------|----------------|
-| `app/contexts/ControlBindingsContext.js` | Add `persistModifier`, `eventModifierKeysMatchBinding`, normalization keys |
+| File | Change |
+|------|--------|
+| `app/contexts/ControlBindingsContext.js` | `persistModifier`, `eventModifierKeysMatchBinding`, normalization keys |
 | `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js` | Persist modifier row, full mouse controls, Complete Control Reference |
 
 ### Data model
@@ -590,9 +697,8 @@ File: `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js`
 
 ### New / expanded sections
 
-1. **Keyboard Camera Controls** — existing (WASD, speed modifier, center map key).
-2. **Camera Speed** — existing sliders.
-3. **Mouse Controls** — expand to six selectors:
+1. **Keyboard Camera Controls** — existing (WASD, speed modifier, center map key). Pan speed sliders live on Settings → Look & Feel.
+2. **Mouse Controls** — expand to six selectors:
 
 | Setting key | Section | Label |
 |-------------|---------|-------|
@@ -603,7 +709,7 @@ File: `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js`
 | `drawButton` | `bearingRangeTool` | Bearing/Range Draw Button |
 | `contextMenuButton` | `bearingRangeTool` | Context Menu Button |
 
-4. **Bearing/Range Keyboard Modifier** — new click-to-capture row:
+3. **Bearing/Range Keyboard Modifier** — click-to-capture row grouped with other keyboard bindings on the Keybinds page.
 
 | Key | Label | Description |
 |-----|-------|-------------|
@@ -611,8 +717,7 @@ File: `app/components/panels/settings/modal/pages/SettingsModalKeybindsPage.js`
 
 Use binding target format `bearingRangeTool:persistModifier` (or equivalent) so one key-capture listener handles both `keyboardCamera:*` and `bearingRangeTool:*` sections.
 
-5. **Line and Context Menu Sensitivity** — existing `DeferredTextField` trio.
-6. **Complete Control Reference** — read-only reference cards (see below).
+4. **Complete Control Reference** — read-only reference cards (see below). Line/context menu sensitivity fields live on Settings → Advanced.
 
 ### Complete Control Reference — required entries
 
@@ -719,14 +824,13 @@ const {
 
 | Gap | Current behavior on `main` | Target |
 |-----|---------------------------|--------|
-| Preview→commit flash | `clearPreview()` deferred to `.finally()` after async `setBearingRangeLines`; preview and map layer briefly overlap or gap | Sync `clearPreview()` + sync `setData` in same handler tick — [Phase 3b](#phase-3b--fix-previewcommit-flash-prerequisite) |
-| Map writes | `setBearingRangeLines` is `async` with `waitForStyleReady`; hook uses `mapWritePromiseRef` queue | Synchronous `setData` + `triggerRepaint` from handlers; rehydrate on `style.load` only |
-| Hook size | ~515 lines | ≤ 350 after Phase 4–5 extractions |
-| Temporary vs permanent | Every valid drag commits | Phase 4 gate on persist modifier |
-| Keybinds reference | Partial mouse bindings only (`dragButton`, `centerButton`, `drawButton`, `contextMenuButton`) | Phase 4b: `grabButton`, `pointerButton`, persist modifier, Complete Control Reference |
+| Preview→commit flash | ✅ Fixed — sync `clearPreview()` + sync `setData` in same handler tick | Done in Phase 3b |
+| Map writes | ✅ Sync `setData` from handlers; async `rehydrateBearingRangeLines` on `style.load` only | Done in Phase 3b |
+| Hook size | ~500 lines | ≤ 350 after Phase 5 extractions |
+| Temporary vs permanent | ✅ Release without modifier discards; persist modifier commits | Done in Phase 4 |
+| Keybinds reference | ✅ Full mouse bindings, persist modifier, Complete Control Reference | Done in Phase 4b |
+| Map layer sync | ⚠️ Improved | Phase 3c fix landed; idle retry + existing-source `setData` — [details](#phase-3c--map-layer-sync-labels-vs-geometry-desync) |
 | Track snap / line snapping | Not implemented | Phase 5 |
-
-Resolve the async write queue in **Phase 3b** before adding the Phase 4 commit gate — do not add a third sync mechanism for track follow.
 
 ---
 
@@ -751,6 +855,12 @@ Resolve the async write queue in **Phase 3b** before adding the Phase 4 commit g
 2. Remove `mapWritePromiseRef` queue from `useBearingRangeTool.js`.
 3. Call `clearPreview()` synchronously in `finishDrag` — not in `.finally()` after async write.
 4. Manual test: no flash on release; rapid draw/delete still correct.
+
+### Phase 3c — Map layer sync (labels vs geometry desync)
+
+1. Split `setBearingRangeLines`: existing source → immediate `setData`; new source → wait for `isStyleLoaded`.
+2. Add `flushLinesToMapLayer` + `scheduleMapFlush` idle retry in `useBearingRangeTool.js`.
+3. Manual test: commit, delete, and clear-all keep map geometry and labels in sync.
 
 ### Phase 4 — Temporary vs permanent lines
 
@@ -815,6 +925,16 @@ Resolve the async write queue in **Phase 3b** before adding the Phase 4 commit g
 | Rapid draw 10+ lines | All lines visible; no preview ghosts left on canvas |
 | Delete one during/after draw | Immediate removal; no preview canvas leftover |
 | Style reload mid-session | Lines reappear; no flash on next draw |
+
+### Map layer sync (Phase 3c)
+
+| Scenario | Expected |
+|----------|----------|
+| Commit permanent line | MapLibre line visible in the **same interaction** as preview clear; label and line both present |
+| Clear all with 10+ lines | Map empty and labels gone **together** — no ghost lines |
+| Delete one line | That line removed from map and labels **together** |
+| Write while style loading (source not yet created) | `scheduleMapFlush` retries on `idle`; geometry eventually matches `linesRef` |
+| Write with existing source | `setData` runs even if `isStyleLoaded()` is false — no silent skip |
 
 ### Temporary vs permanent (Phase 4)
 
@@ -881,22 +1001,28 @@ Use this as a literal work order. Do not skip steps.
 
 ### Phase 3b — Fix flash (do first)
 
-- [ ] Make `setBearingRangeLines` sync on commit/delete/clear path (`bearingRangeMapLayer.js`).
-- [ ] Remove `mapWritePromiseRef` and revision-retry loop (`useBearingRangeTool.js`).
-- [ ] Move `clearPreview()` into synchronous `finishDrag` — remove `.finally(() => clearPreview())` pattern.
+- [x] Make `setBearingRangeLines` sync on commit/delete/clear path (`bearingRangeMapLayer.js`).
+- [x] Remove `mapWritePromiseRef` and revision-retry loop (`useBearingRangeTool.js`).
+- [x] Move `clearPreview()` into synchronous `finishDrag` — remove `.finally(() => clearPreview())` pattern.
 - [ ] Manual test: [Preview→commit transition](#previewcommit-transition-phase-3b) matrix.
+
+### Phase 3c — Map layer sync
+
+- [x] Split existing-source vs new-source paths in `setBearingRangeLines` (`bearingRangeMapLayer.js`).
+- [x] Add `flushLinesToMapLayer` + `scheduleMapFlush` idle retry (`useBearingRangeTool.js`).
+- [ ] Manual test: [Map layer sync](#map-layer-sync-phase-3c) matrix.
 
 ### Phase 4 — Temporary vs permanent
 
-- [ ] Add `persistModifier` + `eventModifierKeysMatchBinding` to `ControlBindingsContext.js`.
-- [ ] Gate `finishDrag` commit per [finishDrag logic](#finishdrag-logic-phase-4--implement-in-modular-hook).
-- [ ] Update hover-cursor suppression for persist modifier.
+- [x] Add `persistModifier` + `eventModifierKeysMatchBinding` to `ControlBindingsContext.js`.
+- [x] Gate `finishDrag` commit per [finishDrag logic](#finishdrag-logic-phase-4--implement-in-modular-hook).
+- [x] Update hover-cursor suppression for persist modifier.
 - [ ] Manual test: [Temporary vs permanent](#temporary-vs-permanent-phase-4) matrix.
 
 ### Phase 4b — Keybinds UI
 
-- [ ] Add persist modifier row + expanded mouse controls to `SettingsModalKeybindsPage.js`.
-- [ ] Add Complete Control Reference per [required entries](#complete-control-reference--required-entries).
+- [x] Add persist modifier row + expanded mouse controls to `SettingsModalKeybindsPage.js`.
+- [x] Add Complete Control Reference per [required entries](#complete-control-reference--required-entries).
 - [ ] Manual test: [Keybinds UI](#keybinds-ui-phase-4b) matrix.
 
 ### Phase 5 — Line snapping
@@ -909,7 +1035,7 @@ Use this as a literal work order. Do not skip steps.
 
 ### Ship docs
 
-- [ ] Update root `README.md` + `settings-roadmap.md` when user-visible behavior ships.
+- [x] Update root `README.md` + `settings-roadmap.md` when user-visible behavior ships.
 
 ---
 

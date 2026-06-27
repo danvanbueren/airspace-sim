@@ -1,34 +1,31 @@
-import HistoryEduIcon from '@mui/icons-material/HistoryEdu'
-import MemoryIcon from '@mui/icons-material/Memory'
-import PaletteIcon from '@mui/icons-material/Palette'
-import TuneIcon from '@mui/icons-material/Tune'
-import KeyboardIcon from '@mui/icons-material/Keyboard'
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
-import InfoIcon from '@mui/icons-material/Info'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import SettingsModal from './modal/SettingsModal'
 import SettingsToolbelt from './toolbelt/SettingsToolbelt'
-import {useState} from 'react'
+import {useMemo, useState} from 'react'
 import {useColorMode} from '@/app/contexts/CustomThemeContext'
-import {DEFAULT_SETTINGS_PAGE_ID, SETTINGS_PAGE_IDS, SETTINGS_PAGE_TITLES} from './settingsPageConfig'
+import {
+    DEFAULT_SETTINGS_PAGE_ID,
+    SETTINGS_NAV_SECTIONS,
+    SETTINGS_PAGE_ICONS,
+    SETTINGS_PAGE_TITLES,
+} from './settingsPageConfig'
 
-const SETTINGS_PAGE_ICONS = {
-    lookAndFeel: PaletteIcon,
-    simulation: MemoryIcon,
-    alerts: NotificationsActiveIcon,
-    keybinds: KeyboardIcon,
-    advanced: TuneIcon,
-    roadmap: HistoryEduIcon,
-    about: InfoIcon,
+function buildPageNavItem(pageId, {onToolbeltClick, onModalClick}) {
+    const Icon = SETTINGS_PAGE_ICONS[pageId]
+
+    return {
+        name: pageId,
+        icon: <Icon/>,
+        tooltip: SETTINGS_PAGE_TITLES[pageId],
+        onToolbeltClick,
+        onModalClick,
+    }
 }
 
 export default function SettingsController({modalOpen, setModalOpen}) {
-
     const [modalState, setModalState] = useState(DEFAULT_SETTINGS_PAGE_ID)
-
     const [toolbeltOpen, setToolbeltOpen] = useState(false)
-
     const colorMode = useColorMode()
 
     const openModalWithState = (state) => {
@@ -37,26 +34,40 @@ export default function SettingsController({modalOpen, setModalOpen}) {
         setToolbeltOpen(false)
     }
 
-    const buildData = {
-        oneClick: [{
-            name: 'theme',
-            icon: colorMode.mode === 'dark' ? <LightModeIcon/> : <DarkModeIcon/>,
-            tooltip: 'Toggle theme',
-            onToolbeltClick: () => colorMode.toggleColorMode(),
-            onModalClick: () => colorMode.toggleColorMode()
-        }],
-        full: SETTINGS_PAGE_IDS.map((pageId) => {
-            const Icon = SETTINGS_PAGE_ICONS[pageId]
+    const buildData = useMemo(() => {
+        const pageActions = Object.fromEntries(
+            SETTINGS_NAV_SECTIONS
+                .filter((section) => section.type === 'pages')
+                .flatMap((section) => section.pageIds)
+                .map((pageId) => [
+                    pageId,
+                    {
+                        onToolbeltClick: () => openModalWithState(pageId),
+                        onModalClick: () => setModalState(pageId),
+                    },
+                ]),
+        )
 
-            return {
-                name: pageId,
-                icon: <Icon/>,
-                tooltip: SETTINGS_PAGE_TITLES[pageId],
-                onToolbeltClick: () => openModalWithState(pageId),
-                onModalClick: () => setModalState(pageId),
-            }
-        }),
-    }
+        return {
+            oneClick: [{
+                name: 'theme',
+                icon: colorMode.mode === 'dark' ? <LightModeIcon/> : <DarkModeIcon/>,
+                tooltip: 'Toggle theme',
+                onToolbeltClick: () => colorMode.toggleColorMode(),
+                onModalClick: () => colorMode.toggleColorMode(),
+            }],
+            sections: SETTINGS_NAV_SECTIONS.map((section) => {
+                if (section.type === 'divider') {
+                    return section
+                }
+
+                return {
+                    type: 'pages',
+                    items: section.pageIds.map((pageId) => buildPageNavItem(pageId, pageActions[pageId])),
+                }
+            }),
+        }
+    }, [colorMode])
 
     return (<>
         <SettingsModal
@@ -64,6 +75,7 @@ export default function SettingsController({modalOpen, setModalOpen}) {
             setOpen={setModalOpen}
             state={modalState}
             buildData={buildData}
+            onOpenSettingsPage={setModalState}
         />
         <SettingsToolbelt
             toolbeltOpen={toolbeltOpen}
