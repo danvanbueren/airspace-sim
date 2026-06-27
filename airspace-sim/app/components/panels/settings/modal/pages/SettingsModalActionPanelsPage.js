@@ -22,12 +22,12 @@ import {
     ACTION_PANEL_DISPLAY_STYLES,
     getActionPanelItemDefinition,
     getAvailableAssignableItems,
-} from '@/app/actionPanels/actionPanelRegistry'
+} from '@/app/tools/actionPanels/actionPanelRegistry'
 import {
     ACTION_PANEL_TEMPLATE_CUSTOM,
     ACTION_PANEL_TEMPLATES,
-} from '@/app/actionPanels/actionPanelTemplates'
-import {resolveActionPanelTemplateId} from '@/app/actionPanels/actionPanelTemplateSelection'
+} from '@/app/tools/actionPanels/actionPanelTemplates'
+import {resolveActionPanelTemplateId} from '@/app/tools/actionPanels/actionPanelTemplateSelection'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 
 const DISPLAY_STYLE_OPTIONS = [
@@ -347,7 +347,7 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
                     </Button>
                 </Box>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
-                    Add, remove, and rename draggable glass panels on the map. Assign buttons
+                    Add, remove, and rename draggable panels on the map. Assign buttons
                     and sensor-display toggles to each panel, switch between large and compact
                     layouts, and drag or resize panels directly on the map.
                 </Typography>

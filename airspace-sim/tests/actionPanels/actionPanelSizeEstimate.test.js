@@ -3,19 +3,19 @@ import {describe, it} from 'node:test'
 import {
     ACTION_PANEL_DISPLAY_STYLES,
     ACTION_PANEL_ITEM_IDS,
-} from '../../app/actionPanels/actionPanelRegistry.js'
-import {estimateActionPanelAutoHeight} from '../../app/actionPanels/actionPanelSizeEstimate.js'
+} from '../../app/tools/actionPanels/actionPanelRegistry.js'
+import {estimateActionPanelAutoHeight} from '../../app/tools/actionPanels/actionPanelSizeEstimate.js'
 import {
     ACTION_PANEL_TEMPLATE_CUSTOM,
     ACTION_PANEL_TEMPLATE_IDS,
     cloneActionPanelTemplateState,
     getActionPanelTemplate,
-} from '../../app/actionPanels/actionPanelTemplates.js'
-import {resolveActionPanelTemplateId} from '../../app/actionPanels/actionPanelTemplateSelection.js'
+} from '../../app/tools/actionPanels/actionPanelTemplates.js'
+import {resolveActionPanelTemplateId} from '../../app/tools/actionPanels/actionPanelTemplateSelection.js'
 import {
     DEFAULT_CATEGORY_SELECT_PANEL_ID,
     DEFAULT_FIXED_FUNCTION_PANEL_ID,
-} from '../../app/actionPanels/actionPanelDefaults.js'
+} from '../../app/tools/actionPanels/actionPanelDefaults.js'
 
 describe('estimateActionPanelAutoHeight', () => {
     it('estimates large multi-row panels taller than the legacy minimum', () => {

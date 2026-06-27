@@ -3,7 +3,7 @@
 import {useLayoutEffect, useState} from 'react'
 import Home from '@/app/Home'
 import UnsupportedMobilePage from '@/app/components/global/UnsupportedMobilePage'
-import {isUnsupportedMobileDeviceClient} from '@/app/utils/deviceSupport'
+import {isUnsupportedMobileDeviceClient} from '@/app/tools/browser/deviceSupport'
 
 export default function DeviceSupportGate() {
     const [clientReady, setClientReady] = useState(false)

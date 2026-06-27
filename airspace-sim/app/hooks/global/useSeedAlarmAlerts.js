@@ -2,7 +2,7 @@
 
 import {useEffect, useRef} from 'react'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
-import {buildSeedAlarmKey, SEED_ALARM_ALERTS} from '@/app/content/seedAlarmAlerts'
+import {buildSeedAlarmKey, SEED_ALARM_ALERTS} from '@/app/data/seedAlarmAlerts'
 
 export default function useSeedAlarmAlerts() {
     const {alarmAlertQueue, raiseAlarmAlert} = useAlarmAlertActions()

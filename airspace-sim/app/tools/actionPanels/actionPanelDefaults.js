@@ -1,4 +1,4 @@
-import {MAP_GLASS_INSET_PX} from '../constants/mapUiLayout.js'
+import {MAP_FLOATING_INSET_PX} from '../../constants/mapUiLayout.js'
 import {
     ACTION_PANEL_DISPLAY_STYLES,
     ACTION_PANEL_ITEM_IDS,
@@ -46,16 +46,16 @@ export const DEFAULT_ACTION_PANELS_STATE = {
     layouts: {
         [DEFAULT_CATEGORY_SELECT_PANEL_ID]: {
             anchor: {
-                horizontal: {edge: 'left', offset: MAP_GLASS_INSET_PX},
-                vertical: {edge: 'top', offset: MAP_GLASS_INSET_PX},
+                horizontal: {edge: 'left', offset: MAP_FLOATING_INSET_PX},
+                vertical: {edge: 'top', offset: MAP_FLOATING_INSET_PX},
             },
             width: DEFAULT_ACTION_PANEL_WIDTH_PX,
             height: null,
         },
         [DEFAULT_FIXED_FUNCTION_PANEL_ID]: {
             anchor: {
-                horizontal: {edge: 'left', offset: MAP_GLASS_INSET_PX},
-                vertical: {edge: 'bottom', offset: MAP_GLASS_INSET_PX},
+                horizontal: {edge: 'left', offset: MAP_FLOATING_INSET_PX},
+                vertical: {edge: 'bottom', offset: MAP_FLOATING_INSET_PX},
             },
             width: DEFAULT_ACTION_PANEL_WIDTH_PX,
             height: null,

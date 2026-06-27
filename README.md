@@ -98,19 +98,24 @@ airspace-sim/
 |   +-- components/
 |   |   +-- global/          # Classification bars, commit display, markdown renderer, and global UI pieces.
 |   |   +-- map/             # Map view, context menu, and cursor coordinate overlay.
-|   |   +-- panels/          # Glass panels, settings toolbelt, settings modal pages.
-|   |   +-- windows/         # Floating workflow windows such as track management.
+|   |   +-- floating/        # Draggable map overlays: action panels, alarm alerts, track windows.
+|   |   |   +-- actionPanels/  # Operator button panels on the map.
+|   |   |   +-- alerts/        # Alarm alert panel and detail modal.
+|   |   |   +-- shared/        # Shared frosted panel chrome and overlay layer.
+|   |   |   +-- windows/       # Track management floating windows.
+|   |   +-- panels/          # Settings toolbelt and settings modal pages.
 |   +-- constants/           # Shared UI constants (for example, z-index layering).
-|   +-- content/             # Markdown sources for in-app settings pages (for example, roadmap).
+|   +-- content/             # Markdown and static copy for in-app settings pages.
 |   +-- contexts/            # React contexts for map state, theme, app settings, simulation.
-|   +-- data/                # Curated airports and air routes (static JSON).
+|   +-- data/                # Static JSON and seed data (airports, routes, startup alerts).
 |   +-- hooks/
-|   |   +-- global/          # Global interaction guards, measurement hooks, error forwarding.
+|   |   +-- global/          # Global interaction guards and measurement hooks.
 |   |   +-- map/             # Map setup, controls, track/sensor/airport layers, bearing/range tools.
 |   |   +-- simulation/      # Simulation tick loop (requestAnimationFrame).
 |   +-- simulation/          # Track engine, flight world, sensor, initiation, correlation, merge.
 |   +-- tools/
-|   |   +-- browser/         # Browser storage helpers.
+|   |   +-- actionPanels/    # Action panel registry, layout math, templates, normalization.
+|   |   +-- browser/         # Browser storage and device support helpers.
 |   |   +-- external/        # External service helpers.
 |   |   +-- formatting/      # Date/time, grid reference, callsign, and track field formatting.
 |   |   +-- map/             # Map style paint helpers (for example, water and label theming).
@@ -258,7 +263,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - On-map track attention flags (amber, monospace, synchronized flash) pinned beside tracks; up to five lines with overflow summary. Emergency IFF codes (`7500`, `7600`, `7700`) raise both attention flags and alarm alerts.
 - Automatic drop of uncorrelated tracks after a countdown (invisible DROP-RISK, then visible DROP attention, then removal); drop protect and recover actions in the context menu.
 - Settings page matrix for inhibiting track attentions and alarm alert types; central signal registry in `app/simulation/signalDefinitions.js`.
-- Modular seed alarm alerts on page load (`app/content/seedAlarmAlerts.js`); system notices can include a left-side icon and external link action.
+- Modular seed alarm alerts on page load (`app/data/seedAlarmAlerts.js`); system notices can include a left-side icon and external link action.
 - Familiar platform silhouettes with MIL-STD-2525 fallback, callsign labels, and speed-scaled heading vectors on the map.
 - Optional **airport** and **air route** overlay layers.
 - Bearing/range measurements with configurable persistence (Settings → Look & Feel) and rebindable persist modifier (Settings → Keybinds).

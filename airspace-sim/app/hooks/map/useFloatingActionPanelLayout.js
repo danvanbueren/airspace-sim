@@ -1,8 +1,8 @@
 'use client'
 
 import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
-import {createInitialActionPanelPosition} from '@/app/actionPanels/actionPanelViewportLayout'
-import {resolveActionPanelLayoutSize} from '@/app/actionPanels/actionPanelSizeEstimate'
+import {createInitialActionPanelPosition} from '@/app/tools/actionPanels/actionPanelViewportLayout'
+import {resolveActionPanelLayoutSize} from '@/app/tools/actionPanels/actionPanelSizeEstimate'
 import {
     buildStoredLayoutSnapshot,
     getPanelBoundsForViewport,
@@ -10,13 +10,13 @@ import {
     normalizeLayoutForViewport,
     runtimeLayoutDiffersFromStored,
     viewportLayoutDiffersFromStored,
-} from '@/app/actionPanels/actionPanelViewportLayout'
+} from '@/app/tools/actionPanels/actionPanelViewportLayout'
 import {
     ACTION_PANEL_MIN_HEIGHT_PX,
     clampPanelWidth,
     getActionPanelMinResizedHeight,
     normalizePanelHeight,
-} from '@/app/actionPanels/normalizeActionPanels'
+} from '@/app/tools/actionPanels/normalizeActionPanels'
 import {
     absoluteToEdgeAnchor,
     resolveEdgeAnchoredPosition,

@@ -8,13 +8,13 @@ import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {usePerformanceMetrics} from '@/app/contexts/PerformanceMonitorContext'
 import {FLOATING_DRAGGABLE_IDS} from '@/app/constants/floatingDraggableIds'
 import {
-    MAP_GLASS_INSET_PX,
+    MAP_FLOATING_INSET_PX,
     MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
 } from '@/app/constants/mapUiLayout'
 import {
-    GLASS_PANEL_BORDER_STYLE,
-    getGlassPanelSurfaceSx,
-} from '@/app/components/panels/glass/glassPanelSurface'
+    FLOATING_PANEL_BORDER_STYLE,
+    getFloatingPanelSurfaceSx,
+} from '@/app/components/floating/shared/floatingPanelSurface'
 import {usePerformanceAnalyticsOverlayDrag} from '@/app/hooks/map/usePerformanceAnalyticsOverlayDrag'
 import {
     PERFORMANCE_50FPS_BUDGET_MS,
@@ -164,9 +164,9 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
             data-floating-draggable={FLOATING_DRAGGABLE_IDS.performanceAnalytics}
             variant='outlined'
             onPointerDown={handleOverlayActivate}
-            style={GLASS_PANEL_BORDER_STYLE}
+            style={FLOATING_PANEL_BORDER_STYLE}
             sx={(theme) => ({
-                ...getGlassPanelSurfaceSx(theme),
+                ...getFloatingPanelSurfaceSx(theme),
                 backgroundColor: 'rgba(8, 10, 18, 0.28)',
                 position: 'absolute',
                 ...(position
@@ -175,13 +175,13 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                         top: position.top,
                     }
                     : {
-                        right: MAP_GLASS_INSET_PX,
+                        right: MAP_FLOATING_INSET_PX,
                         bottom: MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
                         visibility: 'hidden',
                     }),
                 zIndex,
                 width: {xs: 300, sm: 380},
-                maxWidth: `calc(100% - ${MAP_GLASS_INSET_PX * 2}px)`,
+                maxWidth: `calc(100% - ${MAP_FLOATING_INSET_PX * 2}px)`,
                 pointerEvents: 'auto',
                 cursor: 'default',
                 userSelect: 'none',

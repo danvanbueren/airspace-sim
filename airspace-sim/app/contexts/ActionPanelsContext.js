@@ -6,12 +6,12 @@ import {
     readCookieValue,
     writeCookieJsonValue,
 } from '@/app/tools/browser/CookieStorage'
-import {DEFAULT_ACTION_PANELS_STATE} from '@/app/actionPanels/actionPanelDefaults'
+import {DEFAULT_ACTION_PANELS_STATE} from '@/app/tools/actionPanels/actionPanelDefaults'
 import {
     createEmptyActionPanel,
     normalizeActionPanelsState,
-} from '@/app/actionPanels/normalizeActionPanels'
-import {cloneActionPanelTemplateState} from '@/app/actionPanels/actionPanelTemplates'
+} from '@/app/tools/actionPanels/normalizeActionPanels'
+import {cloneActionPanelTemplateState} from '@/app/tools/actionPanels/actionPanelTemplates'
 
 export const ACTION_PANELS_COOKIE_NAME = 'actionPanels'
 

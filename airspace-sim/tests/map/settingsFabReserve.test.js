@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
-import {createInitialActionPanelPosition} from '../../app/actionPanels/actionPanelViewportLayout.js'
-import {ACTION_PANEL_ITEM_IDS} from '../../app/actionPanels/actionPanelRegistry.js'
+import {createInitialActionPanelPosition} from '../../app/tools/actionPanels/actionPanelViewportLayout.js'
+import {ACTION_PANEL_ITEM_IDS} from '../../app/tools/actionPanels/actionPanelRegistry.js'
 import {
     DEFAULT_CATEGORY_SELECT_PANEL_ID,
     DEFAULT_FIXED_FUNCTION_PANEL_ID,
     DEFAULT_ACTION_PANELS_STATE,
-} from '../../app/actionPanels/actionPanelDefaults.js'
-import {MAP_GLASS_INSET_PX} from '../../app/constants/mapUiLayout.js'
+} from '../../app/tools/actionPanels/actionPanelDefaults.js'
+import {MAP_FLOATING_INSET_PX} from '../../app/constants/mapUiLayout.js'
 import {
     clampPositionClearOfSettingsFab,
     getFabAwareMaxLeftForPanelTop,
@@ -27,8 +27,8 @@ describe('createInitialActionPanelPosition', () => {
             containerSize: {width: 1200, height: 800},
         })
 
-        assert.equal(position.left, MAP_GLASS_INSET_PX)
-        assert.equal(position.top, MAP_GLASS_INSET_PX)
+        assert.equal(position.left, MAP_FLOATING_INSET_PX)
+        assert.equal(position.top, MAP_FLOATING_INSET_PX)
     })
 
     it('anchors the fixed function panel to the bottom-left inset', () => {
@@ -43,8 +43,8 @@ describe('createInitialActionPanelPosition', () => {
             containerSize: {width: 1200, height: 800},
         })
 
-        assert.equal(position.left, MAP_GLASS_INSET_PX)
-        assert.ok(position.top > MAP_GLASS_INSET_PX)
+        assert.equal(position.left, MAP_FLOATING_INSET_PX)
+        assert.ok(position.top > MAP_FLOATING_INSET_PX)
     })
 })
 

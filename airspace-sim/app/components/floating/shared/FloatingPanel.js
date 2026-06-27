@@ -1,9 +1,9 @@
 'use client'
 
 import {Box, Card, Divider} from '@mui/material'
-import {GLASS_PANEL_BORDER_STYLE, getGlassPanelSurfaceSx} from './glassPanelSurface'
+import {FLOATING_PANEL_BORDER_STYLE, getFloatingPanelSurfaceSx} from './floatingPanelSurface'
 
-export default function BasicGlassPanel({
+export default function FloatingPanel({
     title = null,
     children,
     dense = false,
@@ -29,10 +29,10 @@ export default function BasicGlassPanel({
                 gap: 10,
                 alignItems: 'stretch',
                 minHeight: 0,
-                ...GLASS_PANEL_BORDER_STYLE,
+                ...FLOATING_PANEL_BORDER_STYLE,
             }}
             sx={(theme) => ({
-                ...getGlassPanelSurfaceSx(theme),
+                ...getFloatingPanelSurfaceSx(theme),
                 userSelect: 'none',
             })}
         >

@@ -5,7 +5,7 @@ import UnsupportedMobilePage from './components/global/UnsupportedMobilePage'
 import {
     getServerUnsupportedDevice,
     isUnsupportedMobileDeviceFromDeviceType,
-} from './utils/deviceSupport'
+} from './tools/browser/deviceSupport'
 
 export default async function Page() {
     const headersList = await headers()

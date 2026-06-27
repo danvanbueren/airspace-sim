@@ -3,8 +3,8 @@ import {describe, it} from 'node:test'
 import {
     getActionPanelItemDefinition,
     getAvailableAssignableItems,
-} from '../../app/actionPanels/actionPanelRegistry.js'
-import {ACTION_PANEL_ITEM_IDS} from '../../app/actionPanels/actionPanelRegistry.js'
+} from '../../app/tools/actionPanels/actionPanelRegistry.js'
+import {ACTION_PANEL_ITEM_IDS} from '../../app/tools/actionPanels/actionPanelRegistry.js'
 
 describe('getActionPanelItemDefinition', () => {
     it('formats RE-INITIATE with a dash', () => {
