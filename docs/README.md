@@ -9,6 +9,7 @@ This folder is for contributor-facing documentation that is **not** shown in the
 | Path | Description |
 |------|-------------|
 | [bearing-range-tool-rewrite-plan.md](bearing-range-tool-rewrite-plan.md) | Bearing/range tool rewrite plan: modular architecture, temporary vs permanent lines, keybinds/control reference, track-attached endpoints |
+| [viewport-track-persistence-plan.md](viewport-track-persistence-plan.md) | Off-viewport track drop/re-initiation: root cause, product decisions, and phased implementation plan |
 | [performance/](performance/README.md) | Performance investigation, validation results, and optimization roadmap |
 
 ## Conventions
