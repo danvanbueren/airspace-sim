@@ -40,6 +40,7 @@ export default function AlarmAlertDetailModal({
     onClose,
     onClearAll,
     onDelete,
+    onInhibit,
     onFocusTrack,
     onOpenLink,
     onFocusAlert,
@@ -175,6 +176,7 @@ export default function AlarmAlertDetailModal({
                                 onContentClick={() => onFocusAlert?.(alert.id)}
                                 onFocusTrack={() => onFocusTrack?.(alert)}
                                 onOpenLink={() => onOpenLink?.(alert)}
+                                onInhibit={() => onInhibit?.(alert)}
                                 onDelete={() => onDelete?.(alert)}
                             />
                         ))}

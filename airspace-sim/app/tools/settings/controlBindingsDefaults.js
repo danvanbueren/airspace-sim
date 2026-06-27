@@ -14,7 +14,7 @@ export const DEFAULT_CONTROL_BINDINGS = {
         panSpeedModifier: ['shift'],
         panSpeedMultiplier: 2.5,
         regularPanSpeed: 1000,
-        centerMap: [],
+        centerMap: ['f'],
     },
     mapCursor: {
         dragButton: MOUSE_BUTTONS.left,

@@ -75,7 +75,7 @@ export {QUALITY_PRESET_CUSTOM} from '@/app/simulation/constants'
 export {BEARING_RANGE_BEHAVIOR_MODES, DEFAULT_BEARING_RANGE_BEHAVIOR} from '@/app/tools/map/bearingRangeBehavior'
 
 export const DEFAULT_APP_SETTINGS = {
-    gridReferenceSystem: GRID_REFERENCE_SYSTEMS.dd.value,
+    gridReferenceSystem: GRID_REFERENCE_SYSTEMS.killbox.value,
     bearingRangeBehavior: DEFAULT_BEARING_RANGE_BEHAVIOR,
     inhibitedAttentions: [],
     inhibitedAlerts: [],

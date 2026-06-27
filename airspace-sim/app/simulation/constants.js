@@ -27,13 +27,13 @@ export const SENSOR_COLORS = {
 export const DEFAULT_SIMULATION_SETTINGS = {
     radarRefreshMs: 4000,
     iffRefreshMs: 1000,
-    trackUpdateHz: 10,
+    trackUpdateHz: 5,
     correlationThresholdNm: 5,
     plotAssociationThresholdNm: 3,
-    qualityPreset: 'balanced',
+    qualityPreset: 'low',
     adaptivePerformanceEnabled: true,
     simulationEnabled: true,
-    maxActiveFlights: 800,
+    maxActiveFlights: 400,
     viewportPaddingDegrees: 0.5,
 }
 

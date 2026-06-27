@@ -35,6 +35,7 @@ export default function AlarmAlertListItem({
     onContentClick = null,
     onFocusTrack,
     onOpenLink,
+    onInhibit,
     onDelete,
     itemRef = null,
 }) {
@@ -49,6 +50,11 @@ export default function AlarmAlertListItem({
     const handleOpenLink = (event) => {
         event.stopPropagation()
         onOpenLink?.(event)
+    }
+
+    const handleInhibit = (event) => {
+        event.stopPropagation()
+        onInhibit?.(event)
     }
 
     const handleDelete = (event) => {
@@ -147,6 +153,7 @@ export default function AlarmAlertListItem({
                         alert={alert}
                         onFocusTrack={handleFocusTrack}
                         onOpenLink={handleOpenLink}
+                        onInhibit={handleInhibit}
                         onDelete={handleDelete}
                     />
                 </Grid>

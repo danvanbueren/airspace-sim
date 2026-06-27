@@ -225,7 +225,7 @@ The simulator UI is a Next.js client application. Simulation state is produced i
 - **Track layer** — [`useTrackMapLayer`](airspace-sim/app/hooks/map/useTrackMapLayer.js) renders familiar platform silhouettes (default) or full MIL-STD-2525 symbols when info fields are enabled; draws callsign labels and heading/velocity vectors; only tracks inside the expanded viewport are drawn, with icon and vector size scaled by zoom.
 - **Sensor layers** — [`useSensorDetectionMapLayer`](airspace-sim/app/hooks/map/useSensorDetectionMapLayer.js) renders radar/IFF tick marks; geometry is recomputed on pan/zoom so tick size stays proportional to zoom.
 - **Overlays** — [`useAirportMapLayer`](airspace-sim/app/hooks/map/useAirportMapLayer.js) and [`useAirRouteMapLayer`](airspace-sim/app/hooks/map/useAirRouteMapLayer.js) for optional airport/route context.
-- **Interactions** — Map pan/zoom, click-to-center (default middle mouse; rebindable in Settings → Keybinds), context menu (with inline grid-reference picker), bearing/range measurements with configurable persistence (Settings → Look & Feel; default is temporary unless the persist modifier is held on release), track pick, draggable track management windows with keyboard custody and focus stacking, and map-click dismissal of transient windows.
+- **Interactions** — Map pan/zoom, click-to-center (default **F** or middle mouse; rebindable in Settings → Keybinds), context menu (with inline grid-reference picker), bearing/range measurements with configurable persistence (Settings → Look & Feel; default is temporary unless the persist modifier is held on release), track pick, draggable track management windows with keyboard custody and focus stacking, and map-click dismissal of transient windows.
 
 Map styles are loaded from [`public/map-styles/`](airspace-sim/public/map-styles/) (Voyager for light mode, Dark Matter for dark mode). Water-feature and track label colors are adjusted at runtime for readability in each theme.
 
@@ -317,7 +317,7 @@ Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Co
 ### Flight world
 
 - **Data** — `app/data/airports.json` (major airports and regional strips) and `app/data/airRoutes.json` (origin/destination pairs with traffic `weight`).
-- **Fleet size** — Controlled by **Max active flights (global)** in Settings → Simulation Engine (`maxActiveFlights`). Quality presets cap the target count (`low` 400, `balanced` 800, `high` 1000, `global_dense` / Ultra 1500). Under adaptive performance, the engine may **lower tick rate** but does **not** delete flights to match the viewport.
+- **Fleet size** — Controlled by **Max active flights (global)** in Settings → Simulation Engine (`maxActiveFlights`). Quality presets cap the target count (`low` 400, `balanced` 800, `high` 1000, `global_dense` / Ultra 1500); the default preset is **Low**. Under adaptive performance, the engine may **lower tick rate** but does **not** delete flights to match the viewport.
 - **Traffic distribution** — New flights pick routes by weight, not by where the map is centered, so empty regions do not accumulate spurious traffic.
 - **General aviation** — A small slice of the fleet (~4%, capped at 40) flies slow, low-altitude local orbits near airports (`generalAviationTraffic.js`). GA aircraft squawk VFR Mode 3 codes (`1200` in North America, `7000` elsewhere).
 
@@ -521,14 +521,14 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - Track Management window with domain, identity, MIL-STD type, searchable platform-specific type, callsign validation, optional symbol info fields, live attention-flag pills, and scrollable content when the map viewport is too short to show every field.
 - On-map track attention flags (amber, monospace, synchronized flash) pinned beside tracks; up to five lines with overflow summary. Emergency IFF codes (`7500`, `7600`, `7700`) raise both attention flags and alarm alerts.
 - Automatic drop of uncorrelated tracks after a countdown (invisible DROP-RISK, then visible DROP attention, then removal); drop protect and recover actions in the context menu.
-- Settings page matrix for inhibiting track attentions and alarm alert types; central signal registry in `app/simulation/signalDefinitions.js`.
+- Settings page matrix for inhibiting track attentions and alarm alert types; central signal registry in `app/simulation/signalDefinitions.js`. Each alarm row and detail modal includes a mute action that inhibits that alert type in settings.
 - Modular seed alarm alerts on page load (`app/content/seedAlarmAlerts.js`); system notices can include a left-side icon and external link action.
 - Familiar platform silhouettes with MIL-STD-2525 fallback, callsign labels, and speed-scaled heading vectors on the map.
 - Optional **airport** and **air route** overlay layers.
 - Bearing/range measurements with configurable persistence (Settings → Look & Feel) and rebindable persist modifier (Settings → Keybinds).
 - Bearing/range line context menus and line removal controls (permanent lines only).
 - Complete Control Reference in Settings → Usage Guide documenting every map control combo (with a link to Keybinds for rebinding).
-- Cursor coordinate overlay with selectable grid reference systems.
+- Cursor coordinate overlay with selectable grid reference systems (default **Killbox**).
 - Supported coordinate displays include DD, DDM, DMS, GARS, Geohash, GEOREF, Killbox-style GARS, and MGRS.
 - Configurable keyboard and mouse controls persisted in browser cookies, including click-to-center on the map.
 - In-app settings, keybinds, about, and markdown-backed roadmap pages.

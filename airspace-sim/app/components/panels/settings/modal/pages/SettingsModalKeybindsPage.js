@@ -8,7 +8,8 @@ import {
     MOUSE_BUTTONS, useControlBindings,
 } from '../../../../../contexts/ControlBindingsContext'
 import {BEARING_RANGE_BEHAVIOR_MODES, useAppSettings} from '../../../../../contexts/AppSettingsContext'
-import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
+import SettingsModalRestoreAllDefaultsSection from '../SettingsModalRestoreAllDefaultsSection'
+import SettingsModalRestoreDefaultsSection from '../SettingsModalRestoreDefaultsSection'
 import {bearingRangeBehaviorUsesPersistModifier} from '@/app/tools/map/bearingRangeBehavior'
 import {SETTINGS_PAGE_TITLES} from '../../settingsPageConfig'
 
@@ -461,35 +462,25 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
             </Box>
         </Stack>
 
-        <Stack spacing={1}>
-            <Typography variant='body2' color='text.secondary'>
-                Clears every keyboard and mouse binding on this page, including bearing/range draw
-                and context menu buttons. Advanced sensitivity settings are not changed.
-            </Typography>
-            <Button
-                fullWidth
-                variant='outlined'
-                color='inherit'
-                onClick={handleUnbindAll}
-                sx={{
-                    borderColor: 'grey.500',
-                    color: 'text.primary',
-                    '&:hover': {
-                        borderColor: 'grey.700',
-                        bgcolor: 'action.hover',
-                    },
-                }}
-            >
-                Unbind All Keybinds
-            </Button>
-        </Stack>
+        <Divider />
 
-        <SettingsModalPageRestoreFooter
-            pageLabel='Reset Keybinds Page'
-            pageHint='Resets keybinds on this page only.'
-            onPageReset={handleResetDefaults}
-            onAfterResetAll={() => setListeningForBinding(null)}
-            showTopDivider={false}
-        />
+        <Stack spacing={1}>
+            <SettingsModalRestoreDefaultsSection
+                label='Unbind All Keybinds'
+                hint='Clears every keyboard and mouse binding on this page, including bearing/range draw and context menu buttons. Advanced sensitivity settings are not changed.'
+                color='warning'
+                showDivider={false}
+                onClick={handleUnbindAll}
+            />
+            <SettingsModalRestoreDefaultsSection
+                label='Reset Keybinds Page'
+                hint='Resets keybinds on this page only.'
+                showDivider={false}
+                onClick={handleResetDefaults}
+            />
+            <SettingsModalRestoreAllDefaultsSection
+                onAfterReset={() => setListeningForBinding(null)}
+            />
+        </Stack>
     </Box>)
 }
