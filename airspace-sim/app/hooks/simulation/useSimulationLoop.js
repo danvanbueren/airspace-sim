@@ -4,20 +4,24 @@ import {useEffect, useRef, useState} from 'react'
 import {useSimulation} from '@/app/contexts/SimulationContext'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {usePerformanceInstrumentation} from '@/app/contexts/PerformanceMonitorContext'
+import {useWorkspaceViewportContext} from '@/app/contexts/WorkspaceViewportContext'
 
 export function useSimulationLoop(mapRef, mapReady) {
     const {getEngine} = useSimulation()
     const {simulationSettings} = useAppSettings()
     const performanceInstrumentation = usePerformanceInstrumentation()
+    const {isResizing} = useWorkspaceViewportContext()
     const [snapshot, setSnapshot] = useState(null)
     const [trackCount, setTrackCount] = useState(0)
     const frameRef = useRef(null)
     const lastTickRef = useRef(0)
     const performanceInstrumentationRef = useRef(performanceInstrumentation)
     const simulationSettingsRef = useRef(simulationSettings)
+    const isResizingRef = useRef(isResizing)
 
     performanceInstrumentationRef.current = performanceInstrumentation
     simulationSettingsRef.current = simulationSettings
+    isResizingRef.current = isResizing
 
     const simulationEnabled = simulationSettings.simulationEnabled !== false
     const trackUpdateHz = simulationSettings.trackUpdateHz ?? 10
@@ -52,6 +56,10 @@ export function useSimulationLoop(mapRef, mapReady) {
             const map = mapRef.current
 
             if (!map) {
+                return
+            }
+
+            if (isResizingRef.current) {
                 return
             }
 

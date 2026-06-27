@@ -123,7 +123,7 @@ function StatChip({label, value, warn = false, multiline = false}) {
     )
 }
 
-export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
+export default function PerformanceAnalyticsOverlay() {
     const {updateSimulationSettings} = useAppSettings()
     const {enabled, metrics} = usePerformanceMetrics()
     const overlayRef = useRef(null)
@@ -138,7 +138,6 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
         handleDragHandlePointerMove,
         handleDragHandlePointerUp,
     } = usePerformanceAnalyticsOverlayDrag({
-        mapContainerRef,
         overlayRef,
         enabled,
     })

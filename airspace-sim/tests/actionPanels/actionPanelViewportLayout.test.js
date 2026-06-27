@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {
     normalizeLayoutForViewport,
+    resolveViewportLayoutFromAnchor,
     runtimeLayoutDiffersFromStored,
+    viewportDimensionsDifferFromStored,
     viewportLayoutDiffersFromStored,
 } from '../../app/tools/actionPanels/actionPanelViewportLayout.js'
 import {estimateActionPanelAutoHeight} from '../../app/tools/actionPanels/actionPanelSizeEstimate.js'
@@ -117,5 +119,66 @@ describe('normalizeLayoutForViewport', () => {
             viewportLayoutDiffersFromStored(storedLayout, normalizedLayout),
             true,
         )
+    })
+
+    it('preserves the stored edge anchor when resolving a clamped viewport layout', () => {
+        const anchor = {
+            horizontal: {edge: 'right', offset: 20},
+            vertical: {edge: 'bottom', offset: 56},
+        }
+        const layout = {
+            anchor,
+            width: 300,
+            height: 200,
+        }
+
+        const shrunk = resolveViewportLayoutFromAnchor(
+            layout.anchor,
+            layout.width,
+            layout.height,
+            {width: 500, height: 400},
+            {
+                resolvedPanelSize: {width: 300, height: 200},
+            },
+        )
+
+        assert.deepEqual(shrunk.anchor, anchor)
+        assert.ok(shrunk.position.top >= 8)
+        assert.ok(shrunk.position.left >= 8)
+
+        const expanded = resolveViewportLayoutFromAnchor(
+            layout.anchor,
+            layout.width,
+            layout.height,
+            {width: 1000, height: 800},
+            {
+                resolvedPanelSize: {width: 300, height: 200},
+            },
+        )
+
+        assert.deepEqual(expanded.anchor, anchor)
+        assert.equal(expanded.position.left, 1000 - 300 - 20)
+        assert.equal(expanded.position.top, 800 - 200 - 56)
+    })
+
+    it('only flags dimension changes when comparing stored viewport corrections', () => {
+        const storedLayout = {
+            anchor: {
+                horizontal: {edge: 'right', offset: 20},
+                vertical: {edge: 'bottom', offset: 56},
+            },
+            width: 900,
+            height: 240,
+        }
+        const normalizedLayout = resolveViewportLayoutFromAnchor(
+            storedLayout.anchor,
+            storedLayout.width,
+            storedLayout.height,
+            {width: 360, height: 240},
+        )
+
+        assert.equal(viewportDimensionsDifferFromStored(storedLayout, normalizedLayout), true)
+        assert.equal(viewportLayoutDiffersFromStored(storedLayout, normalizedLayout), true)
+        assert.deepEqual(normalizedLayout.anchor, storedLayout.anchor)
     })
 })

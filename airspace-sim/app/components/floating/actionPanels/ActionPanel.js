@@ -33,7 +33,6 @@ function ResizeIndicator() {
 export default function ActionPanel({
     panel,
     layout,
-    mapContainerRef,
     interactionsEnabled,
     onEditPanelSettings,
 }) {
@@ -58,7 +57,6 @@ export default function ActionPanel({
         handleResizeHandlePointerMove,
         handleResizeHandlePointerUp,
     } = useFloatingActionPanelLayout({
-        mapContainerRef,
         panelRef,
         interactionsEnabled,
         displayStyle: panel.displayStyle,

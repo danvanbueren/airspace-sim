@@ -9,6 +9,7 @@ import {useCallback, useRef, useState} from 'react'
 import AlarmAlertPanel from '@/app/components/floating/alerts/AlarmAlertPanel'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/components/global/ErrorForwarder'
+import {WorkspaceViewportProvider} from '@/app/contexts/WorkspaceViewportContext'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import usePrefetchLatestGithubCommit from '@/app/hooks/global/usePrefetchLatestGithubCommit'
 import useSeedAlarmAlerts from '@/app/hooks/global/useSeedAlarmAlerts'
@@ -74,6 +75,7 @@ export default function Home() {
                         position: 'relative', width: '100dvw', flexGrow: 1, overflow: 'hidden', margin: 0, padding: 0,
                     }}
                 >
+                    <WorkspaceViewportProvider containerRef={workspaceContainerRef}>
                     <Box
                         style={{
                             position: 'absolute',
@@ -92,8 +94,6 @@ export default function Home() {
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Action panels">
                         <DraggableOverlaysLayer
-                            workspaceContainerRef={workspaceContainerRef}
-                            mapContainerRef={mapContainerRef}
                             interactionsEnabled={!settingsModalOpen}
                             onEditPanelSettings={handleEditActionPanelSettings}
                         />
@@ -123,6 +123,7 @@ export default function Home() {
                             pointerEvents: 'none',
                         }}
                     />
+                    </WorkspaceViewportProvider>
                 </Box>
                 <ClassificationBar/>
             </Box>
