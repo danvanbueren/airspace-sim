@@ -38,3 +38,26 @@ export function getAlertLinkAriaLabel(alert) {
 
     return 'Open related link'
 }
+
+/**
+ * Scroll an alert row to the vertical center of its scroll container.
+ *
+ * Uses manual scrollTop math instead of scrollIntoView so nested modal
+ * scroll regions are not driven toward the viewport bottom.
+ *
+ * @param {HTMLElement|null|undefined} scrollContainer
+ * @param {HTMLElement|null|undefined} alertElement
+ */
+export function scrollAlertIntoCenter(scrollContainer, alertElement) {
+    if (!scrollContainer || !alertElement) {
+        return
+    }
+
+    const containerRect = scrollContainer.getBoundingClientRect()
+    const alertRect = alertElement.getBoundingClientRect()
+    const relativeTop = alertRect.top - containerRect.top + scrollContainer.scrollTop
+    const targetScrollTop = relativeTop - ((containerRect.height - alertRect.height) / 2)
+    const maxScrollTop = scrollContainer.scrollHeight - scrollContainer.clientHeight
+
+    scrollContainer.scrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop))
+}
