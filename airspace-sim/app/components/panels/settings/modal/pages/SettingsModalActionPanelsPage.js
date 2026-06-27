@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import AddIcon from '@mui/icons-material/Add'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
@@ -23,8 +23,12 @@ import {
     getActionPanelItemDefinition,
     getAvailableAssignableItems,
 } from '@/app/actionPanels/actionPanelRegistry'
+import {
+    ACTION_PANEL_TEMPLATE_CUSTOM,
+    ACTION_PANEL_TEMPLATES,
+} from '@/app/actionPanels/actionPanelTemplates'
+import {resolveActionPanelTemplateId} from '@/app/actionPanels/actionPanelTemplateSelection'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
-import {ACTION_PANEL_TEMPLATES} from '@/app/actionPanels/actionPanelTemplates'
 
 const DISPLAY_STYLE_OPTIONS = [
     {
@@ -257,6 +261,15 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
         applyActionPanelTemplate,
     } = useActionPanels()
 
+    const selectedTemplateId = useMemo(
+        () => resolveActionPanelTemplateId(actionPanelsState),
+        [actionPanelsState],
+    )
+
+    const handleAddPanel = () => {
+        addActionPanel({title: 'New Action Panel'})
+    }
+
     useEffect(() => {
         if (!focusedPanelId) {
             return
@@ -276,86 +289,96 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
         <Stack spacing={3}>
             <Box>
                 <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
-                    Modular action panels
-                </Typography>
-                <Typography variant='body2' color='text.secondary'>
-                    Add, remove, and rename draggable glass panels on the map. Assign buttons and
-                    sensor-display toggles to each panel, switch between large and compact layouts,
-                    and drag or resize panels directly on the map. Changes persist in your browser
-                    cookie.
-                </Typography>
-            </Box>
-
-            <Box
-                sx={{
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 2,
-                    p: 2,
-                }}
-            >
-                <Typography variant='subtitle1' sx={{fontWeight: 'bold', mb: 0.5}}>
                     Templates
                 </Typography>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
-                    Apply a developer-maintained profile to replace all panel titles, items,
-                    display styles, and on-map positions. Useful for switching between operator
-                    layouts as more templates are added.
+                    Choose a standardized action panel layout template to tailor your
+                    experience, or customize panels manually below.
                 </Typography>
-                <Stack
-                    direction='row'
-                    spacing={1}
-                    sx={{flexWrap: 'wrap', gap: 1}}
-                >
-                    {ACTION_PANEL_TEMPLATES.map((template) => (
-                        <Button
-                            key={template.id}
-                            variant='outlined'
-                            onClick={() => applyActionPanelTemplate(template.id)}
-                            sx={{alignSelf: 'flex-start'}}
-                        >
-                            {template.name}
-                        </Button>
-                    ))}
-                </Stack>
-                <Stack spacing={0.5} sx={{mt: 1.5}}>
-                    {ACTION_PANEL_TEMPLATES.map((template) => (
-                        <Typography
-                            key={`${template.id}-description`}
-                            variant='caption'
-                            color='text.secondary'
-                        >
-                            {template.name}: {template.description}
-                        </Typography>
-                    ))}
-                </Stack>
+                <FormControl fullWidth size='small'>
+                    <InputLabel id='action-panel-template-label'>Template</InputLabel>
+                    <Select
+                        labelId='action-panel-template-label'
+                        label='Template'
+                        value={selectedTemplateId}
+                        onChange={(event) => {
+                            const templateId = event.target.value
+
+                            if (templateId !== ACTION_PANEL_TEMPLATE_CUSTOM) {
+                                applyActionPanelTemplate(templateId)
+                            }
+                        }}
+                    >
+                        {selectedTemplateId === ACTION_PANEL_TEMPLATE_CUSTOM && (
+                            <MenuItem value={ACTION_PANEL_TEMPLATE_CUSTOM} disabled>
+                                Custom
+                            </MenuItem>
+                        )}
+                        {ACTION_PANEL_TEMPLATES.map((template) => (
+                            <MenuItem key={template.id} value={template.id}>
+                                {template.name}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                </FormControl>
             </Box>
 
-            <Stack spacing={2}>
-                {actionPanelsState.panels.map((panel) => (
-                    <ActionPanelEditor
-                        key={panel.id}
-                        panel={panel}
-                        isFocused={panel.id === focusedPanelId}
-                        disableRemove={actionPanelsState.panels.length <= 1}
-                        onRename={(title) => renameActionPanel(panel.id, title)}
-                        onDisplayStyleChange={(displayStyle) => {
-                            setActionPanelDisplayStyle(panel.id, displayStyle)
-                        }}
-                        onItemIdsChange={(itemIds) => setActionPanelItemIds(panel.id, itemIds)}
-                        onRemovePanel={() => removeActionPanel(panel.id)}
-                    />
-                ))}
-            </Stack>
+            <Box>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 2,
+                        mb: 1,
+                    }}
+                >
+                    <Typography variant='h6' sx={{fontWeight: 'bold'}}>
+                        Configuration
+                    </Typography>
+                    <Button
+                        size='small'
+                        variant='outlined'
+                        startIcon={<AddIcon/>}
+                        onClick={handleAddPanel}
+                        sx={{flexShrink: 0}}
+                    >
+                        Add panel
+                    </Button>
+                </Box>
+                <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
+                    Add, remove, and rename draggable glass panels on the map. Assign buttons
+                    and sensor-display toggles to each panel, switch between large and compact
+                    layouts, and drag or resize panels directly on the map.
+                </Typography>
 
-            <Button
-                variant='outlined'
-                startIcon={<AddIcon/>}
-                onClick={() => addActionPanel({title: 'New Action Panel'})}
-                sx={{alignSelf: 'flex-start'}}
-            >
-                Add panel
-            </Button>
+                <Stack spacing={2}>
+                    {actionPanelsState.panels.map((panel) => (
+                        <ActionPanelEditor
+                            key={panel.id}
+                            panel={panel}
+                            isFocused={panel.id === focusedPanelId}
+                            disableRemove={actionPanelsState.panels.length <= 1}
+                            onRename={(title) => renameActionPanel(panel.id, title)}
+                            onDisplayStyleChange={(displayStyle) => {
+                                setActionPanelDisplayStyle(panel.id, displayStyle)
+                            }}
+                            onItemIdsChange={(itemIds) => setActionPanelItemIds(panel.id, itemIds)}
+                            onRemovePanel={() => removeActionPanel(panel.id)}
+                        />
+                    ))}
+                </Stack>
+
+                <Button
+                    variant='outlined'
+                    startIcon={<AddIcon/>}
+                    onClick={handleAddPanel}
+                    fullWidth
+                    sx={{mt: 2}}
+                >
+                    Add panel
+                </Button>
+            </Box>
 
             <SettingsModalPageRestoreFooter
                 pageLabel='Reset Action Panels Page'

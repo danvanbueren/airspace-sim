@@ -1,17 +1,19 @@
 import {DEFAULT_ACTION_PANELS_STATE} from './actionPanelDefaults.js'
 
 export const ACTION_PANEL_TEMPLATE_IDS = {
-    DEFAULT_OPERATOR: 'default-operator',
+    BASIC: 'basic',
 }
+
+export const ACTION_PANEL_TEMPLATE_CUSTOM = 'custom'
 
 /**
  * Developer-maintained action panel profiles. Add entries here to expose new
- * one-click layouts in Settings → Action Panels → Templates.
+ * layouts in Settings → Action Panels → Templates.
  */
 export const ACTION_PANEL_TEMPLATES = [
     {
-        id: ACTION_PANEL_TEMPLATE_IDS.DEFAULT_OPERATOR,
-        name: 'Default operator layout',
+        id: ACTION_PANEL_TEMPLATE_IDS.BASIC,
+        name: 'Basic',
         description: 'Category Select at top-left and Fixed Function at bottom-left with standard map and display controls.',
         state: DEFAULT_ACTION_PANELS_STATE,
     },
