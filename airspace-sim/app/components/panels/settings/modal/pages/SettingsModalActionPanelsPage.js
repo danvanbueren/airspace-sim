@@ -115,6 +115,7 @@ function ActionPanelEditor({
     onDisplayStyleChange,
     onItemIdsChange,
     onRemovePanel,
+    onActivate,
     disableRemove,
     isFocused = false,
 }) {
@@ -134,12 +135,14 @@ function ActionPanelEditor({
     return (
         <Box
             id={`settings-action-panel-${panel.id}`}
+            onClick={onActivate}
             sx={{
-                border: '1px solid',
+                border: '2px solid',
                 borderColor: isFocused ? 'primary.main' : 'divider',
                 borderRadius: 2,
                 p: 2,
                 scrollMarginTop: 16,
+                cursor: 'pointer',
             }}
         >
             <Stack spacing={2}>
@@ -260,30 +263,47 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
         resetActionPanelsState,
         applyActionPanelTemplate,
     } = useActionPanels()
+    const [activePanelId, setActivePanelId] = useState(focusedPanelId)
 
     const selectedTemplateId = useMemo(
         () => resolveActionPanelTemplateId(actionPanelsState),
         [actionPanelsState],
     )
 
+    useEffect(() => {
+        if (focusedPanelId) {
+            setActivePanelId(focusedPanelId)
+        }
+    }, [focusedPanelId])
+
+    useEffect(() => {
+        if (
+            activePanelId
+            && !actionPanelsState.panels.some((panel) => panel.id === activePanelId)
+        ) {
+            setActivePanelId(null)
+        }
+    }, [actionPanelsState.panels, activePanelId])
+
     const handleAddPanel = () => {
-        addActionPanel({title: 'New Action Panel'})
+        const newPanelId = addActionPanel({title: 'New Action Panel'})
+        setActivePanelId(newPanelId)
     }
 
     useEffect(() => {
-        if (!focusedPanelId) {
+        if (!activePanelId) {
             return
         }
 
         const frameRef = requestAnimationFrame(() => {
-            document.getElementById(`settings-action-panel-${focusedPanelId}`)
+            document.getElementById(`settings-action-panel-${activePanelId}`)
                 ?.scrollIntoView({behavior: 'smooth', block: 'start'})
         })
 
         return () => {
             cancelAnimationFrame(frameRef)
         }
-    }, [focusedPanelId])
+    }, [activePanelId])
 
     return (
         <Stack spacing={3}>
@@ -324,28 +344,9 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
             </Box>
 
             <Box>
-                <Box
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 2,
-                        mb: 1,
-                    }}
-                >
-                    <Typography variant='h6' sx={{fontWeight: 'bold'}}>
-                        Configuration
-                    </Typography>
-                    <Button
-                        size='small'
-                        variant='outlined'
-                        startIcon={<AddIcon/>}
-                        onClick={handleAddPanel}
-                        sx={{flexShrink: 0}}
-                    >
-                        Add panel
-                    </Button>
-                </Box>
+                <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
+                    Configuration
+                </Typography>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
                     Add, remove, and rename draggable panels on the map. Assign buttons
                     and sensor-display toggles to each panel, switch between large and compact
@@ -357,8 +358,9 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
                         <ActionPanelEditor
                             key={panel.id}
                             panel={panel}
-                            isFocused={panel.id === focusedPanelId}
+                            isFocused={panel.id === activePanelId}
                             disableRemove={actionPanelsState.panels.length <= 1}
+                            onActivate={() => setActivePanelId(panel.id)}
                             onRename={(title) => renameActionPanel(panel.id, title)}
                             onDisplayStyleChange={(displayStyle) => {
                                 setActionPanelDisplayStyle(panel.id, displayStyle)
