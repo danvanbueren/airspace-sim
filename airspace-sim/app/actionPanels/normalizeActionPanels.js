@@ -2,6 +2,7 @@ import {
     ACTION_PANEL_DISPLAY_STYLES,
     filterRenderableItemIds,
 } from './actionPanelRegistry.js'
+import {MAP_GLASS_INSET_PX} from '../constants/mapUiLayout.js'
 import {
     DEFAULT_ACTION_PANELS_STATE,
     DEFAULT_ACTION_PANEL_IDS,
@@ -10,9 +11,9 @@ import {
 import {edgeAnchorsEqual} from '../tools/map/edgeAnchoredPosition.js'
 
 export const ACTION_PANEL_MIN_WIDTH_PX = 200
-export const ACTION_PANEL_MIN_HEIGHT_PX = 140
-export const ACTION_PANEL_LARGE_MIN_RESIZED_HEIGHT_PX = 185
-export const ACTION_PANEL_COMPACT_MIN_RESIZED_HEIGHT_PX = 145
+export const ACTION_PANEL_MIN_HEIGHT_PX = 160
+export const ACTION_PANEL_LARGE_MIN_RESIZED_HEIGHT_PX = 200
+export const ACTION_PANEL_COMPACT_MIN_RESIZED_HEIGHT_PX = 160
 
 export function getActionPanelMinResizedHeight(displayStyle) {
     if (displayStyle === ACTION_PANEL_DISPLAY_STYLES.COMPACT) {
@@ -144,8 +145,8 @@ export function createActionPanelId() {
 export function createDefaultActionPanelLayout() {
     return {
         anchor: {
-            horizontal: {edge: 'left', offset: 20},
-            vertical: {edge: 'top', offset: 20},
+            horizontal: {edge: 'left', offset: MAP_GLASS_INSET_PX},
+            vertical: {edge: 'top', offset: MAP_GLASS_INSET_PX},
         },
         width: DEFAULT_ACTION_PANEL_WIDTH_PX,
         height: null,

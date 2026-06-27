@@ -1,6 +1,7 @@
 'use client'
 
 import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
+import {resolveActionPanelLayoutSize} from '@/app/actionPanels/actionPanelSizeEstimate'
 import {
     buildStoredLayoutSnapshot,
     getPanelBoundsForViewport,
@@ -20,15 +21,6 @@ import {
     resolveEdgeAnchoredPosition,
 } from '@/app/tools/map/edgeAnchoredPosition'
 
-function getElementSize(elementRef) {
-    const element = elementRef.current
-
-    return {
-        width: element?.offsetWidth ?? 0,
-        height: element?.offsetHeight ?? 0,
-    }
-}
-
 function getContainerSize(mapContainerRef) {
     const container = mapContainerRef.current
 
@@ -44,37 +36,6 @@ function positionsEqual(leftPosition, rightPosition) {
     }
 
     return leftPosition.left === rightPosition.left && leftPosition.top === rightPosition.top
-}
-
-function getResolvedPanelSize(panelRef, width, height, contentMinHeight) {
-    const measured = getElementSize(panelRef)
-
-    return {
-        width: Math.max(width || measured.width || ACTION_PANEL_MIN_WIDTH_PX, ACTION_PANEL_MIN_WIDTH_PX),
-        height: Math.max(
-            height || measured.height || contentMinHeight,
-            contentMinHeight,
-        ),
-    }
-}
-
-function getPanelBounds(panelRef, mapContainerRef, width, height, contentMinHeight) {
-    const containerSize = getContainerSize(mapContainerRef)
-    const panelSize = getResolvedPanelSize(panelRef, width, height, contentMinHeight)
-
-    return getPanelBoundsForViewport(containerSize, panelSize)
-}
-
-function getBoundedPanelPosition(left, top, panelRef, mapContainerRef, width, height, contentMinHeight) {
-    const containerSize = getContainerSize(mapContainerRef)
-    const panelSize = getResolvedPanelSize(panelRef, width, height, contentMinHeight)
-
-    return resolveEdgeAnchoredPosition(
-        absoluteToEdgeAnchor(left, top, containerSize, panelSize),
-        containerSize,
-        panelSize,
-        getPanelBounds(panelRef, mapContainerRef, width, height, contentMinHeight),
-    )
 }
 
 function applyResolvedPosition(setPosition, nextPosition) {
@@ -103,6 +64,7 @@ export function useFloatingActionPanelLayout({
     panelRef,
     interactionsEnabled,
     displayStyle,
+    itemIds,
     storedAnchor,
     storedWidth,
     storedHeight,
@@ -126,6 +88,22 @@ export function useFloatingActionPanelLayout({
     heightRef.current = height
     positionRef.current = position
 
+    const getLayoutPanelSize = useCallback(() => {
+        const resolvedSize = resolveActionPanelLayoutSize({
+            panelRef,
+            width: widthRef.current,
+            height: heightRef.current,
+            itemIds,
+            displayStyle,
+            contentMinHeight,
+        })
+
+        return {
+            width: resolvedSize.width,
+            height: resolvedSize.height,
+        }
+    }, [contentMinHeight, displayStyle, itemIds, panelRef])
+
     const applyViewportNormalizedLayout = useCallback((normalizedLayout) => {
         positionAnchorRef.current = normalizedLayout.anchor
         widthRef.current = normalizedLayout.width
@@ -136,7 +114,7 @@ export function useFloatingActionPanelLayout({
     }, [])
 
     const runPositionSync = useCallback((shouldCommitCorrections = false) => {
-        if (resizeStateRef.current) {
+        if (resizeStateRef.current || dragStateRef.current) {
             return true
         }
 
@@ -146,6 +124,7 @@ export function useFloatingActionPanelLayout({
             return false
         }
 
+        const panelSize = getLayoutPanelSize()
         const storedLayoutFromProps = buildStoredLayoutSnapshot(
             storedAnchor,
             storedWidth,
@@ -159,6 +138,7 @@ export function useFloatingActionPanelLayout({
         const normalizedCurrentLayout = normalizeLayoutForViewport(currentLayout, containerSize, {
             contentMinHeight,
             minResizedHeight,
+            resolvedPanelSize: panelSize,
         })
 
         if (!normalizedCurrentLayout) {
@@ -177,6 +157,7 @@ export function useFloatingActionPanelLayout({
             {
                 contentMinHeight,
                 minResizedHeight,
+                resolvedPanelSize: panelSize,
             },
         )
 
@@ -196,6 +177,7 @@ export function useFloatingActionPanelLayout({
     }, [
         applyViewportNormalizedLayout,
         contentMinHeight,
+        getLayoutPanelSize,
         mapContainerRef,
         minResizedHeight,
         storedAnchor,
@@ -216,19 +198,26 @@ export function useFloatingActionPanelLayout({
 
     const commitPositionAnchor = useCallback((left, top) => {
         const containerSize = getContainerSize(mapContainerRef)
-        const panelSize = getResolvedPanelSize(
-            panelRef,
-            widthRef.current,
-            heightRef.current,
-            contentMinHeight,
-        )
+        const panelSize = getLayoutPanelSize()
 
         if (containerSize.width === 0) {
             return
         }
 
         positionAnchorRef.current = absoluteToEdgeAnchor(left, top, containerSize, panelSize)
-    }, [contentMinHeight, mapContainerRef, panelRef])
+    }, [getLayoutPanelSize, mapContainerRef])
+
+    const getBoundedPanelPosition = useCallback((left, top) => {
+        const containerSize = getContainerSize(mapContainerRef)
+        const panelSize = getLayoutPanelSize()
+
+        return resolveEdgeAnchoredPosition(
+            absoluteToEdgeAnchor(left, top, containerSize, panelSize),
+            containerSize,
+            panelSize,
+            getPanelBoundsForViewport(containerSize, panelSize),
+        )
+    }, [getLayoutPanelSize, mapContainerRef])
 
     useLayoutEffect(() => {
         setWidth(clampPanelWidth(storedWidth))
@@ -241,7 +230,7 @@ export function useFloatingActionPanelLayout({
     useLayoutEffect(() => {
         positionAnchorRef.current = storedAnchor ?? positionAnchorRef.current
         runPositionSync(true)
-    }, [displayStyle, runPositionSync, storedAnchor, storedHeight, storedWidth])
+    }, [displayStyle, itemIds, runPositionSync, storedAnchor, storedHeight, storedWidth])
 
     useLayoutEffect(() => {
         let cancelled = false
@@ -345,17 +334,9 @@ export function useFloatingActionPanelLayout({
 
         applyResolvedPosition(
             setPosition,
-            getBoundedPanelPosition(
-                left,
-                top,
-                panelRef,
-                mapContainerRef,
-                widthRef.current,
-                heightRef.current,
-                contentMinHeight,
-            ),
+            getBoundedPanelPosition(left, top),
         )
-    }, [contentMinHeight, mapContainerRef, panelRef])
+    }, [getBoundedPanelPosition])
 
     const handleDragHandlePointerUp = useCallback((event) => {
         if (dragStateRef.current?.pointerId !== event.pointerId) {

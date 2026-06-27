@@ -11,7 +11,6 @@ import {
     ACTION_PANEL_MIN_HEIGHT_PX,
     ACTION_PANEL_MIN_WIDTH_PX,
     clampPanelWidth,
-    getActionPanelMinResizedHeight,
 } from './normalizeActionPanels.js'
 
 export function getPanelBoundsForViewport(containerSize, panelSize) {
@@ -62,7 +61,11 @@ function clampExplicitPanelHeight(height, maxHeight, minHeight) {
 export function normalizeLayoutForViewport(
     layout,
     containerSize,
-    {contentMinHeight = ACTION_PANEL_MIN_HEIGHT_PX, minResizedHeight = contentMinHeight} = {},
+    {
+        contentMinHeight = ACTION_PANEL_MIN_HEIGHT_PX,
+        minResizedHeight = contentMinHeight,
+        resolvedPanelSize = null,
+    } = {},
 ) {
     if (!layout?.anchor || containerSize.width <= 0 || containerSize.height <= 0) {
         return null
@@ -84,7 +87,7 @@ export function normalizeLayoutForViewport(
         minResizedHeight,
     )
 
-    const panelSize = {
+    const panelSize = resolvedPanelSize ?? {
         width: normalizedWidth,
         height: normalizedHeight ?? contentMinHeight,
     }

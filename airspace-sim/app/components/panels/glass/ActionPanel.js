@@ -61,6 +61,7 @@ export default function ActionPanel({
         panelRef,
         interactionsEnabled,
         displayStyle: panel.displayStyle,
+        itemIds: panel.itemIds,
         storedAnchor: layout.anchor,
         storedWidth: layout.width,
         storedHeight: layout.height,

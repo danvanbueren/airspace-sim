@@ -11,6 +11,7 @@ import {
     createEmptyActionPanel,
     normalizeActionPanelsState,
 } from '@/app/actionPanels/normalizeActionPanels'
+import {cloneActionPanelTemplateState} from '@/app/actionPanels/actionPanelTemplates'
 
 export const ACTION_PANELS_COOKIE_NAME = 'actionPanels'
 
@@ -153,6 +154,17 @@ export function ActionPanelsProvider({children, initialActionPanels}) {
         })
     }, [updateActionPanelsState])
 
+    const applyActionPanelTemplate = useCallback((templateId) => {
+        const templateState = cloneActionPanelTemplateState(templateId)
+
+        if (!templateState) {
+            return false
+        }
+
+        updateActionPanelsState(templateState)
+        return true
+    }, [updateActionPanelsState])
+
     const value = useMemo(() => ({
         actionPanelsState,
         updateActionPanelsState,
@@ -163,6 +175,7 @@ export function ActionPanelsProvider({children, initialActionPanels}) {
         setActionPanelDisplayStyle,
         setActionPanelItemIds,
         updateActionPanelLayout,
+        applyActionPanelTemplate,
     }), [
         actionPanelsState,
         updateActionPanelsState,
@@ -173,6 +186,7 @@ export function ActionPanelsProvider({children, initialActionPanels}) {
         setActionPanelDisplayStyle,
         setActionPanelItemIds,
         updateActionPanelLayout,
+        applyActionPanelTemplate,
     ])
 
     return (

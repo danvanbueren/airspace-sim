@@ -24,6 +24,7 @@ import {
     getAvailableAssignableItems,
 } from '@/app/actionPanels/actionPanelRegistry'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
+import {ACTION_PANEL_TEMPLATES} from '@/app/actionPanels/actionPanelTemplates'
 
 const DISPLAY_STYLE_OPTIONS = [
     {
@@ -253,6 +254,7 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
         setActionPanelDisplayStyle,
         setActionPanelItemIds,
         resetActionPanelsState,
+        applyActionPanelTemplate,
     } = useActionPanels()
 
     useEffect(() => {
@@ -282,6 +284,51 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
                     and drag or resize panels directly on the map. Changes persist in your browser
                     cookie.
                 </Typography>
+            </Box>
+
+            <Box
+                sx={{
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    p: 2,
+                }}
+            >
+                <Typography variant='subtitle1' sx={{fontWeight: 'bold', mb: 0.5}}>
+                    Templates
+                </Typography>
+                <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
+                    Apply a developer-maintained profile to replace all panel titles, items,
+                    display styles, and on-map positions. Useful for switching between operator
+                    layouts as more templates are added.
+                </Typography>
+                <Stack
+                    direction='row'
+                    spacing={1}
+                    sx={{flexWrap: 'wrap', gap: 1}}
+                >
+                    {ACTION_PANEL_TEMPLATES.map((template) => (
+                        <Button
+                            key={template.id}
+                            variant='outlined'
+                            onClick={() => applyActionPanelTemplate(template.id)}
+                            sx={{alignSelf: 'flex-start'}}
+                        >
+                            {template.name}
+                        </Button>
+                    ))}
+                </Stack>
+                <Stack spacing={0.5} sx={{mt: 1.5}}>
+                    {ACTION_PANEL_TEMPLATES.map((template) => (
+                        <Typography
+                            key={`${template.id}-description`}
+                            variant='caption'
+                            color='text.secondary'
+                        >
+                            {template.name}: {template.description}
+                        </Typography>
+                    ))}
+                </Stack>
             </Box>
 
             <Stack spacing={2}>

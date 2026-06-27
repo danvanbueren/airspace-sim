@@ -32,12 +32,18 @@ describe('normalizeActionPanelsState', () => {
             ACTION_PANEL_ITEM_IDS.RADAR_HISTORY,
             ACTION_PANEL_ITEM_IDS.AIRPORTS,
             ACTION_PANEL_ITEM_IDS.AIR_ROUTES,
-            ACTION_PANEL_ITEM_IDS.INITIATE,
-            ACTION_PANEL_ITEM_IDS.RE_INITIATE,
         ])
 
         assert.equal(normalized.panels[1].id, DEFAULT_FIXED_FUNCTION_PANEL_ID)
         assert.equal(normalized.panels[1].title, 'Fixed Function Panel')
+        assert.deepEqual(normalized.panels[1].itemIds, [
+            ACTION_PANEL_ITEM_IDS.ZOOM_IN,
+            ACTION_PANEL_ITEM_IDS.ZOOM_OUT,
+            ACTION_PANEL_ITEM_IDS.HOME,
+            ACTION_PANEL_ITEM_IDS.CENTER_E3,
+            ACTION_PANEL_ITEM_IDS.INITIATE,
+            ACTION_PANEL_ITEM_IDS.RE_INITIATE,
+        ])
 
         assert.equal(normalized.layouts[DEFAULT_CATEGORY_SELECT_PANEL_ID].width, 400)
         assert.equal(normalized.layouts[DEFAULT_CATEGORY_SELECT_PANEL_ID].height, null)

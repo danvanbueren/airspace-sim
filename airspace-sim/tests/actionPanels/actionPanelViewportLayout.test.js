@@ -4,7 +4,12 @@ import {
     normalizeLayoutForViewport,
     viewportLayoutDiffersFromStored,
 } from '../../app/actionPanels/actionPanelViewportLayout.js'
+import {estimateActionPanelAutoHeight} from '../../app/actionPanels/actionPanelSizeEstimate.js'
 import {ACTION_PANEL_MIN_WIDTH_PX} from '../../app/actionPanels/normalizeActionPanels.js'
+import {
+    ACTION_PANEL_DISPLAY_STYLES,
+    ACTION_PANEL_ITEM_IDS,
+} from '../../app/actionPanels/actionPanelRegistry.js'
 
 describe('normalizeLayoutForViewport', () => {
     it('keeps in-bounds layouts unchanged', () => {
@@ -34,13 +39,30 @@ describe('normalizeLayoutForViewport', () => {
             width: 400,
             height: null,
         }
+        const resolvedPanelSize = {
+            width: 400,
+            height: estimateActionPanelAutoHeight({
+                itemIds: [
+                    ACTION_PANEL_ITEM_IDS.ZOOM_IN,
+                    ACTION_PANEL_ITEM_IDS.ZOOM_OUT,
+                    ACTION_PANEL_ITEM_IDS.HOME,
+                    ACTION_PANEL_ITEM_IDS.CENTER_E3,
+                    ACTION_PANEL_ITEM_IDS.INITIATE,
+                    ACTION_PANEL_ITEM_IDS.RE_INITIATE,
+                ],
+                displayStyle: ACTION_PANEL_DISPLAY_STYLES.LARGE,
+                panelWidthPx: 400,
+            }),
+        }
 
-        const normalized = normalizeLayoutForViewport(layout, {width: 320, height: 240})
+        const normalized = normalizeLayoutForViewport(layout, {width: 320, height: 240}, {
+            resolvedPanelSize,
+        })
 
         assert.ok(normalized.position.top >= 8)
         assert.ok(normalized.position.left >= 8)
-        assert.ok(normalized.position.top + 140 <= 240)
         assert.ok(normalized.width <= 320)
+        assert.equal(normalized.position.top, 8)
     })
 
     it('shrinks widths that exceed the available viewport', () => {

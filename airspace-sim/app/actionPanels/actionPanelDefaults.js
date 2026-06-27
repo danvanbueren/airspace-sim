@@ -27,8 +27,6 @@ export const DEFAULT_ACTION_PANELS_STATE = {
                 ACTION_PANEL_ITEM_IDS.RADAR_HISTORY,
                 ACTION_PANEL_ITEM_IDS.AIRPORTS,
                 ACTION_PANEL_ITEM_IDS.AIR_ROUTES,
-                ACTION_PANEL_ITEM_IDS.INITIATE,
-                ACTION_PANEL_ITEM_IDS.RE_INITIATE,
             ],
         },
         {
@@ -40,6 +38,8 @@ export const DEFAULT_ACTION_PANELS_STATE = {
                 ACTION_PANEL_ITEM_IDS.ZOOM_OUT,
                 ACTION_PANEL_ITEM_IDS.HOME,
                 ACTION_PANEL_ITEM_IDS.CENTER_E3,
+                ACTION_PANEL_ITEM_IDS.INITIATE,
+                ACTION_PANEL_ITEM_IDS.RE_INITIATE,
             ],
         },
     ],
