@@ -1,6 +1,6 @@
 'use client'
 
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import AddIcon from '@mui/icons-material/Add'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
@@ -111,6 +111,7 @@ function ActionPanelEditor({
     onItemIdsChange,
     onRemovePanel,
     disableRemove,
+    isFocused = false,
 }) {
     const [pendingItemId, setPendingItemId] = useState('')
 
@@ -127,11 +128,13 @@ function ActionPanelEditor({
 
     return (
         <Box
+            id={`settings-action-panel-${panel.id}`}
             sx={{
                 border: '1px solid',
-                borderColor: 'divider',
+                borderColor: isFocused ? 'primary.main' : 'divider',
                 borderRadius: 2,
                 p: 2,
+                scrollMarginTop: 16,
             }}
         >
             <Stack spacing={2}>
@@ -241,7 +244,7 @@ function ActionPanelEditor({
     )
 }
 
-export default function SettingsModalActionPanelsPage() {
+export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
     const {
         actionPanelsState,
         addActionPanel,
@@ -251,6 +254,21 @@ export default function SettingsModalActionPanelsPage() {
         setActionPanelItemIds,
         resetActionPanelsState,
     } = useActionPanels()
+
+    useEffect(() => {
+        if (!focusedPanelId) {
+            return
+        }
+
+        const frameRef = requestAnimationFrame(() => {
+            document.getElementById(`settings-action-panel-${focusedPanelId}`)
+                ?.scrollIntoView({behavior: 'smooth', block: 'start'})
+        })
+
+        return () => {
+            cancelAnimationFrame(frameRef)
+        }
+    }, [focusedPanelId])
 
     return (
         <Stack spacing={3}>
@@ -271,6 +289,7 @@ export default function SettingsModalActionPanelsPage() {
                     <ActionPanelEditor
                         key={panel.id}
                         panel={panel}
+                        isFocused={panel.id === focusedPanelId}
                         disableRemove={actionPanelsState.panels.length <= 1}
                         onRename={(title) => renameActionPanel(panel.id, title)}
                         onDisplayStyleChange={(displayStyle) => {

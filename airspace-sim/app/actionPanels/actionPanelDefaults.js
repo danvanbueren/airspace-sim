@@ -7,6 +7,11 @@ import {
 export const DEFAULT_CATEGORY_SELECT_PANEL_ID = 'default-category-select'
 export const DEFAULT_FIXED_FUNCTION_PANEL_ID = 'default-fixed-function'
 
+export const DEFAULT_ACTION_PANEL_IDS = new Set([
+    DEFAULT_CATEGORY_SELECT_PANEL_ID,
+    DEFAULT_FIXED_FUNCTION_PANEL_ID,
+])
+
 export const DEFAULT_ACTION_PANEL_WIDTH_PX = 400
 
 export const DEFAULT_ACTION_PANELS_STATE = {

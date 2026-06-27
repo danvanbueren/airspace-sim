@@ -5,7 +5,7 @@ import {
     ACTION_PANEL_ITEM_IDS,
 } from '../../app/actionPanels/actionPanelRegistry.js'
 import {
-    getCompactToggleColumnCount,
+    getCompactGridColumnCount,
     getLargeGridColumnCount,
 } from '../../app/actionPanels/actionPanelGridLayout.js'
 import {
@@ -91,9 +91,32 @@ describe('actionPanelGridLayout', () => {
         assert.equal(getLargeGridColumnCount(900, 6), 6)
     })
 
-    it('expands compact toggle columns when horizontal space allows', () => {
-        assert.equal(getCompactToggleColumnCount(220, 4), 1)
-        assert.equal(getCompactToggleColumnCount(500, 4), 2)
-        assert.equal(getCompactToggleColumnCount(900, 4), 4)
+    it('expands compact grid columns when horizontal space allows', () => {
+        assert.equal(getCompactGridColumnCount(220, 4), 1)
+        assert.equal(getCompactGridColumnCount(500, 4), 2)
+        assert.equal(getCompactGridColumnCount(900, 4), 4)
+    })
+
+    it('keeps custom panels empty when no items are configured', () => {
+        const normalized = normalizeActionPanelsState({
+            panels: [{
+                id: 'custom-empty-panel',
+                title: 'Empty Panel',
+                displayStyle: ACTION_PANEL_DISPLAY_STYLES.LARGE,
+                itemIds: [],
+            }],
+            layouts: {
+                'custom-empty-panel': {
+                    anchor: {
+                        horizontal: {edge: 'left', offset: 20},
+                        vertical: {edge: 'top', offset: 20},
+                    },
+                    width: 400,
+                    height: null,
+                },
+            },
+        })
+
+        assert.deepEqual(normalized.panels[0].itemIds, [])
     })
 })

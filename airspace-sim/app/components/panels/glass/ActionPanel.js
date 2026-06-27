@@ -48,7 +48,6 @@ export default function ActionPanel({
         position,
         width,
         height,
-        isPositionResolved,
         handlePanelPointerDown,
         handleDragHandlePointerDown,
         handleDragHandlePointerMove,
@@ -83,6 +82,10 @@ export default function ActionPanel({
         handleResizeHandlePointerDown(event)
     }, [bringToFront, handleResizeHandlePointerDown])
 
+    const handleEditSettings = useCallback(() => {
+        onEditPanelSettings?.(panel.id)
+    }, [onEditPanelSettings, panel.id])
+
     return (
         <Box
             ref={panelRef}
@@ -96,8 +99,6 @@ export default function ActionPanel({
                 width,
                 height: hasExplicitHeight ? height : 'auto',
                 zIndex,
-                opacity: isPositionResolved ? 1 : 0,
-                pointerEvents: isPositionResolved ? 'auto' : 'none',
             }}
         >
             <BasicGlassPanel
@@ -113,6 +114,7 @@ export default function ActionPanel({
                                 alignItems: 'center',
                                 gap: 0.5,
                                 flexShrink: 0,
+                                minWidth: 0,
                             }}
                         >
                             <IconButton
@@ -121,37 +123,36 @@ export default function ActionPanel({
                                 sx={{
                                     cursor: interactionsEnabled ? 'grab' : 'default',
                                     touchAction: 'none',
-                                    flexGrow: 1,
-                                    minWidth: 0,
-                                    justifyContent: 'flex-start',
-                                    borderRadius: 1,
-                                    px: 0.5,
-                                    mx: -0.5,
+                                    flexShrink: 0,
                                 }}
                                 onPointerDown={handleDragHandleActivate}
                                 onPointerMove={handleDragHandlePointerMove}
                                 onPointerUp={handleDragHandlePointerUp}
                                 onPointerCancel={handleDragHandlePointerUp}
                             >
-                                <DragIndicatorIcon fontSize='small' sx={{mr: 0.5}}/>
-                                <Typography
-                                    variant='h6'
-                                    component='span'
-                                    sx={{
-                                        fontFamily: 'monospace',
-                                        fontWeight: 'bold',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                    }}
-                                >
-                                    {panel.title}
-                                </Typography>
+                                <DragIndicatorIcon fontSize='small'/>
                             </IconButton>
+                            <Typography
+                                variant='h6'
+                                component='span'
+                                title={panel.title}
+                                sx={{
+                                    fontFamily: 'monospace',
+                                    fontWeight: 'bold',
+                                    flex: 1,
+                                    minWidth: 0,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {panel.title}
+                            </Typography>
                             <IconButton
                                 size='small'
                                 aria-label={`Edit ${panel.title} settings`}
-                                onClick={onEditPanelSettings}
+                                sx={{flexShrink: 0}}
+                                onClick={handleEditSettings}
                             >
                                 <EditIcon fontSize='small'/>
                             </IconButton>

@@ -34,12 +34,23 @@ function SettingsModalSidebarHeading({children}) {
     )
 }
 
-export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_PAGE_ID, buildData, onOpenSettingsPage}) {
+export default function SettingsModal({
+    open,
+    setOpen,
+    state = DEFAULT_SETTINGS_PAGE_ID,
+    buildData,
+    onOpenSettingsPage,
+    focusedActionPanelId = null,
+}) {
     const pageScrollRef = useRef(null)
 
     useEffect(() => {
+        if (state === 'actionPanels' && focusedActionPanelId) {
+            return
+        }
+
         pageScrollRef.current?.scrollTo({top: 0})
-    }, [state])
+    }, [focusedActionPanelId, state])
 
     const modalStyle = (theme) => ({
         position: 'absolute',
@@ -64,7 +75,7 @@ export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_P
             case 'lookAndFeel':
                 return <SettingsModalLookAndFeelPage/>
             case 'actionPanels':
-                return <SettingsModalActionPanelsPage/>
+                return <SettingsModalActionPanelsPage focusedPanelId={focusedActionPanelId}/>
             case 'advanced':
                 return <SettingsModalAdvancedPage/>
             case 'keybinds':

@@ -4,8 +4,9 @@ import {
     filterRenderableItemIds,
 } from './actionPanelRegistry.js'
 import {
-    DEFAULT_ACTION_PANEL_WIDTH_PX,
     DEFAULT_ACTION_PANELS_STATE,
+    DEFAULT_ACTION_PANEL_IDS,
+    DEFAULT_ACTION_PANEL_WIDTH_PX,
 } from './actionPanelDefaults.js'
 import {edgeAnchorsEqual} from '../tools/map/edgeAnchoredPosition.js'
 
@@ -97,14 +98,18 @@ function normalizeDisplayStyle(displayStyle) {
     return ACTION_PANEL_DISPLAY_STYLES.LARGE
 }
 
-function normalizeItemIds(itemIds, fallbackItemIds) {
+function normalizeItemIds(itemIds, fallbackItemIds, panelId) {
     const filteredItemIds = filterRenderableItemIds(itemIds)
 
     if (filteredItemIds.length > 0) {
         return filteredItemIds
     }
 
-    return filterRenderableItemIds(fallbackItemIds)
+    if (DEFAULT_ACTION_PANEL_IDS.has(panelId)) {
+        return filterRenderableItemIds(fallbackItemIds)
+    }
+
+    return []
 }
 
 function getDefaultLayoutForPanelId(panelId) {
@@ -164,7 +169,7 @@ export function normalizeActionPanelsState(state) {
             id,
             title: normalizePanelTitle(panel?.title, fallbackPanel.title),
             displayStyle: normalizeDisplayStyle(panel?.displayStyle),
-            itemIds: normalizeItemIds(panel?.itemIds, fallbackPanel.itemIds),
+            itemIds: normalizeItemIds(panel?.itemIds, fallbackPanel.itemIds, id),
         }
     })
 

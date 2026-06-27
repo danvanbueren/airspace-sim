@@ -5,6 +5,7 @@ import {
     MAP_GLASS_INSET_PX,
     MAP_OVERLAY_DRAG_MIN_EDGE_PX,
 } from '@/app/constants/mapUiLayout'
+import {resolvePanelPositionFromAnchor} from '@/app/actionPanels/actionPanelGridLayout'
 import {
     ACTION_PANEL_MIN_HEIGHT_PX,
     ACTION_PANEL_MIN_WIDTH_PX,
@@ -42,18 +43,21 @@ function positionsEqual(leftPosition, rightPosition) {
     return leftPosition.left === rightPosition.left && leftPosition.top === rightPosition.top
 }
 
-function getMeasurementSize(panelRef, width, height) {
+function getResolvedPanelSize(panelRef, width, height) {
     const measured = getElementSize(panelRef)
 
     return {
-        width: width ?? measured.width,
-        height: height ?? measured.height,
+        width: Math.max(width || measured.width || ACTION_PANEL_MIN_WIDTH_PX, ACTION_PANEL_MIN_WIDTH_PX),
+        height: Math.max(
+            height || measured.height || ACTION_PANEL_MIN_HEIGHT_PX,
+            ACTION_PANEL_MIN_HEIGHT_PX,
+        ),
     }
 }
 
 function getPanelBounds(panelRef, mapContainerRef, width, height) {
     const containerSize = getContainerSize(mapContainerRef)
-    const panelSize = getMeasurementSize(panelRef, width, height)
+    const panelSize = getResolvedPanelSize(panelRef, width, height)
 
     return {
         minLeft: MAP_OVERLAY_DRAG_MIN_EDGE_PX,
@@ -71,11 +75,7 @@ function getPanelBounds(panelRef, mapContainerRef, width, height) {
 
 function getBoundedPanelPosition(left, top, panelRef, mapContainerRef, width, height) {
     const bounds = getPanelBounds(panelRef, mapContainerRef, width, height)
-    const panelSize = getMeasurementSize(panelRef, width, height)
-
-    if (panelSize.width === 0) {
-        return {left, top}
-    }
+    const panelSize = getResolvedPanelSize(panelRef, width, height)
 
     return resolveEdgeAnchoredPosition(
         absoluteToEdgeAnchor(left, top, getContainerSize(mapContainerRef), panelSize),
@@ -85,17 +85,14 @@ function getBoundedPanelPosition(left, top, panelRef, mapContainerRef, width, he
     )
 }
 
-function resolvePositionFromAnchor(anchor, panelRef, mapContainerRef, width, height) {
-    if (!anchor) {
-        return null
-    }
-
+function syncPositionFromAnchor(panelRef, mapContainerRef, anchor, width, height) {
     const containerSize = getContainerSize(mapContainerRef)
-    const panelSize = getMeasurementSize(panelRef, width, height)
 
-    if (containerSize.width === 0 || panelSize.width === 0) {
+    if (containerSize.width <= 0 || !anchor) {
         return null
     }
+
+    const panelSize = getResolvedPanelSize(panelRef, width, height)
 
     return resolveEdgeAnchoredPosition(
         anchor,
@@ -157,10 +154,15 @@ export function useFloatingActionPanelLayout({
     storedHeight,
     onLayoutCommit,
 }) {
-    const [position, setPosition] = useState(null)
     const [width, setWidth] = useState(() => clampPanelWidth(storedWidth))
     const [height, setHeight] = useState(() => normalizePanelHeight(storedHeight))
-    const [isPositionResolved, setIsPositionResolved] = useState(false)
+    const [position, setPosition] = useState(() => (
+        resolvePanelPositionFromAnchor(
+            storedAnchor,
+            {width: clampPanelWidth(storedWidth), height: 0},
+            clampPanelWidth(storedWidth),
+        )
+    ))
     const dragStateRef = useRef(null)
     const resizeStateRef = useRef(null)
     const positionAnchorRef = useRef(storedAnchor ?? null)
@@ -172,34 +174,32 @@ export function useFloatingActionPanelLayout({
     heightRef.current = height
     positionRef.current = position
 
-    const syncPositionFromAnchor = useCallback(() => {
-        const nextPosition = resolvePositionFromAnchor(
-            positionAnchorRef.current,
+    const runPositionSync = useCallback(() => {
+        const nextPosition = syncPositionFromAnchor(
             panelRef,
             mapContainerRef,
+            positionAnchorRef.current,
             widthRef.current,
             heightRef.current,
         )
 
         if (!nextPosition) {
-            setIsPositionResolved(false)
             return false
         }
 
-        setIsPositionResolved(true)
         applyResolvedPosition(setPosition, nextPosition)
         return true
     }, [mapContainerRef, panelRef])
 
     const commitPositionAnchor = useCallback((left, top) => {
         const containerSize = getContainerSize(mapContainerRef)
-        const panelSize = getMeasurementSize(
+        const panelSize = getResolvedPanelSize(
             panelRef,
             widthRef.current,
             heightRef.current,
         )
 
-        if (containerSize.width === 0 || panelSize.width === 0) {
+        if (containerSize.width === 0) {
             return
         }
 
@@ -216,11 +216,11 @@ export function useFloatingActionPanelLayout({
 
     useLayoutEffect(() => {
         positionAnchorRef.current = storedAnchor ?? positionAnchorRef.current
-        syncPositionFromAnchor()
-    }, [storedAnchor, syncPositionFromAnchor])
+        runPositionSync()
+    }, [runPositionSync, storedAnchor])
 
     useLayoutEffect(() => {
-        if (!mapContainerRef.current || !panelRef.current) {
+        if (!mapContainerRef.current) {
             return undefined
         }
 
@@ -239,9 +239,7 @@ export function useFloatingActionPanelLayout({
                     return
                 }
 
-                const resolved = syncPositionFromAnchor()
-
-                if (!resolved) {
+                if (!runPositionSync()) {
                     scheduleSync()
                 }
             })
@@ -249,14 +247,15 @@ export function useFloatingActionPanelLayout({
 
         scheduleSync()
 
-        const observedElements = [mapContainerRef.current, panelRef.current]
         const resizeObserver = new ResizeObserver(() => {
             scheduleSync()
         })
 
-        observedElements.forEach((element) => {
-            resizeObserver.observe(element)
-        })
+        resizeObserver.observe(mapContainerRef.current)
+
+        if (panelRef.current) {
+            resizeObserver.observe(panelRef.current)
+        }
 
         return () => {
             cancelled = true
@@ -266,7 +265,7 @@ export function useFloatingActionPanelLayout({
                 cancelAnimationFrame(frameRef)
             }
         }
-    }, [mapContainerRef, panelRef, syncPositionFromAnchor])
+    }, [mapContainerRef, panelRef, runPositionSync])
 
     const handlePanelPointerDown = useCallback((event) => {
         event.stopPropagation()
@@ -422,14 +421,13 @@ export function useFloatingActionPanelLayout({
             height: committedHeight,
         })
 
-        syncPositionFromAnchor()
-    }, [mapContainerRef, onLayoutCommit, syncPositionFromAnchor])
+        runPositionSync()
+    }, [mapContainerRef, onLayoutCommit, runPositionSync])
 
     return {
         position,
         width,
         height,
-        isPositionResolved,
         handlePanelPointerDown,
         handleDragHandlePointerDown,
         handleDragHandlePointerMove,

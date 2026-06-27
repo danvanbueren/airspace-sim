@@ -20,8 +20,10 @@ export default function Home() {
 
     const [settingsModalOpen, setSettingsModalOpen] = useState(false)
     const [settingsPageId, setSettingsPageId] = useState(null)
+    const [focusedActionPanelId, setFocusedActionPanelId] = useState(null)
     const [mapOverlayLayer, setMapOverlayLayer] = useState(null)
     const mapContainerRef = useRef(null)
+    const workspaceContainerRef = useRef(null)
 
     const setMapOverlayLayerRef = useCallback((element) => {
         setMapOverlayLayer(element)
@@ -32,11 +34,17 @@ export default function Home() {
         setSettingsModalOpen(true)
     }, [])
 
+    const handleEditActionPanelSettings = useCallback((panelId) => {
+        setFocusedActionPanelId(panelId)
+        openSettingsPage('actionPanels')
+    }, [openSettingsPage])
+
     const handleSettingsModalClose = useCallback((open) => {
         setSettingsModalOpen(open)
 
         if (!open) {
             setSettingsPageId(null)
+            setFocusedActionPanelId(null)
         }
     }, [])
 
@@ -61,6 +69,7 @@ export default function Home() {
             >
                 <ClassificationBar/>
                 <Box
+                    ref={workspaceContainerRef}
                     style={{
                         position: 'relative', width: '100dvw', flexGrow: 1, overflow: 'hidden', margin: 0, padding: 0,
                     }}
@@ -83,9 +92,10 @@ export default function Home() {
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Action panels">
                         <DraggableFloatingOverlaysLayer
+                            workspaceContainerRef={workspaceContainerRef}
                             mapContainerRef={mapContainerRef}
                             interactionsEnabled={!settingsModalOpen}
-                            onEditPanelSettings={() => openSettingsPage('actionPanels')}
+                            onEditPanelSettings={handleEditActionPanelSettings}
                         />
                     </ReactErrorForwardingBoundary>
 
@@ -99,6 +109,7 @@ export default function Home() {
                                 modalOpen={settingsModalOpen}
                                 setModalOpen={handleSettingsModalClose}
                                 initialPageId={settingsPageId}
+                                focusedActionPanelId={focusedActionPanelId}
                             />
                         </Box>
                     </ReactErrorForwardingBoundary>

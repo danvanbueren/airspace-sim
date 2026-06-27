@@ -1,22 +1,20 @@
 'use client'
 
-import {useRef} from 'react'
 import {Box} from '@mui/material'
 import ActionPanel from './ActionPanel'
 import PerformanceAnalyticsOverlay from '@/app/components/map/PerformanceAnalyticsOverlay'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 
 export default function DraggableFloatingOverlaysLayer({
+    workspaceContainerRef,
     mapContainerRef,
     interactionsEnabled = true,
     onEditPanelSettings,
 }) {
-    const layerRef = useRef(null)
     const {actionPanelsState} = useActionPanels()
 
     return (
         <Box
-            ref={layerRef}
             sx={{
                 position: 'absolute',
                 inset: 0,
@@ -33,7 +31,7 @@ export default function DraggableFloatingOverlaysLayer({
                     key={panel.id}
                     panel={panel}
                     layout={actionPanelsState.layouts[panel.id]}
-                    mapContainerRef={layerRef}
+                    mapContainerRef={workspaceContainerRef}
                     interactionsEnabled={interactionsEnabled}
                     onEditPanelSettings={onEditPanelSettings}
                 />

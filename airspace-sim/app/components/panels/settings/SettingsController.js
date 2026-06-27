@@ -23,7 +23,12 @@ function buildPageNavItem(pageId, {onToolbeltClick, onModalClick}) {
     }
 }
 
-export default function SettingsController({modalOpen, setModalOpen, initialPageId = null}) {
+export default function SettingsController({
+    modalOpen,
+    setModalOpen,
+    initialPageId = null,
+    focusedActionPanelId = null,
+}) {
     const [modalState, setModalState] = useState(DEFAULT_SETTINGS_PAGE_ID)
     const [toolbeltOpen, setToolbeltOpen] = useState(false)
     const colorMode = useColorMode()
@@ -83,6 +88,7 @@ export default function SettingsController({modalOpen, setModalOpen, initialPage
             state={modalState}
             buildData={buildData}
             onOpenSettingsPage={setModalState}
+            focusedActionPanelId={focusedActionPanelId}
         />
         <SettingsToolbelt
             toolbeltOpen={toolbeltOpen}
