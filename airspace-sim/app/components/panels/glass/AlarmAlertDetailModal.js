@@ -9,6 +9,7 @@ import {
     estimateAlarmAlertContentHeight,
     getAlarmAlertModalChromeHeight,
 } from '@/app/tools/alerts/alarmAlertModalDimensions'
+import {scrollAlertIntoCenter} from '@/app/tools/alerts/alarmAlertUi'
 
 const MODAL_PADDING_PX = 24
 
@@ -67,8 +68,15 @@ export default function AlarmAlertDetailModal({
             return
         }
 
-        const alertElement = alertItemRefs.current.get(focusedAlertId)
-        alertElement?.scrollIntoView({block: 'center'})
+        const scrollToFocusedAlert = () => {
+            scrollAlertIntoCenter(
+                scrollContainerRef.current,
+                alertItemRefs.current.get(focusedAlertId),
+            )
+        }
+
+        scrollToFocusedAlert()
+        requestAnimationFrame(scrollToFocusedAlert)
     }, [open, focusedAlertId])
 
     const setAlertItemRef = (alertId) => (element) => {
@@ -134,8 +142,6 @@ export default function AlarmAlertDetailModal({
                     sx={{
                         flex: 1,
                         minHeight: 0,
-                        display: 'flex',
-                        flexDirection: 'column-reverse',
                         overflowY: 'auto',
                     }}
                 >
