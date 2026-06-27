@@ -113,23 +113,25 @@ export default function AlarmAlertPanel() {
             />
             {visibleAlerts.length > 0 && (
                 <BasicGlassPanel dense>
-                    <Button
-                        size='small'
-                        color='warning'
-                        variant='outlined'
-                        onClick={() => {
-                            clearAlarmAlerts()
-                            closeDetailModal()
-                        }}
-                        sx={{
-                            fontFamily: 'monospace',
-                            fontSize: 12,
-                            px: 1,
-                            my: 0.5,
-                        }}
-                    >
-                        Clear All
-                    </Button>
+                    <Box sx={{display: 'flex', justifyContent: 'center', width: '100%'}}>
+                        <Button
+                            size='small'
+                            color='warning'
+                            variant='outlined'
+                            onClick={() => {
+                                clearAlarmAlerts()
+                                closeDetailModal()
+                            }}
+                            sx={{
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                px: 1,
+                                my: 0.5,
+                            }}
+                        >
+                            Clear All
+                        </Button>
+                    </Box>
                     <Box
                         sx={{
                             width: '20rem',

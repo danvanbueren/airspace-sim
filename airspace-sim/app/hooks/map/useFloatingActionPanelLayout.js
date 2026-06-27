@@ -137,6 +137,10 @@ export function useFloatingActionPanelLayout({
     }, [])
 
     const runPositionSync = useCallback((shouldCommitCorrections = false) => {
+        if (resizeStateRef.current) {
+            return true
+        }
+
         const containerSize = getContainerSize(mapContainerRef)
 
         if (containerSize.width <= 0 || containerSize.height <= 0 || !positionAnchorRef.current) {
@@ -414,6 +418,8 @@ export function useFloatingActionPanelLayout({
             minResizedHeight,
         )
 
+        widthRef.current = nextWidth
+        heightRef.current = nextHeight
         setWidth(nextWidth)
         setHeight(nextHeight)
     }, [mapContainerRef, minResizedHeight])
@@ -438,17 +444,25 @@ export function useFloatingActionPanelLayout({
         const committedWidth = clampPanelWidth(widthRef.current, maxWidth)
         const committedHeight = clampPanelHeight(heightRef.current, maxHeight, minResizedHeight)
 
+        widthRef.current = committedWidth
+        heightRef.current = committedHeight
         setWidth(committedWidth)
         setHeight(committedHeight)
 
-        onLayoutCommit?.({
-            anchor: positionAnchorRef.current,
-            width: committedWidth,
-            height: committedHeight,
-        })
+        setPosition((currentPosition) => {
+            if (currentPosition) {
+                commitPositionAnchor(currentPosition.left, currentPosition.top)
 
-        runPositionSync(false)
-    }, [mapContainerRef, minResizedHeight, onLayoutCommit, runPositionSync])
+                onLayoutCommit?.({
+                    anchor: positionAnchorRef.current,
+                    width: committedWidth,
+                    height: committedHeight,
+                })
+            }
+
+            return currentPosition
+        })
+    }, [commitPositionAnchor, mapContainerRef, minResizedHeight, onLayoutCommit])
 
     return {
         position,
