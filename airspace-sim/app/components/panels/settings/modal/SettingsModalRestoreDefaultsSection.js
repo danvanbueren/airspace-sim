@@ -8,6 +8,7 @@ export default function SettingsModalRestoreDefaultsSection({
     onClick,
     color = 'warning',
     showDivider = true,
+    buttonSx,
 }) {
     const buttonBlock = (
         <Stack spacing={0.5}>
@@ -16,6 +17,7 @@ export default function SettingsModalRestoreDefaultsSection({
                 color={color}
                 fullWidth
                 onClick={onClick}
+                sx={buttonSx}
             >
                 {label}
             </Button>

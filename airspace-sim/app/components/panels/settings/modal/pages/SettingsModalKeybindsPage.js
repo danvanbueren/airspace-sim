@@ -467,8 +467,16 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
         <Stack spacing={1}>
             <SettingsModalRestoreDefaultsSection
                 label='Unbind All Keybinds'
-                hint='Clears every keyboard and mouse binding on this page, including bearing/range draw and context menu buttons. Advanced sensitivity settings are not changed.'
-                color='warning'
+                hint='Clears all keyboard and mouse bindings on this page.'
+                color='inherit'
+                buttonSx={{
+                    borderColor: 'grey.500',
+                    color: 'text.primary',
+                    '&:hover': {
+                        borderColor: 'grey.700',
+                        bgcolor: 'action.hover',
+                    },
+                }}
                 showDivider={false}
                 onClick={handleUnbindAll}
             />
