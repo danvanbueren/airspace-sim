@@ -20,7 +20,7 @@ import {
     absoluteToEdgeAnchor,
     resolveEdgeAnchoredPosition,
 } from '@/app/tools/map/edgeAnchoredPosition'
-import {clampPositionClearOfSettingsFab} from '@/app/tools/map/settingsFabReserve'
+import {clampPositionClearOfSettingsFab, getFabAwareMaxLeftForPanelTop} from '@/app/tools/map/settingsFabReserve'
 import {getWorkspaceContainerSize} from '@/app/tools/map/workspaceContainerSize'
 
 function positionsEqual(leftPosition, rightPosition) {
@@ -87,6 +87,14 @@ export function useFloatingActionPanelLayout({
     heightRef.current = height
     positionRef.current = position
 
+    const displayPosition = position ?? createInitialActionPanelPosition({
+        storedAnchor,
+        storedWidth,
+        itemIds,
+        displayStyle,
+        containerSize: getWorkspaceContainerSize(mapContainerRef),
+    })
+
     const getLayoutPanelSize = useCallback(() => {
         const resolvedSize = resolveActionPanelLayoutSize({
             panelRef,
@@ -119,7 +127,15 @@ export function useFloatingActionPanelLayout({
 
         const containerSize = getWorkspaceContainerSize(mapContainerRef)
 
-        if (containerSize.width <= 0 || containerSize.height <= 0 || !positionAnchorRef.current) {
+        if (containerSize.width <= 0 || containerSize.height <= 0) {
+            return false
+        }
+
+        if (!positionAnchorRef.current && storedAnchor) {
+            positionAnchorRef.current = storedAnchor
+        }
+
+        if (!positionAnchorRef.current) {
             return false
         }
 
@@ -210,17 +226,24 @@ export function useFloatingActionPanelLayout({
         const containerSize = getWorkspaceContainerSize(mapContainerRef)
         const panelSize = getLayoutPanelSize()
         const bounds = getPanelBoundsForViewport(containerSize, panelSize)
+        const fabAwareBounds = {
+            ...bounds,
+            maxLeft: Math.min(
+                bounds.maxLeft,
+                getFabAwareMaxLeftForPanelTop(top, panelSize, containerSize, bounds.minLeft),
+            ),
+        }
 
         return clampPositionClearOfSettingsFab(
             resolveEdgeAnchoredPosition(
                 absoluteToEdgeAnchor(left, top, containerSize, panelSize),
                 containerSize,
                 panelSize,
-                bounds,
+                fabAwareBounds,
             ),
             panelSize,
             containerSize,
-            bounds,
+            fabAwareBounds,
         )
     }, [getLayoutPanelSize, mapContainerRef])
 
@@ -467,7 +490,7 @@ export function useFloatingActionPanelLayout({
     }, [commitPositionAnchor, mapContainerRef, minResizedHeight, onLayoutCommit])
 
     return {
-        position,
+        position: displayPosition,
         width,
         height,
         handlePanelPointerDown,

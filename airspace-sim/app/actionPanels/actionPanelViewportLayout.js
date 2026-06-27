@@ -7,7 +7,10 @@ import {
     edgeAnchorsEqual,
     resolveEdgeAnchoredPosition,
 } from '../tools/map/edgeAnchoredPosition.js'
-import {clampPositionClearOfSettingsFab} from '../tools/map/settingsFabReserve.js'
+import {
+    clampPositionClearOfSettingsFab,
+    getFabAwareMaxLeftForPanelTop,
+} from '../tools/map/settingsFabReserve.js'
 import {estimateActionPanelAutoHeight} from './actionPanelSizeEstimate.js'
 import {
     ACTION_PANEL_MIN_HEIGHT_PX,
@@ -59,16 +62,36 @@ export function resolveClampedPanelPosition(anchor, containerSize, panelSize) {
         return null
     }
 
+    const bounds = getPanelBoundsForViewport(containerSize, panelSize)
+    const idealPosition = resolveEdgeAnchoredPosition(
+        anchor,
+        containerSize,
+        panelSize,
+        bounds,
+    )
+    const fabAwareBounds = {
+        ...bounds,
+        maxLeft: Math.min(
+            bounds.maxLeft,
+            getFabAwareMaxLeftForPanelTop(
+                idealPosition.top,
+                panelSize,
+                containerSize,
+                bounds.minLeft,
+            ),
+        ),
+    }
+
     return clampPositionClearOfSettingsFab(
         resolveEdgeAnchoredPosition(
             anchor,
             containerSize,
             panelSize,
-            getPanelBoundsForViewport(containerSize, panelSize),
+            fabAwareBounds,
         ),
         panelSize,
         containerSize,
-        getPanelBoundsForViewport(containerSize, panelSize),
+        fabAwareBounds,
     )
 }
 

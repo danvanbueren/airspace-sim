@@ -10,6 +10,7 @@ import {
 import {MAP_GLASS_INSET_PX} from '../../app/constants/mapUiLayout.js'
 import {
     clampPositionClearOfSettingsFab,
+    getFabAwareMaxLeftForPanelTop,
     panelRectOverlapsSettingsFab,
 } from '../../app/tools/map/settingsFabReserve.js'
 
@@ -71,5 +72,23 @@ describe('settingsFabReserve', () => {
             panelSize,
             containerSize,
         ), false)
+    })
+
+    it('allows panels below the FAB reserve band to use the full horizontal range', () => {
+        const containerSize = {width: 1000, height: 800}
+        const panelSize = {width: 400, height: 200}
+
+        const maxLeft = getFabAwareMaxLeftForPanelTop(500, panelSize, containerSize, 8)
+
+        assert.equal(maxLeft, 580)
+    })
+
+    it('limits horizontal placement when a panel intersects the FAB reserve band', () => {
+        const containerSize = {width: 1000, height: 800}
+        const panelSize = {width: 400, height: 200}
+
+        const maxLeft = getFabAwareMaxLeftForPanelTop(20, panelSize, containerSize, 8)
+
+        assert.equal(maxLeft, 488)
     })
 })

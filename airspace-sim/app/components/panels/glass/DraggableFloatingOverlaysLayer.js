@@ -3,6 +3,7 @@
 import {Box} from '@mui/material'
 import ActionPanel from './ActionPanel'
 import PerformanceAnalyticsOverlay from '@/app/components/map/PerformanceAnalyticsOverlay'
+import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 
 export default function DraggableFloatingOverlaysLayer({
@@ -18,6 +19,7 @@ export default function DraggableFloatingOverlaysLayer({
             sx={{
                 position: 'absolute',
                 inset: 0,
+                zIndex: UI_Z_INDEX.GLASS_PANEL,
                 pointerEvents: 'none',
                 '& [data-floating-draggable]': {
                     pointerEvents: 'auto',

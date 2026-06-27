@@ -12,17 +12,40 @@ function clampWithinBounds(left, top, bounds) {
     }
 }
 
+export function getSettingsFabReserveRect(containerSize) {
+    return {
+        left: containerSize.width - MAP_SETTINGS_FAB_RESERVE_WIDTH_PX,
+        top: MAP_OVERLAY_DRAG_MIN_EDGE_PX,
+        right: containerSize.width,
+        bottom: MAP_SETTINGS_FAB_RESERVE_HEIGHT_PX,
+    }
+}
+
+export function getFabAwareMaxLeftForPanelTop(top, panelSize, containerSize, minLeft) {
+    const defaultMaxLeft = Math.max(
+        minLeft,
+        containerSize.width - panelSize.width - MAP_GLASS_INSET_PX,
+    )
+    const fabRect = getSettingsFabReserveRect(containerSize)
+    const panelBottom = top + panelSize.height
+
+    if (top >= fabRect.bottom || panelBottom <= fabRect.top) {
+        return defaultMaxLeft
+    }
+
+    const fabAwareMaxLeft = fabRect.left - panelSize.width - MAP_GLASS_INSET_PX
+
+    return Math.min(defaultMaxLeft, Math.max(minLeft, fabAwareMaxLeft))
+}
+
 export function panelRectOverlapsSettingsFab(left, top, panelSize, containerSize) {
-    const fabLeft = containerSize.width - MAP_SETTINGS_FAB_RESERVE_WIDTH_PX
-    const fabTop = MAP_OVERLAY_DRAG_MIN_EDGE_PX
-    const fabRight = containerSize.width
-    const fabBottom = MAP_SETTINGS_FAB_RESERVE_HEIGHT_PX
+    const fabRect = getSettingsFabReserveRect(containerSize)
 
     return (
-        left < fabRight
-        && left + panelSize.width > fabLeft
-        && top < fabBottom
-        && top + panelSize.height > fabTop
+        left < fabRect.right
+        && left + panelSize.width > fabRect.left
+        && top < fabRect.bottom
+        && top + panelSize.height > fabRect.top
     )
 }
 
@@ -38,11 +61,9 @@ export function clampPositionClearOfSettingsFab(position, panelSize, containerSi
         return nextPosition
     }
 
-    const leftOfFab = containerSize.width
-        - MAP_SETTINGS_FAB_RESERVE_WIDTH_PX
-        - panelSize.width
-        - MAP_GLASS_INSET_PX
-    const belowFabTop = MAP_SETTINGS_FAB_RESERVE_HEIGHT_PX
+    const fabRect = getSettingsFabReserveRect(containerSize)
+    const leftOfFab = fabRect.left - panelSize.width - MAP_GLASS_INSET_PX
+    const belowFabTop = fabRect.bottom
 
     if (leftOfFab >= bounds.minLeft) {
         nextPosition = clampWithinBounds(leftOfFab, nextPosition.top, bounds)

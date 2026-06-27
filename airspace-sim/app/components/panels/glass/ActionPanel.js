@@ -6,6 +6,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import {Box, Divider, IconButton, Typography} from '@mui/material'
 import BasicGlassPanel from './BasicGlassPanel'
 import ActionPanelControls, {ActionPanelEmptyContent} from './ActionPanelControls'
+import {filterRenderableItemIds} from '@/app/actionPanels/actionPanelRegistry'
 import {MAP_GLASS_INSET_PX} from '@/app/constants/mapUiLayout'
 import {FLOATING_DRAGGABLE_IDS} from '@/app/constants/floatingDraggableIds'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
@@ -96,6 +97,7 @@ export default function ActionPanel({
             data-action-panel={panel.id}
             data-floating-draggable={draggableId}
             onPointerDown={handlePanelActivate}
+            suppressHydrationWarning
             sx={{
                 position: 'absolute',
                 left: position?.left ?? MAP_GLASS_INSET_PX,
