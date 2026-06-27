@@ -5,7 +5,19 @@
 
 This document is the **single source of truth** for why auto tracks die when the camera pans or zooms, and how to fix it without sacrificing map rendering performance.
 
-User-facing behavior is summarized in the [repository root README](../README.md). In-app roadmap items live in `airspace-sim/app/content/settings-roadmap.md`.
+User-facing behavior is summarized in the [repository root README](../../README.md). Simulation viewport behavior is documented in [Simulation Architecture](../architecture/simulation-architecture.md). In-app roadmap items live in `airspace-sim/app/content/settings-roadmap.md`.
+
+---
+
+## Shipped commits
+
+| Milestone | Reference |
+|-----------|-----------|
+| Initial plan document on `main` | [PR #88](https://github.com/danvanbueren/airspace-sim/pull/88) — superseded by `docs/plans/` layout in [PR #89](https://github.com/danvanbueren/airspace-sim/pull/89) |
+| Docs restructure and plan move to `docs/plans/` | [PR #89](https://github.com/danvanbueren/airspace-sim/pull/89) |
+| Phases 0–7 (implementation) | Not started |
+
+When a phase ships, add a row here with the commit SHA or PR link before checking items in the status table below.
 
 ---
 
@@ -22,7 +34,7 @@ User-facing behavior is summarized in the [repository root README](../README.md)
 | Lifecycle guards (defense in depth) | ❌ Not started | Optional safety nets |
 | Sensor tick display culling | ❌ Not started | Render only viewport ticks if scan area grows |
 | Performance validation | ❌ Not started | Existing scripts under `airspace-sim/scripts/` |
-| README architecture update | ❌ Not started | Clarify bounds split after implementation |
+| Architecture docs update | ❌ Not started | Clarify bounds split in [Simulation Architecture](../architecture/simulation-architecture.md) after implementation |
 
 ---
 
@@ -138,7 +150,7 @@ Phase 5  Sensor tick display culling
    ↓
 Phase 6  Performance validation
    ↓
-Phase 7  README + roadmap updates
+Phase 7  Architecture docs + roadmap updates
 ```
 
 ---
@@ -271,9 +283,10 @@ Run after implementation:
 
 After shipping:
 
-- Update root [README](../README.md) simulation architecture: display bounds ≠ sensor scan bounds; auto tracks persist across pan/zoom.
+- Update [Simulation Architecture](../architecture/simulation-architecture.md): display bounds ≠ sensor scan bounds; auto tracks persist across pan/zoom.
+- Update the root [README](../../README.md) simulation summary if user-facing wording changes.
 - Update `airspace-sim/app/content/settings-roadmap.md` when complete.
-- Mark phases ✅ in this document with commit/PR links.
+- Mark phases ✅ in this document with commit/PR links in **Shipped commits**.
 
 ---
 

@@ -227,26 +227,57 @@ Opening several PRs for the same area (for example copy edits, then input behavi
 
 Only open a second PR when the work is genuinely independent (different subsystem, no shared files, safe to merge in any order) or when the user requests a split.
 
-## README Documentation
+## Documentation (README and docs/)
 
-The repository root [`README.md`](../README.md) is the primary user-facing documentation. Treat it as part of every change, not a separate follow-up task.
+The repository root [`README.md`](../README.md) is the primary **user-facing** overview. Treat it and contributor docs under [`docs/`](../docs/README.md) as part of every change, not separate follow-up tasks.
+
+### Root README
 
 Whenever you add, remove, rename, or materially change code, validate whether the root README still accurately describes the project. Update it in the same work session when anything is out of date or missing. Do not leave README drift for a later pass.
 
-At minimum, review and update the README when your change affects:
+At minimum, review and update the root README when your change affects:
 
 - **Repository structure** — new, moved, or removed directories and files; update the tree and path descriptions.
-- **Business logic and workflows** — simulation behavior, operator flows, settings, persistence, merge/correlation/initiation rules, or API boundaries between UI and engine.
+- **Business logic and workflows** — simulation behavior, operator flows, settings, persistence, merge/correlation/initiation rules, or API boundaries between UI and engine (summarize briefly; link to `docs/` for depth).
 - **Architecture explanations** — provider layout, tick pipeline, module responsibilities, or how components and hooks connect.
 - **Setup and operations** — scripts, dependencies, environment assumptions, build/test commands, or how to run the app.
 - **Capabilities and roadmap** — user-visible features, toggles, panels, or planned work that should be discoverable without reading source.
 
-When updating the README:
+When updating the root README:
 
-- Keep the existing tone, structure, and level of detail; extend sections in place rather than duplicating content.
+- Keep it concise — short summaries with links to [`docs/architecture/`](../docs/architecture/README.md) for deep dives.
 - Prefer accurate, concise prose over listing every file touched.
 - If a change is internal-only with no user or contributor impact, briefly confirm the README is still correct; no edit is required.
 - The short [`airspace-sim/README.md`](README.md) should continue to point to the root README; update it only if the application directory role or quick-start steps change.
+
+### Contributor docs (`docs/`)
+
+Use `docs/` for contributor-facing detail that would make the root README too long:
+
+| Folder | Purpose |
+|--------|---------|
+| [`docs/architecture/`](../docs/architecture/README.md) | Application and simulation architecture deep dives |
+| [`docs/plans/`](../docs/plans/README.md) | Implementation plans with phased work and shipped-commit checklists |
+| [`docs/performance/`](../docs/performance/README.md) | Performance investigations and optimization roadmaps |
+
+When your change affects architecture, planned work, or measured performance:
+
+- Update the relevant doc in the same work session — do not leave doc drift for a later pass.
+- Add or adjust cross-links between the root README, architecture docs, and plans.
+- If architecture detail grows in the README during a change, move it to `docs/architecture/` and replace with a summary link.
+
+### Implementation plans (`docs/plans/`)
+
+Each plan file is the **single source of truth** for its feature area until the work ships.
+
+When you implement work covered by a plan:
+
+1. Update the plan’s **Shipped commits** section at the **top** of the file with the commit SHA or PR link **before** checking off status rows.
+2. Keep the **Status at a glance** checklist in sync with shipped commits and remaining phases.
+3. Mark completed checklist items with ✅ and link to the introducing commit or pull request.
+4. If scope or priorities change, update the plan body and any related architecture doc in the same session.
+
+When you add a new multi-step feature or refactor, create a new plan under `docs/plans/` and add an entry to [`docs/plans/README.md`](../docs/plans/README.md) and the root README architecture table if user-contributors should discover it.
 
 ## Settings Roadmap Page
 

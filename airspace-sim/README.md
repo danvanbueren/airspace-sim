@@ -4,4 +4,4 @@ Airspace Simulator is a non-secure browser-based simulator for practicing comman
 
 This project is personal. It is not owned, operated, sponsored, or endorsed by any government entity. The repository is unclassified and should only contain unclassified, non-sensitive, non-operational information.
 
-You are in the Next.js application directory. Run `npm install` and `npm run dev` from here. Full documentation (architecture, simulation pipeline, setup) is in the [repository root README](../README.md).
+You are in the Next.js application directory. Run `npm install` and `npm run dev` from here. Full documentation (setup, architecture summaries, contributor docs) is in the [repository root README](../README.md) and [docs/](../docs/README.md).

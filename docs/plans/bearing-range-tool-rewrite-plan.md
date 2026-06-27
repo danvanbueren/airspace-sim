@@ -10,7 +10,19 @@ This document is the **single source of truth** for how the bearing/range system
 3. What still needs to be built (track snapping).
 4. Exact data models, file boundaries, control bindings, and test expectations so a future agent can implement the remaining work **without re-discovering requirements in chat**.
 
-User-facing behavior is also summarized in the [repository root README](../README.md). In-app roadmap items live in `airspace-sim/app/content/settings-roadmap.md`.
+User-facing behavior is also summarized in the [repository root README](../../README.md). In-app roadmap items live in `airspace-sim/app/content/settings-roadmap.md`.
+
+---
+
+## Shipped commits
+
+| Milestone | Reference |
+|-----------|-----------|
+| Modular bearing/range rewrite (Phases 1–3) | [PR #73](https://github.com/danvanbueren/airspace-sim/pull/73) — merged to `main` |
+| Temporary vs permanent lines, keybinds UI, behavior modes (Phases 3b–4c) | On `main` — see status table below |
+| Track-attached endpoints (Phase 5) | Not started |
+
+When a phase ships, add a row here with the commit SHA or PR link before updating the status table.
 
 ---
 

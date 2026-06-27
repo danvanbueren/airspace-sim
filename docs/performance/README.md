@@ -2,6 +2,8 @@
 
 Investigation and optimization planning for simulator frame rate and responsiveness.
 
+Contributor documentation index: [docs/README.md](../README.md).
+
 ## Documents
 
 | Document | Summary |

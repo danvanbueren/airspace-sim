@@ -8,6 +8,17 @@ Phased roadmap from the June 2026 performance investigation, **updated after val
 
 ---
 
+## Shipped commits
+
+| Milestone | Reference |
+|-----------|-----------|
+| Live performance analytics overlay | Shipped — Settings → Advanced |
+| Phase 1–3 optimization work | Planned — see status in [performance/README.md](README.md) |
+
+When a phase ships, add a row here with the commit SHA or PR link before updating phase checklists.
+
+---
+
 ## Recommended sequence
 
 ```mermaid
