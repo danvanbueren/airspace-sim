@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useLayoutEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {
     buildStoredLayoutSnapshot,
     getPanelBoundsForViewport,
@@ -114,13 +114,13 @@ export function useFloatingActionPanelLayout({
     const [width, setWidth] = useState(() => clampPanelWidth(storedWidth))
     const [height, setHeight] = useState(() => normalizePanelHeight(storedHeight, displayStyle))
     const [position, setPosition] = useState(null)
-    const [isPositionReady, setIsPositionReady] = useState(false)
     const dragStateRef = useRef(null)
     const resizeStateRef = useRef(null)
     const positionAnchorRef = useRef(storedAnchor ?? null)
     const widthRef = useRef(width)
     const heightRef = useRef(height)
     const positionRef = useRef(position)
+    const pendingViewportCommitRef = useRef(null)
 
     widthRef.current = width
     heightRef.current = height
@@ -133,7 +133,6 @@ export function useFloatingActionPanelLayout({
         setWidth(normalizedLayout.width)
         setHeight(normalizedLayout.height)
         applyResolvedPosition(setPosition, normalizedLayout.position)
-        setIsPositionReady(true)
     }, [])
 
     const runPositionSync = useCallback((shouldCommitCorrections = false) => {
@@ -186,11 +185,11 @@ export function useFloatingActionPanelLayout({
             && viewportLayoutDiffersFromStored(storedLayoutFromProps, normalizedStoredLayout)
         ) {
             applyViewportNormalizedLayout(normalizedStoredLayout)
-            onLayoutCommit({
+            pendingViewportCommitRef.current = {
                 anchor: normalizedStoredLayout.anchor,
                 width: normalizedStoredLayout.width,
                 height: normalizedStoredLayout.height,
-            })
+            }
         }
 
         return true
@@ -199,11 +198,21 @@ export function useFloatingActionPanelLayout({
         contentMinHeight,
         mapContainerRef,
         minResizedHeight,
-        onLayoutCommit,
         storedAnchor,
         storedHeight,
         storedWidth,
     ])
+
+    useEffect(() => {
+        const pendingCommit = pendingViewportCommitRef.current
+
+        if (!pendingCommit || !onLayoutCommit) {
+            return
+        }
+
+        pendingViewportCommitRef.current = null
+        onLayoutCommit(pendingCommit)
+    })
 
     const commitPositionAnchor = useCallback((left, top) => {
         const containerSize = getContainerSize(mapContainerRef)
@@ -235,12 +244,9 @@ export function useFloatingActionPanelLayout({
     }, [displayStyle, runPositionSync, storedAnchor, storedHeight, storedWidth])
 
     useLayoutEffect(() => {
-        if (!mapContainerRef.current) {
-            return undefined
-        }
-
-        let frameRef = null
         let cancelled = false
+        let frameRef = null
+        let resizeObserver = null
 
         const scheduleSync = (shouldCommitCorrections = false) => {
             if (frameRef) {
@@ -260,27 +266,36 @@ export function useFloatingActionPanelLayout({
             })
         }
 
-        scheduleSync(true)
+        const attachObserver = () => {
+            if (cancelled) {
+                return
+            }
 
-        const resizeObserver = new ResizeObserver(() => {
+            if (!mapContainerRef.current) {
+                frameRef = requestAnimationFrame(attachObserver)
+                return
+            }
+
             scheduleSync(true)
-        })
 
-        resizeObserver.observe(mapContainerRef.current)
+            resizeObserver = new ResizeObserver(() => {
+                scheduleSync(true)
+            })
 
-        if (panelRef.current) {
-            resizeObserver.observe(panelRef.current)
+            resizeObserver.observe(mapContainerRef.current)
         }
+
+        attachObserver()
 
         return () => {
             cancelled = true
-            resizeObserver.disconnect()
+            resizeObserver?.disconnect()
 
             if (frameRef) {
                 cancelAnimationFrame(frameRef)
             }
         }
-    }, [mapContainerRef, panelRef, runPositionSync])
+    }, [mapContainerRef, runPositionSync])
 
     const handlePanelPointerDown = useCallback((event) => {
         event.stopPropagation()
@@ -468,7 +483,6 @@ export function useFloatingActionPanelLayout({
         position,
         width,
         height,
-        isPositionReady,
         handlePanelPointerDown,
         handleDragHandlePointerDown,
         handleDragHandlePointerMove,

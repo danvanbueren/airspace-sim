@@ -49,7 +49,6 @@ export default function ActionPanel({
         position,
         width,
         height,
-        isPositionReady,
         handlePanelPointerDown,
         handleDragHandlePointerDown,
         handleDragHandlePointerMove,
@@ -103,7 +102,6 @@ export default function ActionPanel({
                 width,
                 height: hasExplicitHeight ? height : 'auto',
                 zIndex,
-                visibility: isPositionReady ? 'visible' : 'hidden',
             }}
         >
             <BasicGlassPanel
