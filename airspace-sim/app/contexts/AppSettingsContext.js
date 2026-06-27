@@ -75,11 +75,11 @@ export {QUALITY_PRESET_CUSTOM} from '@/app/simulation/constants'
 export {BEARING_RANGE_BEHAVIOR_MODES, DEFAULT_BEARING_RANGE_BEHAVIOR} from '@/app/tools/map/bearingRangeBehavior'
 
 export const DEFAULT_APP_SETTINGS = {
-    gridReferenceSystem: GRID_REFERENCE_SYSTEMS.dd.value,
+    gridReferenceSystem: GRID_REFERENCE_SYSTEMS.killbox.value,
     bearingRangeBehavior: DEFAULT_BEARING_RANGE_BEHAVIOR,
     inhibitedAttentions: [],
     inhibitedAlerts: [],
-    showPerformanceOverlay: false,
+    showPerformanceOverlay: true,
     ...DEFAULT_SIMULATION_SETTINGS,
 }
 
@@ -178,7 +178,7 @@ function normalizeSettings(settings) {
         qualityPresetBeforeCustom,
         adaptivePerformanceEnabled: settings?.adaptivePerformanceEnabled !== false,
         simulationEnabled: settings?.simulationEnabled !== false,
-        showPerformanceOverlay: settings?.showPerformanceOverlay === true,
+        showPerformanceOverlay: settings?.showPerformanceOverlay !== false,
         inhibitedAttentions: normalizeInhibitedSignalIds(
             settings?.inhibitedAttentions,
             ATTENTION_SIGNAL_IDS,

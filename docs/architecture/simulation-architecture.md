@@ -238,4 +238,4 @@ Sensor and overlay visibility are display-only toggles:
 
 ## Development utilities
 
-In development builds, the stress harness is exposed on `window.__airspaceSimStressHarness` (see [`stressHarness.js`](../../airspace-sim/app/simulation/stressHarness.js)) for timing benchmarks. Enable **Show performance analytics overlay** in Settings → Advanced to view live FPS, tracks in view, firm track totals, and a stacked frame-time chart on the map.
+In development builds, the stress harness is exposed on `window.__airspaceSimStressHarness` (see [`stressHarness.js`](../../airspace-sim/app/simulation/stressHarness.js)) for timing benchmarks. The **Show performance analytics overlay** toggle in Settings → Advanced is on by default; disable it to hide the live FPS, track counts, and stacked frame-time chart on the map.

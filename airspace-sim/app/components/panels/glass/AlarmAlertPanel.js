@@ -29,7 +29,14 @@ function focusAlertTrack(alert, {getTrack, flyToTrack, flyToCoordinates}) {
 }
 
 export default function AlarmAlertPanel() {
-    const {alarmAlertQueue, deleteAlarmAlert, clearAlarmAlerts, flyToTrack, flyToCoordinates} = useAlarmAlertActions()
+    const {
+        alarmAlertQueue,
+        deleteAlarmAlert,
+        clearAlarmAlerts,
+        flyToTrack,
+        flyToCoordinates,
+        inhibitAlertSignal,
+    } = useAlarmAlertActions()
     const {getTrack} = useSimulation()
     const {appSettings} = useAppSettings()
     const [modalOpen, setModalOpen] = useState(false)
@@ -73,6 +80,11 @@ export default function AlarmAlertPanel() {
         deleteAlarmAlert(alert.id)
     }
 
+    const handleModalInhibit = (alert) => {
+        inhibitAlertSignal(alert.signalId)
+        closeDetailModal()
+    }
+
     const openDetailModal = (alertId) => {
         setFocusedAlertId(alertId)
         setModalOpen(true)
@@ -94,6 +106,7 @@ export default function AlarmAlertPanel() {
                     closeDetailModal()
                 }}
                 onDelete={handleModalDelete}
+                onInhibit={handleModalInhibit}
                 onFocusTrack={handleModalFocusTrack}
                 onOpenLink={handleModalOpenLink}
                 onFocusAlert={setFocusedAlertId}
@@ -154,6 +167,7 @@ export default function AlarmAlertPanel() {
                                     onContentClick={() => openDetailModal(alert.id)}
                                     onFocusTrack={() => focusAlertTrack(alert, focusTrackHandlers)}
                                     onOpenLink={() => openAlertLink(alert)}
+                                    onInhibit={() => inhibitAlertSignal(alert.signalId)}
                                     onDelete={() => deleteAlarmAlert(alert.id)}
                                 />
                             ))}

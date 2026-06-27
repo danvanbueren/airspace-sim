@@ -1,4 +1,4 @@
-import {isIffEmergencyAlertSignalId} from '@/app/simulation/signalDefinitions'
+import {getSignalLabel, isIffEmergencyAlertSignalId, MISC_SIGNAL_ID} from '@/app/simulation/signalDefinitions'
 
 /**
  * @param {{ signalId?: string }} alert
@@ -37,6 +37,15 @@ export function getAlertLinkAriaLabel(alert) {
     }
 
     return 'Open related link'
+}
+
+/**
+ * @param {{ signalId?: string }} alert
+ * @returns {string}
+ */
+export function getAlertInhibitAriaLabel(alert) {
+    const signalId = alert?.signalId ?? MISC_SIGNAL_ID
+    return `Inhibit ${getSignalLabel(signalId)} alerts`
 }
 
 /**
