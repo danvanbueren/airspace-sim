@@ -461,28 +461,35 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
             </Box>
         </Stack>
 
-        <Divider/>
-
-        <Button
-            fullWidth
-            variant='contained'
-            onClick={handleUnbindAll}
-            sx={{
-                bgcolor: 'grey.600',
-                color: 'common.white',
-                '&:hover': {
-                    bgcolor: 'grey.700',
-                },
-            }}
-        >
-            Unbind All Keybinds
-        </Button>
+        <Stack spacing={1}>
+            <Typography variant='body2' color='text.secondary'>
+                Clears every keyboard and mouse binding on this page, including bearing/range draw
+                and context menu buttons. Advanced sensitivity settings are not changed.
+            </Typography>
+            <Button
+                fullWidth
+                variant='outlined'
+                color='inherit'
+                onClick={handleUnbindAll}
+                sx={{
+                    borderColor: 'grey.500',
+                    color: 'text.primary',
+                    '&:hover': {
+                        borderColor: 'grey.700',
+                        bgcolor: 'action.hover',
+                    },
+                }}
+            >
+                Unbind All Keybinds
+            </Button>
+        </Stack>
 
         <SettingsModalPageRestoreFooter
             pageLabel='Reset Keybinds Page'
             pageHint='Resets keybinds on this page only.'
             onPageReset={handleResetDefaults}
             onAfterResetAll={() => setListeningForBinding(null)}
+            showTopDivider={false}
         />
     </Box>)
 }
