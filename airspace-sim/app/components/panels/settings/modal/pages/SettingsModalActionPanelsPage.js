@@ -142,7 +142,6 @@ function ActionPanelEditor({
                 borderRadius: 2,
                 p: 2,
                 scrollMarginTop: 16,
-                cursor: 'pointer',
             }}
         >
             <Stack spacing={2}>
