@@ -9,10 +9,13 @@ import {
 import {ACTION_PANEL_MIN_HEIGHT_PX, ACTION_PANEL_MIN_WIDTH_PX} from './normalizeActionPanels.js'
 
 /** Header row, divider, and card top padding (excluding body grid). */
-export const ACTION_PANEL_HEADER_CHROME_PX = 72
+export const ACTION_PANEL_HEADER_CHROME_PX = 84
 
 /** Extra body padding so the bottom row of controls is not clipped. */
-export const ACTION_PANEL_BODY_BOTTOM_PADDING_PX = 24
+export const ACTION_PANEL_BODY_BOTTOM_PADDING_PX = 36
+
+/** Clearance reserved above the resize grip in the panel chrome estimate. */
+export const ACTION_PANEL_RESIZE_HANDLE_CLEARANCE_PX = 12
 
 const LARGE_CONTROL_ROW_PX = 80
 
@@ -32,10 +35,11 @@ export function estimateActionPanelAutoHeight({
         const columnCount = getCompactGridColumnCount(panelWidthPx, itemCount)
         const rowCount = Math.ceil(itemCount / columnCount)
 
-        return ACTION_PANEL_HEADER_CHROME_PX
-            + (rowCount * COMPACT_BUTTON_MIN_HEIGHT_PX)
-            + (Math.max(0, rowCount - 1) * ACTION_PANEL_GRID_GAP_COMPACT_PX)
-            + ACTION_PANEL_BODY_BOTTOM_PADDING_PX
+    return ACTION_PANEL_HEADER_CHROME_PX
+        + (rowCount * COMPACT_BUTTON_MIN_HEIGHT_PX)
+        + (Math.max(0, rowCount - 1) * ACTION_PANEL_GRID_GAP_COMPACT_PX)
+        + ACTION_PANEL_BODY_BOTTOM_PADDING_PX
+        + ACTION_PANEL_RESIZE_HANDLE_CLEARANCE_PX
     }
 
     const columnCount = getLargeGridColumnCount(panelWidthPx, itemCount)
@@ -45,6 +49,7 @@ export function estimateActionPanelAutoHeight({
         + (rowCount * LARGE_CONTROL_ROW_PX)
         + (Math.max(0, rowCount - 1) * ACTION_PANEL_GRID_GAP_PX)
         + ACTION_PANEL_BODY_BOTTOM_PADDING_PX
+        + ACTION_PANEL_RESIZE_HANDLE_CLEARANCE_PX
 }
 
 export function resolveActionPanelLayoutSize({

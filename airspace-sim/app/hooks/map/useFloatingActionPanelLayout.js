@@ -176,6 +176,7 @@ export function useFloatingActionPanelLayout({
                 contentMinHeight,
                 minResizedHeight,
                 resolvedPanelSize: panelSize,
+                preserveDimensions: isResizing,
             },
         )
 

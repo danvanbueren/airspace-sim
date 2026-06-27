@@ -181,4 +181,26 @@ describe('normalizeLayoutForViewport', () => {
         assert.equal(viewportLayoutDiffersFromStored(storedLayout, normalizedLayout), true)
         assert.deepEqual(normalizedLayout.anchor, storedLayout.anchor)
     })
+
+    it('preserves panel dimensions while only updating position during active resize', () => {
+        const anchor = {
+            horizontal: {edge: 'right', offset: 20},
+            vertical: {edge: 'bottom', offset: 56},
+        }
+
+        const preservedLayout = resolveViewportLayoutFromAnchor(
+            anchor,
+            400,
+            320,
+            {width: 360, height: 240},
+            {
+                preserveDimensions: true,
+                resolvedPanelSize: {width: 400, height: 320},
+            },
+        )
+
+        assert.equal(preservedLayout.width, 400)
+        assert.equal(preservedLayout.height, 320)
+        assert.ok(preservedLayout.position.top >= 8)
+    })
 })

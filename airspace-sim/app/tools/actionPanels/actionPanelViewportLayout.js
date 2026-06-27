@@ -139,6 +139,7 @@ export function resolveViewportLayoutFromAnchor(
         contentMinHeight = ACTION_PANEL_MIN_HEIGHT_PX,
         minResizedHeight = contentMinHeight,
         resolvedPanelSize = null,
+        preserveDimensions = false,
     } = {},
 ) {
     if (!anchor || containerSize.width <= 0 || containerSize.height <= 0) {
@@ -146,12 +147,18 @@ export function resolveViewportLayoutFromAnchor(
     }
 
     const {maxWidth, maxHeight} = getViewportPanelDimensionLimits(containerSize, minResizedHeight)
-    const normalizedWidth = clampPanelWidth(width, maxWidth)
-    const normalizedHeight = clampExplicitPanelHeight(
-        height,
-        maxHeight,
-        minResizedHeight,
-    )
+    const normalizedWidth = preserveDimensions
+        ? clampPanelWidth(width)
+        : clampPanelWidth(width, maxWidth)
+    const normalizedHeight = preserveDimensions
+        ? (height === null || height === undefined
+            ? null
+            : clampExplicitPanelHeight(height, Number.POSITIVE_INFINITY, minResizedHeight))
+        : clampExplicitPanelHeight(
+            height,
+            maxHeight,
+            minResizedHeight,
+        )
     const panelSize = resolvedPanelSize ?? {
         width: normalizedWidth,
         height: normalizedHeight ?? contentMinHeight,
