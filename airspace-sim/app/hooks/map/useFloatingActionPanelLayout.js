@@ -8,6 +8,7 @@ import {
     getPanelBoundsForViewport,
     getViewportMaxPanelDimensions,
     normalizeLayoutForViewport,
+    runtimeLayoutDiffersFromStored,
     viewportLayoutDiffersFromStored,
 } from '@/app/actionPanels/actionPanelViewportLayout'
 import {
@@ -139,28 +140,47 @@ export function useFloatingActionPanelLayout({
             return false
         }
 
-        const panelSize = getLayoutPanelSize()
         const storedLayoutFromProps = buildStoredLayoutSnapshot(
             storedAnchor,
-            storedWidth,
-            storedHeight,
+            clampPanelWidth(storedWidth),
+            normalizePanelHeight(storedHeight, displayStyle),
         )
         const currentLayout = buildStoredLayoutSnapshot(
             positionAnchorRef.current,
             widthRef.current,
             heightRef.current,
         )
-        const normalizedCurrentLayout = normalizeLayoutForViewport(currentLayout, containerSize, {
+        const shouldFollowStoredLayout = runtimeLayoutDiffersFromStored(
+            currentLayout,
+            storedLayoutFromProps,
+        )
+
+        if (shouldFollowStoredLayout) {
+            positionAnchorRef.current = storedAnchor
+            widthRef.current = storedLayoutFromProps.width
+            heightRef.current = storedLayoutFromProps.height
+        }
+
+        const sourceLayout = shouldFollowStoredLayout ? storedLayoutFromProps : currentLayout
+        const panelSize = resolveActionPanelLayoutSize({
+            panelRef,
+            width: sourceLayout.width,
+            height: sourceLayout.height,
+            itemIds,
+            displayStyle,
+            contentMinHeight,
+        })
+        const normalizedLayout = normalizeLayoutForViewport(sourceLayout, containerSize, {
             contentMinHeight,
             minResizedHeight,
             resolvedPanelSize: panelSize,
         })
 
-        if (!normalizedCurrentLayout) {
+        if (!normalizedLayout) {
             return false
         }
 
-        applyViewportNormalizedLayout(normalizedCurrentLayout)
+        applyViewportNormalizedLayout(normalizedLayout)
 
         if (!shouldCommitCorrections || !onLayoutCommit) {
             return true
@@ -194,7 +214,10 @@ export function useFloatingActionPanelLayout({
         contentMinHeight,
         getLayoutPanelSize,
         mapContainerRef,
+        displayStyle,
+        itemIds,
         minResizedHeight,
+        panelRef,
         storedAnchor,
         storedHeight,
         storedWidth,
@@ -248,15 +271,6 @@ export function useFloatingActionPanelLayout({
     }, [getLayoutPanelSize, mapContainerRef])
 
     useLayoutEffect(() => {
-        setWidth(clampPanelWidth(storedWidth))
-    }, [storedWidth])
-
-    useLayoutEffect(() => {
-        setHeight(normalizePanelHeight(storedHeight, displayStyle))
-    }, [displayStyle, storedHeight])
-
-    useLayoutEffect(() => {
-        positionAnchorRef.current = storedAnchor ?? positionAnchorRef.current
         runPositionSync(true)
     }, [displayStyle, itemIds, runPositionSync, storedAnchor, storedHeight, storedWidth])
 

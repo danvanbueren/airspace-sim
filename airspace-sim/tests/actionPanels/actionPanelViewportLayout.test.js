@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {
     normalizeLayoutForViewport,
+    runtimeLayoutDiffersFromStored,
     viewportLayoutDiffersFromStored,
 } from '../../app/actionPanels/actionPanelViewportLayout.js'
 import {estimateActionPanelAutoHeight} from '../../app/actionPanels/actionPanelSizeEstimate.js'
@@ -80,6 +81,25 @@ describe('normalizeLayoutForViewport', () => {
         assert.ok(normalized.width < 900)
         assert.ok(normalized.width >= ACTION_PANEL_MIN_WIDTH_PX)
         assert.ok(normalized.position.left + normalized.width <= 360)
+    })
+
+    it('detects when runtime panel dimensions diverge from stored props', () => {
+        const storedLayout = {
+            anchor: {
+                horizontal: {edge: 'left', offset: 20},
+                vertical: {edge: 'top', offset: 20},
+            },
+            width: 400,
+            height: null,
+        }
+        const runtimeLayout = {
+            ...storedLayout,
+            width: 640,
+            height: 320,
+        }
+
+        assert.equal(runtimeLayoutDiffersFromStored(runtimeLayout, storedLayout), true)
+        assert.equal(runtimeLayoutDiffersFromStored(storedLayout, storedLayout), false)
     })
 
     it('reports when a stored layout needs correction', () => {

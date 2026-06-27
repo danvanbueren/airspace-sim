@@ -177,6 +177,20 @@ export function viewportLayoutDiffersFromStored(storedLayout, normalizedLayout) 
         || storedLayout.height !== normalizedLayout.height
 }
 
+export function runtimeLayoutDiffersFromStored(runtimeLayout, storedLayout) {
+    if (!storedLayout?.anchor) {
+        return false
+    }
+
+    if (!runtimeLayout?.anchor) {
+        return true
+    }
+
+    return !edgeAnchorsEqual(runtimeLayout.anchor, storedLayout.anchor)
+        || runtimeLayout.width !== storedLayout.width
+        || runtimeLayout.height !== storedLayout.height
+}
+
 export function buildStoredLayoutSnapshot(anchor, width, height) {
     return {
         anchor,

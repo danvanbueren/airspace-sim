@@ -63,8 +63,10 @@ export function ActionPanelsProvider({children, initialActionPanels}) {
     }, [])
 
     const resetActionPanelsState = useCallback(() => {
-        writeActionPanelsCookie(DEFAULT_ACTION_PANELS_STATE)
-        setActionPanelsState(DEFAULT_ACTION_PANELS_STATE)
+        const defaultState = structuredClone(DEFAULT_ACTION_PANELS_STATE)
+
+        writeActionPanelsCookie(defaultState)
+        setActionPanelsState(defaultState)
     }, [])
 
     const addActionPanel = useCallback(({title} = {}) => {
