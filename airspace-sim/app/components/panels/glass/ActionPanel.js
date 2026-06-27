@@ -5,7 +5,8 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import EditIcon from '@mui/icons-material/Edit'
 import {Box, Divider, IconButton, Typography} from '@mui/material'
 import BasicGlassPanel from './BasicGlassPanel'
-import ActionPanelControls from './ActionPanelControls'
+import ActionPanelControls, {ActionPanelEmptyContent} from './ActionPanelControls'
+import {filterRenderableItemIds} from '@/app/actionPanels/actionPanelRegistry'
 import {FLOATING_DRAGGABLE_IDS} from '@/app/constants/floatingDraggableIds'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 import {useFloatingActionPanelLayout} from '@/app/hooks/map/useFloatingActionPanelLayout'
@@ -48,6 +49,7 @@ export default function ActionPanel({
         position,
         width,
         height,
+        isPositionReady,
         handlePanelPointerDown,
         handleDragHandlePointerDown,
         handleDragHandlePointerMove,
@@ -59,6 +61,7 @@ export default function ActionPanel({
         mapContainerRef,
         panelRef,
         interactionsEnabled,
+        displayStyle: panel.displayStyle,
         storedAnchor: layout.anchor,
         storedWidth: layout.width,
         storedHeight: layout.height,
@@ -66,6 +69,7 @@ export default function ActionPanel({
     })
 
     const hasExplicitHeight = typeof height === 'number'
+    const hasPanelItems = filterRenderableItemIds(panel.itemIds).length > 0
 
     const handlePanelActivate = useCallback((event) => {
         bringToFront()
@@ -99,6 +103,7 @@ export default function ActionPanel({
                 width,
                 height: hasExplicitHeight ? height : 'auto',
                 zIndex,
+                visibility: isPositionReady ? 'visible' : 'hidden',
             }}
         >
             <BasicGlassPanel
@@ -161,11 +166,15 @@ export default function ActionPanel({
                     </>
                 )}
             >
-                <ActionPanelControls
-                    itemIds={panel.itemIds}
-                    displayStyle={panel.displayStyle}
-                    panelWidthPx={width}
-                />
+                {hasPanelItems ? (
+                    <ActionPanelControls
+                        itemIds={panel.itemIds}
+                        displayStyle={panel.displayStyle}
+                        panelWidthPx={width}
+                    />
+                ) : (
+                    <ActionPanelEmptyContent onConfigure={handleEditSettings}/>
+                )}
             </BasicGlassPanel>
 
             <Box

@@ -5,8 +5,10 @@ import {
     Box,
     Button,
     FormControlLabel,
+    Link,
     Switch,
     ToggleButton,
+    Typography,
 } from '@mui/material'
 import {
     ACTION_PANEL_DISPLAY_STYLES,
@@ -48,6 +50,28 @@ const MONO_LABEL_STYLE = {
     textOverflow: 'ellipsis',
     fontFamily: 'monospace',
     fontWeight: 'bold',
+}
+
+export function ActionPanelEmptyContent({onConfigure}) {
+    return (
+        <Typography
+            variant='body2'
+            color='text.secondary'
+            sx={{fontFamily: 'monospace', lineHeight: 1.6}}
+        >
+            This panel is empty and needs to be configured.{' '}
+            <Link
+                component='button'
+                type='button'
+                variant='body2'
+                onClick={onConfigure}
+                sx={{fontFamily: 'inherit', verticalAlign: 'baseline'}}
+            >
+                Open Action Panel settings
+            </Link>
+            {' '}to add buttons and toggles.
+        </Typography>
+    )
 }
 
 function useActionPanelItemActions() {
@@ -225,24 +249,30 @@ function UnifiedCompactControls({
                 }
 
                 return (
-                    <Button
+                    <Box
                         key={`action-panel-compact-button-${itemId}`}
-                        variant='outlined'
-                        color='inherit'
-                        size='small'
-                        fullWidth
                         sx={{
-                            minHeight: COMPACT_BUTTON_MIN_HEIGHT_PX,
-                            mx: `${COMPACT_BUTTON_HORIZONTAL_INSET_PX}px`,
-                            px: 2,
-                            fontFamily: 'monospace',
-                            fontWeight: 'bold',
-                            justifyContent: 'flex-start',
+                            minWidth: 0,
+                            px: `${COMPACT_BUTTON_HORIZONTAL_INSET_PX}px`,
                         }}
-                        onClick={() => runButtonAction(definition.actionKey)}
                     >
-                        {definition.label}
-                    </Button>
+                        <Button
+                            variant='outlined'
+                            color='inherit'
+                            size='small'
+                            fullWidth
+                            sx={{
+                                minHeight: COMPACT_BUTTON_MIN_HEIGHT_PX,
+                                px: 2,
+                                fontFamily: 'monospace',
+                                fontWeight: 'bold',
+                                justifyContent: 'flex-start',
+                            }}
+                            onClick={() => runButtonAction(definition.actionKey)}
+                        >
+                            {definition.label}
+                        </Button>
+                    </Box>
                 )
             })}
         </ResponsiveGrid>

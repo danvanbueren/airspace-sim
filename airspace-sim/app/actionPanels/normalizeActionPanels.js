@@ -1,6 +1,5 @@
 import {
     ACTION_PANEL_DISPLAY_STYLES,
-    ACTION_PANEL_ITEM_CATALOG_BY_ID,
     filterRenderableItemIds,
 } from './actionPanelRegistry.js'
 import {
@@ -10,8 +9,18 @@ import {
 } from './actionPanelDefaults.js'
 import {edgeAnchorsEqual} from '../tools/map/edgeAnchoredPosition.js'
 
-export const ACTION_PANEL_MIN_WIDTH_PX = 160
-export const ACTION_PANEL_MIN_HEIGHT_PX = 120
+export const ACTION_PANEL_MIN_WIDTH_PX = 200
+export const ACTION_PANEL_MIN_HEIGHT_PX = 140
+export const ACTION_PANEL_LARGE_MIN_RESIZED_HEIGHT_PX = 185
+export const ACTION_PANEL_COMPACT_MIN_RESIZED_HEIGHT_PX = 145
+
+export function getActionPanelMinResizedHeight(displayStyle) {
+    if (displayStyle === ACTION_PANEL_DISPLAY_STYLES.COMPACT) {
+        return ACTION_PANEL_COMPACT_MIN_RESIZED_HEIGHT_PX
+    }
+
+    return ACTION_PANEL_LARGE_MIN_RESIZED_HEIGHT_PX
+}
 
 function clampPanelWidth(width, maxWidth = Number.POSITIVE_INFINITY) {
     const numericWidth = Number(width)
@@ -26,7 +35,7 @@ function clampPanelWidth(width, maxWidth = Number.POSITIVE_INFINITY) {
     )
 }
 
-function normalizePanelHeight(height) {
+function normalizePanelHeight(height, displayStyle = ACTION_PANEL_DISPLAY_STYLES.LARGE) {
     if (height === null || height === undefined) {
         return null
     }
@@ -37,7 +46,7 @@ function normalizePanelHeight(height) {
         return null
     }
 
-    return Math.max(ACTION_PANEL_MIN_HEIGHT_PX, Math.round(numericHeight))
+    return Math.max(getActionPanelMinResizedHeight(displayStyle), Math.round(numericHeight))
 }
 
 function normalizeAnchorOffset(value, fallbackValue) {
@@ -182,7 +191,10 @@ export function normalizeActionPanelsState(state) {
         layouts[panel.id] = {
             anchor: normalizeAnchor(storedLayout?.anchor, fallbackLayout.anchor),
             width: clampPanelWidth(storedLayout?.width ?? fallbackLayout.width),
-            height: normalizePanelHeight(storedLayout?.height ?? fallbackLayout.height),
+            height: normalizePanelHeight(
+                storedLayout?.height ?? fallbackLayout.height,
+                panel.displayStyle,
+            ),
         }
     })
 
