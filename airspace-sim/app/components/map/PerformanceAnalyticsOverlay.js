@@ -22,6 +22,7 @@ import {
     PERFORMANCE_BUDGET_LINE_COLOR,
     PERFORMANCE_TARGET_FRAME_MS,
 } from '@/app/simulation/performanceFrameSegments'
+import PerformanceAnalyticsBackground from './PerformanceAnalyticsBackground'
 import PerformanceFrameTimeChart from './PerformanceFrameTimeChart'
 import FpsStatChip from './FpsStatChip'
 import FrameMsStatChip from './FrameMsStatChip'
@@ -166,6 +167,7 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
             style={GLASS_PANEL_BORDER_STYLE}
             sx={(theme) => ({
                 ...getGlassPanelSurfaceSx(theme),
+                backgroundColor: 'rgba(8, 10, 18, 0.28)',
                 position: 'absolute',
                 ...(position
                     ? {
@@ -186,6 +188,13 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                 overflow: 'hidden',
             })}
         >
+            <PerformanceAnalyticsBackground
+                enabled={enabled}
+                frameMs={metrics.frameMs}
+                peakFrameMs={metrics.peakFrameMs}
+            />
+
+            <Box sx={{position: 'relative', zIndex: 1}}>
             <Box
                 onPointerDown={handleDragHandleActivate}
                 onPointerMove={handleDragHandlePointerMove}
@@ -352,6 +361,7 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                     {`Colored bar segments show peak measured compute for each workload during each 1 s period. The horizontal line marks average compute for that period; it is colored red when above ${PERFORMANCE_50FPS_BUDGET_MS} ms, yellow when above ${PERFORMANCE_TARGET_FRAME_MS} ms, and green otherwise.`}
                 </Typography>
             </Stack>
+            </Box>
         </Card>
     )
 }

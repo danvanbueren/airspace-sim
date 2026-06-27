@@ -6,7 +6,7 @@ Live tooling for observing frame budget pressure while operating the simulator.
 
 **Settings → Advanced → Show performance analytics overlay**
 
-When enabled, a **semi-transparent** panel (`rgba(0, 0, 0, 0.5)` with backdrop blur) appears at the bottom-right of the map.
+When enabled, a **semi-transparent glass panel** with backdrop blur appears at the bottom-right of the map. Behind the stats and chart, a subdued animated background of heavily blurred color blobs drifts slowly; palette shifts from cool blue/purple (healthy frame budget) toward amber and red as measured compute pressure rises. Color and motion ease over several seconds rather than snapping to each update.
 
 ### Stacked frame-time chart
 
@@ -52,6 +52,8 @@ The overlay UI and chart history refresh every **1 s** — each column summarize
 | `app/simulation/performanceFrameSegments.js` | Segment keys, colors, history length |
 | `app/contexts/PerformanceMonitorContext.js` | Provider, RAF frame commits, instrumentation hooks |
 | `app/components/map/PerformanceAnalyticsOverlay.js` | Overlay shell + legend |
+| `app/components/map/PerformanceAnalyticsBackground.js` | Heat-reactive blurred blob background |
+| `app/tools/performance/performanceBackgroundPalette.js` | Heat mapping, palette stops, easing helpers |
 | `app/components/map/PerformanceFrameTimeChart.js` | Canvas stacked bar renderer |
 
 ### Instrumentation hooks
