@@ -1,21 +1,35 @@
 'use client'
 
-import {useLayoutEffect, useRef, useState} from 'react'
+import {useLayoutEffect, useRef} from 'react'
 import {alpha, Box, Button, Modal, Stack, Typography} from '@mui/material'
 import AlarmAlertListItem from './AlarmAlertListItem'
-import {GLASS_PANEL_BORDER_STYLE, getGlassPanelSurfaceSx} from './glassPanelSurface'
-import {calculateAlarmAlertModalDimensions} from '@/app/tools/alerts/alarmAlertModalDimensions'
+import {GLASS_PANEL_BORDER_STYLE} from './glassPanelSurface'
+import {
+    calculateAlarmAlertModalDimensions,
+    estimateAlarmAlertContentHeight,
+    getAlarmAlertModalChromeHeight,
+} from '@/app/tools/alerts/alarmAlertModalDimensions'
 
 const MODAL_PADDING_PX = 24
-const CLEAR_ALL_BUTTON_HEIGHT_PX = 36
-const END_OF_ALERTS_HEIGHT_PX = 28
 
-function getModalChromeHeight(showClearAll) {
-    return (
-        MODAL_PADDING_PX * 2
-        + (showClearAll ? CLEAR_ALL_BUTTON_HEIGHT_PX + 8 : 0)
-        + END_OF_ALERTS_HEIGHT_PX
-    )
+function getRootFontSizePx() {
+    if (typeof window === 'undefined') {
+        return 16
+    }
+
+    return Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+}
+
+function computeModalDimensions(alerts, showClearAll) {
+    const rootFontSizePx = getRootFontSizePx()
+
+    return calculateAlarmAlertModalDimensions({
+        contentScrollHeight: estimateAlarmAlertContentHeight(alerts),
+        chromeHeight: getAlarmAlertModalChromeHeight(showClearAll),
+        viewportHeight: window.innerHeight,
+        viewportWidth: window.innerWidth,
+        rootFontSizePx,
+    })
 }
 
 export default function AlarmAlertDetailModal({
@@ -29,45 +43,23 @@ export default function AlarmAlertDetailModal({
     onOpenLink,
 }) {
     const scrollContainerRef = useRef(null)
-    const contentRef = useRef(null)
     const alertItemRefs = useRef(new Map())
-    const dimensionsLockedRef = useRef(false)
-    const [lockedDimensions, setLockedDimensions] = useState(null)
+    const lockedDimensionsRef = useRef(null)
+    const wasOpenRef = useRef(false)
 
     const showClearAll = alerts.length > 1
 
-    useLayoutEffect(() => {
-        if (!open) {
-            dimensionsLockedRef.current = false
-            setLockedDimensions(null)
-            return
-        }
+    if (open && !wasOpenRef.current) {
+        lockedDimensionsRef.current = computeModalDimensions(alerts, showClearAll)
+    }
 
-        if (dimensionsLockedRef.current) {
-            return
-        }
+    if (!open) {
+        lockedDimensionsRef.current = null
+    }
 
-        const contentElement = contentRef.current
-        if (!contentElement) {
-            return
-        }
+    wasOpenRef.current = open
 
-        const rootFontSizePx = Number.parseFloat(
-            getComputedStyle(document.documentElement).fontSize,
-        ) || 16
-        const chromeHeight = getModalChromeHeight(showClearAll)
-
-        const {width, height} = calculateAlarmAlertModalDimensions({
-            contentScrollHeight: contentElement.scrollHeight,
-            chromeHeight,
-            viewportHeight: window.innerHeight,
-            viewportWidth: window.innerWidth,
-            rootFontSizePx,
-        })
-
-        dimensionsLockedRef.current = true
-        setLockedDimensions({width, height})
-    }, [open, showClearAll])
+    const lockedDimensions = lockedDimensionsRef.current
 
     useLayoutEffect(() => {
         if (!open || !focusedAlertId) {
@@ -76,7 +68,7 @@ export default function AlarmAlertDetailModal({
 
         const alertElement = alertItemRefs.current.get(focusedAlertId)
         alertElement?.scrollIntoView({block: 'center'})
-    }, [open, focusedAlertId, lockedDimensions])
+    }, [open, focusedAlertId])
 
     const setAlertItemRef = (alertId) => (element) => {
         if (element) {
@@ -85,6 +77,10 @@ export default function AlarmAlertDetailModal({
         }
 
         alertItemRefs.current.delete(alertId)
+    }
+
+    if (!open || !lockedDimensions) {
+        return null
     }
 
     return (
@@ -102,23 +98,15 @@ export default function AlarmAlertDetailModal({
                     flexDirection: 'column',
                     outline: 'none',
                     overflow: 'hidden',
+                    width: lockedDimensions.width,
+                    height: lockedDimensions.height,
+                    maxWidth: '90vw',
+                    maxHeight: '90dvh',
                     p: `${MODAL_PADDING_PX}px`,
                     ...GLASS_PANEL_BORDER_STYLE,
                     backgroundColor: alpha(theme.palette.background.paper, 0.75),
                     backdropFilter: 'blur(10px)',
                     boxShadow: 24,
-                    ...(lockedDimensions
-                        ? {
-                            width: lockedDimensions.width,
-                            height: lockedDimensions.height,
-                            maxWidth: '90vw',
-                            maxHeight: '90dvh',
-                        }
-                        : {
-                            visibility: 'hidden',
-                            width: 'min(40rem, 90vw)',
-                            maxHeight: '90dvh',
-                        }),
                 })}
             >
                 {showClearAll ? (
@@ -151,7 +139,6 @@ export default function AlarmAlertDetailModal({
                     }}
                 >
                     <Stack
-                        ref={contentRef}
                         direction='column'
                         spacing={1}
                         sx={{

@@ -1,6 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {calculateAlarmAlertModalDimensions} from '../../app/tools/alerts/alarmAlertModalDimensions.js'
+import {
+    calculateAlarmAlertModalDimensions,
+    estimateAlarmAlertContentHeight,
+    getAlarmAlertModalChromeHeight,
+} from '../../app/tools/alerts/alarmAlertModalDimensions.js'
 
 test('calculateAlarmAlertModalDimensions links width to height using panel ratio', () => {
     const dimensions = calculateAlarmAlertModalDimensions({
@@ -39,4 +43,24 @@ test('calculateAlarmAlertModalDimensions enforces panel minimum height', () => {
 
     assert.equal(dimensions.height, 160)
     assert.equal(dimensions.width, 320)
+})
+
+test('estimateAlarmAlertContentHeight grows with message length and alert count', () => {
+    const singleShort = estimateAlarmAlertContentHeight([
+        {message: 'Short alert'},
+    ])
+    const singleLong = estimateAlarmAlertContentHeight([
+        {message: 'A'.repeat(200)},
+    ])
+    const multiple = estimateAlarmAlertContentHeight([
+        {message: 'First'},
+        {message: 'Second'},
+    ])
+
+    assert.ok(singleLong > singleShort)
+    assert.ok(multiple > singleShort)
+})
+
+test('getAlarmAlertModalChromeHeight includes Clear All chrome when requested', () => {
+    assert.ok(getAlarmAlertModalChromeHeight(true) > getAlarmAlertModalChromeHeight(false))
 })
