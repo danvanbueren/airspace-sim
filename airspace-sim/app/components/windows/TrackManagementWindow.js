@@ -21,6 +21,8 @@ import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
+import {useMapContainerSize} from '@/app/hooks/map/useMapContainerSize'
+import {getMapFloatingWindowMaxHeight} from '@/app/tools/map/mapFloatingWindowLayout'
 import {formatCoordinatePairForGridReferenceSystem} from '@/app/tools/formatting/GridReferenceFormatting'
 import {
     formatEditableWholeNumber,
@@ -303,6 +305,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
     const trackManagementWindowRef = useRef(null)
+    const mapContainerSize = useMapContainerSize(mapContainerRef)
     const [kinematicFieldDrafts, setKinematicFieldDrafts] = useState({})
     const [kinematicFieldErrors, setKinematicFieldErrors] = useState({})
     const [callsignDraft, setCallsignDraft] = useState(null)
@@ -310,9 +313,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     const kinematicFieldDraftsRef = useRef({})
     const callsignDraftRef = useRef(null)
     const focusedFieldsRef = useRef(new Set())
+    const viewportMaxWindowHeight = getMapFloatingWindowMaxHeight(mapContainerSize.height)
     const trackManagementWindowSize = useMeasuredElementSize(
         trackManagementWindowRef,
-        [trackManagementWindow, appSettings.gridReferenceSystem],
+        [trackManagementWindow, appSettings.gridReferenceSystem, viewportMaxWindowHeight],
     )
     const setTrackManagementWindowRef = useCallback((element) => {
         trackManagementWindowRef.current = element
@@ -733,6 +737,9 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 ...windowPosition,
                 zIndex,
                 width: 300,
+                maxHeight: viewportMaxWindowHeight,
+                display: 'flex',
+                flexDirection: 'column',
                 pointerEvents: 'auto',
                 userSelect: 'none',
                 overflow: 'hidden',
@@ -759,6 +766,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     gap: 1,
                     cursor: 'move',
                     touchAction: 'none',
+                    flexShrink: 0,
                 }}
             >
                 <DragIndicatorIcon
@@ -794,6 +802,13 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 </IconButton>
             </Box>
 
+            <Box
+                sx={{
+                    overflowY: 'auto',
+                    flex: '1 1 auto',
+                    minHeight: 0,
+                }}
+            >
             <Stack spacing={1.5} sx={{p: 2}}>
                 <Typography sx={{fontWeight: 'bold'}}>
                     Track ID: {trackManagementWindow.trackId}
@@ -1011,6 +1026,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 {renderKinematicField('speed', 'Speed (kts)')}
                 {renderKinematicField('altitude', 'Altitude (ft)')}
             </Stack>
+            </Box>
         </Paper>
     )
 })

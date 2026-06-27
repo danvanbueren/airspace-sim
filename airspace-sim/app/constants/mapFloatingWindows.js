@@ -1,0 +1,1 @@
+export const MAP_FLOATING_WINDOW_EDGE_PADDING = 8
