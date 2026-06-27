@@ -182,7 +182,7 @@ export function buildControlReference(controlBindings, {bearingRangeBehavior = '
                 {
                     action: 'Zoom in or out',
                     combo: 'Scroll wheel',
-                    notes: 'Fixed — not rebindable today; also use Fixed Function Panel buttons',
+                    notes: 'Fixed — not rebindable today; also use Action Panel zoom buttons',
                 },
             ],
         },
@@ -245,7 +245,7 @@ export function buildControlReference(controlBindings, {bearingRangeBehavior = '
                 },
                 {
                     action: 'Zoom in',
-                    combo: 'Fixed Function Panel → Zoom In',
+                    combo: 'Action Panel → Zoom In',
                 },
                 {
                     action: 'Zoom out',

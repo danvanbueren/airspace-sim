@@ -1,3 +1,4 @@
+import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize'
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu'
 import InfoIcon from '@mui/icons-material/Info'
 import KeyboardIcon from '@mui/icons-material/Keyboard'
@@ -9,6 +10,7 @@ import TuneIcon from '@mui/icons-material/Tune'
 
 export const SETTINGS_PAGE_IDS = [
     'lookAndFeel',
+    'actionPanels',
     'keybinds',
     'alerts',
     'simulation',
@@ -20,6 +22,7 @@ export const SETTINGS_PAGE_IDS = [
 
 export const SETTINGS_PAGE_TITLES = {
     lookAndFeel: 'Look & Feel',
+    actionPanels: 'Action Panels',
     keybinds: 'Keybinds',
     alerts: 'Alerts & Attentions',
     simulation: 'Simulation Engine',
@@ -31,6 +34,7 @@ export const SETTINGS_PAGE_TITLES = {
 
 export const SETTINGS_PAGE_ICONS = {
     lookAndFeel: PaletteIcon,
+    actionPanels: DashboardCustomizeIcon,
     keybinds: KeyboardIcon,
     alerts: NotificationsActiveIcon,
     simulation: MemoryIcon,
@@ -46,7 +50,7 @@ export const SETTINGS_MODAL_SIDEBAR_HEADINGS = {
 
 export const SETTINGS_NAV_SECTIONS = [
     {type: 'divider'},
-    {type: 'pages', pageIds: ['lookAndFeel', 'keybinds', 'alerts'], modalHeading: 'Customization'},
+    {type: 'pages', pageIds: ['lookAndFeel', 'actionPanels', 'keybinds', 'alerts'], modalHeading: 'Customization'},
     {type: 'divider'},
     {type: 'pages', pageIds: ['simulation', 'advanced'], modalHeading: 'System'},
     {type: 'divider'},

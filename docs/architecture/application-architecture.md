@@ -16,11 +16,12 @@ See the [repository root README](../../README.md) for setup and a high-level ove
 | `MapStateProvider` | Registered map instance, alarm alerts, fixed-function zoom controls |
 | `CustomThemeContext` | Light/dark theme (cookie-backed) |
 | `AppSettingsProvider` | Grid reference system, simulation tuning (cookie-backed) |
+| `ActionPanelsProvider` | Modular map action panels — layout, items, display style (cookie-backed) |
 | `ControlBindingsProvider` | Keyboard/mouse bindings (cookie-backed) |
-| `SensorDisplayProvider` | Category Select Panel toggle state |
+| `SensorDisplayProvider` | Sensor display toggle state (IFF/radar/airport layers) |
 | `SimulationProvider` | Singleton `TrackEngine`, manual track APIs |
 
-[`app/page.js`](../../airspace-sim/app/page.js) gates unsupported mobile and tablet devices before rendering [`app/Home.js`](../../airspace-sim/app/Home.js), which composes the main shell: classification bars, glass panels (Category Select, Fixed Function, alarm alerts, settings toolbelt), a dedicated map overlay layer for floating track windows, and the full-screen map.
+[`app/page.js`](../../airspace-sim/app/page.js) gates unsupported mobile and tablet devices before rendering [`app/Home.js`](../../airspace-sim/app/Home.js), which composes the main shell: classification bars, draggable action panels, alarm alerts, settings toolbelt, a dedicated map overlay layer for floating track windows, and the full-screen map.
 
 ## Map workspace
 
@@ -42,8 +43,8 @@ Map styles are loaded from [`public/map-styles/`](../../airspace-sim/public/map-
 | Edit track (including correlation mode) | Click symbol or context menu → Track Management window | `upsertManualTrack` (sets `userDirected`; converts auto tracks to manual) |
 | Drop track | Context menu on existing track | `dropTrack` |
 | Bearing/range | Right-drag on map (behavior configurable in Settings → Look & Feel) | Local map tool (not part of simulation engine) |
-| Sensor/history visibility | Category Select Panel | Display toggles only (no sim logic) |
-| Map zoom | Fixed Function Panel → Zoom In / Zoom Out | `MapStateProvider` zoom helpers (display only) |
+| Sensor/history visibility | Action panels (sensor toggles) | Display toggles only (no sim logic) |
+| Map zoom | Action panels (Zoom In / Zoom Out) | `MapStateProvider` zoom helpers (display only) |
 
 The Track Management window edits callsign (alphanumeric, unique across tracks), domain, identity, MIL-STD type, platform-specific type (searchable catalog), optional symbol info fields, heading, speed, altitude, and correlation mode. A read-only **IFF Mode 3** field shows the squawk code from the last correlated IFF return (greyed out with a stale pill when the code has not refreshed). While a window is open, displayed fields refresh from the live simulation about once per second; a field pauses live updates while it is focused for editing. Focusing a kinematic field without changing its value does not count as an operator commit. Committed heading, speed, altitude, or position edits hold automatic correlation and truth-aircraft kinematic updates for about 10 seconds; after the hold expires, correlation regains control and live kinematic fields resume syncing. Invalid or duplicate callsigns are rejected in the UI and track store. Any committed edit from the window routes through `upsertManualTrack`, including correlation mode changes.
 
@@ -51,4 +52,4 @@ Manual track edits are marked `userDirected` so they take priority when tracks m
 
 ## Settings and persistence
 
-Settings opened from the toolbelt modal are stored in the `appSettings` cookie via [`AppSettingsContext`](../../airspace-sim/app/contexts/AppSettingsContext.js). Simulation-related fields are passed to `TrackEngine` as `simulationSettings`. Keybinds and theme use separate cookies.
+Settings opened from the toolbelt modal are stored in the `appSettings` cookie via [`AppSettingsContext`](../../airspace-sim/app/contexts/AppSettingsContext.js). Action panel configuration and layout use the `actionPanels` cookie via [`ActionPanelsContext`](../../airspace-sim/app/contexts/ActionPanelsContext.js). Simulation-related fields are passed to `TrackEngine` as `simulationSettings`. Keybinds and theme use separate cookies.

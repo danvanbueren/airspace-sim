@@ -2,8 +2,7 @@
 
 import MapView from './components/map/MapView'
 import {Box} from '@mui/material'
-import CategorySelectPanel from './components/panels/glass/CategorySelectPanel'
-import FixedFunctionPanel from './components/panels/glass/FixedFunctionPanel'
+import ActionPanelsLayer from './components/panels/glass/ActionPanelsLayer'
 import ClassificationBar from './components/global/ClassificationBar'
 import SettingsController from '@/app/components/panels/settings/SettingsController'
 import {useCallback, useState} from 'react'
@@ -66,16 +65,8 @@ export default function Home() {
                         </ReactErrorForwardingBoundary>
                     </Box>
 
-                    <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Category select panel">
-                        <Box style={glassPanelStyle({top: 20, left: 20})}>
-                            <CategorySelectPanel/>
-                        </Box>
-                    </ReactErrorForwardingBoundary>
-
-                    <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Fixed function panel">
-                        <Box style={glassPanelStyle({bottom: 20, left: 20})}>
-                            <FixedFunctionPanel/>
-                        </Box>
+                    <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Action panels">
+                        <ActionPanelsLayer enabled={!settingsModalOpen}/>
                     </ReactErrorForwardingBoundary>
 
                     <Box style={glassPanelStyle({bottom: 20, left: '50%', transform: 'translateX(-50%)'})}>

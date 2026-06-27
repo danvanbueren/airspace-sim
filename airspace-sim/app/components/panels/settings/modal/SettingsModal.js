@@ -4,6 +4,7 @@ import {useEffect, useRef} from 'react'
 import {alpha, Box, Card, Divider, Grid, Modal, Typography} from '@mui/material'
 import SettingsModalGenericButton from '@/app/components/panels/settings/modal/SettingsModalGenericButton'
 import SettingsModalSimulationEnginePage from '@/app/components/panels/settings/modal/pages/SettingsModalSimulationEnginePage'
+import SettingsModalActionPanelsPage from './pages/SettingsModalActionPanelsPage'
 import SettingsModalLookAndFeelPage from './pages/SettingsModalLookAndFeelPage'
 import SettingsModalAdvancedPage from './pages/SettingsModalAdvancedPage'
 import SettingsModalKeybindsPage from './pages/SettingsModalKeybindsPage'
@@ -62,6 +63,8 @@ export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_P
                 return <SettingsModalSimulationEnginePage/>
             case 'lookAndFeel':
                 return <SettingsModalLookAndFeelPage/>
+            case 'actionPanels':
+                return <SettingsModalActionPanelsPage/>
             case 'advanced':
                 return <SettingsModalAdvancedPage/>
             case 'keybinds':
