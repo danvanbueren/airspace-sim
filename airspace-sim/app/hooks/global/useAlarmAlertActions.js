@@ -34,7 +34,7 @@ export function useAlarmAlertActions() {
         sweepInactiveEmergencyAlarmKeys,
         ...mapState
     } = useMapState()
-    const {appSettings} = useAppSettings()
+    const {appSettings, updateAppSettings} = useAppSettings()
     const inhibitedAlerts = appSettings.inhibitedAlerts ?? []
 
     const raiseAlarmAlert = useCallback((input) => {
@@ -55,10 +55,22 @@ export function useAlarmAlertActions() {
         return true
     }, [addAlarmAlert, inhibitedAlerts])
 
+    const inhibitAlertSignal = useCallback((signalId) => {
+        if (typeof signalId !== 'string' || inhibitedAlerts.includes(signalId)) {
+            return
+        }
+
+        updateAppSettings((currentSettings) => ({
+            ...currentSettings,
+            inhibitedAlerts: [...(currentSettings.inhibitedAlerts ?? []), signalId],
+        }))
+    }, [inhibitedAlerts, updateAppSettings])
+
     return {
         ...mapState,
         addAlarmAlert,
         raiseAlarmAlert,
+        inhibitAlertSignal,
         isEmergencyAlarmRaised,
         markEmergencyAlarmRaised,
         clearEmergencyAlarmRaised,

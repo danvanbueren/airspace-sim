@@ -63,6 +63,7 @@ export default function SettingsController({modalOpen, setModalOpen}) {
 
                 return {
                     type: 'pages',
+                    modalHeading: section.modalHeading,
                     items: section.pageIds.map((pageId) => buildPageNavItem(pageId, pageActions[pageId])),
                 }
             }),
