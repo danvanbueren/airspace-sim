@@ -1,8 +1,10 @@
 'use client'
 
 import {useRef} from 'react'
+import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
-import {Box, Card, Stack, Typography, Grid, Divider} from '@mui/material'
+import {Box, Card, Divider, Grid, IconButton, Stack, Typography} from '@mui/material'
+import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {usePerformanceMetrics} from '@/app/contexts/PerformanceMonitorContext'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import {
@@ -120,6 +122,7 @@ function StatChip({label, value, warn = false, multiline = false}) {
 }
 
 export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
+    const {updateSimulationSettings} = useAppSettings()
     const {enabled, metrics} = usePerformanceMetrics()
     const overlayRef = useRef(null)
 
@@ -195,6 +198,7 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                 />
                 <Typography
                     sx={{
+                        flexGrow: 1,
                         fontFamily: 'monospace',
                         fontSize: '0.74rem',
                         fontWeight: 700,
@@ -203,6 +207,22 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                 >
                     Performance Analytics
                 </Typography>
+                <IconButton
+                    aria-label='Close performance analytics overlay'
+                    size='small'
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                        event.stopPropagation()
+                        updateSimulationSettings({showPerformanceOverlay: false})
+                    }}
+                    sx={{
+                        color: 'rgba(255, 255, 255, 0.72)',
+                        p: 0.25,
+                        cursor: 'pointer',
+                    }}
+                >
+                    <CloseIcon fontSize='small' />
+                </IconButton>
             </Box>
 
             <Stack spacing={1.5} sx={{px: 2, pb: 2}}>
