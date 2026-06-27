@@ -13,8 +13,25 @@ import SettingsModalAlertsAttentionsPage from './pages/SettingsModalAlertsAttent
 import SettingsModalUsageGuidePage from './pages/SettingsModalUsageGuidePage'
 import {
     DEFAULT_SETTINGS_PAGE_ID,
+    SETTINGS_MODAL_SIDEBAR_HEADINGS,
     SETTINGS_PAGE_TITLES,
 } from '../settingsPageConfig'
+
+function SettingsModalSidebarHeading({children}) {
+    return (
+        <Typography
+            variant='caption'
+            sx={{
+                display: 'block',
+                fontWeight: 700,
+                color: 'text.secondary',
+                px: 0.5,
+            }}
+        >
+            {children}
+        </Typography>
+    )
+}
 
 export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_PAGE_ID, buildData, onOpenSettingsPage}) {
     const pageScrollRef = useRef(null)
@@ -84,6 +101,10 @@ export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_P
                             paddingRight: 1
                         }}>
 
+                            <SettingsModalSidebarHeading>
+                                {SETTINGS_MODAL_SIDEBAR_HEADINGS.quickActions}
+                            </SettingsModalSidebarHeading>
+
                             {buildData.oneClick.map((object, index) => (<SettingsModalGenericButton
                                 key={'SettingsModal-OneClick-' + object.name + '-' + index}
                                 icon={object.icon}
@@ -96,15 +117,27 @@ export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_P
                                     return <Divider key={`SettingsModal-Divider-${sectionIndex}`}/>
                                 }
 
-                                return section.items.map((object, index) => (
-                                    <SettingsModalGenericButton
-                                        key={`SettingsModal-Page-${object.name}-${sectionIndex}-${index}`}
-                                        icon={object.icon}
-                                        tooltip={object.tooltip}
-                                        onClick={object.onModalClick}
-                                        selected={object.name === state}
-                                    />
-                                ))
+                                return (
+                                    <Box
+                                        key={`SettingsModal-Section-${sectionIndex}`}
+                                        sx={{display: 'flex', flexDirection: 'column', gap: 2}}
+                                    >
+                                        {section.modalHeading ? (
+                                            <SettingsModalSidebarHeading>
+                                                {section.modalHeading}
+                                            </SettingsModalSidebarHeading>
+                                        ) : null}
+                                        {section.items.map((object, index) => (
+                                            <SettingsModalGenericButton
+                                                key={`SettingsModal-Page-${object.name}-${sectionIndex}-${index}`}
+                                                icon={object.icon}
+                                                tooltip={object.tooltip}
+                                                onClick={object.onModalClick}
+                                                selected={object.name === state}
+                                            />
+                                        ))}
+                                    </Box>
+                                )
                             })}
 
                         </Box>

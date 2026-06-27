@@ -40,13 +40,17 @@ export const SETTINGS_PAGE_ICONS = {
     about: InfoIcon,
 }
 
+export const SETTINGS_MODAL_SIDEBAR_HEADINGS = {
+    quickActions: 'Quick Actions',
+}
+
 export const SETTINGS_NAV_SECTIONS = [
     {type: 'divider'},
-    {type: 'pages', pageIds: ['lookAndFeel', 'keybinds', 'alerts']},
+    {type: 'pages', pageIds: ['lookAndFeel', 'keybinds', 'alerts'], modalHeading: 'Customization'},
     {type: 'divider'},
-    {type: 'pages', pageIds: ['simulation', 'advanced']},
+    {type: 'pages', pageIds: ['simulation', 'advanced'], modalHeading: 'System'},
     {type: 'divider'},
-    {type: 'pages', pageIds: ['usageGuide', 'roadmap', 'about']},
+    {type: 'pages', pageIds: ['usageGuide', 'roadmap', 'about'], modalHeading: 'Documentation'},
 ]
 
 export const DEFAULT_SETTINGS_PAGE_ID = SETTINGS_PAGE_IDS[0]
