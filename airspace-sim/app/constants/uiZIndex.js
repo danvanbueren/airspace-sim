@@ -2,6 +2,8 @@ export const UI_Z_INDEX = {
     MAP: 0,
     MAP_OVERLAY: 1,
     GLASS_PANEL: 10,
+    /** Settings toolbelt FAB — above draggable overlay click-to-front stack. */
+    SETTINGS_TOOLBELT: 20,
     TRACK_MANAGEMENT_WINDOW_BASE: 20,
     CONTEXT_MENU: 30,
     CLASSIFICATION_BAR: 100,

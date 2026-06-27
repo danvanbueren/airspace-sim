@@ -48,14 +48,14 @@ export default function Home() {
         }
     }, [])
 
-    const glassPanelStyle = ({top, bottom, left, right, transform}) => ({
+    const glassPanelStyle = ({top, bottom, left, right, transform, zIndex}) => ({
         position: 'absolute',
         top: top ?? null,
         right: right ?? null,
         left: left ?? null,
         bottom: bottom ?? null,
         transform: transform ?? null,
-        zIndex: UI_Z_INDEX.GLASS_PANEL,
+        zIndex: zIndex ?? UI_Z_INDEX.GLASS_PANEL,
     })
 
     const {raiseAlarmAlert} = useAlarmAlertActions()
@@ -104,7 +104,7 @@ export default function Home() {
                     </Box>
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Settings controller">
-                        <Box style={glassPanelStyle({top: 20, right: 20})}>
+                        <Box style={glassPanelStyle({top: 20, right: 20, zIndex: UI_Z_INDEX.SETTINGS_TOOLBELT})}>
                             <SettingsController
                                 modalOpen={settingsModalOpen}
                                 setModalOpen={handleSettingsModalClose}

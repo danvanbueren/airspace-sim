@@ -10,6 +10,8 @@ import {
     absoluteToEdgeAnchor,
     resolveEdgeAnchoredPosition,
 } from '@/app/tools/map/edgeAnchoredPosition'
+import {clampPositionClearOfSettingsFab} from '@/app/tools/map/settingsFabReserve'
+import {getWorkspaceContainerSize} from '@/app/tools/map/workspaceContainerSize'
 
 function getOverlaySize(overlayRef) {
     return {
@@ -19,12 +21,7 @@ function getOverlaySize(overlayRef) {
 }
 
 function getContainerSize(mapContainerRef) {
-    const container = mapContainerRef.current
-
-    return {
-        width: container?.clientWidth ?? 0,
-        height: container?.clientHeight ?? 0,
-    }
+    return getWorkspaceContainerSize(mapContainerRef)
 }
 
 function positionsEqual(leftPosition, rightPosition) {
@@ -70,15 +67,21 @@ function getPerformanceOverlayBounds(overlayRef, mapContainerRef) {
 export function getBoundedPerformanceOverlayPosition(left, top, overlayRef, mapContainerRef) {
     const bounds = getPerformanceOverlayBounds(overlayRef, mapContainerRef)
     const overlaySize = getOverlaySize(overlayRef)
+    const containerSize = getContainerSize(mapContainerRef)
 
     if (overlaySize.width === 0 || overlaySize.height === 0) {
         return {left, top}
     }
 
-    return resolveEdgeAnchoredPosition(
-        absoluteToEdgeAnchor(left, top, getContainerSize(mapContainerRef), overlaySize),
-        getContainerSize(mapContainerRef),
+    return clampPositionClearOfSettingsFab(
+        resolveEdgeAnchoredPosition(
+            absoluteToEdgeAnchor(left, top, containerSize, overlaySize),
+            containerSize,
+            overlaySize,
+            bounds,
+        ),
         overlaySize,
+        containerSize,
         bounds,
     )
 }
@@ -97,10 +100,15 @@ function resolvePositionFromAnchor(anchorRef, overlayRef, mapContainerRef) {
         return null
     }
 
-    return resolveEdgeAnchoredPosition(
-        anchor,
-        containerSize,
+    return clampPositionClearOfSettingsFab(
+        resolveEdgeAnchoredPosition(
+            anchor,
+            containerSize,
+            overlaySize,
+            getPerformanceOverlayBounds(overlayRef, mapContainerRef),
+        ),
         overlaySize,
+        containerSize,
         getPerformanceOverlayBounds(overlayRef, mapContainerRef),
     )
 }

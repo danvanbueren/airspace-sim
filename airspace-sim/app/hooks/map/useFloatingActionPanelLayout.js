@@ -1,6 +1,7 @@
 'use client'
 
 import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
+import {createInitialActionPanelPosition} from '@/app/actionPanels/actionPanelViewportLayout'
 import {resolveActionPanelLayoutSize} from '@/app/actionPanels/actionPanelSizeEstimate'
 import {
     buildStoredLayoutSnapshot,
@@ -11,7 +12,6 @@ import {
 } from '@/app/actionPanels/actionPanelViewportLayout'
 import {
     ACTION_PANEL_MIN_HEIGHT_PX,
-    ACTION_PANEL_MIN_WIDTH_PX,
     clampPanelWidth,
     getActionPanelMinResizedHeight,
     normalizePanelHeight,
@@ -20,15 +20,8 @@ import {
     absoluteToEdgeAnchor,
     resolveEdgeAnchoredPosition,
 } from '@/app/tools/map/edgeAnchoredPosition'
-
-function getContainerSize(mapContainerRef) {
-    const container = mapContainerRef.current
-
-    return {
-        width: container?.clientWidth ?? 0,
-        height: container?.clientHeight ?? 0,
-    }
-}
+import {clampPositionClearOfSettingsFab} from '@/app/tools/map/settingsFabReserve'
+import {getWorkspaceContainerSize} from '@/app/tools/map/workspaceContainerSize'
 
 function positionsEqual(leftPosition, rightPosition) {
     if (!leftPosition || !rightPosition) {
@@ -75,7 +68,13 @@ export function useFloatingActionPanelLayout({
 
     const [width, setWidth] = useState(() => clampPanelWidth(storedWidth))
     const [height, setHeight] = useState(() => normalizePanelHeight(storedHeight, displayStyle))
-    const [position, setPosition] = useState(null)
+    const [position, setPosition] = useState(() => createInitialActionPanelPosition({
+        storedAnchor,
+        storedWidth,
+        itemIds,
+        displayStyle,
+        containerSize: getWorkspaceContainerSize(mapContainerRef),
+    }))
     const dragStateRef = useRef(null)
     const resizeStateRef = useRef(null)
     const positionAnchorRef = useRef(storedAnchor ?? null)
@@ -118,7 +117,7 @@ export function useFloatingActionPanelLayout({
             return true
         }
 
-        const containerSize = getContainerSize(mapContainerRef)
+        const containerSize = getWorkspaceContainerSize(mapContainerRef)
 
         if (containerSize.width <= 0 || containerSize.height <= 0 || !positionAnchorRef.current) {
             return false
@@ -197,7 +196,7 @@ export function useFloatingActionPanelLayout({
     })
 
     const commitPositionAnchor = useCallback((left, top) => {
-        const containerSize = getContainerSize(mapContainerRef)
+        const containerSize = getWorkspaceContainerSize(mapContainerRef)
         const panelSize = getLayoutPanelSize()
 
         if (containerSize.width === 0) {
@@ -208,14 +207,20 @@ export function useFloatingActionPanelLayout({
     }, [getLayoutPanelSize, mapContainerRef])
 
     const getBoundedPanelPosition = useCallback((left, top) => {
-        const containerSize = getContainerSize(mapContainerRef)
+        const containerSize = getWorkspaceContainerSize(mapContainerRef)
         const panelSize = getLayoutPanelSize()
+        const bounds = getPanelBoundsForViewport(containerSize, panelSize)
 
-        return resolveEdgeAnchoredPosition(
-            absoluteToEdgeAnchor(left, top, containerSize, panelSize),
-            containerSize,
+        return clampPositionClearOfSettingsFab(
+            resolveEdgeAnchoredPosition(
+                absoluteToEdgeAnchor(left, top, containerSize, panelSize),
+                containerSize,
+                panelSize,
+                bounds,
+            ),
             panelSize,
-            getPanelBoundsForViewport(containerSize, panelSize),
+            containerSize,
+            bounds,
         )
     }, [getLayoutPanelSize, mapContainerRef])
 
@@ -265,6 +270,7 @@ export function useFloatingActionPanelLayout({
                 return
             }
 
+            runPositionSync(true)
             scheduleSync(true)
 
             resizeObserver = new ResizeObserver(() => {
@@ -399,7 +405,7 @@ export function useFloatingActionPanelLayout({
         event.preventDefault()
         event.stopPropagation()
 
-        const containerSize = getContainerSize(mapContainerRef)
+        const containerSize = getWorkspaceContainerSize(mapContainerRef)
         const {maxWidth, maxHeight} = getViewportMaxPanelDimensions(
             positionRef.current,
             containerSize,
@@ -431,7 +437,7 @@ export function useFloatingActionPanelLayout({
 
         resizeStateRef.current = null
 
-        const containerSize = getContainerSize(mapContainerRef)
+        const containerSize = getWorkspaceContainerSize(mapContainerRef)
         const {maxWidth, maxHeight} = getViewportMaxPanelDimensions(
             positionRef.current,
             containerSize,

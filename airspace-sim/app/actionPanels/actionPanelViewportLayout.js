@@ -7,11 +7,37 @@ import {
     edgeAnchorsEqual,
     resolveEdgeAnchoredPosition,
 } from '../tools/map/edgeAnchoredPosition.js'
+import {clampPositionClearOfSettingsFab} from '../tools/map/settingsFabReserve.js'
+import {estimateActionPanelAutoHeight} from './actionPanelSizeEstimate.js'
 import {
     ACTION_PANEL_MIN_HEIGHT_PX,
     ACTION_PANEL_MIN_WIDTH_PX,
     clampPanelWidth,
 } from './normalizeActionPanels.js'
+
+export function createInitialActionPanelPosition({
+    storedAnchor,
+    storedWidth,
+    itemIds,
+    displayStyle,
+    containerSize,
+}) {
+    if (!storedAnchor || containerSize.width <= 0 || containerSize.height <= 0) {
+        return null
+    }
+
+    const width = clampPanelWidth(storedWidth)
+    const height = estimateActionPanelAutoHeight({
+        itemIds,
+        displayStyle,
+        panelWidthPx: width,
+    })
+
+    return resolveClampedPanelPosition(storedAnchor, containerSize, {
+        width,
+        height,
+    })
+}
 
 export function getPanelBoundsForViewport(containerSize, panelSize) {
     return {
@@ -33,10 +59,15 @@ export function resolveClampedPanelPosition(anchor, containerSize, panelSize) {
         return null
     }
 
-    return resolveEdgeAnchoredPosition(
-        anchor,
-        containerSize,
+    return clampPositionClearOfSettingsFab(
+        resolveEdgeAnchoredPosition(
+            anchor,
+            containerSize,
+            panelSize,
+            getPanelBoundsForViewport(containerSize, panelSize),
+        ),
         panelSize,
+        containerSize,
         getPanelBoundsForViewport(containerSize, panelSize),
     )
 }
