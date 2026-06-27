@@ -19,10 +19,24 @@ export default function Home() {
     useSeedAlarmAlerts()
 
     const [settingsModalOpen, setSettingsModalOpen] = useState(false)
+    const [settingsPageId, setSettingsPageId] = useState(null)
     const [mapOverlayLayer, setMapOverlayLayer] = useState(null)
 
     const setMapOverlayLayerRef = useCallback((element) => {
         setMapOverlayLayer(element)
+    }, [])
+
+    const openSettingsPage = useCallback((pageId) => {
+        setSettingsPageId(pageId)
+        setSettingsModalOpen(true)
+    }, [])
+
+    const handleSettingsModalClose = useCallback((open) => {
+        setSettingsModalOpen(open)
+
+        if (!open) {
+            setSettingsPageId(null)
+        }
     }, [])
 
     const glassPanelStyle = ({top, bottom, left, right, transform}) => ({
@@ -66,7 +80,10 @@ export default function Home() {
                     </Box>
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Action panels">
-                        <ActionPanelsLayer enabled={!settingsModalOpen}/>
+                        <ActionPanelsLayer
+                            interactionsEnabled={!settingsModalOpen}
+                            onEditPanelSettings={() => openSettingsPage('actionPanels')}
+                        />
                     </ReactErrorForwardingBoundary>
 
                     <Box style={glassPanelStyle({bottom: 20, left: '50%', transform: 'translateX(-50%)'})}>
@@ -77,7 +94,8 @@ export default function Home() {
                         <Box style={glassPanelStyle({top: 20, right: 20})}>
                             <SettingsController
                                 modalOpen={settingsModalOpen}
-                                setModalOpen={setSettingsModalOpen}
+                                setModalOpen={handleSettingsModalClose}
+                                initialPageId={settingsPageId}
                             />
                         </Box>
                     </ReactErrorForwardingBoundary>

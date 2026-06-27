@@ -18,12 +18,12 @@ export const DEFAULT_ACTION_PANELS_STATE = {
             itemIds: [
                 ACTION_PANEL_ITEM_IDS.IFF_CURRENT,
                 ACTION_PANEL_ITEM_IDS.IFF_HISTORY,
-                ACTION_PANEL_ITEM_IDS.SPACER,
                 ACTION_PANEL_ITEM_IDS.RADAR_CURRENT,
                 ACTION_PANEL_ITEM_IDS.RADAR_HISTORY,
-                ACTION_PANEL_ITEM_IDS.SPACER,
                 ACTION_PANEL_ITEM_IDS.AIRPORTS,
                 ACTION_PANEL_ITEM_IDS.AIR_ROUTES,
+                ACTION_PANEL_ITEM_IDS.INITIATE,
+                ACTION_PANEL_ITEM_IDS.RE_INITIATE,
             ],
         },
         {
@@ -35,8 +35,6 @@ export const DEFAULT_ACTION_PANELS_STATE = {
                 ACTION_PANEL_ITEM_IDS.ZOOM_OUT,
                 ACTION_PANEL_ITEM_IDS.HOME,
                 ACTION_PANEL_ITEM_IDS.CENTER_E3,
-                ACTION_PANEL_ITEM_IDS.SPACER,
-                ACTION_PANEL_ITEM_IDS.SPACER,
             ],
         },
     ],
@@ -47,6 +45,7 @@ export const DEFAULT_ACTION_PANELS_STATE = {
                 vertical: {edge: 'top', offset: MAP_GLASS_INSET_PX},
             },
             width: DEFAULT_ACTION_PANEL_WIDTH_PX,
+            height: null,
         },
         [DEFAULT_FIXED_FUNCTION_PANEL_ID]: {
             anchor: {
@@ -54,6 +53,7 @@ export const DEFAULT_ACTION_PANELS_STATE = {
                 vertical: {edge: 'bottom', offset: MAP_GLASS_INSET_PX},
             },
             width: DEFAULT_ACTION_PANEL_WIDTH_PX,
+            height: null,
         },
     },
 }

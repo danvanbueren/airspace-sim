@@ -6,7 +6,10 @@ import ActionPanel from './ActionPanel'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
-export default function ActionPanelsLayer({enabled = true}) {
+export default function ActionPanelsLayer({
+    interactionsEnabled = true,
+    onEditPanelSettings,
+}) {
     const mapContainerRef = useRef(null)
     const {actionPanelsState} = useActionPanels()
 
@@ -29,7 +32,8 @@ export default function ActionPanelsLayer({enabled = true}) {
                     panel={panel}
                     layout={actionPanelsState.layouts[panel.id]}
                     mapContainerRef={mapContainerRef}
-                    enabled={enabled}
+                    interactionsEnabled={interactionsEnabled}
+                    onEditPanelSettings={onEditPanelSettings}
                 />
             ))}
         </Box>

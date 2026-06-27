@@ -5,6 +5,10 @@ import {
     ACTION_PANEL_ITEM_IDS,
 } from '../../app/actionPanels/actionPanelRegistry.js'
 import {
+    getCompactToggleColumnCount,
+    getLargeGridColumnCount,
+} from '../../app/actionPanels/actionPanelGridLayout.js'
+import {
     DEFAULT_CATEGORY_SELECT_PANEL_ID,
     DEFAULT_FIXED_FUNCTION_PANEL_ID,
 } from '../../app/actionPanels/actionPanelDefaults.js'
@@ -24,29 +28,30 @@ describe('normalizeActionPanelsState', () => {
         assert.deepEqual(normalized.panels[0].itemIds, [
             ACTION_PANEL_ITEM_IDS.IFF_CURRENT,
             ACTION_PANEL_ITEM_IDS.IFF_HISTORY,
-            ACTION_PANEL_ITEM_IDS.SPACER,
             ACTION_PANEL_ITEM_IDS.RADAR_CURRENT,
             ACTION_PANEL_ITEM_IDS.RADAR_HISTORY,
-            ACTION_PANEL_ITEM_IDS.SPACER,
             ACTION_PANEL_ITEM_IDS.AIRPORTS,
             ACTION_PANEL_ITEM_IDS.AIR_ROUTES,
+            ACTION_PANEL_ITEM_IDS.INITIATE,
+            ACTION_PANEL_ITEM_IDS.RE_INITIATE,
         ])
 
         assert.equal(normalized.panels[1].id, DEFAULT_FIXED_FUNCTION_PANEL_ID)
         assert.equal(normalized.panels[1].title, 'Fixed Function Panel')
 
         assert.equal(normalized.layouts[DEFAULT_CATEGORY_SELECT_PANEL_ID].width, 400)
+        assert.equal(normalized.layouts[DEFAULT_CATEGORY_SELECT_PANEL_ID].height, null)
         assert.equal(normalized.layouts[DEFAULT_CATEGORY_SELECT_PANEL_ID].anchor.vertical.edge, 'top')
         assert.equal(normalized.layouts[DEFAULT_FIXED_FUNCTION_PANEL_ID].anchor.vertical.edge, 'bottom')
     })
 
-    it('drops unknown items and clamps panel width', () => {
+    it('drops unknown items, legacy spacers, and preserves large widths', () => {
         const normalized = normalizeActionPanelsState({
             panels: [{
                 id: 'custom-panel',
                 title: 'Custom Panel',
                 displayStyle: ACTION_PANEL_DISPLAY_STYLES.COMPACT,
-                itemIds: ['NOT_REAL', ACTION_PANEL_ITEM_IDS.ZOOM_IN],
+                itemIds: ['NOT_REAL', 'SPACER', ACTION_PANEL_ITEM_IDS.ZOOM_IN],
             }],
             layouts: {
                 'custom-panel': {
@@ -55,13 +60,15 @@ describe('normalizeActionPanelsState', () => {
                         vertical: {edge: 'bottom', offset: 50},
                     },
                     width: 999,
+                    height: 240,
                 },
             },
         })
 
         assert.equal(normalized.panels.length, 1)
         assert.deepEqual(normalized.panels[0].itemIds, [ACTION_PANEL_ITEM_IDS.ZOOM_IN])
-        assert.equal(normalized.layouts['custom-panel'].width, 720)
+        assert.equal(normalized.layouts['custom-panel'].width, 999)
+        assert.equal(normalized.layouts['custom-panel'].height, 240)
         assert.equal(normalized.layouts['custom-panel'].anchor.horizontal.edge, 'right')
     })
 
@@ -70,7 +77,23 @@ describe('normalizeActionPanelsState', () => {
 
         assert.match(created.panel.id, /^action-panel-/)
         assert.equal(created.panel.title, 'Ops Panel')
+        assert.deepEqual(created.panel.itemIds, [])
         assert.equal(created.layout.width, 400)
+        assert.equal(created.layout.height, null)
         assert.equal(created.layout.anchor.horizontal.edge, 'left')
+    })
+})
+
+describe('actionPanelGridLayout', () => {
+    it('uses one column on narrow panels and more columns as width grows', () => {
+        assert.equal(getLargeGridColumnCount(180, 6), 1)
+        assert.equal(getLargeGridColumnCount(400, 6), 3)
+        assert.equal(getLargeGridColumnCount(900, 6), 6)
+    })
+
+    it('expands compact toggle columns when horizontal space allows', () => {
+        assert.equal(getCompactToggleColumnCount(220, 4), 1)
+        assert.equal(getCompactToggleColumnCount(500, 4), 2)
+        assert.equal(getCompactToggleColumnCount(900, 4), 4)
     })
 })

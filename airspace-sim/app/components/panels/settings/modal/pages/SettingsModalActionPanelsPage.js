@@ -19,10 +19,9 @@ import {
 import DeferredTextField from '@/app/components/global/DeferredTextField'
 import SettingsModalPageRestoreFooter from '../SettingsModalPageRestoreFooter'
 import {
-    ACTION_PANEL_ASSIGNABLE_ITEMS,
     ACTION_PANEL_DISPLAY_STYLES,
-    ACTION_PANEL_ITEM_IDS,
     getActionPanelItemDefinition,
+    getAvailableAssignableItems,
 } from '@/app/actionPanels/actionPanelRegistry'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 
@@ -124,6 +123,8 @@ function ActionPanelEditor({
         setPendingItemId('')
     }
 
+    const availableItems = getAvailableAssignableItems(panel.itemIds)
+
     return (
         <Box
             sx={{
@@ -219,21 +220,19 @@ function ActionPanelEditor({
                             labelId={`action-panel-add-item-${panel.id}`}
                             label='Add item'
                             value={pendingItemId}
+                            disabled={availableItems.length === 0}
                             onChange={(event) => {
                                 addItem(event.target.value)
                             }}
                         >
                             <MenuItem value=''>
-                                <em>Select an action</em>
+                                <em>{availableItems.length === 0 ? 'All actions added' : 'Select an action'}</em>
                             </MenuItem>
-                            {ACTION_PANEL_ASSIGNABLE_ITEMS.map((item) => (
+                            {availableItems.map((item) => (
                                 <MenuItem key={item.id} value={item.id}>
                                     {item.label}
                                 </MenuItem>
                             ))}
-                            <MenuItem value={ACTION_PANEL_ITEM_IDS.SPACER}>
-                                Spacer
-                            </MenuItem>
                         </Select>
                     </FormControl>
                 </Stack>

@@ -2,7 +2,7 @@ import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import SettingsModal from './modal/SettingsModal'
 import SettingsToolbelt from './toolbelt/SettingsToolbelt'
-import {useMemo, useState} from 'react'
+import {useEffect, useMemo, useState} from 'react'
 import {useColorMode} from '@/app/contexts/CustomThemeContext'
 import {
     DEFAULT_SETTINGS_PAGE_ID,
@@ -23,10 +23,16 @@ function buildPageNavItem(pageId, {onToolbeltClick, onModalClick}) {
     }
 }
 
-export default function SettingsController({modalOpen, setModalOpen}) {
+export default function SettingsController({modalOpen, setModalOpen, initialPageId = null}) {
     const [modalState, setModalState] = useState(DEFAULT_SETTINGS_PAGE_ID)
     const [toolbeltOpen, setToolbeltOpen] = useState(false)
     const colorMode = useColorMode()
+
+    useEffect(() => {
+        if (initialPageId) {
+            setModalState(initialPageId)
+        }
+    }, [initialPageId])
 
     const openModalWithState = (state) => {
         setModalState(state)

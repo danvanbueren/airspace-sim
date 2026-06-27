@@ -1,10 +1,10 @@
 'use client'
 
-import {useCallback} from 'react'
+import {useCallback, useMemo} from 'react'
 import {
+    Box,
     Button,
     FormControlLabel,
-    Grid,
     Switch,
     ToggleButton,
     ToggleButtonGroup,
@@ -12,8 +12,16 @@ import {
 import {
     ACTION_PANEL_DISPLAY_STYLES,
     ACTION_PANEL_ITEM_TYPES,
+    filterRenderableItemIds,
     getActionPanelItemDefinition,
 } from '@/app/actionPanels/actionPanelRegistry'
+import {
+    ACTION_PANEL_GRID_GAP_COMPACT_PX,
+    ACTION_PANEL_GRID_GAP_PX,
+    getCompactButtonColumnCount,
+    getCompactToggleColumnCount,
+    getLargeGridColumnCount,
+} from '@/app/actionPanels/actionPanelGridLayout'
 import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 
@@ -74,6 +82,18 @@ function useActionPanelItemActions() {
                     message: 'CENTER ON E-3 action is not yet implemented.',
                 })
                 break
+            case 'INITIATE':
+                raiseAlarmAlert({
+                    signalId: 'UI_INITIATE',
+                    message: 'INITIATE action is coming soon.',
+                })
+                break
+            case 'RE_INITIATE':
+                raiseAlarmAlert({
+                    signalId: 'UI_RE_INITIATE',
+                    message: 'RE-INITIATE action is coming soon.',
+                })
+                break
             default:
                 break
         }
@@ -88,218 +108,182 @@ function useActionPanelItemActions() {
     }
 }
 
-function LargeToggleControls({itemIds, activeToggles, setActiveDisplayToggles}) {
+function ResponsiveGrid({columnCount, gapPx, children}) {
+    return (
+        <Box
+            sx={{
+                display: 'grid',
+                width: '100%',
+                gap: `${gapPx}px`,
+                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                alignItems: 'stretch',
+            }}
+        >
+            {children}
+        </Box>
+    )
+}
+
+function getRenderableItemsByType(itemIds, type) {
+    return filterRenderableItemIds(itemIds).filter((itemId) => (
+        getActionPanelItemDefinition(itemId)?.type === type
+    ))
+}
+
+function LargeToggleControls({itemIds, panelWidthPx, activeToggles, setActiveDisplayToggles}) {
+    const toggleItemIds = getRenderableItemsByType(itemIds, ACTION_PANEL_ITEM_TYPES.TOGGLE)
+    const columnCount = getLargeGridColumnCount(panelWidthPx, toggleItemIds.length)
+
     const handleToggles = (event, newToggles) => {
-        setActiveDisplayToggles(newToggles.filter((toggle) => !String(toggle).startsWith('SPACER')))
+        setActiveDisplayToggles(newToggles)
+    }
+
+    if (toggleItemIds.length === 0) {
+        return null
     }
 
     return (
         <ToggleButtonGroup
             value={activeToggles}
             onChange={handleToggles}
+            sx={{width: '100%'}}
         >
-            <Grid
-                container
-                spacing={2}
-                style={{width: '100%'}}
-            >
-                {itemIds.map((itemId, index) => {
+            <ResponsiveGrid columnCount={columnCount} gapPx={ACTION_PANEL_GRID_GAP_PX}>
+                {toggleItemIds.map((itemId) => {
                     const definition = getActionPanelItemDefinition(itemId)
 
-                    if (!definition) {
-                        return null
-                    }
-
-                    if (definition.type === ACTION_PANEL_ITEM_TYPES.SPACER) {
-                        return (
-                            <Grid
-                                size={4}
-                                key={`action-panel-spacer-${index}`}
-                            >
-                                <ToggleButton
-                                    value={`SPACER_${index}`}
-                                    disabled
-                                    color='success'
-                                    fullWidth
-                                    sx={{height: LARGE_CONTROL_HEIGHT_PX}}
-                                >
-                                    <span style={MONO_LABEL_STYLE}>-</span>
-                                </ToggleButton>
-                            </Grid>
-                        )
-                    }
-
                     return (
-                        <Grid
-                            size={4}
-                            key={`action-panel-toggle-${itemId}-${index}`}
+                        <ToggleButton
+                            key={`action-panel-toggle-${itemId}`}
+                            value={definition.toggleKey}
+                            color='success'
+                            fullWidth
+                            sx={{height: LARGE_CONTROL_HEIGHT_PX}}
                         >
-                            <ToggleButton
-                                value={definition.toggleKey}
-                                color='success'
-                                fullWidth
-                                sx={{height: LARGE_CONTROL_HEIGHT_PX}}
-                            >
-                                <span style={MONO_LABEL_STYLE}>{definition.label}</span>
-                            </ToggleButton>
-                        </Grid>
+                            <span style={MONO_LABEL_STYLE}>{definition.label}</span>
+                        </ToggleButton>
                     )
                 })}
-            </Grid>
+            </ResponsiveGrid>
         </ToggleButtonGroup>
     )
 }
 
-function CompactToggleControls({itemIds, isToggleActive, handleToggleChange}) {
+function CompactToggleControls({itemIds, panelWidthPx, isToggleActive, handleToggleChange}) {
+    const toggleItemIds = getRenderableItemsByType(itemIds, ACTION_PANEL_ITEM_TYPES.TOGGLE)
+    const columnCount = getCompactToggleColumnCount(panelWidthPx, toggleItemIds.length)
+
+    if (toggleItemIds.length === 0) {
+        return null
+    }
+
     return (
-        <Grid
-            container
-            spacing={1}
-            style={{width: '100%'}}
-        >
-            {itemIds.map((itemId, index) => {
+        <ResponsiveGrid columnCount={columnCount} gapPx={ACTION_PANEL_GRID_GAP_COMPACT_PX}>
+            {toggleItemIds.map((itemId) => {
                 const definition = getActionPanelItemDefinition(itemId)
 
-                if (!definition || definition.type === ACTION_PANEL_ITEM_TYPES.SPACER) {
-                    return null
-                }
-
-                if (definition.type !== ACTION_PANEL_ITEM_TYPES.TOGGLE) {
-                    return null
-                }
-
                 return (
-                    <Grid
-                        size={12}
-                        key={`action-panel-compact-toggle-${itemId}-${index}`}
-                    >
-                        <FormControlLabel
-                            control={(
-                                <Switch
-                                    color='success'
-                                    checked={isToggleActive(definition.toggleKey)}
-                                    onChange={(event) => {
-                                        handleToggleChange(definition.toggleKey, event.target.checked)
-                                    }}
-                                />
-                            )}
-                            label={definition.label}
-                            sx={{
-                                width: '100%',
-                                mx: 0,
-                                '& .MuiFormControlLabel-label': {
-                                    fontFamily: 'monospace',
-                                    fontWeight: 'bold',
-                                },
-                            }}
-                        />
-                    </Grid>
-                )
-            })}
-        </Grid>
-    )
-}
-
-function LargeButtonControls({itemIds, runButtonAction}) {
-    return (
-        <Grid
-            container
-            spacing={2}
-            style={{width: '100%'}}
-        >
-            {itemIds.map((itemId, index) => {
-                const definition = getActionPanelItemDefinition(itemId)
-
-                if (!definition) {
-                    return null
-                }
-
-                const isSpacer = definition.type === ACTION_PANEL_ITEM_TYPES.SPACER
-
-                return (
-                    <Grid
-                        size={4}
-                        key={`action-panel-button-${itemId}-${index}`}
-                    >
-                        <Button
-                            variant='outlined'
-                            color='inherit'
-                            sx={LARGE_BUTTON_SX}
-                            disabled={isSpacer}
-                            onClick={() => {
-                                if (!isSpacer) {
-                                    runButtonAction(definition.actionKey)
-                                }
-                            }}
-                        >
-                            {isSpacer ? '-' : definition.label}
-                        </Button>
-                    </Grid>
-                )
-            })}
-        </Grid>
-    )
-}
-
-function CompactButtonControls({itemIds, runButtonAction}) {
-    return (
-        <Grid
-            container
-            spacing={1}
-            style={{width: '100%'}}
-        >
-            {itemIds.map((itemId, index) => {
-                const definition = getActionPanelItemDefinition(itemId)
-
-                if (!definition || definition.type === ACTION_PANEL_ITEM_TYPES.SPACER) {
-                    return null
-                }
-
-                if (definition.type !== ACTION_PANEL_ITEM_TYPES.BUTTON) {
-                    return null
-                }
-
-                return (
-                    <Grid
-                        size={12}
-                        key={`action-panel-compact-button-${itemId}-${index}`}
-                    >
-                        <Button
-                            variant='outlined'
-                            color='inherit'
-                            size='small'
-                            fullWidth
-                            sx={{
+                    <FormControlLabel
+                        key={`action-panel-compact-toggle-${itemId}`}
+                        control={(
+                            <Switch
+                                color='success'
+                                checked={isToggleActive(definition.toggleKey)}
+                                onChange={(event) => {
+                                    handleToggleChange(definition.toggleKey, event.target.checked)
+                                }}
+                            />
+                        )}
+                        label={definition.label}
+                        sx={{
+                            width: '100%',
+                            mx: 0,
+                            minWidth: 0,
+                            '& .MuiFormControlLabel-label': {
                                 fontFamily: 'monospace',
                                 fontWeight: 'bold',
-                                justifyContent: 'flex-start',
-                            }}
-                            onClick={() => runButtonAction(definition.actionKey)}
-                        >
-                            {definition.label}
-                        </Button>
-                    </Grid>
+                            },
+                        }}
+                    />
                 )
             })}
-        </Grid>
+        </ResponsiveGrid>
+    )
+}
+
+function LargeButtonControls({itemIds, panelWidthPx, runButtonAction}) {
+    const buttonItemIds = getRenderableItemsByType(itemIds, ACTION_PANEL_ITEM_TYPES.BUTTON)
+    const columnCount = getLargeGridColumnCount(panelWidthPx, buttonItemIds.length)
+
+    if (buttonItemIds.length === 0) {
+        return null
+    }
+
+    return (
+        <ResponsiveGrid columnCount={columnCount} gapPx={ACTION_PANEL_GRID_GAP_PX}>
+            {buttonItemIds.map((itemId) => {
+                const definition = getActionPanelItemDefinition(itemId)
+
+                return (
+                    <Button
+                        key={`action-panel-button-${itemId}`}
+                        variant='outlined'
+                        color='inherit'
+                        sx={LARGE_BUTTON_SX}
+                        onClick={() => runButtonAction(definition.actionKey)}
+                    >
+                        {definition.label}
+                    </Button>
+                )
+            })}
+        </ResponsiveGrid>
+    )
+}
+
+function CompactButtonControls({itemIds, panelWidthPx, runButtonAction}) {
+    const buttonItemIds = getRenderableItemsByType(itemIds, ACTION_PANEL_ITEM_TYPES.BUTTON)
+    const columnCount = getCompactButtonColumnCount(panelWidthPx, buttonItemIds.length)
+
+    if (buttonItemIds.length === 0) {
+        return null
+    }
+
+    return (
+        <ResponsiveGrid columnCount={columnCount} gapPx={ACTION_PANEL_GRID_GAP_COMPACT_PX}>
+            {buttonItemIds.map((itemId) => {
+                const definition = getActionPanelItemDefinition(itemId)
+
+                return (
+                    <Button
+                        key={`action-panel-compact-button-${itemId}`}
+                        variant='outlined'
+                        color='inherit'
+                        size='small'
+                        fullWidth
+                        sx={{
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            justifyContent: 'flex-start',
+                        }}
+                        onClick={() => runButtonAction(definition.actionKey)}
+                    >
+                        {definition.label}
+                    </Button>
+                )
+            })}
+        </ResponsiveGrid>
     )
 }
 
 function panelHasToggleItems(itemIds) {
-    return itemIds.some((itemId) => {
-        const definition = getActionPanelItemDefinition(itemId)
-        return definition?.type === ACTION_PANEL_ITEM_TYPES.TOGGLE
-    })
+    return getRenderableItemsByType(itemIds, ACTION_PANEL_ITEM_TYPES.TOGGLE).length > 0
 }
 
 function panelHasButtonItems(itemIds) {
-    return itemIds.some((itemId) => {
-        const definition = getActionPanelItemDefinition(itemId)
-        return definition?.type === ACTION_PANEL_ITEM_TYPES.BUTTON
-    })
+    return getRenderableItemsByType(itemIds, ACTION_PANEL_ITEM_TYPES.BUTTON).length > 0
 }
 
-export default function ActionPanelControls({itemIds, displayStyle}) {
+export default function ActionPanelControls({itemIds, displayStyle, panelWidthPx}) {
     const {
         activeToggles,
         setActiveDisplayToggles,
@@ -308,15 +292,16 @@ export default function ActionPanelControls({itemIds, displayStyle}) {
         runButtonAction,
     } = useActionPanelItemActions()
 
-    const hasToggles = panelHasToggleItems(itemIds)
-    const hasButtons = panelHasButtonItems(itemIds)
+    const hasToggles = useMemo(() => panelHasToggleItems(itemIds), [itemIds])
+    const hasButtons = useMemo(() => panelHasButtonItems(itemIds), [itemIds])
 
     if (displayStyle === ACTION_PANEL_DISPLAY_STYLES.COMPACT) {
         return (
-            <>
+            <Box sx={{display: 'flex', flexDirection: 'column', gap: 1, width: '100%'}}>
                 {hasToggles ? (
                     <CompactToggleControls
                         itemIds={itemIds}
+                        panelWidthPx={panelWidthPx}
                         isToggleActive={isToggleActive}
                         handleToggleChange={handleToggleChange}
                     />
@@ -324,18 +309,20 @@ export default function ActionPanelControls({itemIds, displayStyle}) {
                 {hasButtons ? (
                     <CompactButtonControls
                         itemIds={itemIds}
+                        panelWidthPx={panelWidthPx}
                         runButtonAction={runButtonAction}
                     />
                 ) : null}
-            </>
+            </Box>
         )
     }
 
     return (
-        <>
+        <Box sx={{display: 'flex', flexDirection: 'column', gap: 2, width: '100%'}}>
             {hasToggles ? (
                 <LargeToggleControls
                     itemIds={itemIds}
+                    panelWidthPx={panelWidthPx}
                     activeToggles={activeToggles}
                     setActiveDisplayToggles={setActiveDisplayToggles}
                 />
@@ -343,9 +330,10 @@ export default function ActionPanelControls({itemIds, displayStyle}) {
             {hasButtons ? (
                 <LargeButtonControls
                     itemIds={itemIds}
+                    panelWidthPx={panelWidthPx}
                     runButtonAction={runButtonAction}
                 />
             ) : null}
-        </>
+        </Box>
     )
 }

@@ -6,8 +6,10 @@ import {
     MAP_OVERLAY_DRAG_MIN_EDGE_PX,
 } from '@/app/constants/mapUiLayout'
 import {
-    ACTION_PANEL_MAX_WIDTH_PX,
+    ACTION_PANEL_MIN_HEIGHT_PX,
     ACTION_PANEL_MIN_WIDTH_PX,
+    clampPanelWidth,
+    normalizePanelHeight,
 } from '@/app/actionPanels/normalizeActionPanels'
 import {
     absoluteToEdgeAnchor,
@@ -15,9 +17,11 @@ import {
 } from '@/app/tools/map/edgeAnchoredPosition'
 
 function getElementSize(elementRef) {
+    const element = elementRef.current
+
     return {
-        width: elementRef.current?.offsetWidth ?? 0,
-        height: elementRef.current?.offsetHeight ?? 0,
+        width: element?.offsetWidth ?? 0,
+        height: element?.offsetHeight ?? 0,
     }
 }
 
@@ -38,9 +42,18 @@ function positionsEqual(leftPosition, rightPosition) {
     return leftPosition.left === rightPosition.left && leftPosition.top === rightPosition.top
 }
 
-function getPanelBounds(panelRef, mapContainerRef) {
+function getMeasurementSize(panelRef, width, height) {
+    const measured = getElementSize(panelRef)
+
+    return {
+        width: width ?? measured.width,
+        height: height ?? measured.height,
+    }
+}
+
+function getPanelBounds(panelRef, mapContainerRef, width, height) {
     const containerSize = getContainerSize(mapContainerRef)
-    const panelSize = getElementSize(panelRef)
+    const panelSize = getMeasurementSize(panelRef, width, height)
 
     return {
         minLeft: MAP_OVERLAY_DRAG_MIN_EDGE_PX,
@@ -56,11 +69,11 @@ function getPanelBounds(panelRef, mapContainerRef) {
     }
 }
 
-function getBoundedPanelPosition(left, top, panelRef, mapContainerRef) {
-    const bounds = getPanelBounds(panelRef, mapContainerRef)
-    const panelSize = getElementSize(panelRef)
+function getBoundedPanelPosition(left, top, panelRef, mapContainerRef, width, height) {
+    const bounds = getPanelBounds(panelRef, mapContainerRef, width, height)
+    const panelSize = getMeasurementSize(panelRef, width, height)
 
-    if (panelSize.width === 0 || panelSize.height === 0) {
+    if (panelSize.width === 0) {
         return {left, top}
     }
 
@@ -72,15 +85,15 @@ function getBoundedPanelPosition(left, top, panelRef, mapContainerRef) {
     )
 }
 
-function resolvePositionFromAnchor(anchor, panelRef, mapContainerRef) {
+function resolvePositionFromAnchor(anchor, panelRef, mapContainerRef, width, height) {
     if (!anchor) {
         return null
     }
 
     const containerSize = getContainerSize(mapContainerRef)
-    const panelSize = getElementSize(panelRef)
+    const panelSize = getMeasurementSize(panelRef, width, height)
 
-    if (containerSize.width === 0 || panelSize.width === 0 || panelSize.height === 0) {
+    if (containerSize.width === 0 || panelSize.width === 0) {
         return null
     }
 
@@ -88,7 +101,7 @@ function resolvePositionFromAnchor(anchor, panelRef, mapContainerRef) {
         anchor,
         containerSize,
         panelSize,
-        getPanelBounds(panelRef, mapContainerRef),
+        getPanelBounds(panelRef, mapContainerRef, width, height),
     )
 }
 
@@ -102,46 +115,91 @@ function applyResolvedPosition(setPosition, nextPosition) {
     })
 }
 
-function clampPanelWidth(width) {
+function getViewportMaxDimensions(position, mapContainerRef) {
+    const containerSize = getContainerSize(mapContainerRef)
+
+    if (!position) {
+        return {
+            maxWidth: containerSize.width - MAP_GLASS_INSET_PX * 2,
+            maxHeight: containerSize.height - MAP_GLASS_INSET_PX * 2,
+        }
+    }
+
+    return {
+        maxWidth: Math.max(
+            ACTION_PANEL_MIN_WIDTH_PX,
+            containerSize.width - position.left - MAP_GLASS_INSET_PX,
+        ),
+        maxHeight: Math.max(
+            ACTION_PANEL_MIN_HEIGHT_PX,
+            containerSize.height - position.top - MAP_GLASS_INSET_PX,
+        ),
+    }
+}
+
+function clampPanelHeight(height, maxHeight) {
+    if (height === null || height === undefined) {
+        return null
+    }
+
     return Math.min(
-        ACTION_PANEL_MAX_WIDTH_PX,
-        Math.max(ACTION_PANEL_MIN_WIDTH_PX, Math.round(width)),
+        maxHeight,
+        Math.max(ACTION_PANEL_MIN_HEIGHT_PX, Math.round(height)),
     )
 }
 
 export function useFloatingActionPanelLayout({
     mapContainerRef,
     panelRef,
-    enabled,
+    interactionsEnabled,
     storedAnchor,
     storedWidth,
+    storedHeight,
     onLayoutCommit,
 }) {
     const [position, setPosition] = useState(null)
     const [width, setWidth] = useState(() => clampPanelWidth(storedWidth))
+    const [height, setHeight] = useState(() => normalizePanelHeight(storedHeight))
+    const [isPositionResolved, setIsPositionResolved] = useState(false)
     const dragStateRef = useRef(null)
     const resizeStateRef = useRef(null)
     const positionAnchorRef = useRef(storedAnchor ?? null)
+    const widthRef = useRef(width)
+    const heightRef = useRef(height)
+    const positionRef = useRef(position)
+
+    widthRef.current = width
+    heightRef.current = height
+    positionRef.current = position
 
     const syncPositionFromAnchor = useCallback(() => {
         const nextPosition = resolvePositionFromAnchor(
             positionAnchorRef.current,
             panelRef,
             mapContainerRef,
+            widthRef.current,
+            heightRef.current,
         )
 
         if (!nextPosition) {
-            return
+            setIsPositionResolved(false)
+            return false
         }
 
+        setIsPositionResolved(true)
         applyResolvedPosition(setPosition, nextPosition)
+        return true
     }, [mapContainerRef, panelRef])
 
     const commitPositionAnchor = useCallback((left, top) => {
         const containerSize = getContainerSize(mapContainerRef)
-        const panelSize = getElementSize(panelRef)
+        const panelSize = getMeasurementSize(
+            panelRef,
+            widthRef.current,
+            heightRef.current,
+        )
 
-        if (containerSize.width === 0 || panelSize.width === 0 || panelSize.height === 0) {
+        if (containerSize.width === 0 || panelSize.width === 0) {
             return
         }
 
@@ -153,50 +211,69 @@ export function useFloatingActionPanelLayout({
     }, [storedWidth])
 
     useLayoutEffect(() => {
-        if (!enabled) {
-            return
-        }
-
-        positionAnchorRef.current = storedAnchor ?? positionAnchorRef.current
-        syncPositionFromAnchor()
-    }, [enabled, storedAnchor, syncPositionFromAnchor])
+        setHeight(normalizePanelHeight(storedHeight))
+    }, [storedHeight])
 
     useLayoutEffect(() => {
-        if (!enabled || !mapContainerRef.current) {
+        positionAnchorRef.current = storedAnchor ?? positionAnchorRef.current
+        syncPositionFromAnchor()
+    }, [storedAnchor, syncPositionFromAnchor])
+
+    useLayoutEffect(() => {
+        if (!mapContainerRef.current || !panelRef.current) {
             return undefined
         }
 
-        const container = mapContainerRef.current
         let frameRef = null
+        let cancelled = false
 
-        const resizeObserver = new ResizeObserver(() => {
+        const scheduleSync = () => {
             if (frameRef) {
                 return
             }
 
             frameRef = requestAnimationFrame(() => {
                 frameRef = null
-                syncPositionFromAnchor()
+
+                if (cancelled) {
+                    return
+                }
+
+                const resolved = syncPositionFromAnchor()
+
+                if (!resolved) {
+                    scheduleSync()
+                }
             })
+        }
+
+        scheduleSync()
+
+        const observedElements = [mapContainerRef.current, panelRef.current]
+        const resizeObserver = new ResizeObserver(() => {
+            scheduleSync()
         })
 
-        resizeObserver.observe(container)
+        observedElements.forEach((element) => {
+            resizeObserver.observe(element)
+        })
 
         return () => {
+            cancelled = true
             resizeObserver.disconnect()
 
             if (frameRef) {
                 cancelAnimationFrame(frameRef)
             }
         }
-    }, [enabled, mapContainerRef, syncPositionFromAnchor])
+    }, [mapContainerRef, panelRef, syncPositionFromAnchor])
 
     const handlePanelPointerDown = useCallback((event) => {
         event.stopPropagation()
     }, [])
 
     const handleDragHandlePointerDown = useCallback((event) => {
-        if (!enabled || event.button !== 0) {
+        if (!interactionsEnabled || event.button !== 0) {
             return
         }
 
@@ -222,7 +299,7 @@ export function useFloatingActionPanelLayout({
         }
 
         event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [enabled, mapContainerRef, panelRef])
+    }, [interactionsEnabled, mapContainerRef, panelRef])
 
     const handleDragHandlePointerMove = useCallback((event) => {
         const dragState = dragStateRef.current
@@ -239,7 +316,14 @@ export function useFloatingActionPanelLayout({
 
         applyResolvedPosition(
             setPosition,
-            getBoundedPanelPosition(left, top, panelRef, mapContainerRef),
+            getBoundedPanelPosition(
+                left,
+                top,
+                panelRef,
+                mapContainerRef,
+                widthRef.current,
+                heightRef.current,
+            ),
         )
     }, [mapContainerRef, panelRef])
 
@@ -260,16 +344,17 @@ export function useFloatingActionPanelLayout({
 
                 onLayoutCommit?.({
                     anchor: positionAnchorRef.current,
-                    width,
+                    width: widthRef.current,
+                    height: heightRef.current,
                 })
             }
 
             return currentPosition
         })
-    }, [commitPositionAnchor, onLayoutCommit, width])
+    }, [commitPositionAnchor, onLayoutCommit])
 
     const handleResizeHandlePointerDown = useCallback((event) => {
-        if (!enabled || event.button !== 0) {
+        if (!interactionsEnabled || event.button !== 0) {
             return
         }
 
@@ -285,11 +370,13 @@ export function useFloatingActionPanelLayout({
         resizeStateRef.current = {
             pointerId: event.pointerId,
             startX: event.clientX,
+            startY: event.clientY,
             startWidth: panelElement.offsetWidth,
+            startHeight: panelElement.offsetHeight,
         }
 
         event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [enabled, panelRef])
+    }, [interactionsEnabled, panelRef])
 
     const handleResizeHandlePointerMove = useCallback((event) => {
         const resizeState = resizeStateRef.current
@@ -301,11 +388,15 @@ export function useFloatingActionPanelLayout({
         event.preventDefault()
         event.stopPropagation()
 
+        const {maxWidth, maxHeight} = getViewportMaxDimensions(positionRef.current, mapContainerRef)
         const deltaX = event.clientX - resizeState.startX
-        const nextWidth = clampPanelWidth(resizeState.startWidth + deltaX)
+        const deltaY = event.clientY - resizeState.startY
+        const nextWidth = clampPanelWidth(resizeState.startWidth + deltaX, maxWidth)
+        const nextHeight = clampPanelHeight(resizeState.startHeight + deltaY, maxHeight)
 
         setWidth(nextWidth)
-    }, [])
+        setHeight(nextHeight)
+    }, [mapContainerRef])
 
     const handleResizeHandlePointerUp = useCallback((event) => {
         if (resizeStateRef.current?.pointerId !== event.pointerId) {
@@ -318,23 +409,27 @@ export function useFloatingActionPanelLayout({
 
         resizeStateRef.current = null
 
-        setWidth((currentWidth) => {
-            const clampedWidth = clampPanelWidth(currentWidth)
+        const {maxWidth, maxHeight} = getViewportMaxDimensions(positionRef.current, mapContainerRef)
+        const committedWidth = clampPanelWidth(widthRef.current, maxWidth)
+        const committedHeight = clampPanelHeight(heightRef.current, maxHeight)
 
-            onLayoutCommit?.({
-                anchor: positionAnchorRef.current,
-                width: clampedWidth,
-            })
+        setWidth(committedWidth)
+        setHeight(committedHeight)
 
-            return clampedWidth
+        onLayoutCommit?.({
+            anchor: positionAnchorRef.current,
+            width: committedWidth,
+            height: committedHeight,
         })
 
         syncPositionFromAnchor()
-    }, [onLayoutCommit, syncPositionFromAnchor])
+    }, [mapContainerRef, onLayoutCommit, syncPositionFromAnchor])
 
     return {
         position,
         width,
+        height,
+        isPositionResolved,
         handlePanelPointerDown,
         handleDragHandlePointerDown,
         handleDragHandlePointerMove,

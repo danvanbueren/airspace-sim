@@ -1,6 +1,6 @@
 'use client'
 
-import {Box, Card, Divider, Typography} from '@mui/material'
+import {Box, Card, Divider} from '@mui/material'
 import {GLASS_PANEL_BORDER_STYLE, getGlassPanelSurfaceSx} from './glassPanelSurface'
 
 export default function BasicGlassPanel({
@@ -8,21 +8,27 @@ export default function BasicGlassPanel({
     children,
     dense = false,
     width = 400,
+    height = null,
     titleAdornment = null,
     hideTitle = false,
+    header = null,
+    scrollableBody = false,
 }) {
+    const hasExplicitHeight = typeof height === 'number'
 
     return (
         <Card
             variant='outlined'
             style={{
                 width: dense ? null : width,
+                height: hasExplicitHeight ? height : undefined,
                 padding: dense ? 5 : 20,
                 paddingTop: dense ? 5 : 15,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 10,
-                alignItems: 'center',
+                alignItems: 'stretch',
+                minHeight: 0,
                 ...GLASS_PANEL_BORDER_STYLE,
             }}
             sx={(theme) => ({
@@ -30,7 +36,9 @@ export default function BasicGlassPanel({
                 userSelect: 'none',
             })}
         >
-            { title && !hideTitle && <>
+            {header}
+
+            { title && !hideTitle && !header && <>
                 <Box
                     sx={{
                         display: 'flex',
@@ -38,25 +46,25 @@ export default function BasicGlassPanel({
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         gap: 1,
+                        flexShrink: 0,
                     }}
                 >
-                    <Typography
-                        variant='h6'
-                        sx={{
-                            fontFamily: 'monospace',
-                            fontWeight: 'bold',
-                            flexGrow: 1,
-                            minWidth: 0,
-                        }}
-                    >
-                        {title}
-                    </Typography>
                     {titleAdornment}
                 </Box>
-                <Divider orientation='horizontal' flexItem sx={{marginBottom: 1.5}} />
+                <Divider orientation='horizontal' flexItem sx={{marginBottom: 1.5, flexShrink: 0}} />
             </>}
 
-            {children}
+            <Box
+                sx={{
+                    width: '100%',
+                    minHeight: 0,
+                    flexGrow: hasExplicitHeight || scrollableBody ? 1 : 0,
+                    overflowY: hasExplicitHeight || scrollableBody ? 'auto' : 'visible',
+                    overflowX: 'hidden',
+                }}
+            >
+                {children}
+            </Box>
         </Card>
     )
 }

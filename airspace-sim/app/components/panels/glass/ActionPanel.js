@@ -2,17 +2,36 @@
 
 import {useCallback, useRef} from 'react'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
+import EditIcon from '@mui/icons-material/Edit'
 import {Box, Divider, IconButton, Typography} from '@mui/material'
 import BasicGlassPanel from './BasicGlassPanel'
 import ActionPanelControls from './ActionPanelControls'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 import {useFloatingActionPanelLayout} from '@/app/hooks/map/useFloatingActionPanelLayout'
 
+function ResizeIndicator() {
+    return (
+        <Box
+            aria-hidden
+            sx={{
+                width: 10,
+                height: 10,
+                opacity: 0.7,
+                backgroundImage: [
+                    'linear-gradient(135deg, transparent 0 40%, rgba(158,158,158,0.95) 40% 45%, transparent 45% 55%, rgba(158,158,158,0.95) 55% 60%, transparent 60%)',
+                    'linear-gradient(135deg, transparent 0 55%, rgba(158,158,158,0.95) 55% 60%, transparent 60%)',
+                ].join(', '),
+            }}
+        />
+    )
+}
+
 export default function ActionPanel({
     panel,
     layout,
     mapContainerRef,
-    enabled,
+    interactionsEnabled,
+    onEditPanelSettings,
 }) {
     const panelRef = useRef(null)
     const {updateActionPanelLayout} = useActionPanels()
@@ -24,6 +43,8 @@ export default function ActionPanel({
     const {
         position,
         width,
+        height,
+        isPositionResolved,
         handlePanelPointerDown,
         handleDragHandlePointerDown,
         handleDragHandlePointerMove,
@@ -34,11 +55,14 @@ export default function ActionPanel({
     } = useFloatingActionPanelLayout({
         mapContainerRef,
         panelRef,
-        enabled,
+        interactionsEnabled,
         storedAnchor: layout.anchor,
         storedWidth: layout.width,
+        storedHeight: layout.height,
         onLayoutCommit: handleLayoutCommit,
     })
+
+    const hasExplicitHeight = typeof height === 'number'
 
     return (
         <Box
@@ -47,84 +71,102 @@ export default function ActionPanel({
             onPointerDown={handlePanelPointerDown}
             sx={{
                 position: 'absolute',
-                left: position?.left ?? -10000,
-                top: position?.top ?? -10000,
+                left: position?.left ?? 0,
+                top: position?.top ?? 0,
                 width,
-                visibility: position ? 'visible' : 'hidden',
+                height: hasExplicitHeight ? height : 'auto',
+                opacity: isPositionResolved ? 1 : 0,
+                pointerEvents: isPositionResolved ? 'auto' : 'none',
             }}
         >
             <BasicGlassPanel
                 width={width}
-                hideTitle
-            >
-                <Box
-                    sx={{
-                        display: 'flex',
-                        width: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 1,
-                        mb: 0.5,
-                    }}
-                >
-                    <IconButton
-                        size='small'
-                        aria-label={`Drag ${panel.title}`}
-                        sx={{
-                            cursor: enabled ? 'grab' : 'default',
-                            touchAction: 'none',
-                            flexGrow: 1,
-                            minWidth: 0,
-                            justifyContent: 'flex-start',
-                            borderRadius: 1,
-                            px: 0.5,
-                            mx: -0.5,
-                        }}
-                        onPointerDown={handleDragHandlePointerDown}
-                        onPointerMove={handleDragHandlePointerMove}
-                        onPointerUp={handleDragHandlePointerUp}
-                        onPointerCancel={handleDragHandlePointerUp}
-                    >
-                        <DragIndicatorIcon fontSize='small' sx={{mr: 0.5}}/>
-                        <Typography
-                            variant='h6'
-                            component='span'
+                height={hasExplicitHeight ? height : null}
+                scrollableBody={hasExplicitHeight}
+                header={(
+                    <>
+                        <Box
                             sx={{
-                                fontFamily: 'monospace',
-                                fontWeight: 'bold',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
+                                display: 'flex',
+                                width: '100%',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                flexShrink: 0,
                             }}
                         >
-                            {panel.title}
-                        </Typography>
-                    </IconButton>
-                </Box>
-                <Divider orientation='horizontal' flexItem sx={{width: '100%', mb: 1.5}}/>
-
+                            <IconButton
+                                size='small'
+                                aria-label={`Drag ${panel.title}`}
+                                sx={{
+                                    cursor: interactionsEnabled ? 'grab' : 'default',
+                                    touchAction: 'none',
+                                    flexGrow: 1,
+                                    minWidth: 0,
+                                    justifyContent: 'flex-start',
+                                    borderRadius: 1,
+                                    px: 0.5,
+                                    mx: -0.5,
+                                }}
+                                onPointerDown={handleDragHandlePointerDown}
+                                onPointerMove={handleDragHandlePointerMove}
+                                onPointerUp={handleDragHandlePointerUp}
+                                onPointerCancel={handleDragHandlePointerUp}
+                            >
+                                <DragIndicatorIcon fontSize='small' sx={{mr: 0.5}}/>
+                                <Typography
+                                    variant='h6'
+                                    component='span'
+                                    sx={{
+                                        fontFamily: 'monospace',
+                                        fontWeight: 'bold',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                    }}
+                                >
+                                    {panel.title}
+                                </Typography>
+                            </IconButton>
+                            <IconButton
+                                size='small'
+                                aria-label={`Edit ${panel.title} settings`}
+                                onClick={onEditPanelSettings}
+                            >
+                                <EditIcon fontSize='small'/>
+                            </IconButton>
+                        </Box>
+                        <Divider orientation='horizontal' flexItem sx={{width: '100%', mb: 0.5, flexShrink: 0}}/>
+                    </>
+                )}
+            >
                 <ActionPanelControls
                     itemIds={panel.itemIds}
                     displayStyle={panel.displayStyle}
+                    panelWidthPx={width}
                 />
             </BasicGlassPanel>
 
             <Box
-                aria-hidden
+                aria-label='Resize panel'
                 onPointerDown={handleResizeHandlePointerDown}
                 onPointerMove={handleResizeHandlePointerMove}
                 onPointerUp={handleResizeHandlePointerUp}
                 onPointerCancel={handleResizeHandlePointerUp}
                 sx={{
                     position: 'absolute',
-                    right: 0,
-                    bottom: 0,
-                    width: 16,
-                    height: 16,
-                    cursor: enabled ? 'nwse-resize' : 'default',
+                    right: 4,
+                    bottom: 4,
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'flex-end',
+                    width: 20,
+                    height: 20,
+                    cursor: interactionsEnabled ? 'nwse-resize' : 'default',
                     touchAction: 'none',
                 }}
-            />
+            >
+                <ResizeIndicator/>
+            </Box>
         </Box>
     )
 }

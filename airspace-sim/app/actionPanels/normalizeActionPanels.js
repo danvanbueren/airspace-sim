@@ -1,7 +1,7 @@
 import {
     ACTION_PANEL_DISPLAY_STYLES,
     ACTION_PANEL_ITEM_CATALOG_BY_ID,
-    ACTION_PANEL_ITEM_IDS,
+    filterRenderableItemIds,
 } from './actionPanelRegistry.js'
 import {
     DEFAULT_ACTION_PANEL_WIDTH_PX,
@@ -9,10 +9,10 @@ import {
 } from './actionPanelDefaults.js'
 import {edgeAnchorsEqual} from '../tools/map/edgeAnchoredPosition.js'
 
-export const ACTION_PANEL_MIN_WIDTH_PX = 280
-export const ACTION_PANEL_MAX_WIDTH_PX = 720
+export const ACTION_PANEL_MIN_WIDTH_PX = 160
+export const ACTION_PANEL_MIN_HEIGHT_PX = 120
 
-function clampPanelWidth(width) {
+function clampPanelWidth(width, maxWidth = Number.POSITIVE_INFINITY) {
     const numericWidth = Number(width)
 
     if (!Number.isFinite(numericWidth)) {
@@ -20,9 +20,23 @@ function clampPanelWidth(width) {
     }
 
     return Math.min(
-        ACTION_PANEL_MAX_WIDTH_PX,
+        maxWidth,
         Math.max(ACTION_PANEL_MIN_WIDTH_PX, Math.round(numericWidth)),
     )
+}
+
+function normalizePanelHeight(height) {
+    if (height === null || height === undefined) {
+        return null
+    }
+
+    const numericHeight = Number(height)
+
+    if (!Number.isFinite(numericHeight)) {
+        return null
+    }
+
+    return Math.max(ACTION_PANEL_MIN_HEIGHT_PX, Math.round(numericHeight))
 }
 
 function normalizeAnchorOffset(value, fallbackValue) {
@@ -83,20 +97,21 @@ function normalizeDisplayStyle(displayStyle) {
     return ACTION_PANEL_DISPLAY_STYLES.LARGE
 }
 
-function normalizeItemIds(itemIds) {
-    if (!Array.isArray(itemIds)) {
-        return []
+function normalizeItemIds(itemIds, fallbackItemIds) {
+    const filteredItemIds = filterRenderableItemIds(itemIds)
+
+    if (filteredItemIds.length > 0) {
+        return filteredItemIds
     }
 
-    return itemIds.filter((itemId) => (
-        typeof itemId === 'string' && ACTION_PANEL_ITEM_CATALOG_BY_ID[itemId]
-    ))
+    return filterRenderableItemIds(fallbackItemIds)
 }
 
 function getDefaultLayoutForPanelId(panelId) {
     return DEFAULT_ACTION_PANELS_STATE.layouts[panelId] ?? {
         anchor: DEFAULT_ACTION_PANELS_STATE.layouts[DEFAULT_ACTION_PANELS_STATE.panels[0].id].anchor,
         width: DEFAULT_ACTION_PANEL_WIDTH_PX,
+        height: null,
     }
 }
 
@@ -119,6 +134,7 @@ export function createDefaultActionPanelLayout() {
             vertical: {edge: 'top', offset: 20},
         },
         width: DEFAULT_ACTION_PANEL_WIDTH_PX,
+        height: null,
     }
 }
 
@@ -130,7 +146,7 @@ export function createEmptyActionPanel({title = 'New Action Panel'} = {}) {
             id,
             title,
             displayStyle: ACTION_PANEL_DISPLAY_STYLES.LARGE,
-            itemIds: [ACTION_PANEL_ITEM_IDS.SPACER],
+            itemIds: [],
         },
         layout: createDefaultActionPanelLayout(),
     }
@@ -148,9 +164,7 @@ export function normalizeActionPanelsState(state) {
             id,
             title: normalizePanelTitle(panel?.title, fallbackPanel.title),
             displayStyle: normalizeDisplayStyle(panel?.displayStyle),
-            itemIds: normalizeItemIds(panel?.itemIds).length > 0
-                ? normalizeItemIds(panel?.itemIds)
-                : fallbackPanel.itemIds,
+            itemIds: normalizeItemIds(panel?.itemIds, fallbackPanel.itemIds),
         }
     })
 
@@ -163,6 +177,7 @@ export function normalizeActionPanelsState(state) {
         layouts[panel.id] = {
             anchor: normalizeAnchor(storedLayout?.anchor, fallbackLayout.anchor),
             width: clampPanelWidth(storedLayout?.width ?? fallbackLayout.width),
+            height: normalizePanelHeight(storedLayout?.height ?? fallbackLayout.height),
         }
     })
 
@@ -190,5 +205,8 @@ export function actionPanelLayoutsEqual(leftLayouts, rightLayouts) {
 
         return edgeAnchorsEqual(leftLayout.anchor, rightLayout.anchor)
             && leftLayout.width === rightLayout.width
+            && leftLayout.height === rightLayout.height
     })
 }
+
+export {clampPanelWidth, normalizePanelHeight}

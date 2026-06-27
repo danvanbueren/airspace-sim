@@ -249,7 +249,7 @@ export function buildControlReference(controlBindings, {bearingRangeBehavior = '
                 },
                 {
                     action: 'Zoom out',
-                    combo: 'Fixed Function Panel → Zoom Out',
+                    combo: 'Action Panel → Zoom Out',
                 },
             ],
         },

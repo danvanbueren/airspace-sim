@@ -3,7 +3,6 @@ import {SENSOR_DISPLAY_TOGGLES} from '../simulation/constants.js'
 export const ACTION_PANEL_ITEM_TYPES = {
     TOGGLE: 'toggle',
     BUTTON: 'button',
-    SPACER: 'spacer',
 }
 
 export const ACTION_PANEL_DISPLAY_STYLES = {
@@ -18,34 +17,19 @@ export const ACTION_PANEL_ITEM_IDS = {
     RADAR_HISTORY: SENSOR_DISPLAY_TOGGLES.RADAR_HISTORY,
     AIRPORTS: SENSOR_DISPLAY_TOGGLES.AIRPORTS,
     AIR_ROUTES: SENSOR_DISPLAY_TOGGLES.AIR_ROUTES,
+    INITIATE: 'INITIATE',
+    RE_INITIATE: 'RE_INITIATE',
     ZOOM_IN: 'ZOOM_IN',
     ZOOM_OUT: 'ZOOM_OUT',
     HOME: 'HOME',
     CENTER_E3: 'CENTER_E3',
-    SPACER: 'SPACER',
 }
-
-const SENSOR_TOGGLE_IDS = new Set([
-    ACTION_PANEL_ITEM_IDS.IFF_CURRENT,
-    ACTION_PANEL_ITEM_IDS.IFF_HISTORY,
-    ACTION_PANEL_ITEM_IDS.RADAR_CURRENT,
-    ACTION_PANEL_ITEM_IDS.RADAR_HISTORY,
-    ACTION_PANEL_ITEM_IDS.AIRPORTS,
-    ACTION_PANEL_ITEM_IDS.AIR_ROUTES,
-])
-
-const BUTTON_ACTION_IDS = new Set([
-    ACTION_PANEL_ITEM_IDS.ZOOM_IN,
-    ACTION_PANEL_ITEM_IDS.ZOOM_OUT,
-    ACTION_PANEL_ITEM_IDS.HOME,
-    ACTION_PANEL_ITEM_IDS.CENTER_E3,
-])
 
 function formatActionLabel(itemId) {
     return itemId.replaceAll('_', ' ')
 }
 
-/** Catalog of assignable panel items. Spacers are layout-only placeholders. */
+/** Catalog of assignable panel items. */
 export const ACTION_PANEL_ITEM_CATALOG = [
     {
         id: ACTION_PANEL_ITEM_IDS.IFF_CURRENT,
@@ -84,6 +68,18 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         toggleKey: ACTION_PANEL_ITEM_IDS.AIR_ROUTES,
     },
     {
+        id: ACTION_PANEL_ITEM_IDS.INITIATE,
+        type: ACTION_PANEL_ITEM_TYPES.BUTTON,
+        label: formatActionLabel(ACTION_PANEL_ITEM_IDS.INITIATE),
+        actionKey: ACTION_PANEL_ITEM_IDS.INITIATE,
+    },
+    {
+        id: ACTION_PANEL_ITEM_IDS.RE_INITIATE,
+        type: ACTION_PANEL_ITEM_TYPES.BUTTON,
+        label: formatActionLabel(ACTION_PANEL_ITEM_IDS.RE_INITIATE),
+        actionKey: ACTION_PANEL_ITEM_IDS.RE_INITIATE,
+    },
+    {
         id: ACTION_PANEL_ITEM_IDS.ZOOM_IN,
         type: ACTION_PANEL_ITEM_TYPES.BUTTON,
         label: formatActionLabel(ACTION_PANEL_ITEM_IDS.ZOOM_IN),
@@ -107,33 +103,28 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         label: formatActionLabel(ACTION_PANEL_ITEM_IDS.CENTER_E3),
         actionKey: ACTION_PANEL_ITEM_IDS.CENTER_E3,
     },
-    {
-        id: ACTION_PANEL_ITEM_IDS.SPACER,
-        type: ACTION_PANEL_ITEM_TYPES.SPACER,
-        label: 'Spacer',
-    },
 ]
 
 export const ACTION_PANEL_ITEM_CATALOG_BY_ID = Object.fromEntries(
     ACTION_PANEL_ITEM_CATALOG.map((entry) => [entry.id, entry]),
 )
 
-export const ACTION_PANEL_ASSIGNABLE_ITEMS = ACTION_PANEL_ITEM_CATALOG.filter(
-    (entry) => entry.type !== ACTION_PANEL_ITEM_TYPES.SPACER,
-)
+export const ACTION_PANEL_ASSIGNABLE_ITEMS = ACTION_PANEL_ITEM_CATALOG
 
 export function getActionPanelItemDefinition(itemId) {
     return ACTION_PANEL_ITEM_CATALOG_BY_ID[itemId] ?? null
 }
 
-export function isSensorToggleItemId(itemId) {
-    return SENSOR_TOGGLE_IDS.has(itemId)
+export function filterRenderableItemIds(itemIds) {
+    if (!Array.isArray(itemIds)) {
+        return []
+    }
+
+    return itemIds.filter((itemId) => ACTION_PANEL_ITEM_CATALOG_BY_ID[itemId])
 }
 
-export function isButtonActionItemId(itemId) {
-    return BUTTON_ACTION_IDS.has(itemId)
-}
+export function getAvailableAssignableItems(existingItemIds) {
+    const usedIds = new Set(existingItemIds ?? [])
 
-export function isSpacerItemId(itemId) {
-    return itemId === ACTION_PANEL_ITEM_IDS.SPACER
+    return ACTION_PANEL_ASSIGNABLE_ITEMS.filter((item) => !usedIds.has(item.id))
 }
