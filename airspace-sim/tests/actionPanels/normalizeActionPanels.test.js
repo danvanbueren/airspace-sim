@@ -3,19 +3,19 @@ import {describe, it} from 'node:test'
 import {
     ACTION_PANEL_DISPLAY_STYLES,
     ACTION_PANEL_ITEM_IDS,
-} from '../../app/actionPanels/actionPanelRegistry.js'
+} from '../../app/tools/actionPanels/actionPanelRegistry.js'
 import {
     getCompactGridColumnCount,
     getLargeGridColumnCount,
-} from '../../app/actionPanels/actionPanelGridLayout.js'
+} from '../../app/tools/actionPanels/actionPanelGridLayout.js'
 import {
     DEFAULT_CATEGORY_SELECT_PANEL_ID,
     DEFAULT_FIXED_FUNCTION_PANEL_ID,
-} from '../../app/actionPanels/actionPanelDefaults.js'
+} from '../../app/tools/actionPanels/actionPanelDefaults.js'
 import {
     createEmptyActionPanel,
     normalizeActionPanelsState,
-} from '../../app/actionPanels/normalizeActionPanels.js'
+} from '../../app/tools/actionPanels/normalizeActionPanels.js'
 
 describe('normalizeActionPanelsState', () => {
     it('returns the default Category Select and Fixed Function panels', () => {

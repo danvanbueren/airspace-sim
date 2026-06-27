@@ -2,13 +2,13 @@ import {
     ACTION_PANEL_DISPLAY_STYLES,
     filterRenderableItemIds,
 } from './actionPanelRegistry.js'
-import {MAP_GLASS_INSET_PX} from '../constants/mapUiLayout.js'
+import {MAP_FLOATING_INSET_PX} from '../../constants/mapUiLayout.js'
 import {
     DEFAULT_ACTION_PANELS_STATE,
     DEFAULT_ACTION_PANEL_IDS,
     DEFAULT_ACTION_PANEL_WIDTH_PX,
 } from './actionPanelDefaults.js'
-import {edgeAnchorsEqual} from '../tools/map/edgeAnchoredPosition.js'
+import {edgeAnchorsEqual} from '../map/edgeAnchoredPosition.js'
 
 export const ACTION_PANEL_MIN_WIDTH_PX = 200
 export const ACTION_PANEL_MIN_HEIGHT_PX = 160
@@ -145,8 +145,8 @@ export function createActionPanelId() {
 export function createDefaultActionPanelLayout() {
     return {
         anchor: {
-            horizontal: {edge: 'left', offset: MAP_GLASS_INSET_PX},
-            vertical: {edge: 'top', offset: MAP_GLASS_INSET_PX},
+            horizontal: {edge: 'left', offset: MAP_FLOATING_INSET_PX},
+            vertical: {edge: 'top', offset: MAP_FLOATING_INSET_PX},
         },
         width: DEFAULT_ACTION_PANEL_WIDTH_PX,
         height: null,

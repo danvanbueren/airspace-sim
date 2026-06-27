@@ -3,7 +3,7 @@ import test from 'node:test'
 import {
     buildSeedAlarmKey,
     SEED_ALARM_ALERTS,
-} from '../../app/content/seedAlarmAlerts.js'
+} from '../../app/data/seedAlarmAlerts.js'
 
 test('seed alarm alerts define stable dedup keys', () => {
     const keys = SEED_ALARM_ALERTS.map((seedAlert) => buildSeedAlarmKey(seedAlert))

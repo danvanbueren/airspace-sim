@@ -64,7 +64,7 @@ Common slots in this codebase:
 
 Legacy names like `PaperProps`, `BackdropProps`, and `InputProps` are **not** the v9 pattern. Use `slotProps` instead. (People sometimes say “paperProps” informally — in this repo that means **`slotProps.paper`**.)
 
-**Menu / Select menu surface** — see `getTrackManagementSelectMenuProps` in `app/components/windows/TrackManagementWindow.js`:
+**Menu / Select menu surface** — see `getTrackManagementSelectMenuProps` in `app/components/floating/windows/TrackManagementWindow.js`:
 
 ```jsx
 slotProps: {
@@ -93,7 +93,7 @@ slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
 | Style the component's own root | `sx` on `Box` / `Paper` / `Stack` / `Typography` |
 | Style a Menu/Popover/Dialog surface | `slotProps.paper.sx` (or `MenuProps.slotProps.paper` on `Select`) |
 | Style the native input inside `TextField` | `slotProps.htmlInput` |
-| Style a one-off glass panel on the map | `Paper` + `sx` directly (e.g. `PerformanceAnalyticsOverlay`, `MapContextMenu`) |
+| Style a one-off floating panel on the map | `Paper` + `sx` directly (e.g. `PerformanceAnalyticsOverlay`, `MapContextMenu`) |
 
 Do **not** pass `alignItems` through `slotProps.paper` when you own the `Paper` element — put it in that `Paper`'s `sx` instead. `slotProps.paper` is for when **MUI** renders the `Paper` inside a composite component.
 

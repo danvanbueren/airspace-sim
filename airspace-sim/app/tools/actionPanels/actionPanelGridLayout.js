@@ -1,4 +1,4 @@
-import {edgeAnchorToAbsolute} from '../tools/map/edgeAnchoredPosition.js'
+import {edgeAnchorToAbsolute} from '../map/edgeAnchoredPosition.js'
 import {ACTION_PANEL_MIN_HEIGHT_PX} from './normalizeActionPanels.js'
 
 export const ACTION_PANEL_GRID_GAP_PX = 16

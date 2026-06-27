@@ -15,7 +15,7 @@ import {
     ACTION_PANEL_ITEM_TYPES,
     filterRenderableItemIds,
     getActionPanelItemDefinition,
-} from '@/app/actionPanels/actionPanelRegistry'
+} from '@/app/tools/actionPanels/actionPanelRegistry'
 import {
     ACTION_PANEL_GRID_GAP_COMPACT_PX,
     ACTION_PANEL_GRID_GAP_PX,
@@ -23,7 +23,7 @@ import {
     COMPACT_BUTTON_MIN_HEIGHT_PX,
     getCompactGridColumnCount,
     getLargeGridColumnCount,
-} from '@/app/actionPanels/actionPanelGridLayout'
+} from '@/app/tools/actionPanels/actionPanelGridLayout'
 import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 

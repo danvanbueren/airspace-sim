@@ -49,7 +49,7 @@ import {
 } from '@/app/tools/milstd2525/trackSpecificTypes'
 import {TRACK_CORRELATION_MODES} from '@/app/simulation/trackFromDetection'
 import {expandTrackManagementWindowSkipLiveFields} from '@/app/tools/map/trackManagementTrack'
-import AttentionFlagPills from '@/app/components/windows/AttentionFlagPills'
+import AttentionFlagPills from '@/app/components/floating/windows/AttentionFlagPills'
 import {getVisibleTrackAttentionFlags} from '@/app/simulation/trackAttentionFlags'
 import {
     getMode3DisplayLabel,

@@ -8,9 +8,9 @@ import {
 } from '../../app/constants/uiZIndex.js'
 
 describe('getDraggableFloatingZIndex', () => {
-    it('starts at the glass panel base and stays below track management windows', () => {
+    it('starts at the floating overlay base and stays below track management windows', () => {
         assert.equal(getDraggableFloatingZIndex(0), DRAGGABLE_FLOATING_STACK_BASE)
-        assert.equal(DRAGGABLE_FLOATING_STACK_BASE, UI_Z_INDEX.GLASS_PANEL)
+        assert.equal(DRAGGABLE_FLOATING_STACK_BASE, UI_Z_INDEX.FLOATING_OVERLAY)
         assert.ok(getDraggableFloatingZIndex(99) < UI_Z_INDEX.SETTINGS_TOOLBELT)
         assert.equal(getDraggableFloatingZIndex(99), DRAGGABLE_FLOATING_STACK_MAX)
     })

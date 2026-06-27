@@ -1,7 +1,7 @@
 'use client'
 
 import {useEffect, useMemo, useState} from 'react'
-import BasicGlassPanel from './BasicGlassPanel'
+import FloatingPanel from '../shared/FloatingPanel'
 import AlarmAlertDetailModal from './AlarmAlertDetailModal'
 import AlarmAlertListItem from './AlarmAlertListItem'
 import {Box, Button, Stack, Typography} from '@mui/material'
@@ -112,7 +112,7 @@ export default function AlarmAlertPanel() {
                 onFocusAlert={setFocusedAlertId}
             />
             {visibleAlerts.length > 0 && (
-                <BasicGlassPanel dense>
+                <FloatingPanel dense>
                     <Box sx={{display: 'flex', justifyContent: 'center', width: '100%'}}>
                         <Button
                             size='small'
@@ -175,7 +175,7 @@ export default function AlarmAlertPanel() {
                             ))}
                         </Stack>
                     </Box>
-                </BasicGlassPanel>
+                </FloatingPanel>
             )}
         </>
     )

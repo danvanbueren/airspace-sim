@@ -36,7 +36,7 @@ import {
     TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
 } from '../../tools/map/trackManagementTrack'
 import MapContextMenu from './MapContextMenu'
-import TrackManagementWindow from '../windows/TrackManagementWindow'
+import TrackManagementWindow from '../floating/windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import TrackAttentionOverlay from './TrackAttentionOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'

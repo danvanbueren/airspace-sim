@@ -4,13 +4,13 @@ import {
     normalizeLayoutForViewport,
     runtimeLayoutDiffersFromStored,
     viewportLayoutDiffersFromStored,
-} from '../../app/actionPanels/actionPanelViewportLayout.js'
-import {estimateActionPanelAutoHeight} from '../../app/actionPanels/actionPanelSizeEstimate.js'
-import {ACTION_PANEL_MIN_WIDTH_PX} from '../../app/actionPanels/normalizeActionPanels.js'
+} from '../../app/tools/actionPanels/actionPanelViewportLayout.js'
+import {estimateActionPanelAutoHeight} from '../../app/tools/actionPanels/actionPanelSizeEstimate.js'
+import {ACTION_PANEL_MIN_WIDTH_PX} from '../../app/tools/actionPanels/normalizeActionPanels.js'
 import {
     ACTION_PANEL_DISPLAY_STYLES,
     ACTION_PANEL_ITEM_IDS,
-} from '../../app/actionPanels/actionPanelRegistry.js'
+} from '../../app/tools/actionPanels/actionPanelRegistry.js'
 
 describe('normalizeLayoutForViewport', () => {
     it('keeps in-bounds layouts unchanged', () => {

@@ -3,7 +3,7 @@
 import {useLayoutEffect, useRef} from 'react'
 import {alpha, Box, Button, Modal, Stack, Typography} from '@mui/material'
 import AlarmAlertListItem from './AlarmAlertListItem'
-import {GLASS_PANEL_BORDER_STYLE} from './glassPanelSurface'
+import {FLOATING_PANEL_BORDER_STYLE} from '../shared/floatingPanelSurface'
 import {
     calculateAlarmAlertModalDimensions,
     estimateAlarmAlertContentHeight,
@@ -113,7 +113,7 @@ export default function AlarmAlertDetailModal({
                     maxWidth: '90vw',
                     maxHeight: '90dvh',
                     p: `${MODAL_PADDING_PX}px`,
-                    ...GLASS_PANEL_BORDER_STYLE,
+                    ...FLOATING_PANEL_BORDER_STYLE,
                     backgroundColor: alpha(theme.palette.background.paper, 0.75),
                     backdropFilter: 'blur(10px)',
                     boxShadow: 24,

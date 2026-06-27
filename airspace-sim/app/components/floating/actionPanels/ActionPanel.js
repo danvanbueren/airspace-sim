@@ -4,10 +4,10 @@ import {useCallback, useRef} from 'react'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import EditIcon from '@mui/icons-material/Edit'
 import {Box, Divider, IconButton, Typography} from '@mui/material'
-import BasicGlassPanel from './BasicGlassPanel'
+import FloatingPanel from '../shared/FloatingPanel'
 import ActionPanelControls, {ActionPanelEmptyContent} from './ActionPanelControls'
-import {filterRenderableItemIds} from '@/app/actionPanels/actionPanelRegistry'
-import {MAP_GLASS_INSET_PX} from '@/app/constants/mapUiLayout'
+import {filterRenderableItemIds} from '@/app/tools/actionPanels/actionPanelRegistry'
+import {MAP_FLOATING_INSET_PX} from '@/app/constants/mapUiLayout'
 import {FLOATING_DRAGGABLE_IDS} from '@/app/constants/floatingDraggableIds'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 import {useFloatingActionPanelLayout} from '@/app/hooks/map/useFloatingActionPanelLayout'
@@ -100,14 +100,14 @@ export default function ActionPanel({
             suppressHydrationWarning
             sx={{
                 position: 'absolute',
-                left: position?.left ?? MAP_GLASS_INSET_PX,
-                top: position?.top ?? MAP_GLASS_INSET_PX,
+                left: position?.left ?? MAP_FLOATING_INSET_PX,
+                top: position?.top ?? MAP_FLOATING_INSET_PX,
                 width,
                 height: hasExplicitHeight ? height : 'auto',
                 zIndex,
             }}
         >
-            <BasicGlassPanel
+            <FloatingPanel
                 width={width}
                 height={hasExplicitHeight ? height : null}
                 scrollableBody={hasExplicitHeight}
@@ -185,7 +185,7 @@ export default function ActionPanel({
                 ) : (
                     <ActionPanelEmptyContent onConfigure={handleEditSettings}/>
                 )}
-            </BasicGlassPanel>
+            </FloatingPanel>
 
             <Box
                 aria-label='Resize panel'

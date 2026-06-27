@@ -1,5 +1,5 @@
 import {
-    MAP_GLASS_INSET_PX,
+    MAP_FLOATING_INSET_PX,
     MAP_OVERLAY_DRAG_MIN_EDGE_PX,
     MAP_SETTINGS_FAB_RESERVE_HEIGHT_PX,
     MAP_SETTINGS_FAB_RESERVE_WIDTH_PX,
@@ -24,7 +24,7 @@ export function getSettingsFabReserveRect(containerSize) {
 export function getFabAwareMaxLeftForPanelTop(top, panelSize, containerSize, minLeft) {
     const defaultMaxLeft = Math.max(
         minLeft,
-        containerSize.width - panelSize.width - MAP_GLASS_INSET_PX,
+        containerSize.width - panelSize.width - MAP_FLOATING_INSET_PX,
     )
     const fabRect = getSettingsFabReserveRect(containerSize)
     const panelBottom = top + panelSize.height
@@ -33,7 +33,7 @@ export function getFabAwareMaxLeftForPanelTop(top, panelSize, containerSize, min
         return defaultMaxLeft
     }
 
-    const fabAwareMaxLeft = fabRect.left - panelSize.width - MAP_GLASS_INSET_PX
+    const fabAwareMaxLeft = fabRect.left - panelSize.width - MAP_FLOATING_INSET_PX
 
     return Math.min(defaultMaxLeft, Math.max(minLeft, fabAwareMaxLeft))
 }
@@ -62,7 +62,7 @@ export function clampPositionClearOfSettingsFab(position, panelSize, containerSi
     }
 
     const fabRect = getSettingsFabReserveRect(containerSize)
-    const leftOfFab = fabRect.left - panelSize.width - MAP_GLASS_INSET_PX
+    const leftOfFab = fabRect.left - panelSize.width - MAP_FLOATING_INSET_PX
     const belowFabTop = fabRect.bottom
 
     if (leftOfFab >= bounds.minLeft) {

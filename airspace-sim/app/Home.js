@@ -2,13 +2,13 @@
 
 import MapView from './components/map/MapView'
 import {Box} from '@mui/material'
-import DraggableFloatingOverlaysLayer from './components/panels/glass/DraggableFloatingOverlaysLayer'
+import DraggableOverlaysLayer from './components/floating/shared/DraggableOverlaysLayer'
 import ClassificationBar from './components/global/ClassificationBar'
 import SettingsController from '@/app/components/panels/settings/SettingsController'
 import {useCallback, useRef, useState} from 'react'
-import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
+import AlarmAlertPanel from '@/app/components/floating/alerts/AlarmAlertPanel'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
-import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/hooks/global/ErrorForwarder'
+import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/components/global/ErrorForwarder'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import usePrefetchLatestGithubCommit from '@/app/hooks/global/usePrefetchLatestGithubCommit'
 import useSeedAlarmAlerts from '@/app/hooks/global/useSeedAlarmAlerts'
@@ -48,14 +48,14 @@ export default function Home() {
         }
     }, [])
 
-    const glassPanelStyle = ({top, bottom, left, right, transform, zIndex}) => ({
+    const floatingPanelStyle = ({top, bottom, left, right, transform, zIndex}) => ({
         position: 'absolute',
         top: top ?? null,
         right: right ?? null,
         left: left ?? null,
         bottom: bottom ?? null,
         transform: transform ?? null,
-        zIndex: zIndex ?? UI_Z_INDEX.GLASS_PANEL,
+        zIndex: zIndex ?? UI_Z_INDEX.FLOATING_OVERLAY,
     })
 
     const {raiseAlarmAlert} = useAlarmAlertActions()
@@ -91,7 +91,7 @@ export default function Home() {
                     </Box>
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Action panels">
-                        <DraggableFloatingOverlaysLayer
+                        <DraggableOverlaysLayer
                             workspaceContainerRef={workspaceContainerRef}
                             mapContainerRef={mapContainerRef}
                             interactionsEnabled={!settingsModalOpen}
@@ -99,12 +99,12 @@ export default function Home() {
                         />
                     </ReactErrorForwardingBoundary>
 
-                    <Box style={glassPanelStyle({bottom: 20, left: '50%', transform: 'translateX(-50%)'})}>
+                    <Box style={floatingPanelStyle({bottom: 20, left: '50%', transform: 'translateX(-50%)'})}>
                         <AlarmAlertPanel/>
                     </Box>
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Settings controller">
-                        <Box style={glassPanelStyle({top: 20, right: 20, zIndex: UI_Z_INDEX.SETTINGS_TOOLBELT})}>
+                        <Box style={floatingPanelStyle({top: 20, right: 20, zIndex: UI_Z_INDEX.SETTINGS_TOOLBELT})}>
                             <SettingsController
                                 modalOpen={settingsModalOpen}
                                 setModalOpen={handleSettingsModalClose}

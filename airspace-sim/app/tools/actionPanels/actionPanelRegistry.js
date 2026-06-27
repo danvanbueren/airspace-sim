@@ -1,4 +1,4 @@
-import {SENSOR_DISPLAY_TOGGLES} from '../simulation/constants.js'
+import {SENSOR_DISPLAY_TOGGLES} from '../../simulation/constants.js'
 
 export const ACTION_PANEL_ITEM_TYPES = {
     TOGGLE: 'toggle',

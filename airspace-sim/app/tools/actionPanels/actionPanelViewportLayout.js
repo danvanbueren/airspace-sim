@@ -1,16 +1,16 @@
 import {
-    MAP_GLASS_INSET_PX,
+    MAP_FLOATING_INSET_PX,
     MAP_OVERLAY_DRAG_MIN_EDGE_PX,
-} from '../constants/mapUiLayout.js'
+} from '../../constants/mapUiLayout.js'
 import {
     absoluteToEdgeAnchor,
     edgeAnchorsEqual,
     resolveEdgeAnchoredPosition,
-} from '../tools/map/edgeAnchoredPosition.js'
+} from '../map/edgeAnchoredPosition.js'
 import {
     clampPositionClearOfSettingsFab,
     getFabAwareMaxLeftForPanelTop,
-} from '../tools/map/settingsFabReserve.js'
+} from '../map/settingsFabReserve.js'
 import {estimateActionPanelAutoHeight} from './actionPanelSizeEstimate.js'
 import {
     ACTION_PANEL_MIN_HEIGHT_PX,
@@ -48,11 +48,11 @@ export function getPanelBoundsForViewport(containerSize, panelSize) {
         minTop: MAP_OVERLAY_DRAG_MIN_EDGE_PX,
         maxLeft: Math.max(
             MAP_OVERLAY_DRAG_MIN_EDGE_PX,
-            containerSize.width - panelSize.width - MAP_GLASS_INSET_PX,
+            containerSize.width - panelSize.width - MAP_FLOATING_INSET_PX,
         ),
         maxTop: Math.max(
             MAP_OVERLAY_DRAG_MIN_EDGE_PX,
-            containerSize.height - panelSize.height - MAP_GLASS_INSET_PX,
+            containerSize.height - panelSize.height - MAP_FLOATING_INSET_PX,
         ),
     }
 }
@@ -127,11 +127,11 @@ export function normalizeLayoutForViewport(
 
     const maxWidth = Math.max(
         ACTION_PANEL_MIN_WIDTH_PX,
-        containerSize.width - MAP_GLASS_INSET_PX - MAP_OVERLAY_DRAG_MIN_EDGE_PX,
+        containerSize.width - MAP_FLOATING_INSET_PX - MAP_OVERLAY_DRAG_MIN_EDGE_PX,
     )
     const maxHeight = Math.max(
         minResizedHeight,
-        containerSize.height - MAP_GLASS_INSET_PX - MAP_OVERLAY_DRAG_MIN_EDGE_PX,
+        containerSize.height - MAP_FLOATING_INSET_PX - MAP_OVERLAY_DRAG_MIN_EDGE_PX,
     )
 
     const normalizedWidth = clampPanelWidth(layout.width, maxWidth)
@@ -204,11 +204,11 @@ export function getViewportMaxPanelDimensions(position, containerSize, minResize
         return {
             maxWidth: Math.max(
                 ACTION_PANEL_MIN_WIDTH_PX,
-                containerSize.width - MAP_GLASS_INSET_PX * 2,
+                containerSize.width - MAP_FLOATING_INSET_PX * 2,
             ),
             maxHeight: Math.max(
                 minResizedHeight,
-                containerSize.height - MAP_GLASS_INSET_PX * 2,
+                containerSize.height - MAP_FLOATING_INSET_PX * 2,
             ),
         }
     }
@@ -216,11 +216,11 @@ export function getViewportMaxPanelDimensions(position, containerSize, minResize
     return {
         maxWidth: Math.max(
             ACTION_PANEL_MIN_WIDTH_PX,
-            containerSize.width - position.left - MAP_GLASS_INSET_PX,
+            containerSize.width - position.left - MAP_FLOATING_INSET_PX,
         ),
         maxHeight: Math.max(
             minResizedHeight,
-            containerSize.height - position.top - MAP_GLASS_INSET_PX,
+            containerSize.height - position.top - MAP_FLOATING_INSET_PX,
         ),
     }
 }
