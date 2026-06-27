@@ -36,7 +36,7 @@ Planned work for Airspace Simulator, grouped chronologically. Completed items li
 ### Operator interface
 
 - ✅ Markdown-backed settings roadmap page — [`c5f2013`](https://github.com/danvanbueren/airspace-sim/commit/c5f2013)
-- ✅ Modular draggable action panels with cookie-backed layout — [`e8e5692`](https://github.com/danvanbueren/airspace-sim/commit/e8e5692)
+- ✅ Modular draggable action panels with cookie-backed layout — [`00d945a`](https://github.com/danvanbueren/airspace-sim/commit/00d945a)
 
 ### Simulation & sensors
 
