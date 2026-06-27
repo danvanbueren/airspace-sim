@@ -246,10 +246,11 @@ The mission is to build a practical, extensible, and transparent simulator that 
 ### Current Capabilities
 
 - Full-screen map workspace with light and dark map styles and theme-aware water/label paint.
-- Glass panels for category select, fixed-function controls (zoom in/out), alarm alerts, and settings.
+- Modular, draggable **action panels** (Settings → Action Panels) with cookie-backed layout; defaults match the former Category Select and Fixed Function panels.
+- Glass panels for alarm alerts and settings, plus operator-configurable action panels on the map.
 - **Global flight simulation** on weighted air routes between curated airports (no viewport-random spawning); can be paused via **Enable simulation engine**.
 - **Separated sensor, initiation, and correlation pipeline** (see [Simulation Architecture](docs/architecture/simulation-architecture.md)).
-- Simulated **radar and IFF** returns with history playback and Category Select Panel toggles.
+- Simulated **radar and IFF** returns with history playback and configurable action-panel sensor toggles.
 - **Track merge** after correlation — collapses duplicate tracks competing for the same sensor return; formation pairs correlating separately are left alone ([details](docs/architecture/simulation-architecture.md#track-merge-and-deduplication)).
 - **Automatic track initiation** after three per-sensor plot updates on uncorrelated returns only.
 - Manual track initiation and editing from the map context menu, with correlation mode (active / extrapolated / suspend); editing an auto track converts it to manual.

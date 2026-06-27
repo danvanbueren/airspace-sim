@@ -39,7 +39,6 @@ import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
 import TrackAttentionOverlay from './TrackAttentionOverlay'
-import PerformanceAnalyticsOverlay from './PerformanceAnalyticsOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import './mapAttributionTheme.css'
 import {useAlarmAlertActions} from '../../hooks/global/useAlarmAlertActions'
@@ -52,7 +51,11 @@ const MAP_STYLES = {
 
 const EMPTY_TRACKS = []
 
-export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer = null}) {
+export default function MapView({
+    mapInteractionsEnabled = true,
+    mapOverlayLayer = null,
+    mapContainerRef: mapContainerRefProp = null,
+}) {
     const theme = useTheme()
     const {mode: colorMode} = useColorMode()
     const {raiseAlarmAlert, registerMap} = useAlarmAlertActions()
@@ -60,7 +63,8 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
     const {appSettings, simulationSettings} = useAppSettings()
     const performanceInstrumentation = usePerformanceInstrumentation()
     const {isToggleActive} = useSensorDisplay()
-    const mapContainerRef = useRef(null)
+    const mapContainerRefInternal = useRef(null)
+    const mapContainerRef = mapContainerRefProp ?? mapContainerRefInternal
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
     const openTrackManagementWindowRef = useRef(null)
@@ -546,7 +550,6 @@ export default function MapView({mapInteractionsEnabled = true, mapOverlayLayer 
                 evaluationTime={simulationEvaluationTime}
                 iffRefreshMs={iffRefreshMs}
             />
-            <PerformanceAnalyticsOverlay mapContainerRef={mapContainerRef} />
 
             {mapOverlayLayer
                 ? createPortal(mapOverlays, mapOverlayLayer)

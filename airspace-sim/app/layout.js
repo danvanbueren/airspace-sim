@@ -13,6 +13,11 @@ import {
     APP_SETTINGS_COOKIE_NAME,
     AppSettingsProvider,
 } from './contexts/AppSettingsContext'
+import {
+    ACTION_PANELS_COOKIE_NAME,
+    ActionPanelsProvider,
+} from './contexts/ActionPanelsContext'
+import {FloatingDraggableStackProvider} from './contexts/FloatingDraggableStackContext'
 import {UseGlobalInteractionGuards} from '@/app/hooks/global/useGlobalInteractionGuards'
 import {THEME_COOKIE_NAME} from '@/app/contexts/CustomThemeContext'
 import {MapStateProvider} from './contexts/MapStateContext'
@@ -40,6 +45,7 @@ export default async function RootLayout({children}) {
     const themeCookie = cookieStore.get(THEME_COOKIE_NAME)?.value
     const controlBindingsCookie = cookieStore.get(CONTROL_BINDINGS_COOKIE_NAME)?.value
     const appSettingsCookie = cookieStore.get(APP_SETTINGS_COOKIE_NAME)?.value
+    const actionPanelsCookie = cookieStore.get(ACTION_PANELS_COOKIE_NAME)?.value
 
     return (<html lang='en'>
     <body>
@@ -47,15 +53,19 @@ export default async function RootLayout({children}) {
         <UseGlobalInteractionGuards>
             <CustomThemeContext initialMode={themeCookie}>
                 <AppSettingsProvider initialSettings={appSettingsCookie}>
-                    <SensorDisplayProvider>
-                        <SimulationProvider>
-                            <PerformanceMonitorProvider>
-                                <ControlBindingsProvider initialBindings={controlBindingsCookie}>
-                                    {children}
-                                </ControlBindingsProvider>
-                            </PerformanceMonitorProvider>
-                        </SimulationProvider>
-                    </SensorDisplayProvider>
+                    <ActionPanelsProvider initialActionPanels={actionPanelsCookie}>
+                        <FloatingDraggableStackProvider>
+                            <SensorDisplayProvider>
+                            <SimulationProvider>
+                                <PerformanceMonitorProvider>
+                                    <ControlBindingsProvider initialBindings={controlBindingsCookie}>
+                                        {children}
+                                    </ControlBindingsProvider>
+                                </PerformanceMonitorProvider>
+                            </SimulationProvider>
+                        </SensorDisplayProvider>
+                        </FloatingDraggableStackProvider>
+                    </ActionPanelsProvider>
                 </AppSettingsProvider>
             </CustomThemeContext>
         </UseGlobalInteractionGuards>

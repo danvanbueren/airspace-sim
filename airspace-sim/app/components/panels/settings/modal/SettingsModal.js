@@ -4,6 +4,7 @@ import {useEffect, useRef} from 'react'
 import {alpha, Box, Card, Divider, Grid, Modal, Typography} from '@mui/material'
 import SettingsModalGenericButton from '@/app/components/panels/settings/modal/SettingsModalGenericButton'
 import SettingsModalSimulationEnginePage from '@/app/components/panels/settings/modal/pages/SettingsModalSimulationEnginePage'
+import SettingsModalActionPanelsPage from './pages/SettingsModalActionPanelsPage'
 import SettingsModalLookAndFeelPage from './pages/SettingsModalLookAndFeelPage'
 import SettingsModalAdvancedPage from './pages/SettingsModalAdvancedPage'
 import SettingsModalKeybindsPage from './pages/SettingsModalKeybindsPage'
@@ -33,12 +34,23 @@ function SettingsModalSidebarHeading({children}) {
     )
 }
 
-export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_PAGE_ID, buildData, onOpenSettingsPage}) {
+export default function SettingsModal({
+    open,
+    setOpen,
+    state = DEFAULT_SETTINGS_PAGE_ID,
+    buildData,
+    onOpenSettingsPage,
+    focusedActionPanelId = null,
+}) {
     const pageScrollRef = useRef(null)
 
     useEffect(() => {
+        if (state === 'actionPanels' && focusedActionPanelId) {
+            return
+        }
+
         pageScrollRef.current?.scrollTo({top: 0})
-    }, [state])
+    }, [focusedActionPanelId, state])
 
     const modalStyle = (theme) => ({
         position: 'absolute',
@@ -46,8 +58,8 @@ export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_P
         left: '50%',
         transform: 'translate(-50%, -50%)',
         width: 1000,
-        minHeight: 600,
-        height: '60dvh',
+        minHeight: 640,
+        height: '68dvh',
         backgroundColor: alpha(theme.palette.background.paper, 0.75),
         backdropFilter: 'blur(10px)',
         userSelect: 'none',
@@ -62,6 +74,8 @@ export default function SettingsModal({open, setOpen, state = DEFAULT_SETTINGS_P
                 return <SettingsModalSimulationEnginePage/>
             case 'lookAndFeel':
                 return <SettingsModalLookAndFeelPage/>
+            case 'actionPanels':
+                return <SettingsModalActionPanelsPage focusedPanelId={focusedActionPanelId}/>
             case 'advanced':
                 return <SettingsModalAdvancedPage/>
             case 'keybinds':

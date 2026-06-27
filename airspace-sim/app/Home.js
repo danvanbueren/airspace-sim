@@ -2,11 +2,10 @@
 
 import MapView from './components/map/MapView'
 import {Box} from '@mui/material'
-import CategorySelectPanel from './components/panels/glass/CategorySelectPanel'
-import FixedFunctionPanel from './components/panels/glass/FixedFunctionPanel'
+import DraggableFloatingOverlaysLayer from './components/panels/glass/DraggableFloatingOverlaysLayer'
 import ClassificationBar from './components/global/ClassificationBar'
 import SettingsController from '@/app/components/panels/settings/SettingsController'
-import {useCallback, useState} from 'react'
+import {useCallback, useRef, useState} from 'react'
 import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/hooks/global/ErrorForwarder'
@@ -20,20 +19,43 @@ export default function Home() {
     useSeedAlarmAlerts()
 
     const [settingsModalOpen, setSettingsModalOpen] = useState(false)
+    const [settingsPageId, setSettingsPageId] = useState(null)
+    const [focusedActionPanelId, setFocusedActionPanelId] = useState(null)
     const [mapOverlayLayer, setMapOverlayLayer] = useState(null)
+    const mapContainerRef = useRef(null)
+    const workspaceContainerRef = useRef(null)
 
     const setMapOverlayLayerRef = useCallback((element) => {
         setMapOverlayLayer(element)
     }, [])
 
-    const glassPanelStyle = ({top, bottom, left, right, transform}) => ({
+    const openSettingsPage = useCallback((pageId) => {
+        setSettingsPageId(pageId)
+        setSettingsModalOpen(true)
+    }, [])
+
+    const handleEditActionPanelSettings = useCallback((panelId) => {
+        setFocusedActionPanelId(panelId)
+        openSettingsPage('actionPanels')
+    }, [openSettingsPage])
+
+    const handleSettingsModalClose = useCallback((open) => {
+        setSettingsModalOpen(open)
+
+        if (!open) {
+            setSettingsPageId(null)
+            setFocusedActionPanelId(null)
+        }
+    }, [])
+
+    const glassPanelStyle = ({top, bottom, left, right, transform, zIndex}) => ({
         position: 'absolute',
         top: top ?? null,
         right: right ?? null,
         left: left ?? null,
         bottom: bottom ?? null,
         transform: transform ?? null,
-        zIndex: UI_Z_INDEX.GLASS_PANEL,
+        zIndex: zIndex ?? UI_Z_INDEX.GLASS_PANEL,
     })
 
     const {raiseAlarmAlert} = useAlarmAlertActions()
@@ -47,6 +69,7 @@ export default function Home() {
             >
                 <ClassificationBar/>
                 <Box
+                    ref={workspaceContainerRef}
                     style={{
                         position: 'relative', width: '100dvw', flexGrow: 1, overflow: 'hidden', margin: 0, padding: 0,
                     }}
@@ -60,22 +83,20 @@ export default function Home() {
                     >
                         <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Map view">
                             <MapView
+                                mapContainerRef={mapContainerRef}
                                 mapInteractionsEnabled={!settingsModalOpen}
                                 mapOverlayLayer={mapOverlayLayer}
                             />
                         </ReactErrorForwardingBoundary>
                     </Box>
 
-                    <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Category select panel">
-                        <Box style={glassPanelStyle({top: 20, left: 20})}>
-                            <CategorySelectPanel/>
-                        </Box>
-                    </ReactErrorForwardingBoundary>
-
-                    <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Fixed function panel">
-                        <Box style={glassPanelStyle({bottom: 20, left: 20})}>
-                            <FixedFunctionPanel/>
-                        </Box>
+                    <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Action panels">
+                        <DraggableFloatingOverlaysLayer
+                            workspaceContainerRef={workspaceContainerRef}
+                            mapContainerRef={mapContainerRef}
+                            interactionsEnabled={!settingsModalOpen}
+                            onEditPanelSettings={handleEditActionPanelSettings}
+                        />
                     </ReactErrorForwardingBoundary>
 
                     <Box style={glassPanelStyle({bottom: 20, left: '50%', transform: 'translateX(-50%)'})}>
@@ -83,10 +104,12 @@ export default function Home() {
                     </Box>
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Settings controller">
-                        <Box style={glassPanelStyle({top: 20, right: 20})}>
+                        <Box style={glassPanelStyle({top: 20, right: 20, zIndex: UI_Z_INDEX.SETTINGS_TOOLBELT})}>
                             <SettingsController
                                 modalOpen={settingsModalOpen}
-                                setModalOpen={setSettingsModalOpen}
+                                setModalOpen={handleSettingsModalClose}
+                                initialPageId={settingsPageId}
+                                focusedActionPanelId={focusedActionPanelId}
                             />
                         </Box>
                     </ReactErrorForwardingBoundary>
