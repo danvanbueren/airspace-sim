@@ -50,6 +50,7 @@ Planned work for Airspace Simulator, grouped chronologically. Completed items li
 - ✅ Callsign validation and civilian CIV## allocation — [`5dc8803`](https://github.com/danvanbueren/airspace-sim/commit/5dc8803)
 - ✅ Searchable platform-specific type catalog — [`e6f85d3`](https://github.com/danvanbueren/airspace-sim/commit/e6f85d3)
 - ✅ Track management UI overhaul — [`67464d8`](https://github.com/danvanbueren/airspace-sim/commit/67464d8)
+- ✅ Track Management window viewport scrolling on short map viewports — [`ef2bae0`](https://github.com/danvanbueren/airspace-sim/commit/ef2bae0)
 
 ## Future
 

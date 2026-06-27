@@ -1,12 +1,13 @@
 'use client'
 
 import {useCallback, useRef, useState} from 'react'
+import {MAP_FLOATING_WINDOW_EDGE_PADDING} from '@/app/constants/mapFloatingWindows'
 import {
     absoluteToEdgeAnchor,
     resolveEdgeAnchoredPosition,
 } from '@/app/tools/map/edgeAnchoredPosition'
 
-const EDGE_PADDING = 8
+const EDGE_PADDING = MAP_FLOATING_WINDOW_EDGE_PADDING
 const DEFAULT_WINDOW_WIDTH = 300
 const DEFAULT_WINDOW_HEIGHT = 320
 
