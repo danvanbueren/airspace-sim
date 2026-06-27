@@ -7,8 +7,6 @@ import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 
 export default function DraggableOverlaysLayer({
-    workspaceContainerRef,
-    mapContainerRef,
     interactionsEnabled = true,
     onEditPanelSettings,
 }) {
@@ -26,14 +24,13 @@ export default function DraggableOverlaysLayer({
                 },
             }}
         >
-            <PerformanceAnalyticsOverlay mapContainerRef={mapContainerRef}/>
+            <PerformanceAnalyticsOverlay/>
 
             {actionPanelsState.panels.map((panel) => (
                 <ActionPanel
                     key={panel.id}
                     panel={panel}
                     layout={actionPanelsState.layouts[panel.id]}
-                    mapContainerRef={workspaceContainerRef}
                     interactionsEnabled={interactionsEnabled}
                     onEditPanelSettings={onEditPanelSettings}
                 />

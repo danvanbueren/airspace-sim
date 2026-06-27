@@ -24,6 +24,7 @@ import {
     getCompactGridColumnCount,
     getLargeGridColumnCount,
 } from '@/app/tools/actionPanels/actionPanelGridLayout'
+import {ACTION_PANEL_BODY_BOTTOM_PADDING_PX} from '@/app/tools/actionPanels/actionPanelSizeEstimate'
 import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 
@@ -139,6 +140,7 @@ function ResponsiveGrid({columnCount, gapPx, children}) {
                 gap: `${gapPx}px`,
                 gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
                 alignItems: 'stretch',
+                pb: `${ACTION_PANEL_BODY_BOTTOM_PADDING_PX}px`,
             }}
         >
             {children}

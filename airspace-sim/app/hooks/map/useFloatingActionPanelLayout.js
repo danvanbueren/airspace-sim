@@ -1,15 +1,16 @@
 'use client'
 
 import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
+import {useWorkspaceViewportContext} from '@/app/contexts/WorkspaceViewportContext'
 import {createInitialActionPanelPosition} from '@/app/tools/actionPanels/actionPanelViewportLayout'
 import {resolveActionPanelLayoutSize} from '@/app/tools/actionPanels/actionPanelSizeEstimate'
 import {
     buildStoredLayoutSnapshot,
     getPanelBoundsForViewport,
     getViewportMaxPanelDimensions,
-    normalizeLayoutForViewport,
+    resolveViewportLayoutFromAnchor,
     runtimeLayoutDiffersFromStored,
-    viewportLayoutDiffersFromStored,
+    viewportDimensionsDifferFromStored,
 } from '@/app/tools/actionPanels/actionPanelViewportLayout'
 import {
     ACTION_PANEL_MIN_HEIGHT_PX,
@@ -22,7 +23,6 @@ import {
     resolveEdgeAnchoredPosition,
 } from '@/app/tools/map/edgeAnchoredPosition'
 import {clampPositionClearOfSettingsFab, getFabAwareMaxLeftForPanelTop} from '@/app/tools/map/settingsFabReserve'
-import {getWorkspaceContainerSize} from '@/app/tools/map/workspaceContainerSize'
 
 function positionsEqual(leftPosition, rightPosition) {
     if (!leftPosition || !rightPosition) {
@@ -54,7 +54,6 @@ function clampPanelHeight(height, maxHeight, minHeight) {
 }
 
 export function useFloatingActionPanelLayout({
-    mapContainerRef,
     panelRef,
     interactionsEnabled,
     displayStyle,
@@ -64,6 +63,7 @@ export function useFloatingActionPanelLayout({
     storedHeight,
     onLayoutCommit,
 }) {
+    const {containerRef: mapContainerRef, size: containerSize, isResizing, resizeGeneration, resizeLayoutTick} = useWorkspaceViewportContext()
     const minResizedHeight = getActionPanelMinResizedHeight(displayStyle)
     const contentMinHeight = ACTION_PANEL_MIN_HEIGHT_PX
 
@@ -74,7 +74,7 @@ export function useFloatingActionPanelLayout({
         storedWidth,
         itemIds,
         displayStyle,
-        containerSize: getWorkspaceContainerSize(mapContainerRef),
+        containerSize,
     }))
     const dragStateRef = useRef(null)
     const resizeStateRef = useRef(null)
@@ -93,7 +93,7 @@ export function useFloatingActionPanelLayout({
         storedWidth,
         itemIds,
         displayStyle,
-        containerSize: getWorkspaceContainerSize(mapContainerRef),
+        containerSize,
     })
 
     const getLayoutPanelSize = useCallback(() => {
@@ -112,21 +112,18 @@ export function useFloatingActionPanelLayout({
         }
     }, [contentMinHeight, displayStyle, itemIds, panelRef])
 
-    const applyViewportNormalizedLayout = useCallback((normalizedLayout) => {
-        positionAnchorRef.current = normalizedLayout.anchor
-        widthRef.current = normalizedLayout.width
-        heightRef.current = normalizedLayout.height
-        setWidth(normalizedLayout.width)
-        setHeight(normalizedLayout.height)
-        applyResolvedPosition(setPosition, normalizedLayout.position)
+    const applyViewportResolvedLayout = useCallback((resolvedLayout) => {
+        widthRef.current = resolvedLayout.width
+        heightRef.current = resolvedLayout.height
+        setWidth(resolvedLayout.width)
+        setHeight(resolvedLayout.height)
+        applyResolvedPosition(setPosition, resolvedLayout.position)
     }, [])
 
     const runPositionSync = useCallback((shouldCommitCorrections = false) => {
         if (resizeStateRef.current || dragStateRef.current) {
             return true
         }
-
-        const containerSize = getWorkspaceContainerSize(mapContainerRef)
 
         if (containerSize.width <= 0 || containerSize.height <= 0) {
             return false
@@ -170,24 +167,33 @@ export function useFloatingActionPanelLayout({
             displayStyle,
             contentMinHeight,
         })
-        const normalizedLayout = normalizeLayoutForViewport(sourceLayout, containerSize, {
-            contentMinHeight,
-            minResizedHeight,
-            resolvedPanelSize: panelSize,
-        })
+        const resolvedLayout = resolveViewportLayoutFromAnchor(
+            sourceLayout.anchor,
+            sourceLayout.width,
+            sourceLayout.height,
+            containerSize,
+            {
+                contentMinHeight,
+                minResizedHeight,
+                resolvedPanelSize: panelSize,
+                preserveDimensions: isResizing,
+            },
+        )
 
-        if (!normalizedLayout) {
+        if (!resolvedLayout) {
             return false
         }
 
-        applyViewportNormalizedLayout(normalizedLayout)
+        applyViewportResolvedLayout(resolvedLayout)
 
         if (!shouldCommitCorrections || !onLayoutCommit) {
             return true
         }
 
-        const normalizedStoredLayout = normalizeLayoutForViewport(
-            storedLayoutFromProps,
+        const normalizedStoredLayout = resolveViewportLayoutFromAnchor(
+            storedLayoutFromProps.anchor,
+            storedLayoutFromProps.width,
+            storedLayoutFromProps.height,
             containerSize,
             {
                 contentMinHeight,
@@ -198,11 +204,10 @@ export function useFloatingActionPanelLayout({
 
         if (
             normalizedStoredLayout
-            && viewportLayoutDiffersFromStored(storedLayoutFromProps, normalizedStoredLayout)
+            && viewportDimensionsDifferFromStored(storedLayoutFromProps, normalizedStoredLayout)
         ) {
-            applyViewportNormalizedLayout(normalizedStoredLayout)
             pendingViewportCommitRef.current = {
-                anchor: normalizedStoredLayout.anchor,
+                anchor: storedLayoutFromProps.anchor,
                 width: normalizedStoredLayout.width,
                 height: normalizedStoredLayout.height,
             }
@@ -210,13 +215,13 @@ export function useFloatingActionPanelLayout({
 
         return true
     }, [
-        applyViewportNormalizedLayout,
+        applyViewportResolvedLayout,
+        containerSize,
         contentMinHeight,
-        getLayoutPanelSize,
-        mapContainerRef,
         displayStyle,
         itemIds,
         minResizedHeight,
+        onLayoutCommit,
         panelRef,
         storedAnchor,
         storedHeight,
@@ -235,7 +240,6 @@ export function useFloatingActionPanelLayout({
     })
 
     const commitPositionAnchor = useCallback((left, top) => {
-        const containerSize = getWorkspaceContainerSize(mapContainerRef)
         const panelSize = getLayoutPanelSize()
 
         if (containerSize.width === 0) {
@@ -243,10 +247,9 @@ export function useFloatingActionPanelLayout({
         }
 
         positionAnchorRef.current = absoluteToEdgeAnchor(left, top, containerSize, panelSize)
-    }, [getLayoutPanelSize, mapContainerRef])
+    }, [containerSize, getLayoutPanelSize])
 
     const getBoundedPanelPosition = useCallback((left, top) => {
-        const containerSize = getWorkspaceContainerSize(mapContainerRef)
         const panelSize = getLayoutPanelSize()
         const bounds = getPanelBoundsForViewport(containerSize, panelSize)
         const fabAwareBounds = {
@@ -268,66 +271,27 @@ export function useFloatingActionPanelLayout({
             containerSize,
             fabAwareBounds,
         )
-    }, [getLayoutPanelSize, mapContainerRef])
+    }, [containerSize, getLayoutPanelSize])
 
     useLayoutEffect(() => {
         runPositionSync(true)
     }, [displayStyle, itemIds, runPositionSync, storedAnchor, storedHeight, storedWidth])
 
     useLayoutEffect(() => {
-        let cancelled = false
-        let frameRef = null
-        let resizeObserver = null
+        const shouldCommitCorrections = !isResizing
 
-        const scheduleSync = (shouldCommitCorrections = false) => {
-            if (frameRef) {
-                return
-            }
-
-            frameRef = requestAnimationFrame(() => {
-                frameRef = null
-
-                if (cancelled) {
-                    return
-                }
-
-                if (!runPositionSync(shouldCommitCorrections)) {
-                    scheduleSync(shouldCommitCorrections)
-                }
-            })
-        }
-
-        const attachObserver = () => {
-            if (cancelled) {
-                return
-            }
-
-            if (!mapContainerRef.current) {
-                frameRef = requestAnimationFrame(attachObserver)
-                return
-            }
-
-            runPositionSync(true)
-            scheduleSync(true)
-
-            resizeObserver = new ResizeObserver(() => {
-                scheduleSync(true)
+        if (!runPositionSync(shouldCommitCorrections)) {
+            const frameRef = requestAnimationFrame(() => {
+                runPositionSync(shouldCommitCorrections)
             })
 
-            resizeObserver.observe(mapContainerRef.current)
-        }
-
-        attachObserver()
-
-        return () => {
-            cancelled = true
-            resizeObserver?.disconnect()
-
-            if (frameRef) {
+            return () => {
                 cancelAnimationFrame(frameRef)
             }
         }
-    }, [mapContainerRef, runPositionSync])
+
+        return undefined
+    }, [containerSize, isResizing, resizeGeneration, resizeLayoutTick, runPositionSync])
 
     const handlePanelPointerDown = useCallback((event) => {
         event.stopPropagation()
@@ -442,7 +406,6 @@ export function useFloatingActionPanelLayout({
         event.preventDefault()
         event.stopPropagation()
 
-        const containerSize = getWorkspaceContainerSize(mapContainerRef)
         const {maxWidth, maxHeight} = getViewportMaxPanelDimensions(
             positionRef.current,
             containerSize,
@@ -461,7 +424,7 @@ export function useFloatingActionPanelLayout({
         heightRef.current = nextHeight
         setWidth(nextWidth)
         setHeight(nextHeight)
-    }, [mapContainerRef, minResizedHeight])
+    }, [containerSize, minResizedHeight])
 
     const handleResizeHandlePointerUp = useCallback((event) => {
         if (resizeStateRef.current?.pointerId !== event.pointerId) {
@@ -474,7 +437,6 @@ export function useFloatingActionPanelLayout({
 
         resizeStateRef.current = null
 
-        const containerSize = getWorkspaceContainerSize(mapContainerRef)
         const {maxWidth, maxHeight} = getViewportMaxPanelDimensions(
             positionRef.current,
             containerSize,
@@ -501,7 +463,7 @@ export function useFloatingActionPanelLayout({
 
             return currentPosition
         })
-    }, [commitPositionAnchor, mapContainerRef, minResizedHeight, onLayoutCommit])
+    }, [commitPositionAnchor, containerSize, minResizedHeight, onLayoutCommit])
 
     return {
         position: displayPosition,

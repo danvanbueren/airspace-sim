@@ -1,6 +1,7 @@
 'use client'
 
 import {useCallback, useLayoutEffect, useRef, useState} from 'react'
+import {useWorkspaceViewportContext} from '@/app/contexts/WorkspaceViewportContext'
 import {
     MAP_FLOATING_INSET_PX,
     MAP_OVERLAY_DRAG_MIN_EDGE_PX,
@@ -11,17 +12,12 @@ import {
     resolveEdgeAnchoredPosition,
 } from '@/app/tools/map/edgeAnchoredPosition'
 import {clampPositionClearOfSettingsFab} from '@/app/tools/map/settingsFabReserve'
-import {getWorkspaceContainerSize} from '@/app/tools/map/workspaceContainerSize'
 
 function getOverlaySize(overlayRef) {
     return {
         width: overlayRef.current?.offsetWidth ?? 0,
         height: overlayRef.current?.offsetHeight ?? 0,
     }
-}
-
-function getContainerSize(mapContainerRef) {
-    return getWorkspaceContainerSize(mapContainerRef)
 }
 
 function positionsEqual(leftPosition, rightPosition) {
@@ -32,8 +28,7 @@ function positionsEqual(leftPosition, rightPosition) {
     return leftPosition.left === rightPosition.left && leftPosition.top === rightPosition.top
 }
 
-function getDefaultOverlayPosition(overlayRef, mapContainerRef) {
-    const containerSize = getContainerSize(mapContainerRef)
+function getDefaultOverlayPosition(overlayRef, containerSize) {
     const overlaySize = getOverlaySize(overlayRef)
 
     if (containerSize.width === 0 || overlaySize.width === 0 || overlaySize.height === 0) {
@@ -46,8 +41,7 @@ function getDefaultOverlayPosition(overlayRef, mapContainerRef) {
     }
 }
 
-function getPerformanceOverlayBounds(overlayRef, mapContainerRef) {
-    const containerSize = getContainerSize(mapContainerRef)
+function getPerformanceOverlayBounds(overlayRef, containerSize) {
     const overlaySize = getOverlaySize(overlayRef)
 
     return {
@@ -64,10 +58,9 @@ function getPerformanceOverlayBounds(overlayRef, mapContainerRef) {
     }
 }
 
-export function getBoundedPerformanceOverlayPosition(left, top, overlayRef, mapContainerRef) {
-    const bounds = getPerformanceOverlayBounds(overlayRef, mapContainerRef)
+export function getBoundedPerformanceOverlayPosition(left, top, overlayRef, containerSize) {
+    const bounds = getPerformanceOverlayBounds(overlayRef, containerSize)
     const overlaySize = getOverlaySize(overlayRef)
-    const containerSize = getContainerSize(mapContainerRef)
 
     if (overlaySize.width === 0 || overlaySize.height === 0) {
         return {left, top}
@@ -86,30 +79,31 @@ export function getBoundedPerformanceOverlayPosition(left, top, overlayRef, mapC
     )
 }
 
-function resolvePositionFromAnchor(anchorRef, overlayRef, mapContainerRef) {
+function resolvePositionFromAnchor(anchorRef, overlayRef, containerSize) {
     const anchor = anchorRef.current
 
     if (!anchor) {
         return null
     }
 
-    const containerSize = getContainerSize(mapContainerRef)
     const overlaySize = getOverlaySize(overlayRef)
 
     if (containerSize.width === 0 || overlaySize.width === 0 || overlaySize.height === 0) {
         return null
     }
 
+    const bounds = getPerformanceOverlayBounds(overlayRef, containerSize)
+
     return clampPositionClearOfSettingsFab(
         resolveEdgeAnchoredPosition(
             anchor,
             containerSize,
             overlaySize,
-            getPerformanceOverlayBounds(overlayRef, mapContainerRef),
+            bounds,
         ),
         overlaySize,
         containerSize,
-        getPerformanceOverlayBounds(overlayRef, mapContainerRef),
+        bounds,
     )
 }
 
@@ -123,7 +117,8 @@ function applyResolvedPosition(setPosition, nextPosition) {
     })
 }
 
-export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef, enabled}) {
+export function usePerformanceAnalyticsOverlayDrag({overlayRef, enabled}) {
+    const {containerRef: mapContainerRef, size: containerSize, isResizing, resizeGeneration, resizeLayoutTick} = useWorkspaceViewportContext()
     const [position, setPosition] = useState(null)
     const dragStateRef = useRef(null)
     const positionAnchorRef = useRef(null)
@@ -132,7 +127,7 @@ export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef,
         const nextPosition = resolvePositionFromAnchor(
             positionAnchorRef,
             overlayRef,
-            mapContainerRef,
+            containerSize,
         )
 
         if (!nextPosition) {
@@ -140,10 +135,9 @@ export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef,
         }
 
         applyResolvedPosition(setPosition, nextPosition)
-    }, [mapContainerRef, overlayRef])
+    }, [containerSize, overlayRef])
 
     const commitPositionAnchor = useCallback((left, top) => {
-        const containerSize = getContainerSize(mapContainerRef)
         const overlaySize = getOverlaySize(overlayRef)
 
         if (containerSize.width === 0 || overlaySize.width === 0 || overlaySize.height === 0) {
@@ -151,7 +145,7 @@ export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef,
         }
 
         positionAnchorRef.current = absoluteToEdgeAnchor(left, top, containerSize, overlaySize)
-    }, [mapContainerRef, overlayRef])
+    }, [containerSize, overlayRef])
 
     useLayoutEffect(() => {
         if (!enabled) {
@@ -165,7 +159,7 @@ export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef,
             return
         }
 
-        const defaultPosition = getDefaultOverlayPosition(overlayRef, mapContainerRef)
+        const defaultPosition = getDefaultOverlayPosition(overlayRef, containerSize)
 
         if (!defaultPosition) {
             return
@@ -173,37 +167,15 @@ export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef,
 
         commitPositionAnchor(defaultPosition.left, defaultPosition.top)
         applyResolvedPosition(setPosition, defaultPosition)
-    }, [commitPositionAnchor, enabled, mapContainerRef, overlayRef, syncPositionFromAnchor])
+    }, [commitPositionAnchor, containerSize, enabled, overlayRef, syncPositionFromAnchor])
 
     useLayoutEffect(() => {
-        if (!enabled || !mapContainerRef.current) {
-            return undefined
+        if (!enabled) {
+            return
         }
 
-        const container = mapContainerRef.current
-        let frameRef = null
-
-        const resizeObserver = new ResizeObserver(() => {
-            if (frameRef) {
-                return
-            }
-
-            frameRef = requestAnimationFrame(() => {
-                frameRef = null
-                syncPositionFromAnchor()
-            })
-        })
-
-        resizeObserver.observe(container)
-
-        return () => {
-            resizeObserver.disconnect()
-
-            if (frameRef) {
-                cancelAnimationFrame(frameRef)
-            }
-        }
-    }, [enabled, mapContainerRef, syncPositionFromAnchor])
+        syncPositionFromAnchor()
+    }, [containerSize, enabled, isResizing, overlayRef, resizeGeneration, resizeLayoutTick, syncPositionFromAnchor])
 
     const handlePanelPointerDown = useCallback((event) => {
         event.stopPropagation()
@@ -253,9 +225,9 @@ export function usePerformanceAnalyticsOverlayDrag({mapContainerRef, overlayRef,
 
         applyResolvedPosition(
             setPosition,
-            getBoundedPerformanceOverlayPosition(left, top, overlayRef, mapContainerRef),
+            getBoundedPerformanceOverlayPosition(left, top, overlayRef, containerSize),
         )
-    }, [mapContainerRef, overlayRef])
+    }, [containerSize, overlayRef])
 
     const handleDragHandlePointerUp = useCallback((event) => {
         if (dragStateRef.current?.pointerId !== event.pointerId) {

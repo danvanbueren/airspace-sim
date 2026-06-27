@@ -112,6 +112,71 @@ function clampExplicitPanelHeight(height, maxHeight, minHeight) {
     )
 }
 
+export function getViewportPanelDimensionLimits(containerSize, minResizedHeight = ACTION_PANEL_MIN_HEIGHT_PX) {
+    return {
+        maxWidth: Math.max(
+            ACTION_PANEL_MIN_WIDTH_PX,
+            containerSize.width - MAP_FLOATING_INSET_PX - MAP_OVERLAY_DRAG_MIN_EDGE_PX,
+        ),
+        maxHeight: Math.max(
+            minResizedHeight,
+            containerSize.height - MAP_FLOATING_INSET_PX - MAP_OVERLAY_DRAG_MIN_EDGE_PX,
+        ),
+    }
+}
+
+/**
+ * Resolves the visible action-panel layout for the current viewport while
+ * preserving the stored edge anchor. Clamping only affects runtime position;
+ * the anchor itself stays stable so panels snap back when the viewport expands.
+ */
+export function resolveViewportLayoutFromAnchor(
+    anchor,
+    width,
+    height,
+    containerSize,
+    {
+        contentMinHeight = ACTION_PANEL_MIN_HEIGHT_PX,
+        minResizedHeight = contentMinHeight,
+        resolvedPanelSize = null,
+        preserveDimensions = false,
+    } = {},
+) {
+    if (!anchor || containerSize.width <= 0 || containerSize.height <= 0) {
+        return null
+    }
+
+    const {maxWidth, maxHeight} = getViewportPanelDimensionLimits(containerSize, minResizedHeight)
+    const normalizedWidth = preserveDimensions
+        ? clampPanelWidth(width)
+        : clampPanelWidth(width, maxWidth)
+    const normalizedHeight = preserveDimensions
+        ? (height === null || height === undefined
+            ? null
+            : clampExplicitPanelHeight(height, Number.POSITIVE_INFINITY, minResizedHeight))
+        : clampExplicitPanelHeight(
+            height,
+            maxHeight,
+            minResizedHeight,
+        )
+    const panelSize = resolvedPanelSize ?? {
+        width: normalizedWidth,
+        height: normalizedHeight ?? contentMinHeight,
+    }
+    const position = resolveClampedPanelPosition(anchor, containerSize, panelSize)
+
+    if (!position) {
+        return null
+    }
+
+    return {
+        anchor,
+        width: normalizedWidth,
+        height: normalizedHeight,
+        position,
+    }
+}
+
 export function normalizeLayoutForViewport(
     layout,
     containerSize,
@@ -119,51 +184,42 @@ export function normalizeLayoutForViewport(
         contentMinHeight = ACTION_PANEL_MIN_HEIGHT_PX,
         minResizedHeight = contentMinHeight,
         resolvedPanelSize = null,
+        preserveAnchor = false,
     } = {},
 ) {
-    if (!layout?.anchor || containerSize.width <= 0 || containerSize.height <= 0) {
+    const resolvedLayout = resolveViewportLayoutFromAnchor(
+        layout?.anchor,
+        layout?.width,
+        layout?.height,
+        containerSize,
+        {
+            contentMinHeight,
+            minResizedHeight,
+            resolvedPanelSize,
+        },
+    )
+
+    if (!resolvedLayout) {
         return null
     }
 
-    const maxWidth = Math.max(
-        ACTION_PANEL_MIN_WIDTH_PX,
-        containerSize.width - MAP_FLOATING_INSET_PX - MAP_OVERLAY_DRAG_MIN_EDGE_PX,
-    )
-    const maxHeight = Math.max(
-        minResizedHeight,
-        containerSize.height - MAP_FLOATING_INSET_PX - MAP_OVERLAY_DRAG_MIN_EDGE_PX,
-    )
-
-    const normalizedWidth = clampPanelWidth(layout.width, maxWidth)
-    const normalizedHeight = clampExplicitPanelHeight(
-        layout.height,
-        maxHeight,
-        minResizedHeight,
-    )
+    if (preserveAnchor) {
+        return resolvedLayout
+    }
 
     const panelSize = resolvedPanelSize ?? {
-        width: normalizedWidth,
-        height: normalizedHeight ?? contentMinHeight,
+        width: resolvedLayout.width,
+        height: resolvedLayout.height ?? contentMinHeight,
     }
-
-    const position = resolveClampedPanelPosition(layout.anchor, containerSize, panelSize)
-
-    if (!position) {
-        return null
-    }
-
-    const normalizedAnchor = absoluteToEdgeAnchor(
-        position.left,
-        position.top,
-        containerSize,
-        panelSize,
-    )
 
     return {
-        anchor: normalizedAnchor,
-        width: normalizedWidth,
-        height: normalizedHeight,
-        position,
+        ...resolvedLayout,
+        anchor: absoluteToEdgeAnchor(
+            resolvedLayout.position.left,
+            resolvedLayout.position.top,
+            containerSize,
+            panelSize,
+        ),
     }
 }
 
@@ -174,6 +230,15 @@ export function viewportLayoutDiffersFromStored(storedLayout, normalizedLayout) 
 
     return !edgeAnchorsEqual(storedLayout.anchor, normalizedLayout.anchor)
         || storedLayout.width !== normalizedLayout.width
+        || storedLayout.height !== normalizedLayout.height
+}
+
+export function viewportDimensionsDifferFromStored(storedLayout, normalizedLayout) {
+    if (!storedLayout || !normalizedLayout) {
+        return false
+    }
+
+    return storedLayout.width !== normalizedLayout.width
         || storedLayout.height !== normalizedLayout.height
 }
 
