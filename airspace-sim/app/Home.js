@@ -2,10 +2,10 @@
 
 import MapView from './components/map/MapView'
 import {Box} from '@mui/material'
-import ActionPanelsLayer from './components/panels/glass/ActionPanelsLayer'
+import DraggableFloatingOverlaysLayer from './components/panels/glass/DraggableFloatingOverlaysLayer'
 import ClassificationBar from './components/global/ClassificationBar'
 import SettingsController from '@/app/components/panels/settings/SettingsController'
-import {useCallback, useState} from 'react'
+import {useCallback, useRef, useState} from 'react'
 import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/hooks/global/ErrorForwarder'
@@ -21,6 +21,7 @@ export default function Home() {
     const [settingsModalOpen, setSettingsModalOpen] = useState(false)
     const [settingsPageId, setSettingsPageId] = useState(null)
     const [mapOverlayLayer, setMapOverlayLayer] = useState(null)
+    const mapContainerRef = useRef(null)
 
     const setMapOverlayLayerRef = useCallback((element) => {
         setMapOverlayLayer(element)
@@ -73,6 +74,7 @@ export default function Home() {
                     >
                         <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Map view">
                             <MapView
+                                mapContainerRef={mapContainerRef}
                                 mapInteractionsEnabled={!settingsModalOpen}
                                 mapOverlayLayer={mapOverlayLayer}
                             />
@@ -80,7 +82,8 @@ export default function Home() {
                     </Box>
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Action panels">
-                        <ActionPanelsLayer
+                        <DraggableFloatingOverlaysLayer
+                            mapContainerRef={mapContainerRef}
                             interactionsEnabled={!settingsModalOpen}
                             onEditPanelSettings={() => openSettingsPage('actionPanels')}
                         />

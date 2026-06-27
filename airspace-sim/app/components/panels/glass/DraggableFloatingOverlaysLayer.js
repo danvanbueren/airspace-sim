@@ -3,35 +3,37 @@
 import {useRef} from 'react'
 import {Box} from '@mui/material'
 import ActionPanel from './ActionPanel'
+import PerformanceAnalyticsOverlay from '@/app/components/map/PerformanceAnalyticsOverlay'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
-import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
-export default function ActionPanelsLayer({
+export default function DraggableFloatingOverlaysLayer({
+    mapContainerRef,
     interactionsEnabled = true,
     onEditPanelSettings,
 }) {
-    const mapContainerRef = useRef(null)
+    const layerRef = useRef(null)
     const {actionPanelsState} = useActionPanels()
 
     return (
         <Box
-            ref={mapContainerRef}
+            ref={layerRef}
             sx={{
                 position: 'absolute',
                 inset: 0,
-                zIndex: UI_Z_INDEX.GLASS_PANEL,
                 pointerEvents: 'none',
-                '& [data-action-panel]': {
+                '& [data-floating-draggable]': {
                     pointerEvents: 'auto',
                 },
             }}
         >
+            <PerformanceAnalyticsOverlay mapContainerRef={mapContainerRef}/>
+
             {actionPanelsState.panels.map((panel) => (
                 <ActionPanel
                     key={panel.id}
                     panel={panel}
                     layout={actionPanelsState.layouts[panel.id]}
-                    mapContainerRef={mapContainerRef}
+                    mapContainerRef={layerRef}
                     interactionsEnabled={interactionsEnabled}
                     onEditPanelSettings={onEditPanelSettings}
                 />

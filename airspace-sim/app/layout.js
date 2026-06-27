@@ -17,6 +17,7 @@ import {
     ACTION_PANELS_COOKIE_NAME,
     ActionPanelsProvider,
 } from './contexts/ActionPanelsContext'
+import {FloatingDraggableStackProvider} from './contexts/FloatingDraggableStackContext'
 import {UseGlobalInteractionGuards} from '@/app/hooks/global/useGlobalInteractionGuards'
 import {THEME_COOKIE_NAME} from '@/app/contexts/CustomThemeContext'
 import {MapStateProvider} from './contexts/MapStateContext'
@@ -53,7 +54,8 @@ export default async function RootLayout({children}) {
             <CustomThemeContext initialMode={themeCookie}>
                 <AppSettingsProvider initialSettings={appSettingsCookie}>
                     <ActionPanelsProvider initialActionPanels={actionPanelsCookie}>
-                        <SensorDisplayProvider>
+                        <FloatingDraggableStackProvider>
+                            <SensorDisplayProvider>
                             <SimulationProvider>
                                 <PerformanceMonitorProvider>
                                     <ControlBindingsProvider initialBindings={controlBindingsCookie}>
@@ -62,6 +64,7 @@ export default async function RootLayout({children}) {
                                 </PerformanceMonitorProvider>
                             </SimulationProvider>
                         </SensorDisplayProvider>
+                        </FloatingDraggableStackProvider>
                     </ActionPanelsProvider>
                 </AppSettingsProvider>
             </CustomThemeContext>

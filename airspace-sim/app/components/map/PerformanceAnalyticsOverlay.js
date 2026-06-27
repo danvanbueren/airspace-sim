@@ -6,7 +6,7 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import {Box, Card, Divider, Grid, IconButton, Stack, Typography} from '@mui/material'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {usePerformanceMetrics} from '@/app/contexts/PerformanceMonitorContext'
-import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
+import {FLOATING_DRAGGABLE_IDS} from '@/app/constants/floatingDraggableIds'
 import {
     MAP_GLASS_INSET_PX,
     MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
@@ -25,6 +25,7 @@ import {
 import PerformanceFrameTimeChart from './PerformanceFrameTimeChart'
 import FpsStatChip from './FpsStatChip'
 import FrameMsStatChip from './FrameMsStatChip'
+import {useFloatingDraggableRegistration} from '@/app/hooks/ui/useFloatingDraggableRegistration'
 
 const MONO_LABEL_SX = {
     fontFamily: 'monospace',
@@ -125,6 +126,9 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
     const {updateSimulationSettings} = useAppSettings()
     const {enabled, metrics} = usePerformanceMetrics()
     const overlayRef = useRef(null)
+    const {zIndex, bringToFront} = useFloatingDraggableRegistration(
+        enabled ? FLOATING_DRAGGABLE_IDS.performanceAnalytics : null,
+    )
 
     const {
         position,
@@ -142,12 +146,23 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
         return null
     }
 
+    const handleOverlayActivate = (event) => {
+        bringToFront()
+        handlePanelPointerDown(event)
+    }
+
+    const handleDragHandleActivate = (event) => {
+        bringToFront()
+        handleDragHandlePointerDown(event)
+    }
+
     return (
         <Card
             ref={overlayRef}
             data-performance-analytics-overlay
+            data-floating-draggable={FLOATING_DRAGGABLE_IDS.performanceAnalytics}
             variant='outlined'
-            onPointerDown={handlePanelPointerDown}
+            onPointerDown={handleOverlayActivate}
             style={GLASS_PANEL_BORDER_STYLE}
             sx={(theme) => ({
                 ...getGlassPanelSurfaceSx(theme),
@@ -162,7 +177,7 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                         bottom: MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
                         visibility: 'hidden',
                     }),
-                zIndex: UI_Z_INDEX.MAP_OVERLAY,
+                zIndex,
                 width: {xs: 300, sm: 380},
                 maxWidth: `calc(100% - ${MAP_GLASS_INSET_PX * 2}px)`,
                 pointerEvents: 'auto',
@@ -172,7 +187,7 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
             })}
         >
             <Box
-                onPointerDown={handleDragHandlePointerDown}
+                onPointerDown={handleDragHandleActivate}
                 onPointerMove={handleDragHandlePointerMove}
                 onPointerUp={handleDragHandlePointerUp}
                 onPointerCancel={handleDragHandlePointerUp}

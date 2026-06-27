@@ -6,8 +6,10 @@ import EditIcon from '@mui/icons-material/Edit'
 import {Box, Divider, IconButton, Typography} from '@mui/material'
 import BasicGlassPanel from './BasicGlassPanel'
 import ActionPanelControls from './ActionPanelControls'
+import {FLOATING_DRAGGABLE_IDS} from '@/app/constants/floatingDraggableIds'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 import {useFloatingActionPanelLayout} from '@/app/hooks/map/useFloatingActionPanelLayout'
+import {useFloatingDraggableRegistration} from '@/app/hooks/ui/useFloatingDraggableRegistration'
 
 function ResizeIndicator() {
     return (
@@ -35,6 +37,8 @@ export default function ActionPanel({
 }) {
     const panelRef = useRef(null)
     const {updateActionPanelLayout} = useActionPanels()
+    const draggableId = FLOATING_DRAGGABLE_IDS.actionPanel(panel.id)
+    const {zIndex, bringToFront} = useFloatingDraggableRegistration(draggableId)
 
     const handleLayoutCommit = useCallback((nextLayout) => {
         updateActionPanelLayout(panel.id, nextLayout)
@@ -64,17 +68,34 @@ export default function ActionPanel({
 
     const hasExplicitHeight = typeof height === 'number'
 
+    const handlePanelActivate = useCallback((event) => {
+        bringToFront()
+        handlePanelPointerDown(event)
+    }, [bringToFront, handlePanelPointerDown])
+
+    const handleDragHandleActivate = useCallback((event) => {
+        bringToFront()
+        handleDragHandlePointerDown(event)
+    }, [bringToFront, handleDragHandlePointerDown])
+
+    const handleResizeHandleActivate = useCallback((event) => {
+        bringToFront()
+        handleResizeHandlePointerDown(event)
+    }, [bringToFront, handleResizeHandlePointerDown])
+
     return (
         <Box
             ref={panelRef}
             data-action-panel={panel.id}
-            onPointerDown={handlePanelPointerDown}
+            data-floating-draggable={draggableId}
+            onPointerDown={handlePanelActivate}
             sx={{
                 position: 'absolute',
                 left: position?.left ?? 0,
                 top: position?.top ?? 0,
                 width,
                 height: hasExplicitHeight ? height : 'auto',
+                zIndex,
                 opacity: isPositionResolved ? 1 : 0,
                 pointerEvents: isPositionResolved ? 'auto' : 'none',
             }}
@@ -107,7 +128,7 @@ export default function ActionPanel({
                                     px: 0.5,
                                     mx: -0.5,
                                 }}
-                                onPointerDown={handleDragHandlePointerDown}
+                                onPointerDown={handleDragHandleActivate}
                                 onPointerMove={handleDragHandlePointerMove}
                                 onPointerUp={handleDragHandlePointerUp}
                                 onPointerCancel={handleDragHandlePointerUp}
@@ -148,7 +169,7 @@ export default function ActionPanel({
 
             <Box
                 aria-label='Resize panel'
-                onPointerDown={handleResizeHandlePointerDown}
+                onPointerDown={handleResizeHandleActivate}
                 onPointerMove={handleResizeHandlePointerMove}
                 onPointerUp={handleResizeHandlePointerUp}
                 onPointerCancel={handleResizeHandlePointerUp}

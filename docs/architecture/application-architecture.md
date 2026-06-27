@@ -17,6 +17,7 @@ See the [repository root README](../../README.md) for setup and a high-level ove
 | `CustomThemeContext` | Light/dark theme (cookie-backed) |
 | `AppSettingsProvider` | Grid reference system, simulation tuning (cookie-backed) |
 | `ActionPanelsProvider` | Modular map action panels — layout, items, display style (cookie-backed) |
+| `FloatingDraggableStackProvider` | Click-to-front z-index stack for draggable overlays (action panels, performance analytics) |
 | `ControlBindingsProvider` | Keyboard/mouse bindings (cookie-backed) |
 | `SensorDisplayProvider` | Sensor display toggle state (IFF/radar/airport layers) |
 | `SimulationProvider` | Singleton `TrackEngine`, manual track APIs |
