@@ -76,7 +76,7 @@ export const ACTION_PANEL_ITEM_CATALOG = [
     {
         id: ACTION_PANEL_ITEM_IDS.RE_INITIATE,
         type: ACTION_PANEL_ITEM_TYPES.BUTTON,
-        label: formatActionLabel(ACTION_PANEL_ITEM_IDS.RE_INITIATE),
+        label: 'RE-INITIATE',
         actionKey: ACTION_PANEL_ITEM_IDS.RE_INITIATE,
     },
     {
