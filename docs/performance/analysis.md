@@ -200,7 +200,7 @@ Building GeoJSON in JS is not the bottleneck. **MapLibre reprocessing after `set
 | Adaptive perf | `app/simulation/PerfBudgetController.js` |
 | Track rendering | `app/hooks/map/useTrackMapLayer.js` |
 | Sensor rendering | `app/hooks/map/useSensorDetectionMapLayer.js` |
-| Viewport cull | `app/components/map/MapView.js`, `app/simulation/mapViewportUtils.js` |
+| Viewport cull | `app/components/map/MapView.js`, `app/tools/map/mapViewportUtils.js` |
 | Vectors (screen-space) | `app/simulation/trackVectorFeatures.js` |
 | Correlation | `app/simulation/correlation.js`, `app/simulation/CorrelationService.js` |
 | Icons | `app/tools/milstd2525/createMilStd2525Icon.js` |

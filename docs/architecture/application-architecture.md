@@ -20,7 +20,7 @@ See the [repository root README](../../README.md) for setup and a high-level ove
 | `SensorDisplayProvider` | Category Select Panel toggle state |
 | `SimulationProvider` | Singleton `TrackEngine`, manual track APIs |
 
-[`app/page.js`](../../airspace-sim/app/page.js) gates unsupported mobile and tablet devices before rendering [`app/Home.js`](../../airspace-sim/app/Home.js), which composes the main shell: classification bars, glass panels (Category Select, Fixed Function, alarm alerts, settings toolbelt), a dedicated map overlay layer for floating track windows, and the full-screen map.
+[`app/page.js`](../../airspace-sim/app/page.js) gates unsupported mobile and tablet devices before rendering [`app/Home.js`](../../airspace-sim/app/Home.js), which composes the main shell: classification bars, map corner panels (Category Select, Fixed Function, alarm alerts, settings toolbelt), a dedicated map overlay layer for floating track windows, and the full-screen map.
 
 ## Map workspace
 

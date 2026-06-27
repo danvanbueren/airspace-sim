@@ -64,7 +64,7 @@ On every `move` / `zoom`, `MapView` filters tracks to the expanded viewport and 
 | File | Role |
 |------|------|
 | `airspace-sim/app/components/map/MapView.js` | `syncVisibleTracks` on map move/zoom |
-| `airspace-sim/app/simulation/mapViewportUtils.js` | `getExpandedMapBounds`, `filterTracksByBounds` |
+| `airspace-sim/app/tools/map/mapViewportUtils.js` | `getExpandedMapBounds`, `filterTracksByBounds` |
 | `airspace-sim/app/hooks/map/useTrackMapLayer.js` | `replaceTracks` — clears render cache, redraws visible subset |
 
 This matches the documented design goal: *“Rendering is not simulation.”*
@@ -315,7 +315,7 @@ After shipping:
 | Decorrelation | `airspace-sim/app/simulation/trackDecorrelation.js` |
 | Flight world | `airspace-sim/app/simulation/FlightWorldSimulator.js` |
 | Sensor sim | `airspace-sim/app/simulation/SensorSimulator.js` |
-| Viewport utils | `airspace-sim/app/simulation/mapViewportUtils.js` |
+| Viewport utils | `airspace-sim/app/tools/map/mapViewportUtils.js` |
 | Map integration | `airspace-sim/app/components/map/MapView.js` |
 | Track rendering | `airspace-sim/app/hooks/map/useTrackMapLayer.js` |
 | Kinematic sync | `airspace-sim/app/simulation/syncActiveTrackKinematicsFromFlightWorld.js` |

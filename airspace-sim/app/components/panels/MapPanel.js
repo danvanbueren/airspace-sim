@@ -1,9 +1,9 @@
 'use client'
 
 import {Card, Divider, Typography} from '@mui/material'
-import {GLASS_PANEL_BORDER_STYLE, getGlassPanelSurfaceSx} from './glassPanelSurface'
+import {MAP_PANEL_BORDER_STYLE, getMapPanelSurfaceSx} from './panelSurface'
 
-export default function BasicGlassPanel({title = null, children, dense = false}) {
+export default function MapPanel({title = null, children, dense = false}) {
 
     return (
         <Card
@@ -16,10 +16,10 @@ export default function BasicGlassPanel({title = null, children, dense = false})
                 flexDirection: 'column',
                 gap: 10,
                 alignItems: 'center',
-                ...GLASS_PANEL_BORDER_STYLE,
+                ...MAP_PANEL_BORDER_STYLE,
             }}
             sx={(theme) => ({
-                ...getGlassPanelSurfaceSx(theme),
+                ...getMapPanelSurfaceSx(theme),
                 userSelect: 'none',
             })}
         >

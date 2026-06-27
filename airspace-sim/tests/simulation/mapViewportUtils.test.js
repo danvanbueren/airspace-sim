@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {isPointInBounds} from '../../app/simulation/geo.js'
-import {filterTracksByBounds} from '../../app/simulation/mapViewportUtils.js'
+import {filterTracksByBounds} from '../../app/tools/map/mapViewportUtils.js'
 
 describe('wrapped map bounds', () => {
     it('matches points inside world-copy longitude bounds', () => {

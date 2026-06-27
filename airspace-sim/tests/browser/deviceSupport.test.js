@@ -6,7 +6,7 @@ import {
     isUnsupportedMobileDeviceFromDeviceType,
     isUnsupportedMobileDeviceFromUserAgent,
     isUnsupportedTouchPrimaryDevice,
-} from '../../app/utils/deviceSupport.js'
+} from '../../app/tools/browser/deviceSupport.js'
 
 describe('isUnsupportedMobileDeviceFromUserAgent', () => {
     it('detects common mobile and tablet user agents', () => {

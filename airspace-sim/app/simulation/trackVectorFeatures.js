@@ -1,5 +1,5 @@
 import {offsetLngLat} from './geo'
-import {getTrackIconScaleForZoom} from './mapViewportUtils'
+import {getTrackIconScaleForZoom} from '../tools/map/mapViewportUtils.js'
 
 /** Screen-space offset from track center to clear familiar icon symbology. */
 const BASE_START_OFFSET_PIXELS = 16

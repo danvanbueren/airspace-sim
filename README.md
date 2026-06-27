@@ -98,23 +98,29 @@ airspace-sim/
 |   +-- components/
 |   |   +-- global/          # Classification bars, commit display, markdown renderer, and global UI pieces.
 |   |   +-- map/             # Map view, context menu, and cursor coordinate overlay.
-|   |   +-- panels/          # Glass panels, settings toolbelt, settings modal pages.
+|   |   +-- panels/          # Map corner panels, alarm alerts, settings toolbelt, settings modal pages.
+|   |   |   +-- alerts/        # Alarm alert panel and detail modal.
+|   |   |   +-- map/           # Category Select and Fixed Function panels.
+|   |   |   +-- settings/      # Settings toolbelt and modal pages.
 |   |   +-- windows/         # Floating workflow windows such as track management.
 |   +-- constants/           # Shared UI constants (for example, z-index layering).
 |   +-- content/             # Markdown sources for in-app settings pages (for example, roadmap).
 |   +-- contexts/            # React contexts for map state, theme, app settings, simulation.
 |   +-- data/                # Curated airports and air routes (static JSON).
 |   +-- hooks/
-|   |   +-- global/          # Global interaction guards, measurement hooks, error forwarding.
+|   |   +-- alerts/          # Alarm alert actions and seeding.
+|   |   +-- global/          # Global interaction guards and measurement hooks.
 |   |   +-- map/             # Map setup, controls, track/sensor/airport layers, bearing/range tools.
 |   |   +-- simulation/      # Simulation tick loop (requestAnimationFrame).
+|   |   +-- ui/              # Shared UI hooks (for example, deferred text fields).
 |   +-- simulation/          # Track engine, flight world, sensor, initiation, correlation, merge.
 |   +-- tools/
-|   |   +-- browser/         # Browser storage helpers.
+|   |   +-- browser/         # Browser storage and device support helpers.
 |   |   +-- external/        # External service helpers.
 |   |   +-- formatting/      # Date/time, grid reference, callsign, and track field formatting.
-|   |   +-- map/             # Map style paint helpers (for example, water and label theming).
+|   |   +-- map/             # Map helpers (viewport culling, bearing/range, floating window layout).
 |   |   +-- milstd2525/      # Symbol codes, familiar icons, and platform-specific type catalog.
+|   |   +-- performance/     # Performance overlay chart math and stat label formatting.
 |   +-- buildInfo.js         # Project metadata, links, version, and copyright text.
 |   +-- globals.css          # Global styles.
 |   +-- layout.js            # Root Next.js layout and providers.
@@ -246,7 +252,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 ### Current Capabilities
 
 - Full-screen map workspace with light and dark map styles and theme-aware water/label paint.
-- Glass panels for category select, fixed-function controls (zoom in/out), alarm alerts, and settings.
+- Map corner panels for category select, fixed-function controls (zoom in/out), alarm alerts, and settings.
 - **Global flight simulation** on weighted air routes between curated airports (no viewport-random spawning); can be paused via **Enable simulation engine**.
 - **Separated sensor, initiation, and correlation pipeline** (see [Simulation Architecture](docs/architecture/simulation-architecture.md)).
 - Simulated **radar and IFF** returns with history playback and Category Select Panel toggles.

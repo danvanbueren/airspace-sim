@@ -1,9 +1,9 @@
-import {getSampleMaxMeasuredMs, getSampleMeasuredMs} from './performanceChartScale.js'
+import {getSampleMaxMeasuredMs, getSampleMeasuredMs} from '../tools/performance/performanceChartScale.js'
 import {
     PERFORMANCE_MEASURED_FRAME_SEGMENTS,
     PERFORMANCE_HISTORY_LENGTH,
     PERFORMANCE_TARGET_FRAME_MS,
-} from './performanceFrameSegments.js'
+} from '../tools/performance/performanceFrameSegments.js'
 
 const SMOOTHING = 0.85
 

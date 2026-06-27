@@ -1,11 +1,11 @@
 'use client'
 
 import {useEffect, useMemo, useState} from 'react'
-import BasicGlassPanel from './BasicGlassPanel'
+import MapPanel from '@/app/components/panels/MapPanel'
 import AlarmAlertDetailModal from './AlarmAlertDetailModal'
 import AlarmAlertListItem from './AlarmAlertListItem'
 import {Box, Button, Stack, Typography} from '@mui/material'
-import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
+import {useAlarmAlertActions} from '@/app/hooks/alerts/useAlarmAlertActions'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {useSimulation} from '@/app/contexts/SimulationContext'
 import {isIffEmergencyAlertSignalId} from '@/app/simulation/signalDefinitions'
@@ -112,7 +112,7 @@ export default function AlarmAlertPanel() {
                 onFocusAlert={setFocusedAlertId}
             />
             {visibleAlerts.length > 0 && (
-                <BasicGlassPanel dense>
+                <MapPanel dense>
                     <Button
                         size='small'
                         color='warning'
@@ -173,7 +173,7 @@ export default function AlarmAlertPanel() {
                             ))}
                         </Stack>
                     </Box>
-                </BasicGlassPanel>
+                </MapPanel>
             )}
         </>
     )

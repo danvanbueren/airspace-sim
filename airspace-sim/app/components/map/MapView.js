@@ -27,7 +27,7 @@ import {useAirRouteMapLayer} from '../../hooks/map/useAirRouteMapLayer'
 import {
     filterTracksByBounds,
     getExpandedMapBounds,
-} from '../../simulation/mapViewportUtils'
+} from '@/app/tools/map/mapViewportUtils'
 import {SENSOR_DISPLAY_TOGGLES} from '../../simulation/constants'
 import {
     createTrackFromManagementWindow,
@@ -42,7 +42,7 @@ import TrackAttentionOverlay from './TrackAttentionOverlay'
 import PerformanceAnalyticsOverlay from './PerformanceAnalyticsOverlay'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import './mapAttributionTheme.css'
-import {useAlarmAlertActions} from '../../hooks/global/useAlarmAlertActions'
+import {useAlarmAlertActions} from '../../hooks/alerts/useAlarmAlertActions'
 import {usePerformanceInstrumentation} from '@/app/contexts/PerformanceMonitorContext'
 
 const MAP_STYLES = {

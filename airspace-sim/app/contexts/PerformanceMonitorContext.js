@@ -11,7 +11,7 @@ import {
 } from 'react'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {createPerformanceMonitor} from '@/app/simulation/PerformanceMonitor'
-import {PERFORMANCE_HISTORY_BUCKET_MS} from '@/app/simulation/performanceFrameSegments'
+import {PERFORMANCE_HISTORY_BUCKET_MS} from '@/app/tools/performance/performanceFrameSegments'
 
 const PerformanceMonitorContext = createContext(null)
 

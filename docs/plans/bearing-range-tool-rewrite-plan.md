@@ -337,7 +337,7 @@ snapPaddingPx = round((iconSize × zoomScale) / 2) + SNAP_MARGIN_PX
 | Constant | Default | Source |
 |----------|---------|--------|
 | `iconSize` | `40` | `MapView` → `useTrackMapLayer({ iconSize: 40 })` |
-| `zoomScale` | `getTrackIconScaleForZoom(map.getZoom())` | `app/simulation/mapViewportUtils.js` |
+| `zoomScale` | `getTrackIconScaleForZoom(map.getZoom())` | `app/tools/map/mapViewportUtils.js` |
 | `SNAP_MARGIN_PX` | `8` | New constant in `trackHitTest.js` |
 
 This is intentionally **wider** than the 6 px track hover/pick padding (`TRACK_HIT_TEST_PADDING`) so "generally close" feels natural.

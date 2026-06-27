@@ -49,7 +49,7 @@ The overlay UI and chart history refresh every **1 s** — each column summarize
 | Component | Role |
 |-----------|------|
 | `app/simulation/PerformanceMonitor.js` | Ring buffer, per-frame accumulators, smoothed metrics |
-| `app/simulation/performanceFrameSegments.js` | Segment keys, colors, history length |
+| `app/tools/performance/performanceFrameSegments.js` | Segment keys, colors, history length |
 | `app/contexts/PerformanceMonitorContext.js` | Provider, RAF frame commits, instrumentation hooks |
 | `app/components/map/PerformanceAnalyticsOverlay.js` | Overlay shell + legend |
 | `app/components/map/PerformanceFrameTimeChart.js` | Canvas stacked bar renderer |

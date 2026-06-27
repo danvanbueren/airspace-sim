@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
-import {getChartScaleMaxMs} from '../../app/simulation/performanceChartScale.js'
+import {getChartScaleMaxMs} from '../../app/tools/performance/performanceChartScale.js'
 import {
     PERFORMANCE_AVERAGE_MARKER_COLORS,
     getAverageMarkerColor,
-} from '../../app/simulation/performanceFrameSegments.js'
+} from '../../app/tools/performance/performanceFrameSegments.js'
 
 describe('performanceChartScale', () => {
     it('uses the configured minimum when history is empty', () => {

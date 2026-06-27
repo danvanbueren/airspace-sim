@@ -2,17 +2,17 @@
 
 import MapView from './components/map/MapView'
 import {Box} from '@mui/material'
-import CategorySelectPanel from './components/panels/glass/CategorySelectPanel'
-import FixedFunctionPanel from './components/panels/glass/FixedFunctionPanel'
+import CategorySelectPanel from './components/panels/map/CategorySelectPanel'
+import FixedFunctionPanel from './components/panels/map/FixedFunctionPanel'
 import ClassificationBar from './components/global/ClassificationBar'
 import SettingsController from '@/app/components/panels/settings/SettingsController'
 import {useCallback, useState} from 'react'
-import AlarmAlertPanel from '@/app/components/panels/glass/AlarmAlertPanel'
+import AlarmAlertPanel from '@/app/components/panels/alerts/AlarmAlertPanel'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
-import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/hooks/global/ErrorForwarder'
-import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
+import ErrorForwarder, {ReactErrorForwardingBoundary} from '@/app/components/global/ErrorForwarder'
+import {useAlarmAlertActions} from '@/app/hooks/alerts/useAlarmAlertActions'
 import usePrefetchLatestGithubCommit from '@/app/hooks/global/usePrefetchLatestGithubCommit'
-import useSeedAlarmAlerts from '@/app/hooks/global/useSeedAlarmAlerts'
+import useSeedAlarmAlerts from '@/app/hooks/alerts/useSeedAlarmAlerts'
 
 export default function Home() {
 
@@ -26,14 +26,14 @@ export default function Home() {
         setMapOverlayLayer(element)
     }, [])
 
-    const glassPanelStyle = ({top, bottom, left, right, transform}) => ({
+    const mapPanelStyle = ({top, bottom, left, right, transform}) => ({
         position: 'absolute',
         top: top ?? null,
         right: right ?? null,
         left: left ?? null,
         bottom: bottom ?? null,
         transform: transform ?? null,
-        zIndex: UI_Z_INDEX.GLASS_PANEL,
+        zIndex: UI_Z_INDEX.MAP_PANEL,
     })
 
     const {raiseAlarmAlert} = useAlarmAlertActions()
@@ -67,23 +67,23 @@ export default function Home() {
                     </Box>
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Category select panel">
-                        <Box style={glassPanelStyle({top: 20, left: 20})}>
+                        <Box style={mapPanelStyle({top: 20, left: 20})}>
                             <CategorySelectPanel/>
                         </Box>
                     </ReactErrorForwardingBoundary>
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Fixed function panel">
-                        <Box style={glassPanelStyle({bottom: 20, left: 20})}>
+                        <Box style={mapPanelStyle({bottom: 20, left: 20})}>
                             <FixedFunctionPanel/>
                         </Box>
                     </ReactErrorForwardingBoundary>
 
-                    <Box style={glassPanelStyle({bottom: 20, left: '50%', transform: 'translateX(-50%)'})}>
+                    <Box style={mapPanelStyle({bottom: 20, left: '50%', transform: 'translateX(-50%)'})}>
                         <AlarmAlertPanel/>
                     </Box>
 
                     <ReactErrorForwardingBoundary onError={raiseAlarmAlert} name="Settings controller">
-                        <Box style={glassPanelStyle({top: 20, right: 20})}>
+                        <Box style={mapPanelStyle({top: 20, right: 20})}>
                             <SettingsController
                                 modalOpen={settingsModalOpen}
                                 setModalOpen={setSettingsModalOpen}

@@ -2,7 +2,7 @@
 
 import {useCallback, useLayoutEffect, useRef, useState} from 'react'
 import {
-    MAP_GLASS_INSET_PX,
+    MAP_PANEL_INSET_PX,
     MAP_OVERLAY_DRAG_MIN_EDGE_PX,
     MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
 } from '@/app/constants/mapUiLayout'
@@ -44,7 +44,7 @@ function getDefaultOverlayPosition(overlayRef, mapContainerRef) {
     }
 
     return {
-        left: containerSize.width - overlaySize.width - MAP_GLASS_INSET_PX,
+        left: containerSize.width - overlaySize.width - MAP_PANEL_INSET_PX,
         top: containerSize.height - overlaySize.height - MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
     }
 }
@@ -58,11 +58,11 @@ function getPerformanceOverlayBounds(overlayRef, mapContainerRef) {
         minTop: MAP_OVERLAY_DRAG_MIN_EDGE_PX,
         maxLeft: Math.max(
             MAP_OVERLAY_DRAG_MIN_EDGE_PX,
-            containerSize.width - overlaySize.width - MAP_GLASS_INSET_PX,
+            containerSize.width - overlaySize.width - MAP_PANEL_INSET_PX,
         ),
         maxTop: Math.max(
             MAP_OVERLAY_DRAG_MIN_EDGE_PX,
-            containerSize.height - overlaySize.height - MAP_GLASS_INSET_PX,
+            containerSize.height - overlaySize.height - MAP_PANEL_INSET_PX,
         ),
     }
 }

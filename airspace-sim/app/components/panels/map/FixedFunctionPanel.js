@@ -1,15 +1,15 @@
 'use client'
 
 import {Button, Grid} from '@mui/material'
-import BasicGlassPanel from './BasicGlassPanel'
-import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
+import MapPanel from '@/app/components/panels/MapPanel'
+import {useAlarmAlertActions} from '@/app/hooks/alerts/useAlarmAlertActions'
 
 export default function FixedFunctionPanel() {
 
     const {raiseAlarmAlert, zoomIn, zoomOut} = useAlarmAlertActions()
 
     return (
-        <BasicGlassPanel title='Fixed Function Panel'>
+        <MapPanel title='Fixed Function Panel'>
 
             <Grid
                 container
@@ -177,6 +177,6 @@ export default function FixedFunctionPanel() {
                 </Grid>
             </Grid>
 
-        </BasicGlassPanel>
+        </MapPanel>
     )
 }

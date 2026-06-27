@@ -1,7 +1,7 @@
 'use client'
 
 import {useEffect} from 'react'
-import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
+import {useAlarmAlertActions} from '@/app/hooks/alerts/useAlarmAlertActions'
 import {
     buildIffEmergencyAlarmKey,
     buildIffEmergencyAlarmMessage,

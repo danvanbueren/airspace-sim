@@ -1,6 +1,6 @@
 import {SENSOR_COLORS, SENSOR_TYPES} from './constants'
 import {offsetLngLat} from './geo'
-import {getTrackIconScaleForZoom} from './mapViewportUtils'
+import {getTrackIconScaleForZoom} from '../tools/map/mapViewportUtils.js'
 
 /** Screen-space half-length at reference zoom (matches track icon baseline near z10). */
 const BASE_LINE_HALF_LENGTH_PIXELS = 14

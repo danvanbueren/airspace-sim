@@ -7,8 +7,8 @@ import {
     PERFORMANCE_HISTORY_LENGTH,
     PERFORMANCE_MEASURED_FRAME_SEGMENTS,
     getAverageMarkerColor,
-} from '@/app/simulation/performanceFrameSegments'
-import {getChartScaleMaxMs, getSampleMeasuredMs, msToPlotY} from '@/app/simulation/performanceChartScale'
+} from '@/app/tools/performance/performanceFrameSegments'
+import {getChartScaleMaxMs, getSampleMeasuredMs, msToPlotY} from '@/app/tools/performance/performanceChartScale'
 
 const CHART_HEIGHT = 132
 const PADDING = {

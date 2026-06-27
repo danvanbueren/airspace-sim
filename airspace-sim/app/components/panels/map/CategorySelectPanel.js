@@ -1,7 +1,7 @@
 'use client'
 
 import {Divider, Grid, ToggleButton, ToggleButtonGroup} from '@mui/material'
-import BasicGlassPanel from './BasicGlassPanel'
+import MapPanel from '@/app/components/panels/MapPanel'
 import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
 
 const AVAILABLE_TOGGLES = [
@@ -23,7 +23,7 @@ export default function CategorySelectPanel() {
     }
 
     return (
-        <BasicGlassPanel title='Category Select Panel'>
+        <MapPanel title='Category Select Panel'>
 
             <ToggleButtonGroup
                 value={activeToggles}
@@ -67,6 +67,6 @@ export default function CategorySelectPanel() {
                 </Grid>
             </ToggleButtonGroup>
 
-        </BasicGlassPanel>
+        </MapPanel>
     )
 }

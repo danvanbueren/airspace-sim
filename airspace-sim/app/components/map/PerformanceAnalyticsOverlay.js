@@ -8,20 +8,20 @@ import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {usePerformanceMetrics} from '@/app/contexts/PerformanceMonitorContext'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import {
-    MAP_GLASS_INSET_PX,
+    MAP_PANEL_INSET_PX,
     MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
 } from '@/app/constants/mapUiLayout'
 import {
-    GLASS_PANEL_BORDER_STYLE,
-    getGlassPanelSurfaceSx,
-} from '@/app/components/panels/glass/glassPanelSurface'
+    MAP_PANEL_BORDER_STYLE,
+    getMapPanelSurfaceSx,
+} from '@/app/components/panels/panelSurface'
 import {usePerformanceAnalyticsOverlayDrag} from '@/app/hooks/map/usePerformanceAnalyticsOverlayDrag'
 import {
     PERFORMANCE_50FPS_BUDGET_MS,
     PERFORMANCE_AVERAGE_MARKER_COLORS,
     PERFORMANCE_BUDGET_LINE_COLOR,
     PERFORMANCE_TARGET_FRAME_MS,
-} from '@/app/simulation/performanceFrameSegments'
+} from '@/app/tools/performance/performanceFrameSegments'
 import PerformanceFrameTimeChart from './PerformanceFrameTimeChart'
 import FpsStatChip from './FpsStatChip'
 import FrameMsStatChip from './FrameMsStatChip'
@@ -148,9 +148,9 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
             data-performance-analytics-overlay
             variant='outlined'
             onPointerDown={handlePanelPointerDown}
-            style={GLASS_PANEL_BORDER_STYLE}
+            style={MAP_PANEL_BORDER_STYLE}
             sx={(theme) => ({
-                ...getGlassPanelSurfaceSx(theme),
+                ...getMapPanelSurfaceSx(theme),
                 position: 'absolute',
                 ...(position
                     ? {
@@ -158,13 +158,13 @@ export default function PerformanceAnalyticsOverlay({mapContainerRef}) {
                         top: position.top,
                     }
                     : {
-                        right: MAP_GLASS_INSET_PX,
+                        right: MAP_PANEL_INSET_PX,
                         bottom: MAP_PERFORMANCE_OVERLAY_BOTTOM_PX,
                         visibility: 'hidden',
                     }),
                 zIndex: UI_Z_INDEX.MAP_OVERLAY,
                 width: {xs: 300, sm: 380},
-                maxWidth: `calc(100% - ${MAP_GLASS_INSET_PX * 2}px)`,
+                maxWidth: `calc(100% - ${MAP_PANEL_INSET_PX * 2}px)`,
                 pointerEvents: 'auto',
                 cursor: 'default',
                 userSelect: 'none',

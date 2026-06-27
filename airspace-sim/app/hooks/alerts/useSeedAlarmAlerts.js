@@ -1,7 +1,7 @@
 'use client'
 
 import {useEffect, useRef} from 'react'
-import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
+import {useAlarmAlertActions} from '@/app/hooks/alerts/useAlarmAlertActions'
 import {buildSeedAlarmKey, SEED_ALARM_ALERTS} from '@/app/content/seedAlarmAlerts'
 
 export default function useSeedAlarmAlerts() {

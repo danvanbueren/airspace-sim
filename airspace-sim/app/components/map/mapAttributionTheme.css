@@ -1,4 +1,4 @@
-/* Match glass panel inset (`Home.js`: 20px). MapLibre default is 10px. */
+/* Match map panel inset (`Home.js`: 20px). MapLibre default is 10px. */
 .maplibregl-ctrl-bottom-right > .maplibregl-ctrl-attrib {
   margin: 0 20px 20px 0;
 }

@@ -12,7 +12,7 @@ import {syncActiveTrackKinematicsFromFlightWorld} from '../app/simulation/syncAc
 import {enrichTracksWithAttentionFlags} from '../app/simulation/trackAttentionFlags.js'
 import {tracksToVectorFeatureCollection} from '../app/simulation/trackVectorFeatures.js'
 import {detectionsToFeatureCollection} from '../app/simulation/detectionFeatures.js'
-import {filterTracksByBounds} from '../app/simulation/mapViewportUtils.js'
+import {filterTracksByBounds} from '../app/tools/map/mapViewportUtils.js'
 import {SENSOR_TYPES} from '../app/simulation/constants.js'
 import {PerfBudgetController} from '../app/simulation/PerfBudgetController.js'
 
