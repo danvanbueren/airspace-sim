@@ -13,7 +13,7 @@ User-facing behavior is summarized in the [repository root README](../../README.
 
 | Milestone | Reference |
 |-----------|-----------|
-| Root cause analysis and product decisions | [PR #88](https://github.com/danvanbueren/airspace-sim/pull/88) — plan document only |
+| Root cause analysis and product decisions | [PR #89](https://github.com/danvanbueren/airspace-sim/pull/89) — plan document and docs restructure |
 | Phases 0–7 (implementation) | Not started |
 
 When a phase ships, add a row here with the commit SHA or PR link before checking items in the status table below.
