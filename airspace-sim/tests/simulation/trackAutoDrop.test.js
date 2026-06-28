@@ -35,17 +35,17 @@ function createTrack(overrides = {}) {
 }
 
 describe('trackAutoDrop', () => {
-    it('identifies uncorrelated auto tracks without drop protect as eligible', () => {
+    it('identifies uncorrelated tracks without drop protect as eligible', () => {
         assert.equal(isTrackEligibleForAutoDrop(createTrack()), true)
+        assert.equal(isTrackEligibleForAutoDrop(createTrack({source: 'manual'})), true)
         assert.equal(isTrackEligibleForAutoDrop(createTrack({correlated: true})), false)
         assert.equal(isTrackEligibleForAutoDrop(createTrack({dropProtect: true})), false)
-        assert.equal(isTrackEligibleForAutoDrop(createTrack({source: 'manual'})), false)
     })
 
-    it('does not start auto-drop countdown for manually initiated tracks', () => {
+    it('starts auto-drop countdown for manually initiated tracks', () => {
         const updates = getAutoDropProgressUpdates(createTrack({source: 'manual'}), 1000)
 
-        assert.equal(updates, null)
+        assert.deepEqual(updates, {dropRiskAt: 1000})
     })
 
     it('starts invisible DROP-RISK countdown for eligible tracks', () => {
@@ -76,10 +76,6 @@ describe('trackAutoDrop', () => {
         const removalTimestamp = expiredDropAt + AUTO_DROP_REMOVE_DELAY_MS
 
         assert.equal(
-            shouldAutoDropTrack(createTrack({dropAt: expiredDropAt, source: 'manual'}), removalTimestamp),
-            false,
-        )
-        assert.equal(
             shouldAutoDropTrack(createTrack({dropAt: expiredDropAt, dropProtect: true}), removalTimestamp),
             false,
         )
@@ -89,12 +85,30 @@ describe('trackAutoDrop', () => {
         )
     })
 
-    it('clears auto-drop state instead of removing ineligible tracks at removal time', () => {
+    it('removes manual tracks at removal time when drop protect is not enabled', () => {
         const trackStore = new TrackStore()
         trackStore.addTrack(createTrack({
             dropRiskAt: 1000,
             dropAt: 1000,
             source: 'manual',
+        }))
+
+        const removedTrackIds = processAutoDropTracks(
+            trackStore,
+            1000 + AUTO_DROP_REMOVE_DELAY_MS,
+        )
+
+        assert.deepEqual(removedTrackIds, ['TRK-test'])
+        assert.equal(trackStore.getTrack('TRK-test'), null)
+    })
+
+    it('clears auto-drop state instead of removing drop-protected tracks at removal time', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(createTrack({
+            dropRiskAt: 1000,
+            dropAt: 1000,
+            source: 'manual',
+            dropProtect: true,
         }))
 
         const removedTrackIds = processAutoDropTracks(
@@ -155,15 +169,16 @@ describe('trackAutoDrop', () => {
     it('does not derive DROP attention for ineligible tracks with stale dropAt', () => {
         const flags = deriveAttentionFlagsFromTrackState(createTrack({
             dropAt: 5000,
-            source: 'manual',
+            dropProtect: true,
         }))
 
         assert.ok(!flags.includes('DROP'))
+        assert.ok(flags.includes('PROT'))
     })
 
     it('shows DROP attention only when auto-drop is still eligible', () => {
         assert.equal(shouldShowDropAttention(createTrack({dropAt: 5000})), true)
-        assert.equal(shouldShowDropAttention(createTrack({dropAt: 5000, source: 'manual'})), false)
+        assert.equal(shouldShowDropAttention(createTrack({dropAt: 5000, source: 'manual'})), true)
         assert.equal(shouldShowDropAttention(createTrack({dropAt: 5000, dropProtect: true})), false)
     })
 
