@@ -23,6 +23,7 @@ import {
     decorrelateAllActiveTracks,
     refreshTrackStaleAndDecorrelation,
 } from './trackDecorrelation'
+import {processTrackIdentityPromotion} from './trackIdentityPromotion.js'
 
 export class TrackEngine {
     constructor(options = {}) {
@@ -366,6 +367,7 @@ export class TrackEngine {
 
     runMaintenanceTick(timestamp = Date.now()) {
         refreshTrackStaleAndDecorrelation(this.trackStore, timestamp, this.settings)
+        processTrackIdentityPromotion(this.trackStore, timestamp)
         processAutoDropTracks(this.trackStore, timestamp)
         this.lastTrackTickAt = timestamp
     }
@@ -430,6 +432,7 @@ export class TrackEngine {
         }
 
         refreshTrackStaleAndDecorrelation(this.trackStore, timestamp, this.settings)
+        processTrackIdentityPromotion(this.trackStore, timestamp)
         processAutoDropTracks(this.trackStore, timestamp)
 
         this.notifyListeners()

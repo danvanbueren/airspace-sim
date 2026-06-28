@@ -68,6 +68,7 @@
  * @property {boolean} [dropProtect] When true, prevents automatic drop of uncorrelated tracks
  * @property {string|null} [iffMode3Code] Last correlated IFF Mode 3 code (sensor-derived)
  * @property {number|null} [iffMode3UpdatedAt] Timestamp of last IFF code correlation
+ * @property {number} [identityPendingSinceAt] Timestamp when the track entered pending identity
  */
 
 export {}

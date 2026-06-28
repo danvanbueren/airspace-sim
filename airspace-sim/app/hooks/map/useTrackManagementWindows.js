@@ -4,7 +4,7 @@ import {useCallback, useState} from 'react'
 import {
     TRACK_DOMAINS,
     TRACK_IDENTITIES,
-    getDefaultTrackTypeForDomain,
+    getUnspecifiedTrackTypeForDomain,
 } from '../../tools/milstd2525/trackSymbolCodes'
 import {getDefaultSpecificTypeForTrackType} from '../../tools/milstd2525/trackSpecificTypes'
 import {parseTrackKinematicFields} from '../../tools/formatting/trackFieldFormatting'
@@ -27,9 +27,9 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             line: elementContainer.line,
             domain: TRACK_DOMAINS.AIR,
             identity: TRACK_IDENTITIES.PENDING,
-            type: getDefaultTrackTypeForDomain(TRACK_DOMAINS.AIR),
+            type: getUnspecifiedTrackTypeForDomain(TRACK_DOMAINS.AIR),
             specificType: getDefaultSpecificTypeForTrackType(
-                getDefaultTrackTypeForDomain(TRACK_DOMAINS.AIR),
+                getUnspecifiedTrackTypeForDomain(TRACK_DOMAINS.AIR),
             ),
             callsign: trackId,
             heading: 0,
@@ -114,9 +114,9 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     line: null,
                     domain,
                     identity: track.identity ?? TRACK_IDENTITIES.PENDING,
-                    type: track.type ?? getDefaultTrackTypeForDomain(domain),
+                    type: track.type ?? getUnspecifiedTrackTypeForDomain(domain),
                     specificType: track.specificType ?? getDefaultSpecificTypeForTrackType(
-                        track.type ?? getDefaultTrackTypeForDomain(domain),
+                        track.type ?? getUnspecifiedTrackTypeForDomain(domain),
                     ),
                     callsign: track.callsign ?? track.trackId ?? track.id,
                     heading: kinematicFields.heading,

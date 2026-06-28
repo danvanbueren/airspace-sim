@@ -3,7 +3,6 @@ import {describe, it} from 'node:test'
 import {
     TRACK_DOMAINS,
     TRACK_TYPES,
-    getDefaultTrackTypeForDomain,
     getTrackTypeOption,
     normalizeTrackDomain,
     resolveTrackTypeForDomain,
@@ -31,14 +30,14 @@ describe('trackSymbolCodes', () => {
         )
     })
 
-    it('resolves invalid cross-domain track types to the domain default', () => {
+    it('resolves invalid cross-domain track types to the domain unspecified type', () => {
         assert.equal(
             resolveTrackTypeForDomain(TRACK_TYPES.FIGHTER, TRACK_DOMAINS.SURFACE),
-            getDefaultTrackTypeForDomain(TRACK_DOMAINS.SURFACE),
+            '30:000000',
         )
         assert.equal(
             resolveTrackTypeForDomain(TRACK_TYPES.SURFACE_COMBATANT, TRACK_DOMAINS.AIR),
-            getDefaultTrackTypeForDomain(TRACK_DOMAINS.AIR),
+            TRACK_TYPES.AIR_UNSPECIFIED,
         )
     })
 })

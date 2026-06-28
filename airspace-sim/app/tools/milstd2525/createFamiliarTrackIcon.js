@@ -62,10 +62,6 @@ const IDENTITY_STYLES = {
         stroke: '#2ea7ff',
         fill: 'rgba(46, 167, 255, 0.22)',
     },
-    [TRACK_IDENTITIES.CIVILIAN]: {
-        stroke: '#bd8cff',
-        fill: 'rgba(189, 140, 255, 0.22)',
-    },
     [TRACK_IDENTITIES.NEUTRAL]: {
         stroke: '#61d36b',
         fill: 'rgba(97, 211, 107, 0.22)',

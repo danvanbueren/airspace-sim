@@ -6,7 +6,7 @@ import {
 import {
     TRACK_DOMAINS,
     TRACK_IDENTITIES,
-    getDefaultTrackTypeForDomain,
+    getUnspecifiedTrackTypeForDomain,
     normalizeTrackDomain,
     resolveTrackTypeForDomain,
 } from '../milstd2525/trackSymbolCodes.js'
@@ -259,9 +259,9 @@ export function getTrackManagementWindowLiveUpdatesFromTrack(track) {
     const trackId = track.trackId ?? track.id
     const {domain, type, specificType} = resolveTrackClassificationFields(
         track.domain ?? TRACK_DOMAINS.AIR,
-        track.type ?? getDefaultTrackTypeForDomain(track.domain ?? TRACK_DOMAINS.AIR),
+        track.type ?? getUnspecifiedTrackTypeForDomain(track.domain ?? TRACK_DOMAINS.AIR),
         track.specificType ?? getDefaultSpecificTypeForTrackType(
-            track.type ?? getDefaultTrackTypeForDomain(track.domain ?? TRACK_DOMAINS.AIR),
+            track.type ?? getUnspecifiedTrackTypeForDomain(track.domain ?? TRACK_DOMAINS.AIR),
         ),
     )
     const kinematicFields = parseTrackKinematicFields(track)

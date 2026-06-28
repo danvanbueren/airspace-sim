@@ -555,7 +555,7 @@ describe('track management window live sync', () => {
         )
 
         assert.equal(updated.domain, 'surface')
-        assert.equal(updated.type, '30:120000')
+        assert.equal(updated.type, '30:000000')
         assert.equal(updated.specificType, '')
     })
 
