@@ -12,6 +12,7 @@ import {
     TRACK_IDENTITIES,
     TRACK_TYPES,
 } from '../../app/tools/milstd2525/trackSymbolCodes.js'
+import {MODE3_CODE_VFR_US} from '../../app/simulation/iffMode3.js'
 
 function pendingTrack(overrides = {}) {
     return {
@@ -37,18 +38,56 @@ function pendingTrack(overrides = {}) {
 }
 
 describe('trackIdentityPromotion', () => {
-    it('promotes pending air tracks to neutral civilian as soon as valid IFF is registered', () => {
+    it('keeps pending tracks pending for 5 seconds after valid IFF is registered', () => {
         const updates = getTrackIdentityPromotionUpdates(
             pendingTrack({
                 iffMode3Code: '4231',
                 iffMode3UpdatedAt: 1000,
             }),
-            1000,
+            4000,
+        )
+
+        assert.equal(updates, null)
+    })
+
+    it('promotes pending air tracks to neutral civilian after 5 seconds of valid IFF', () => {
+        const updates = getTrackIdentityPromotionUpdates(
+            pendingTrack({
+                iffMode3Code: '4231',
+                iffMode3UpdatedAt: 1000,
+            }),
+            1000 + IFF_IDENTITY_PROMOTION_DELAY_MS,
         )
 
         assert.equal(updates.identity, TRACK_IDENTITIES.NEUTRAL)
         assert.equal(updates.type, TRACK_TYPES.CIVILIAN_AIR)
         assert.equal(updates.specificType, '')
+    })
+
+    it('promotes pending tracks with shared VFR squawks after the IFF delay', () => {
+        const updates = getTrackIdentityPromotionUpdates(
+            pendingTrack({
+                iffMode3Code: MODE3_CODE_VFR_US,
+                iffMode3UpdatedAt: 0,
+            }),
+            IFF_IDENTITY_PROMOTION_DELAY_MS,
+        )
+
+        assert.equal(updates.identity, TRACK_IDENTITIES.NEUTRAL)
+        assert.equal(updates.type, TRACK_TYPES.CIVILIAN_AIR)
+    })
+
+    it('does not promote to unknown while waiting for the IFF promotion delay', () => {
+        const updates = getTrackIdentityPromotionUpdates(
+            pendingTrack({
+                identityPendingSinceAt: 0,
+                iffMode3Code: '4231',
+                iffMode3UpdatedAt: 8000,
+            }),
+            PENDING_IDENTITY_TIMEOUT_MS,
+        )
+
+        assert.equal(updates, null)
     })
 
     it('promotes pending tracks without IFF to unknown after 10 seconds', () => {
@@ -129,18 +168,6 @@ describe('trackIdentityPromotion', () => {
         assert.equal(specificTypeProtected.identity, TRACK_IDENTITIES.NEUTRAL)
         assert.equal(specificTypeProtected.type, undefined)
         assert.equal(specificTypeProtected.specificType, undefined)
-    })
-
-    it('ignores shared VFR IFF codes for identity promotion', () => {
-        const updates = getTrackIdentityPromotionUpdates(
-            pendingTrack({
-                iffMode3Code: '1200',
-                iffMode3UpdatedAt: 0,
-            }),
-            IFF_IDENTITY_PROMOTION_DELAY_MS,
-        )
-
-        assert.equal(updates, null)
     })
 
     it('processes identity promotion updates through the track store', () => {

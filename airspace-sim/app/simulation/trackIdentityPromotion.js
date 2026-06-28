@@ -6,11 +6,10 @@ import {
 } from '../tools/milstd2525/trackSymbolCodes.js'
 import {getDefaultSpecificTypeForTrackType} from '../tools/milstd2525/trackSpecificTypes.js'
 import {
-    isSharedVfrMode3Code,
     isValidMode3Code,
 } from './iffMode3.js'
 
-export const IFF_IDENTITY_PROMOTION_DELAY_MS = 0
+export const IFF_IDENTITY_PROMOTION_DELAY_MS = 5000
 export const PENDING_IDENTITY_TIMEOUT_MS = 10000
 
 export const USER_PROTECTED_CLASSIFICATION_FIELDS = [
@@ -33,7 +32,6 @@ function hasUserCommittedClassificationField(track, field) {
 
 export function hasValidIffForIdentityPromotion(track) {
     return isValidMode3Code(track.iffMode3Code)
-        && !isSharedVfrMode3Code(track.iffMode3Code)
         && track.iffMode3UpdatedAt != null
 }
 
