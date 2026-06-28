@@ -32,7 +32,28 @@ function hasUserCommittedClassificationField(track, field) {
 
 export function hasValidIffForIdentityPromotion(track) {
     return isValidMode3Code(track.iffMode3Code)
-        && track.iffMode3UpdatedAt != null
+        && getIffIdentityPromotionDelayAnchor(track) != null
+}
+
+export function getIffIdentityPromotionDelayAnchor(track) {
+    return track.iffMode3FirstCorrelatedAt ?? track.iffMode3UpdatedAt ?? null
+}
+
+export function isGeneralAviationTrafficProfile(track) {
+    return track.trafficKind === 'generalAviation'
+        || track.profile === 'generalAviation'
+}
+
+export function getIdentityPromotionTypeForTrack(track) {
+    if (normalizeTrackDomain(track.domain) !== TRACK_DOMAINS.AIR) {
+        return null
+    }
+
+    if (isGeneralAviationTrafficProfile(track)) {
+        return TRACK_TYPES.GENERAL_AVIATION
+    }
+
+    return TRACK_TYPES.CIVILIAN_AIR
 }
 
 export function getTrackIdentityPromotionUpdates(track, timestamp) {
@@ -42,21 +63,22 @@ export function getTrackIdentityPromotionUpdates(track, timestamp) {
 
     if (
         hasValidIffForIdentityPromotion(track)
-        && timestamp - track.iffMode3UpdatedAt >= IFF_IDENTITY_PROMOTION_DELAY_MS
+        && timestamp - getIffIdentityPromotionDelayAnchor(track) >= IFF_IDENTITY_PROMOTION_DELAY_MS
     ) {
         const updates = {}
+        const promotionType = getIdentityPromotionTypeForTrack(track)
 
         if (!hasUserCommittedClassificationField(track, 'identity')) {
             updates.identity = TRACK_IDENTITIES.NEUTRAL
         }
 
         if (
-            !hasUserCommittedClassificationField(track, 'type')
+            promotionType
+            && !hasUserCommittedClassificationField(track, 'type')
             && !hasUserCommittedClassificationField(track, 'specificType')
-            && normalizeTrackDomain(track.domain) === TRACK_DOMAINS.AIR
         ) {
-            updates.type = TRACK_TYPES.CIVILIAN_AIR
-            updates.specificType = getDefaultSpecificTypeForTrackType(TRACK_TYPES.CIVILIAN_AIR)
+            updates.type = promotionType
+            updates.specificType = getDefaultSpecificTypeForTrackType(promotionType)
         }
 
         return Object.keys(updates).length > 0 ? updates : null

@@ -25,6 +25,8 @@ function getFlightWorldKinematicUpdates(track, nearestAircraft) {
         heading: Math.round(nearestAircraft.heading ?? 0),
         speed: Math.round(nearestAircraft.speed ?? 0),
         altitude: Math.round(nearestAircraft.altitude ?? 0),
+        trafficKind: nearestAircraft.trafficKind ?? track.trafficKind,
+        profile: nearestAircraft.profile ?? track.profile,
     }
 }
 

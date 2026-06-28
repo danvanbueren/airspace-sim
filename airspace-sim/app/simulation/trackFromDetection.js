@@ -43,6 +43,7 @@ export function trackFromInitiation({plotId, sensorType, longitude, latitude, ti
         ...(normalizedMode3Code ? {
             iffMode3Code: normalizedMode3Code,
             iffMode3UpdatedAt: timestamp,
+            iffMode3FirstCorrelatedAt: timestamp,
         } : {}),
     }
 }

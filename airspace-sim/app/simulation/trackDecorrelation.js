@@ -20,6 +20,7 @@ export function getTrackDecorrelationUpdates() {
         correlated: false,
         iffMode3Code: null,
         iffMode3UpdatedAt: null,
+        iffMode3FirstCorrelatedAt: null,
     }
 }
 

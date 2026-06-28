@@ -240,6 +240,7 @@ export function clearSeparatedIffTrackCodes(trackStore, detections, thresholdNm,
             trackStore.updateTrack(track.id, {
                 iffMode3Code: null,
                 iffMode3UpdatedAt: null,
+                iffMode3FirstCorrelatedAt: null,
             })
             clearedTrackIds.push(track.id)
         }
@@ -270,6 +271,9 @@ export function applyIffCorrelationFields(trackStore, correlatedDetections, time
         trackStore.updateTrack(detection.correlatedTrackId, {
             iffMode3Code: nextCode,
             iffMode3UpdatedAt: timestamp,
+            ...(!storedCode || storedCode !== nextCode
+                ? {iffMode3FirstCorrelatedAt: timestamp}
+                : {}),
         })
     })
 }

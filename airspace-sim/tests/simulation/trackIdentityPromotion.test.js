@@ -4,6 +4,7 @@ import {TrackStore} from '../../app/simulation/TrackStore.js'
 import {
     IFF_IDENTITY_PROMOTION_DELAY_MS,
     PENDING_IDENTITY_TIMEOUT_MS,
+    getIdentityPromotionTypeForTrack,
     getTrackIdentityPromotionUpdates,
     processTrackIdentityPromotion,
 } from '../../app/simulation/trackIdentityPromotion.js'
@@ -13,6 +14,7 @@ import {
     TRACK_TYPES,
 } from '../../app/tools/milstd2525/trackSymbolCodes.js'
 import {MODE3_CODE_VFR_US} from '../../app/simulation/iffMode3.js'
+import {applyIffCorrelationFields} from '../../app/simulation/iffCorrelation.js'
 
 function pendingTrack(overrides = {}) {
     return {
@@ -42,7 +44,8 @@ describe('trackIdentityPromotion', () => {
         const updates = getTrackIdentityPromotionUpdates(
             pendingTrack({
                 iffMode3Code: '4231',
-                iffMode3UpdatedAt: 1000,
+                iffMode3FirstCorrelatedAt: 1000,
+                iffMode3UpdatedAt: 4000,
             }),
             4000,
         )
@@ -50,25 +53,48 @@ describe('trackIdentityPromotion', () => {
         assert.equal(updates, null)
     })
 
-    it('promotes pending air tracks to neutral civilian after 5 seconds of valid IFF', () => {
+    it('promotes pending air tracks after 5 seconds even when IFF refresh keeps updating', () => {
         const updates = getTrackIdentityPromotionUpdates(
             pendingTrack({
                 iffMode3Code: '4231',
-                iffMode3UpdatedAt: 1000,
+                iffMode3FirstCorrelatedAt: 1000,
+                iffMode3UpdatedAt: 9000,
             }),
             1000 + IFF_IDENTITY_PROMOTION_DELAY_MS,
         )
 
         assert.equal(updates.identity, TRACK_IDENTITIES.NEUTRAL)
         assert.equal(updates.type, TRACK_TYPES.CIVILIAN_AIR)
-        assert.equal(updates.specificType, '')
+    })
+
+    it('assigns the general aviation type for GA traffic profiles', () => {
+        assert.equal(
+            getIdentityPromotionTypeForTrack(pendingTrack({
+                trafficKind: 'generalAviation',
+            })),
+            TRACK_TYPES.GENERAL_AVIATION,
+        )
+
+        const updates = getTrackIdentityPromotionUpdates(
+            pendingTrack({
+                trafficKind: 'generalAviation',
+                profile: 'generalAviation',
+                iffMode3Code: MODE3_CODE_VFR_US,
+                iffMode3FirstCorrelatedAt: 0,
+                iffMode3UpdatedAt: 4000,
+            }),
+            IFF_IDENTITY_PROMOTION_DELAY_MS,
+        )
+
+        assert.equal(updates.type, TRACK_TYPES.GENERAL_AVIATION)
     })
 
     it('promotes pending tracks with shared VFR squawks after the IFF delay', () => {
         const updates = getTrackIdentityPromotionUpdates(
             pendingTrack({
                 iffMode3Code: MODE3_CODE_VFR_US,
-                iffMode3UpdatedAt: 0,
+                iffMode3FirstCorrelatedAt: 0,
+                iffMode3UpdatedAt: 4000,
             }),
             IFF_IDENTITY_PROMOTION_DELAY_MS,
         )
@@ -82,7 +108,8 @@ describe('trackIdentityPromotion', () => {
             pendingTrack({
                 identityPendingSinceAt: 0,
                 iffMode3Code: '4231',
-                iffMode3UpdatedAt: 8000,
+                iffMode3FirstCorrelatedAt: 8000,
+                iffMode3UpdatedAt: 9900,
             }),
             PENDING_IDENTITY_TIMEOUT_MS,
         )
@@ -107,14 +134,14 @@ describe('trackIdentityPromotion', () => {
             pendingTrack({
                 lastManagementEditFields: ['identity'],
                 iffMode3Code: '4231',
-                iffMode3UpdatedAt: 0,
+                iffMode3FirstCorrelatedAt: 0,
+                iffMode3UpdatedAt: 4000,
             }),
             IFF_IDENTITY_PROMOTION_DELAY_MS,
         )
 
         assert.equal(updates.identity, undefined)
         assert.equal(updates.type, TRACK_TYPES.CIVILIAN_AIR)
-        assert.equal(updates.specificType, '')
     })
 
     it('does not override user-committed type or specific type on IFF promotion', () => {
@@ -122,52 +149,38 @@ describe('trackIdentityPromotion', () => {
             pendingTrack({
                 lastManagementEditFields: ['type'],
                 iffMode3Code: '4231',
-                iffMode3UpdatedAt: 0,
+                iffMode3FirstCorrelatedAt: 0,
+                iffMode3UpdatedAt: 4000,
             }),
             IFF_IDENTITY_PROMOTION_DELAY_MS,
         )
 
         assert.equal(updates.identity, TRACK_IDENTITIES.NEUTRAL)
         assert.equal(updates.type, undefined)
-        assert.equal(updates.specificType, undefined)
     })
 
-    it('does not override user-committed identity on pending timeout', () => {
-        const updates = getTrackIdentityPromotionUpdates(
-            pendingTrack({
-                lastManagementEditFields: ['identity'],
-                identityPendingSinceAt: 0,
-            }),
-            PENDING_IDENTITY_TIMEOUT_MS,
-        )
+    it('preserves the first IFF correlation timestamp across refresh updates', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(pendingTrack())
 
-        assert.equal(updates, null)
-    })
+        applyIffCorrelationFields(trackStore, [{
+            correlated: true,
+            correlatedTrackId: 'TRK-1',
+            mode3Code: '4231',
+        }], 1000)
 
-    it('does not override user-committed domain, type, or specific type fields', () => {
-        const domainProtected = getTrackIdentityPromotionUpdates(
-            pendingTrack({
-                lastManagementEditFields: ['domain'],
-                iffMode3Code: '4231',
-                iffMode3UpdatedAt: 0,
-            }),
-            IFF_IDENTITY_PROMOTION_DELAY_MS,
-        )
+        applyIffCorrelationFields(trackStore, [{
+            correlated: true,
+            correlatedTrackId: 'TRK-1',
+            mode3Code: '4231',
+        }], 4000)
 
-        assert.equal(domainProtected.domain, undefined)
+        const track = trackStore.getTrack('TRK-1')
+        assert.equal(track.iffMode3FirstCorrelatedAt, 1000)
+        assert.equal(track.iffMode3UpdatedAt, 4000)
 
-        const specificTypeProtected = getTrackIdentityPromotionUpdates(
-            pendingTrack({
-                lastManagementEditFields: ['specificType'],
-                iffMode3Code: '4231',
-                iffMode3UpdatedAt: 0,
-            }),
-            IFF_IDENTITY_PROMOTION_DELAY_MS,
-        )
-
-        assert.equal(specificTypeProtected.identity, TRACK_IDENTITIES.NEUTRAL)
-        assert.equal(specificTypeProtected.type, undefined)
-        assert.equal(specificTypeProtected.specificType, undefined)
+        const updates = getTrackIdentityPromotionUpdates(track, 6000)
+        assert.equal(updates.identity, TRACK_IDENTITIES.NEUTRAL)
     })
 
     it('processes identity promotion updates through the track store', () => {

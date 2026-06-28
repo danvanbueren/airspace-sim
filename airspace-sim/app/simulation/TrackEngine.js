@@ -292,6 +292,8 @@ export class TrackEngine {
                 updates.heading = Math.round(nearest.heading ?? 0)
                 updates.speed = Math.round(nearest.speed ?? 0)
                 updates.altitude = Math.round(nearest.altitude ?? 0)
+                updates.trafficKind = nearest.trafficKind ?? existing?.trafficKind
+                updates.profile = nearest.profile ?? existing?.profile
             }
 
             this.trackStore.updateTrack(detection.correlatedTrackId, updates)
