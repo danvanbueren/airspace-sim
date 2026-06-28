@@ -28,6 +28,7 @@ import {
     ACTION_PANEL_TEMPLATES,
 } from '@/app/tools/actionPanels/actionPanelTemplates'
 import {resolveActionPanelTemplateId} from '@/app/tools/actionPanels/actionPanelTemplateSelection'
+import {MAX_ACTION_PANEL_COUNT} from '@/app/tools/actionPanels/actionPanelDefaults'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 
 const DISPLAY_STYLE_OPTIONS = [
@@ -266,6 +267,7 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
         () => resolveActionPanelTemplateId(actionPanelsState),
         [actionPanelsState],
     )
+    const canAddPanel = actionPanelsState.panels.length < MAX_ACTION_PANEL_COUNT
 
     useEffect(() => {
         if (focusedPanelId) {
@@ -283,8 +285,15 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
     }, [actionPanelsState.panels, activePanelId])
 
     const handleAddPanel = () => {
+        if (!canAddPanel) {
+            return
+        }
+
         const newPanelId = addActionPanel({title: 'New Action Panel'})
-        setActivePanelId(newPanelId)
+
+        if (newPanelId) {
+            setActivePanelId(newPanelId)
+        }
     }
 
     useEffect(() => {
@@ -371,11 +380,21 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
                     variant='outlined'
                     startIcon={<AddIcon/>}
                     onClick={handleAddPanel}
+                    disabled={!canAddPanel}
                     fullWidth
                     sx={{mt: 2}}
                 >
                     Add panel
                 </Button>
+                {!canAddPanel && (
+                    <Typography
+                        variant='caption'
+                        color='text.secondary'
+                        sx={{display: 'block', mt: 1, textAlign: 'center'}}
+                    >
+                        Maximum of {MAX_ACTION_PANEL_COUNT} panels reached.
+                    </Typography>
+                )}
             </Box>
 
             <SettingsModalPageRestoreFooter

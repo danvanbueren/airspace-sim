@@ -6,7 +6,7 @@ import {
     readCookieValue,
     writeCookieJsonValue,
 } from '@/app/tools/browser/CookieStorage'
-import {DEFAULT_ACTION_PANELS_STATE} from '@/app/tools/actionPanels/actionPanelDefaults'
+import {DEFAULT_ACTION_PANELS_STATE, MAX_ACTION_PANEL_COUNT} from '@/app/tools/actionPanels/actionPanelDefaults'
 import {
     createEmptyActionPanel,
     normalizeActionPanelsState,
@@ -73,6 +73,10 @@ export function ActionPanelsProvider({children, initialActionPanels}) {
         let newPanelId = null
 
         updateActionPanelsState((currentState) => {
+            if (currentState.panels.length >= MAX_ACTION_PANEL_COUNT) {
+                return currentState
+            }
+
             const {panel, layout} = createEmptyActionPanel({
                 title,
                 existingLayouts: currentState.layouts,
