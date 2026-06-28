@@ -51,7 +51,7 @@ describe('trackIdentityPromotion', () => {
         assert.equal(updates.specificType, '')
     })
 
-    it('promotes pending tracks without IFF to unknown after the 5 second search window', () => {
+    it('promotes pending tracks without IFF to unknown after 10 seconds', () => {
         const updates = getTrackIdentityPromotionUpdates(
             pendingTrack({
                 identityPendingSinceAt: 0,
