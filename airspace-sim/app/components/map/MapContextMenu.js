@@ -215,6 +215,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                         onClick={() => onDropTrack(track)}
                         sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
                         fullWidth
+                        disabled={dropProtectEnabled}
                     >
                         Drop
                     </Button>
