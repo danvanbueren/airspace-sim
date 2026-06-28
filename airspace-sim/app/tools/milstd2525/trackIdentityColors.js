@@ -8,9 +8,9 @@ const TRACK_IDENTITY_CHROME_BY_MODE = {
             focusOutline: '#f5f5f5',
         },
         light: {
-            headerBackground: '#ffffff',
-            headerText: '#121212',
-            focusOutline: '#bdbdbd',
+            headerBackground: '#757575',
+            headerText: '#ffffff',
+            focusOutline: '#616161',
         },
     },
     [TRACK_IDENTITIES.UNKNOWN]: {

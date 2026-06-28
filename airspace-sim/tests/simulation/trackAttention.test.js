@@ -12,6 +12,7 @@ import {
 } from '../../app/simulation/trackAttentionFlags.js'
 import {formatAttentionDisplayEntries, formatAttentionDisplayLines} from '../../app/tools/map/trackAttentionDisplay.js'
 import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
+import {TRACK_IDENTITIES} from '../../app/tools/milstd2525/trackSymbolCodes.js'
 
 describe('signalDefinitions', () => {
     it('sorts attention flags by configured priority', () => {
@@ -36,6 +37,24 @@ describe('signalDefinitions', () => {
 })
 
 describe('trackAttentionFlags', () => {
+    it('derives PEND while track identity is pending', () => {
+        const flags = deriveAttentionFlagsFromTrackState({
+            identity: TRACK_IDENTITIES.PENDING,
+            correlationMode: TRACK_CORRELATION_MODES.ACTIVE,
+        })
+
+        assert.ok(flags.includes('PEND'))
+    })
+
+    it('removes PEND immediately when identity is no longer pending', () => {
+        const flags = deriveAttentionFlagsFromTrackState({
+            identity: TRACK_IDENTITIES.UNKNOWN,
+            correlationMode: TRACK_CORRELATION_MODES.ACTIVE,
+        })
+
+        assert.ok(!flags.includes('PEND'))
+    })
+
     it('derives stale, suspended, extrapolated, and hold flags from track state', () => {
         const flags = deriveAttentionFlagsFromTrackState({
             stale: true,
@@ -46,6 +65,16 @@ describe('trackAttentionFlags', () => {
         assert.ok(flags.includes('STALE'))
         assert.ok(flags.includes('SUSPENDED'))
         assert.ok(flags.includes('HOLD'))
+    })
+
+    it('derives extrapolated attention from correlation mode', () => {
+        const flags = deriveAttentionFlagsFromTrackState({
+            identity: TRACK_IDENTITIES.NEUTRAL,
+            correlationMode: TRACK_CORRELATION_MODES.EXTRAPOLATED,
+        })
+
+        assert.ok(flags.includes('EXTRAPOLATED'))
+        assert.ok(!flags.includes('PEND'))
     })
 
     it('merges assigned flags with derived flags without duplicates', () => {

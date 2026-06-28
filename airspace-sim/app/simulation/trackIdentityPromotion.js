@@ -13,6 +13,13 @@ import {
 export const IFF_IDENTITY_PROMOTION_DELAY_MS = 2000
 export const PENDING_IDENTITY_TIMEOUT_MS = 10000
 
+export const USER_PROTECTED_CLASSIFICATION_FIELDS = [
+    'domain',
+    'identity',
+    'type',
+    'specificType',
+]
+
 function getIdentityPendingSinceAt(track) {
     return track.identityPendingSinceAt
         ?? track.lastSensorUpdateAt
@@ -20,8 +27,8 @@ function getIdentityPendingSinceAt(track) {
         ?? 0
 }
 
-function hasUserCommittedIdentity(track) {
-    return track.lastManagementEditFields?.includes('identity') ?? false
+function hasUserCommittedClassificationField(track, field) {
+    return track.lastManagementEditFields?.includes(field) ?? false
 }
 
 export function hasValidIffForIdentityPromotion(track) {
@@ -31,7 +38,7 @@ export function hasValidIffForIdentityPromotion(track) {
 }
 
 export function getTrackIdentityPromotionUpdates(track, timestamp) {
-    if (track.identity !== TRACK_IDENTITIES.PENDING || hasUserCommittedIdentity(track)) {
+    if (track.identity !== TRACK_IDENTITIES.PENDING) {
         return null
     }
 
@@ -39,21 +46,28 @@ export function getTrackIdentityPromotionUpdates(track, timestamp) {
         hasValidIffForIdentityPromotion(track)
         && timestamp - track.iffMode3UpdatedAt >= IFF_IDENTITY_PROMOTION_DELAY_MS
     ) {
-        const updates = {
-            identity: TRACK_IDENTITIES.NEUTRAL,
+        const updates = {}
+
+        if (!hasUserCommittedClassificationField(track, 'identity')) {
+            updates.identity = TRACK_IDENTITIES.NEUTRAL
         }
 
-        if (normalizeTrackDomain(track.domain) === TRACK_DOMAINS.AIR) {
+        if (
+            !hasUserCommittedClassificationField(track, 'type')
+            && !hasUserCommittedClassificationField(track, 'specificType')
+            && normalizeTrackDomain(track.domain) === TRACK_DOMAINS.AIR
+        ) {
             updates.type = TRACK_TYPES.CIVILIAN_AIR
             updates.specificType = getDefaultSpecificTypeForTrackType(TRACK_TYPES.CIVILIAN_AIR)
         }
 
-        return updates
+        return Object.keys(updates).length > 0 ? updates : null
     }
 
     if (
         !hasValidIffForIdentityPromotion(track)
         && timestamp - getIdentityPendingSinceAt(track) >= PENDING_IDENTITY_TIMEOUT_MS
+        && !hasUserCommittedClassificationField(track, 'identity')
     ) {
         return {
             identity: TRACK_IDENTITIES.UNKNOWN,

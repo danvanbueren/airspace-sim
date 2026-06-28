@@ -85,7 +85,62 @@ describe('trackIdentityPromotion', () => {
             IFF_IDENTITY_PROMOTION_DELAY_MS,
         )
 
+        assert.equal(updates.identity, undefined)
+        assert.equal(updates.type, TRACK_TYPES.CIVILIAN_AIR)
+        assert.equal(updates.specificType, '')
+    })
+
+    it('does not override user-committed type or specific type on IFF promotion', () => {
+        const updates = getTrackIdentityPromotionUpdates(
+            pendingTrack({
+                lastManagementEditFields: ['type'],
+                iffMode3Code: '4231',
+                iffMode3UpdatedAt: 0,
+            }),
+            IFF_IDENTITY_PROMOTION_DELAY_MS,
+        )
+
+        assert.equal(updates.identity, TRACK_IDENTITIES.NEUTRAL)
+        assert.equal(updates.type, undefined)
+        assert.equal(updates.specificType, undefined)
+    })
+
+    it('does not override user-committed identity on pending timeout', () => {
+        const updates = getTrackIdentityPromotionUpdates(
+            pendingTrack({
+                lastManagementEditFields: ['identity'],
+                identityPendingSinceAt: 0,
+            }),
+            PENDING_IDENTITY_TIMEOUT_MS,
+        )
+
         assert.equal(updates, null)
+    })
+
+    it('does not override user-committed domain, type, or specific type fields', () => {
+        const domainProtected = getTrackIdentityPromotionUpdates(
+            pendingTrack({
+                lastManagementEditFields: ['domain'],
+                iffMode3Code: '4231',
+                iffMode3UpdatedAt: 0,
+            }),
+            IFF_IDENTITY_PROMOTION_DELAY_MS,
+        )
+
+        assert.equal(domainProtected.domain, undefined)
+
+        const specificTypeProtected = getTrackIdentityPromotionUpdates(
+            pendingTrack({
+                lastManagementEditFields: ['specificType'],
+                iffMode3Code: '4231',
+                iffMode3UpdatedAt: 0,
+            }),
+            IFF_IDENTITY_PROMOTION_DELAY_MS,
+        )
+
+        assert.equal(specificTypeProtected.identity, TRACK_IDENTITIES.NEUTRAL)
+        assert.equal(specificTypeProtected.type, undefined)
+        assert.equal(specificTypeProtected.specificType, undefined)
     })
 
     it('ignores shared VFR IFF codes for identity promotion', () => {
