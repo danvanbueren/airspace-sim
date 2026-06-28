@@ -37,13 +37,13 @@ function pendingTrack(overrides = {}) {
 }
 
 describe('trackIdentityPromotion', () => {
-    it('promotes pending air tracks to neutral civilian after sustained valid IFF', () => {
+    it('promotes pending air tracks to neutral civilian as soon as valid IFF is registered', () => {
         const updates = getTrackIdentityPromotionUpdates(
             pendingTrack({
                 iffMode3Code: '4231',
-                iffMode3UpdatedAt: 0,
+                iffMode3UpdatedAt: 1000,
             }),
-            IFF_IDENTITY_PROMOTION_DELAY_MS,
+            1000,
         )
 
         assert.equal(updates.identity, TRACK_IDENTITIES.NEUTRAL)
@@ -51,19 +51,7 @@ describe('trackIdentityPromotion', () => {
         assert.equal(updates.specificType, '')
     })
 
-    it('does not promote pending tracks before the IFF delay elapses', () => {
-        const updates = getTrackIdentityPromotionUpdates(
-            pendingTrack({
-                iffMode3Code: '4231',
-                iffMode3UpdatedAt: 500,
-            }),
-            1000,
-        )
-
-        assert.equal(updates, null)
-    })
-
-    it('promotes pending tracks without IFF to unknown after the timeout', () => {
+    it('promotes pending tracks without IFF to unknown after the 5 second search window', () => {
         const updates = getTrackIdentityPromotionUpdates(
             pendingTrack({
                 identityPendingSinceAt: 0,
