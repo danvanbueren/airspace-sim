@@ -30,6 +30,10 @@ export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.
         flags.push('DROP')
     }
 
+    if (track.dropProtect) {
+        flags.push('PROT')
+    }
+
     if (track.iffMode3Code && track.correlated === true) {
         const iffStale = isIffMode3Stale(track, evaluationTime, iffRefreshMs)
 

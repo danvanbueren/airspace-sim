@@ -30,6 +30,13 @@ export const SIGNAL_DEFINITIONS = {
         description: 'Uncorrelated track scheduled for automatic removal.',
         priority: 5,
     },
+    PROT: {
+        id: 'PROT',
+        kind: SIGNAL_KIND.ATTENTION,
+        label: 'PROT',
+        description: 'Track is protected from automatic drop.',
+        priority: 6,
+    },
     PEND: {
         id: 'PEND',
         kind: SIGNAL_KIND.ATTENTION,

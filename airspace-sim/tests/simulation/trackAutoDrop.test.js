@@ -173,6 +173,7 @@ describe('trackAutoDrop', () => {
         }))
 
         assert.ok(!flags.includes('DROP'))
+        assert.ok(flags.includes('PROT'))
     })
 
     it('shows DROP attention only when auto-drop is still eligible', () => {

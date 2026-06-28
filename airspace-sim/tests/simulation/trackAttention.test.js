@@ -55,6 +55,26 @@ describe('trackAttentionFlags', () => {
         assert.ok(!flags.includes('PEND'))
     })
 
+    it('derives PROT when drop protect is enabled', () => {
+        const flags = deriveAttentionFlagsFromTrackState({
+            dropProtect: true,
+            correlationMode: TRACK_CORRELATION_MODES.ACTIVE,
+        })
+
+        assert.ok(flags.includes('PROT'))
+    })
+
+    it('does not derive DROP and PROT together for drop-protected tracks', () => {
+        const flags = deriveAttentionFlagsFromTrackState({
+            dropProtect: true,
+            dropAt: 5000,
+            correlated: false,
+        })
+
+        assert.ok(flags.includes('PROT'))
+        assert.ok(!flags.includes('DROP'))
+    })
+
     it('derives stale, suspended, extrapolated, and hold flags from track state', () => {
         const flags = deriveAttentionFlagsFromTrackState({
             stale: true,
