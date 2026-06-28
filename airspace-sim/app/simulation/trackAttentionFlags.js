@@ -24,7 +24,9 @@ export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.
         flags.push('PEND')
     }
 
-    if (shouldShowDropAttention(track)) {
+    const showingDropAttention = shouldShowDropAttention(track)
+
+    if (showingDropAttention) {
         flags.push('DROP')
     }
 
@@ -44,7 +46,7 @@ export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.
         }
     }
 
-    if (track.stale) {
+    if (track.stale && !showingDropAttention) {
         flags.push('STALE')
     }
 
