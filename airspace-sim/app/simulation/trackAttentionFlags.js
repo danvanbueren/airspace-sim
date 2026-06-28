@@ -1,4 +1,5 @@
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
+import {isReferencePoint} from './trackKinds.js'
 import {isCorrelationHoldActive} from './correlationHold.js'
 import {shouldShowDropAttention} from './trackAutoDrop.js'
 import {filterInhibitedSignalIds, sortSignalIdsByPriority} from './signalDefinitions.js'
@@ -30,7 +31,7 @@ export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.
         flags.push('DROP')
     }
 
-    if (track.dropProtect) {
+    if (track.dropProtect && !isReferencePoint(track)) {
         flags.push('PROT')
     }
 
@@ -54,7 +55,7 @@ export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.
         flags.push('STALE')
     }
 
-    if (track.correlationMode === TRACK_CORRELATION_MODES.SUSPEND) {
+    if (track.correlationMode === TRACK_CORRELATION_MODES.SUSPEND && !isReferencePoint(track)) {
         flags.push('SUSPENDED')
     }
 

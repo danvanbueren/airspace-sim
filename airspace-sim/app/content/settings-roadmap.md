@@ -52,6 +52,7 @@ Planned work for Airspace Simulator, grouped chronologically. Completed items li
 - ✅ Searchable platform-specific type catalog — [`e6f85d3`](https://github.com/danvanbueren/airspace-sim/commit/e6f85d3)
 - ✅ Track management UI overhaul — [`67464d8`](https://github.com/danvanbueren/airspace-sim/commit/67464d8)
 - ✅ Track Management window viewport scrolling on short map viewports — [`ef2bae0`](https://github.com/danvanbueren/airspace-sim/commit/ef2bae0)
+- ✅ Reference point creation from the map context menu — [`07ba2d1`](https://github.com/danvanbueren/airspace-sim/commit/07ba2d1)
 
 ## Future
 
@@ -62,7 +63,7 @@ Planned work for Airspace Simulator, grouped chronologically. Completed items li
 ### Map & scope tools
 
 - 🔮 Track-attached bearing/range line endpoints (line snapping)
-- 🔮 Reference point creation and management
+- 🔮 Reference point editing and management
 
 ### Training & mission workflows
 

@@ -38,6 +38,9 @@ export const TRACK_IDENTITY_OPTIONS = [
     {value: TRACK_IDENTITIES.HOSTILE, label: 'Hostile'},
 ]
 
+/** MIL-STD-2525D control measure: Reference Point (neutral affiliation). */
+export const REFERENCE_POINT_SYMBOL_CODE = '10042500002136000000'
+
 export const TRACK_TYPES = {
     AIR_UNSPECIFIED: '01:000000',
     CIVILIAN_AIR: '01:120000',

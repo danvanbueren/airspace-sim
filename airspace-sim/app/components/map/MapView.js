@@ -35,6 +35,7 @@ import {
     mergeLiveTracksForManagementWindowSync,
     TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
 } from '../../tools/map/trackManagementTrack'
+import {createReferencePointTrack} from '../../simulation/trackFromReferencePoint'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../floating/windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
@@ -172,6 +173,25 @@ export default function MapView({
         trackMapLayer.upsertTrack(track)
         upsertManualTrack(track)
     }, [trackMapLayer, upsertManualTrack])
+
+    const handleCreateReferencePoint = useCallback((elementContainer) => {
+        const track = createReferencePointTrack({
+            longitude: elementContainer.lngLat.lng,
+            latitude: elementContainer.lngLat.lat,
+            existingTracks: simulationTracks,
+            timestamp: getSimulationTimestamp(),
+        })
+
+        trackMapLayer.upsertTrack(track)
+        upsertManualTrack(track)
+        closeContextMenu()
+    }, [
+        closeContextMenu,
+        getSimulationTimestamp,
+        simulationTracks,
+        trackMapLayer,
+        upsertManualTrack,
+    ])
 
     const handleTrackUpdated = useCallback((trackManagementWindow, changedFields) => {
         const trackId = trackManagementWindow.trackId
@@ -512,6 +532,7 @@ export default function MapView({
                 contextMenuSize={contextMenuSize}
                 mapContainerRef={mapContainerRef}
                 onInitiateTrack={initiateTrack}
+                onCreateReferencePoint={handleCreateReferencePoint}
                 onDropTrack={handleDropTrack}
                 onRecoverTrack={handleRecoverTrack}
                 onToggleDropProtect={handleToggleDropProtect}

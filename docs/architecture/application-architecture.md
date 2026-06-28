@@ -41,6 +41,7 @@ Map styles are loaded from [`public/map-styles/`](../../airspace-sim/public/map-
 | Workflow | Entry point | Engine API |
 |----------|-------------|------------|
 | Initiate manual track | Map context menu → Initiate Track | `upsertManualTrack` |
+| Create reference point | Map context menu → Create Reference Point | `upsertManualTrack` (suspended, drop-protected marker) |
 | Edit track (including correlation mode) | Click symbol or context menu → Track Management window | `upsertManualTrack` (sets `userDirected`; converts auto tracks to manual) |
 | Drop track | Context menu on existing track | `dropTrack` |
 | Bearing/range | Right-drag on map (behavior configurable in Settings → Look & Feel) | Local map tool (not part of simulation engine) |

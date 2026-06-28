@@ -48,6 +48,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                                                                   contextMenuSize,
                                                                   mapContainerRef,
                                                                   onInitiateTrack,
+                                                                  onCreateReferencePoint,
                                                                   onDropTrack,
                                                                   onRecoverTrack,
                                                                   onToggleDropProtect,
@@ -181,6 +182,17 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     disabled
                 >
                     Set Home
+                </Button>
+
+                <Button
+                    color='primary'
+                    size='small'
+                    variant='outlined'
+                    onClick={() => onCreateReferencePoint(elementContainer)}
+                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    fullWidth
+                >
+                    Create Reference Point
                 </Button>
 
                 <Button
