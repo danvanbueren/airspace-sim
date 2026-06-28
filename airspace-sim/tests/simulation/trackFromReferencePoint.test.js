@@ -3,6 +3,8 @@ import {describe, it} from 'node:test'
 import {
     allocateNextReferencePointLabel,
     createReferencePointTrack,
+    createReferencePointUpdateFromManagementWindow,
+    createTrackFromReferencePointManagementWindow,
     formatReferencePointLabel,
     getUsedReferencePointNumbers,
 } from '../../app/simulation/trackFromReferencePoint.js'
@@ -59,6 +61,46 @@ describe('trackFromReferencePoint', () => {
         assert.equal(track.symbolCode, REFERENCE_POINT_SYMBOL_CODE)
         assert.equal(track.useFamiliarIcon, false)
         assert.equal(track.identity, TRACK_IDENTITIES.NEUTRAL)
+        assert.equal(track.infoFields, false)
         assert.equal(track.lastSensorUpdateAt, 5000)
+    })
+
+    it('creates a reference point track from a management window draft', () => {
+        const track = createTrackFromReferencePointManagementWindow({
+            trackId: 'RP-TEST01',
+            lngLat: {lng: -77.03, lat: 38.89},
+            callsign: 'RP02',
+            identity: TRACK_IDENTITIES.FRIENDLY,
+            infoFields: true,
+        }, 5000)
+
+        assert.equal(track.callsign, 'RP02')
+        assert.equal(track.identity, TRACK_IDENTITIES.FRIENDLY)
+        assert.equal(track.infoFields, true)
+        assert.equal(track.trackKind, TRACK_KINDS.REFERENCE_POINT)
+    })
+
+    it('preserves reference point invariants when updating from a management window', () => {
+        const existingTrack = createReferencePointTrack({
+            longitude: -77,
+            latitude: 38,
+            trackId: 'RP-EXIST01',
+            callsign: 'RP01',
+            timestamp: 1000,
+        })
+
+        const updatedTrack = createReferencePointUpdateFromManagementWindow({
+            trackId: 'RP-EXIST01',
+            callsign: 'ALPHA1',
+            identity: TRACK_IDENTITIES.HOSTILE,
+            infoFields: false,
+        }, existingTrack, 2000)
+
+        assert.equal(updatedTrack.callsign, 'ALPHA1')
+        assert.equal(updatedTrack.identity, TRACK_IDENTITIES.HOSTILE)
+        assert.equal(updatedTrack.correlationMode, TRACK_CORRELATION_MODES.SUSPEND)
+        assert.equal(updatedTrack.dropProtect, true)
+        assert.equal(updatedTrack.speed, 0)
+        assert.equal(updatedTrack.lastUserEditAt, 2000)
     })
 })

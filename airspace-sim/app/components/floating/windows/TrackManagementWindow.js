@@ -50,6 +50,7 @@ import {
     normalizeSpecificType,
 } from '@/app/tools/milstd2525/trackSpecificTypes'
 import {TRACK_CORRELATION_MODES} from '@/app/simulation/trackFromDetection'
+import {TRACK_KINDS} from '@/app/simulation/trackKinds'
 import {expandTrackManagementWindowSkipLiveFields} from '@/app/tools/map/trackManagementTrack'
 import AttentionFlagPills from '@/app/components/floating/windows/AttentionFlagPills'
 import {getVisibleTrackAttentionFlags} from '@/app/simulation/trackAttentionFlags'
@@ -307,6 +308,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
     const theme = useTheme()
+    const isReferencePoint = trackManagementWindow.trackKind === TRACK_KINDS.REFERENCE_POINT
     const identityChrome = getTrackIdentityChromeColors(trackManagementWindow.identity, theme)
     const trackManagementWindowRef = useRef(null)
     const mapContainerSize = useMapContainerSize(mapContainerRef)
@@ -785,7 +787,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         flexGrow: 1,
                     }}
                 >
-                    Track Management
+                    {isReferencePoint ? 'Reference Point' : 'Track Management'}
                 </Typography>
                 <IconButton
                     aria-label='Close track management window'
@@ -813,7 +815,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             >
             <Stack spacing={1.5} sx={{p: 2}}>
                 <Typography sx={{fontWeight: 'bold'}}>
-                    Track ID: {trackManagementWindow.trackId}
+                    {isReferencePoint ? 'Reference Point ID' : 'Track ID'}: {trackManagementWindow.trackId}
                 </Typography>
 
                 <Box>
@@ -829,98 +831,102 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
 
                 <Divider/>
 
-                <Box>
-                    <Typography
-                        sx={{
-                            fontWeight: 'bold',
-                            fontSize: '0.8rem',
-                            mb: 0.75,
-                        }}
-                    >
-                        Attention Flags
-                    </Typography>
-                    {visibleAttentionFlags.length > 0 ? (
-                        <AttentionFlagPills flagIds={visibleAttentionFlags} dense/>
-                    ) : (
-                        <Typography
-                            variant='body2'
-                            color='text.secondary'
-                            sx={{fontSize: '0.75rem'}}
-                        >
-                            None
-                        </Typography>
-                    )}
-                </Box>
-
-                <Divider/>
-
-                <Box>
-                    <Typography
-                        sx={{
-                            fontWeight: 'bold',
-                            fontSize: '0.8rem',
-                            mb: 0.75,
-                        }}
-                    >
-                        IFF Mode 3
-                    </Typography>
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.75,
-                            flexWrap: 'wrap',
-                        }}
-                    >
-                        <Typography
-                            sx={{
-                                fontSize: '0.8rem',
-                                color: iffMode3Stale ? 'text.disabled' : 'text.primary',
-                            }}
-                        >
-                            {iffMode3Display}
-                        </Typography>
-                        {iffMode3Stale ? (
-                            <AttentionFlagPills flagIds={['IFF_STALE']} dense/>
-                        ) : null}
-                    </Box>
-                    {!trackManagementWindow.iffMode3Code ? (
-                        <Typography
-                            variant='body2'
-                            color='text.secondary'
-                            sx={{fontSize: '0.75rem', mt: 0.5}}
-                        >
-                            No correlated IFF return
-                        </Typography>
-                    ) : null}
-                </Box>
-
-                <Divider/>
-
-                <FormControl size='small' fullWidth>
-                    <InputLabel id={`${trackManagementWindow.id}-correlation-mode-label`}>
-                        Correlation mode
-                    </InputLabel>
-                    <Select
-                        labelId={`${trackManagementWindow.id}-correlation-mode-label`}
-                        label='Correlation mode'
-                        value={trackManagementWindow.correlationMode ?? TRACK_CORRELATION_MODES.ACTIVE}
-                        onChange={(event) => updateField('correlationMode', event.target.value)}
-                        onOpen={() => handleSelectOpen('correlationMode')}
-                        onClose={() => handleFieldBlur('correlationMode')}
-                        MenuProps={getTrackManagementSelectMenuProps(zIndex)}
-                    >
-                        {CORRELATION_MODE_OPTIONS.map((option) => (
-                            <MenuItem
-                                key={option.value}
-                                value={option.value}
-                                sx={{fontFamily: 'monospace'}}
+                {!isReferencePoint && (
+                    <>
+                        <Box>
+                            <Typography
+                                sx={{
+                                    fontWeight: 'bold',
+                                    fontSize: '0.8rem',
+                                    mb: 0.75,
+                                }}
                             >
-                                {option.label}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                                Attention Flags
+                            </Typography>
+                            {visibleAttentionFlags.length > 0 ? (
+                                <AttentionFlagPills flagIds={visibleAttentionFlags} dense/>
+                            ) : (
+                                <Typography
+                                    variant='body2'
+                                    color='text.secondary'
+                                    sx={{fontSize: '0.75rem'}}
+                                >
+                                    None
+                                </Typography>
+                            )}
+                        </Box>
+
+                        <Divider/>
+
+                        <Box>
+                            <Typography
+                                sx={{
+                                    fontWeight: 'bold',
+                                    fontSize: '0.8rem',
+                                    mb: 0.75,
+                                }}
+                            >
+                                IFF Mode 3
+                            </Typography>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    flexWrap: 'wrap',
+                                }}
+                            >
+                                <Typography
+                                    sx={{
+                                        fontSize: '0.8rem',
+                                        color: iffMode3Stale ? 'text.disabled' : 'text.primary',
+                                    }}
+                                >
+                                    {iffMode3Display}
+                                </Typography>
+                                {iffMode3Stale ? (
+                                    <AttentionFlagPills flagIds={['IFF_STALE']} dense/>
+                                ) : null}
+                            </Box>
+                            {!trackManagementWindow.iffMode3Code ? (
+                                <Typography
+                                    variant='body2'
+                                    color='text.secondary'
+                                    sx={{fontSize: '0.75rem', mt: 0.5}}
+                                >
+                                    No correlated IFF return
+                                </Typography>
+                            ) : null}
+                        </Box>
+
+                        <Divider/>
+
+                        <FormControl size='small' fullWidth>
+                            <InputLabel id={`${trackManagementWindow.id}-correlation-mode-label`}>
+                                Correlation mode
+                            </InputLabel>
+                            <Select
+                                labelId={`${trackManagementWindow.id}-correlation-mode-label`}
+                                label='Correlation mode'
+                                value={trackManagementWindow.correlationMode ?? TRACK_CORRELATION_MODES.ACTIVE}
+                                onChange={(event) => updateField('correlationMode', event.target.value)}
+                                onOpen={() => handleSelectOpen('correlationMode')}
+                                onClose={() => handleFieldBlur('correlationMode')}
+                                MenuProps={getTrackManagementSelectMenuProps(zIndex)}
+                            >
+                                {CORRELATION_MODE_OPTIONS.map((option) => (
+                                    <MenuItem
+                                        key={option.value}
+                                        value={option.value}
+                                        sx={{fontFamily: 'monospace'}}
+                                    >
+                                        {option.label}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </>
+                )}
 
                 <TextField
                     label='Callsign'
@@ -935,80 +941,111 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     fullWidth
                 />
 
-                <FormControl size='small' fullWidth>
-                    <InputLabel id={`${trackManagementWindow.id}-domain-label`}>
-                        Domain
-                    </InputLabel>
-                    <Select
-                        labelId={`${trackManagementWindow.id}-domain-label`}
-                        label='Domain'
-                        value={trackManagementWindow.domain}
-                        onChange={(event) => updateField('domain', event.target.value)}
-                        onOpen={() => handleSelectOpen('domain')}
-                        onClose={() => handleFieldBlur('domain')}
-                        MenuProps={getTrackManagementSelectMenuProps(zIndex)}
-                    >
-                        {Object.values(TRACK_DOMAINS).map((domain) => (
-                            <MenuItem
-                                key={domain}
-                                value={domain}
-                                sx={{fontFamily: 'monospace'}}
+                {!isReferencePoint && (
+                    <>
+                        <FormControl size='small' fullWidth>
+                            <InputLabel id={`${trackManagementWindow.id}-domain-label`}>
+                                Domain
+                            </InputLabel>
+                            <Select
+                                labelId={`${trackManagementWindow.id}-domain-label`}
+                                label='Domain'
+                                value={trackManagementWindow.domain}
+                                onChange={(event) => updateField('domain', event.target.value)}
+                                onOpen={() => handleSelectOpen('domain')}
+                                onClose={() => handleFieldBlur('domain')}
+                                MenuProps={getTrackManagementSelectMenuProps(zIndex)}
                             >
-                                {formatEnumLabel(domain)}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                                {Object.values(TRACK_DOMAINS).map((domain) => (
+                                    <MenuItem
+                                        key={domain}
+                                        value={domain}
+                                        sx={{fontFamily: 'monospace'}}
+                                    >
+                                        {formatEnumLabel(domain)}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
 
-                <FormControl size='small' fullWidth>
-                    <InputLabel id={`${trackManagementWindow.id}-identity-label`}>
-                        Identity
-                    </InputLabel>
-                    <Select
-                        labelId={`${trackManagementWindow.id}-identity-label`}
-                        label='Identity'
-                        value={trackManagementWindow.identity}
-                        onChange={(event) => updateField('identity', event.target.value)}
-                        onOpen={() => handleSelectOpen('identity')}
-                        onClose={() => handleFieldBlur('identity')}
-                        MenuProps={getTrackManagementSelectMenuProps(zIndex)}
-                    >
-                        {TRACK_IDENTITY_OPTIONS.map((identityOption) => (
-                            <MenuItem
-                                key={identityOption.value}
-                                value={identityOption.value}
-                                sx={{fontFamily: 'monospace'}}
+                        <FormControl size='small' fullWidth>
+                            <InputLabel id={`${trackManagementWindow.id}-identity-label`}>
+                                Identity
+                            </InputLabel>
+                            <Select
+                                labelId={`${trackManagementWindow.id}-identity-label`}
+                                label='Identity'
+                                value={trackManagementWindow.identity}
+                                onChange={(event) => updateField('identity', event.target.value)}
+                                onOpen={() => handleSelectOpen('identity')}
+                                onClose={() => handleFieldBlur('identity')}
+                                MenuProps={getTrackManagementSelectMenuProps(zIndex)}
                             >
-                                {identityOption.label}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                                {TRACK_IDENTITY_OPTIONS.map((identityOption) => (
+                                    <MenuItem
+                                        key={identityOption.value}
+                                        value={identityOption.value}
+                                        sx={{fontFamily: 'monospace'}}
+                                    >
+                                        {identityOption.label}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
 
-                <SearchableSelect
-                    label='Type'
-                    labelId={`${trackManagementWindow.id}-type-label`}
-                    value={selectedTrackType}
-                    options={availableTrackTypes}
-                    onChange={(value) => updateField('type', value)}
-                    disabled={availableTrackTypes.length === 0}
-                    emptyResultsLabel='No matching types'
-                    zIndex={zIndex}
-                    onOpen={() => handleSelectOpen('type')}
-                    onClose={() => handleFieldBlur('type')}
-                />
+                        <SearchableSelect
+                            label='Type'
+                            labelId={`${trackManagementWindow.id}-type-label`}
+                            value={selectedTrackType}
+                            options={availableTrackTypes}
+                            onChange={(value) => updateField('type', value)}
+                            disabled={availableTrackTypes.length === 0}
+                            emptyResultsLabel='No matching types'
+                            zIndex={zIndex}
+                            onOpen={() => handleSelectOpen('type')}
+                            onClose={() => handleFieldBlur('type')}
+                        />
 
-                <SearchableSelect
-                    label='Specific Type'
-                    labelId={`${trackManagementWindow.id}-specific-type-label`}
-                    value={selectedSpecificType}
-                    options={availableSpecificTypes}
-                    onChange={(value) => updateField('specificType', value)}
-                    emptyResultsLabel='No matching platforms'
-                    zIndex={zIndex}
-                    onOpen={() => handleSelectOpen('specificType')}
-                    onClose={() => handleFieldBlur('specificType')}
-                />
+                        <SearchableSelect
+                            label='Specific Type'
+                            labelId={`${trackManagementWindow.id}-specific-type-label`}
+                            value={selectedSpecificType}
+                            options={availableSpecificTypes}
+                            onChange={(value) => updateField('specificType', value)}
+                            emptyResultsLabel='No matching platforms'
+                            zIndex={zIndex}
+                            onOpen={() => handleSelectOpen('specificType')}
+                            onClose={() => handleFieldBlur('specificType')}
+                        />
+                    </>
+                )}
+
+                {isReferencePoint && (
+                    <FormControl size='small' fullWidth>
+                        <InputLabel id={`${trackManagementWindow.id}-identity-label`}>
+                            Identity
+                        </InputLabel>
+                        <Select
+                            labelId={`${trackManagementWindow.id}-identity-label`}
+                            label='Identity'
+                            value={trackManagementWindow.identity}
+                            onChange={(event) => updateField('identity', event.target.value)}
+                            onOpen={() => handleSelectOpen('identity')}
+                            onClose={() => handleFieldBlur('identity')}
+                            MenuProps={getTrackManagementSelectMenuProps(zIndex)}
+                        >
+                            {TRACK_IDENTITY_OPTIONS.map((identityOption) => (
+                                <MenuItem
+                                    key={identityOption.value}
+                                    value={identityOption.value}
+                                    sx={{fontFamily: 'monospace'}}
+                                >
+                                    {identityOption.label}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                )}
 
                 <FormControlLabel
                     control={(
@@ -1024,9 +1061,13 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     sx={{m: 0}}
                 />
 
-                {renderKinematicField('heading', 'Heading (deg)')}
-                {renderKinematicField('speed', 'Speed (kts)')}
-                {renderKinematicField('altitude', 'Altitude (ft)')}
+                {!isReferencePoint && (
+                    <>
+                        {renderKinematicField('heading', 'Heading (deg)')}
+                        {renderKinematicField('speed', 'Speed (kts)')}
+                        {renderKinematicField('altitude', 'Altitude (ft)')}
+                    </>
+                )}
             </Stack>
             </Box>
         </Paper>

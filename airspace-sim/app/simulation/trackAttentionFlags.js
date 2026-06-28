@@ -51,7 +51,7 @@ export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.
         }
     }
 
-    if (track.stale && !showingDropAttention) {
+    if (track.stale && !showingDropAttention && !isReferencePoint(track)) {
         flags.push('STALE')
     }
 

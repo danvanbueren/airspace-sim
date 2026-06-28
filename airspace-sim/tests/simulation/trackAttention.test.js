@@ -76,15 +76,17 @@ describe('trackAttentionFlags', () => {
         assert.ok(!flags.includes('DROP'))
     })
 
-    it('does not derive SUSPENDED or PROT for reference points', () => {
+    it('does not derive SUSPENDED, PROT, or STALE for reference points', () => {
         const flags = deriveAttentionFlagsFromTrackState({
             trackKind: TRACK_KINDS.REFERENCE_POINT,
             dropProtect: true,
+            stale: true,
             correlationMode: TRACK_CORRELATION_MODES.SUSPEND,
         })
 
         assert.ok(!flags.includes('SUSPENDED'))
         assert.ok(!flags.includes('PROT'))
+        assert.ok(!flags.includes('STALE'))
     })
 
     it('derives stale, suspended, extrapolated, and hold flags from track state', () => {

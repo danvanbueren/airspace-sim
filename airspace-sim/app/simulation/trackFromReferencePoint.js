@@ -56,8 +56,11 @@ export function createReferencePointTrack({
     existingTracks = [],
     timestamp = Date.now(),
     trackId = `RP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+    callsign,
+    identity = TRACK_IDENTITIES.NEUTRAL,
+    infoFields = false,
 }) {
-    const callsign = allocateNextReferencePointLabel(existingTracks)
+    const resolvedCallsign = callsign ?? allocateNextReferencePointLabel(existingTracks)
 
     return {
         id: trackId,
@@ -68,9 +71,9 @@ export function createReferencePointTrack({
         heading: 0,
         speed: 0,
         altitude: null,
-        callsign,
+        callsign: resolvedCallsign,
         domain: TRACK_DOMAINS.ACTIVITY,
-        identity: TRACK_IDENTITIES.NEUTRAL,
+        identity,
         type: REFERENCE_POINT_SYMBOL_CODE,
         symbolCode: REFERENCE_POINT_SYMBOL_CODE,
         useFamiliarIcon: false,
@@ -81,10 +84,56 @@ export function createReferencePointTrack({
         userDirected: true,
         dropProtect: true,
         correlated: false,
-        infoFields: true,
+        infoFields: Boolean(infoFields),
         lastSensorUpdateAt: timestamp,
         lastExtrapolationAt: timestamp,
         lastUserEditAt: timestamp,
+        stale: false,
+    }
+}
+
+export function createTrackFromReferencePointManagementWindow(
+    trackManagementWindow,
+    timestamp = Date.now(),
+) {
+    return createReferencePointTrack({
+        longitude: trackManagementWindow.lngLat.lng,
+        latitude: trackManagementWindow.lngLat.lat,
+        timestamp,
+        trackId: trackManagementWindow.trackId,
+        callsign: trackManagementWindow.callsign,
+        identity: trackManagementWindow.identity,
+        infoFields: trackManagementWindow.infoFields,
+    })
+}
+
+export function createReferencePointUpdateFromManagementWindow(
+    trackManagementWindow,
+    existingTrack,
+    timestamp = Date.now(),
+) {
+    const baseTrack = existingTrack ?? createTrackFromReferencePointManagementWindow(
+        trackManagementWindow,
+        timestamp,
+    )
+
+    return {
+        ...baseTrack,
+        callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
+        identity: trackManagementWindow.identity ?? baseTrack.identity,
+        infoFields: Boolean(trackManagementWindow.infoFields),
+        userDirected: true,
+        lastUserEditAt: timestamp,
+        trackKind: TRACK_KINDS.REFERENCE_POINT,
+        correlationMode: TRACK_CORRELATION_MODES.SUSPEND,
+        dropProtect: true,
+        speed: 0,
+        heading: 0,
+        altitude: null,
+        type: REFERENCE_POINT_SYMBOL_CODE,
+        symbolCode: REFERENCE_POINT_SYMBOL_CODE,
+        useFamiliarIcon: false,
+        iconSize: 32,
         stale: false,
     }
 }

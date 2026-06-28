@@ -15,6 +15,11 @@ import {
     normalizeSpecificType,
 } from '../milstd2525/trackSpecificTypes.js'
 import {applyUserKinematicEditHold, getAuthoritativeManagementEditFields, isCorrelationHoldActive, resolveExpiredCorrelationHold} from '../../simulation/correlationHold.js'
+import {TRACK_KINDS} from '../../simulation/trackKinds.js'
+
+export function isReferencePointManagementWindow(trackManagementWindow) {
+    return trackManagementWindow?.trackKind === TRACK_KINDS.REFERENCE_POINT
+}
 
 const KINEMATIC_FIELDS = new Set(['heading', 'speed', 'altitude'])
 
@@ -329,6 +334,10 @@ export function syncTrackManagementWindowsFromTracks(
     let hasChanges = false
 
     const nextWindows = trackManagementWindows.map((trackManagementWindow) => {
+        if (isReferencePointManagementWindow(trackManagementWindow)) {
+            return trackManagementWindow
+        }
+
         const liveTrack = tracksById.get(trackManagementWindow.trackId)
 
         if (!liveTrack) {

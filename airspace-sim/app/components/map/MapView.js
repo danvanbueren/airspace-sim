@@ -32,10 +32,14 @@ import {SENSOR_DISPLAY_TOGGLES} from '../../simulation/constants'
 import {
     createTrackFromManagementWindow,
     createTrackUpdateFromManagementWindow,
+    isReferencePointManagementWindow,
     mergeLiveTracksForManagementWindowSync,
     TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
 } from '../../tools/map/trackManagementTrack'
-import {createReferencePointTrack} from '../../simulation/trackFromReferencePoint'
+import {
+    createReferencePointUpdateFromManagementWindow,
+    createTrackFromReferencePointManagementWindow,
+} from '../../simulation/trackFromReferencePoint'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../floating/windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
@@ -168,41 +172,33 @@ export default function MapView({
     }, [clearBearingRangeLines, closeContextMenu])
 
     const handleTrackCreated = useCallback((trackManagementWindow) => {
-        const track = createTrackFromManagementWindow(trackManagementWindow)
+        const track = isReferencePointManagementWindow(trackManagementWindow)
+            ? createTrackFromReferencePointManagementWindow(
+                trackManagementWindow,
+                getSimulationTimestamp(),
+            )
+            : createTrackFromManagementWindow(trackManagementWindow)
 
         trackMapLayer.upsertTrack(track)
         upsertManualTrack(track)
-    }, [trackMapLayer, upsertManualTrack])
-
-    const handleCreateReferencePoint = useCallback((elementContainer) => {
-        const track = createReferencePointTrack({
-            longitude: elementContainer.lngLat.lng,
-            latitude: elementContainer.lngLat.lat,
-            existingTracks: simulationTracks,
-            timestamp: getSimulationTimestamp(),
-        })
-
-        trackMapLayer.upsertTrack(track)
-        upsertManualTrack(track)
-        closeContextMenu()
-    }, [
-        closeContextMenu,
-        getSimulationTimestamp,
-        simulationTracks,
-        trackMapLayer,
-        upsertManualTrack,
-    ])
+    }, [getSimulationTimestamp, trackMapLayer, upsertManualTrack])
 
     const handleTrackUpdated = useCallback((trackManagementWindow, changedFields) => {
         const trackId = trackManagementWindow.trackId
         const existingTrack = getTrack(trackId) ?? trackMapLayer.getTrack(trackId)
 
-        const track = createTrackUpdateFromManagementWindow(
-            trackManagementWindow,
-            existingTrack,
-            changedFields,
-            getSimulationTimestamp(),
-        )
+        const track = isReferencePointManagementWindow(trackManagementWindow)
+            ? createReferencePointUpdateFromManagementWindow(
+                trackManagementWindow,
+                existingTrack,
+                getSimulationTimestamp(),
+            )
+            : createTrackUpdateFromManagementWindow(
+                trackManagementWindow,
+                existingTrack,
+                changedFields,
+                getSimulationTimestamp(),
+            )
 
         upsertManualTrack(track)
         trackMapLayer.upsertTrack(track)
@@ -211,6 +207,7 @@ export default function MapView({
     const {
         trackManagementWindows,
         initiateTrack,
+        initiateReferencePoint,
         openTrackManagementWindow,
         updateTrackManagementWindow,
         setTrackManagementWindowPositionAnchor,
@@ -224,6 +221,10 @@ export default function MapView({
         onTrackCreated: handleTrackCreated,
         onTrackUpdated: handleTrackUpdated,
     })
+
+    const handleCreateReferencePoint = useCallback((elementContainer) => {
+        initiateReferencePoint(elementContainer, simulationTracks)
+    }, [initiateReferencePoint, simulationTracks])
 
     const {
         sortedTrackManagementWindows,
