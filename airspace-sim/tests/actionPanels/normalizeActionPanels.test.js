@@ -78,6 +78,16 @@ describe('normalizeActionPanelsState', () => {
         assert.equal(normalized.layouts['custom-panel'].anchor.horizontal.edge, 'right')
     })
 
+    it('preserves an explicitly empty panels list', () => {
+        const normalized = normalizeActionPanelsState({
+            panels: [],
+            layouts: {},
+        })
+
+        assert.deepEqual(normalized.panels, [])
+        assert.deepEqual(normalized.layouts, {})
+    })
+
     it('creates a new panel with a default layout', () => {
         const created = createEmptyActionPanel({title: 'Ops Panel'})
 

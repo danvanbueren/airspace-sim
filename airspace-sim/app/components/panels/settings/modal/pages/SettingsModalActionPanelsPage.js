@@ -116,7 +116,6 @@ function ActionPanelEditor({
     onItemIdsChange,
     onRemovePanel,
     onActivate,
-    disableRemove,
     isFocused = false,
 }) {
     const [pendingItemId, setPendingItemId] = useState('')
@@ -165,7 +164,6 @@ function ActionPanelEditor({
                     <IconButton
                         aria-label={`Remove ${panel.title}`}
                         color='error'
-                        disabled={disableRemove}
                         onClick={onRemovePanel}
                         sx={{mt: 0.5}}
                     >
@@ -358,7 +356,6 @@ export default function SettingsModalActionPanelsPage({focusedPanelId = null}) {
                             key={panel.id}
                             panel={panel}
                             isFocused={panel.id === activePanelId}
-                            disableRemove={actionPanelsState.panels.length <= 1}
                             onActivate={() => setActivePanelId(panel.id)}
                             onRename={(title) => renameActionPanel(panel.id, title)}
                             onDisplayStyleChange={(displayStyle) => {
