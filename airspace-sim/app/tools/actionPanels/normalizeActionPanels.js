@@ -14,6 +14,7 @@ export const ACTION_PANEL_MIN_WIDTH_PX = 200
 export const ACTION_PANEL_MIN_HEIGHT_PX = 160
 export const ACTION_PANEL_LARGE_MIN_RESIZED_HEIGHT_PX = 200
 export const ACTION_PANEL_COMPACT_MIN_RESIZED_HEIGHT_PX = 160
+export const ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX = 32
 
 export function getActionPanelMinResizedHeight(displayStyle) {
     if (displayStyle === ACTION_PANEL_DISPLAY_STYLES.COMPACT) {
@@ -143,17 +144,40 @@ export function createActionPanelId() {
 }
 
 export function createDefaultActionPanelLayout() {
+    return createNewActionPanelLayout()
+}
+
+export function createNewActionPanelLayout(existingLayouts = {}) {
+    const baseOffset = MAP_FLOATING_INSET_PX
+    let maxTopLeftOffset = baseOffset - ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX
+
+    Object.values(existingLayouts).forEach((layout) => {
+        const anchor = layout?.anchor
+
+        if (anchor?.horizontal?.edge !== 'left' || anchor?.vertical?.edge !== 'top') {
+            return
+        }
+
+        maxTopLeftOffset = Math.max(
+            maxTopLeftOffset,
+            normalizeAnchorOffset(anchor.horizontal.offset, baseOffset),
+            normalizeAnchorOffset(anchor.vertical.offset, baseOffset),
+        )
+    })
+
+    const nextOffset = maxTopLeftOffset + ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX
+
     return {
         anchor: {
-            horizontal: {edge: 'left', offset: MAP_FLOATING_INSET_PX},
-            vertical: {edge: 'top', offset: MAP_FLOATING_INSET_PX},
+            horizontal: {edge: 'left', offset: nextOffset},
+            vertical: {edge: 'top', offset: nextOffset},
         },
         width: DEFAULT_ACTION_PANEL_WIDTH_PX,
         height: null,
     }
 }
 
-export function createEmptyActionPanel({title = 'New Action Panel'} = {}) {
+export function createEmptyActionPanel({title = 'New Action Panel', existingLayouts = {}} = {}) {
     const id = createActionPanelId()
 
     return {
@@ -163,7 +187,7 @@ export function createEmptyActionPanel({title = 'New Action Panel'} = {}) {
             displayStyle: ACTION_PANEL_DISPLAY_STYLES.LARGE,
             itemIds: [],
         },
-        layout: createDefaultActionPanelLayout(),
+        layout: createNewActionPanelLayout(existingLayouts),
     }
 }
 

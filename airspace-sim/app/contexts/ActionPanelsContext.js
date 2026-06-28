@@ -70,17 +70,26 @@ export function ActionPanelsProvider({children, initialActionPanels}) {
     }, [])
 
     const addActionPanel = useCallback(({title} = {}) => {
-        const {panel, layout} = createEmptyActionPanel({title})
+        let newPanelId = null
 
-        updateActionPanelsState((currentState) => ({
-            panels: [...currentState.panels, panel],
-            layouts: {
-                ...currentState.layouts,
-                [panel.id]: layout,
-            },
-        }))
+        updateActionPanelsState((currentState) => {
+            const {panel, layout} = createEmptyActionPanel({
+                title,
+                existingLayouts: currentState.layouts,
+            })
 
-        return panel.id
+            newPanelId = panel.id
+
+            return {
+                panels: [...currentState.panels, panel],
+                layouts: {
+                    ...currentState.layouts,
+                    [panel.id]: layout,
+                },
+            }
+        })
+
+        return newPanelId
     }, [updateActionPanelsState])
 
     const removeActionPanel = useCallback((panelId) => {
