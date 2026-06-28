@@ -2,6 +2,7 @@ import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 import {isCorrelationHoldActive} from './correlationHold.js'
 import {shouldShowDropAttention} from './trackAutoDrop.js'
 import {filterInhibitedSignalIds, sortSignalIdsByPriority} from './signalDefinitions.js'
+import {TRACK_IDENTITIES} from '../tools/milstd2525/trackSymbolCodes.js'
 import {
     getEmergencyAttentionFlagId,
     isEmergencyMode3Code,
@@ -19,7 +20,13 @@ import {
 export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.now(), iffRefreshMs = 1000) {
     const flags = []
 
-    if (shouldShowDropAttention(track)) {
+    if (track.identity === TRACK_IDENTITIES.PENDING) {
+        flags.push('PEND')
+    }
+
+    const showingDropAttention = shouldShowDropAttention(track)
+
+    if (showingDropAttention) {
         flags.push('DROP')
     }
 
@@ -39,7 +46,7 @@ export function deriveAttentionFlagsFromTrackState(track, evaluationTime = Date.
         }
     }
 
-    if (track.stale) {
+    if (track.stale && !showingDropAttention) {
         flags.push('STALE')
     }
 

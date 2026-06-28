@@ -30,6 +30,13 @@ export const SIGNAL_DEFINITIONS = {
         description: 'Uncorrelated track scheduled for automatic removal.',
         priority: 5,
     },
+    PEND: {
+        id: 'PEND',
+        kind: SIGNAL_KIND.ATTENTION,
+        label: 'PEND',
+        description: 'Track identity is still pending classification.',
+        priority: 4,
+    },
     IFF_EMER: {
         id: 'IFF_EMER',
         kind: SIGNAL_KIND.ATTENTION,

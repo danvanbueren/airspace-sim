@@ -142,6 +142,16 @@ describe('trackAutoDrop', () => {
         assert.ok(flags.includes('DROP'))
     })
 
+    it('does not derive STALE attention when DROP attention is active', () => {
+        const flags = deriveAttentionFlagsFromTrackState(createTrack({
+            dropAt: 5000,
+            stale: true,
+        }))
+
+        assert.ok(flags.includes('DROP'))
+        assert.ok(!flags.includes('STALE'))
+    })
+
     it('does not derive DROP attention for ineligible tracks with stale dropAt', () => {
         const flags = deriveAttentionFlagsFromTrackState(createTrack({
             dropAt: 5000,

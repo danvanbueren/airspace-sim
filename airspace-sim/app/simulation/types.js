@@ -67,7 +67,11 @@
  * @property {number} [dropAt] Timestamp when visible DROP attention phase started
  * @property {boolean} [dropProtect] When true, prevents automatic drop of uncorrelated tracks
  * @property {string|null} [iffMode3Code] Last correlated IFF Mode 3 code (sensor-derived)
- * @property {number|null} [iffMode3UpdatedAt] Timestamp of last IFF code correlation
+ * @property {string|null} [iffMode3UpdatedAt] Timestamp of last IFF code correlation
+ * @property {number|null} [iffMode3FirstCorrelatedAt] Timestamp when the current IFF code was first correlated
+ * @property {number} [identityPendingSinceAt] Timestamp when the track entered pending identity
+ * @property {'commercial'|'generalAviation'} [trafficKind] Truth traffic profile used for automatic type assignment
+ * @property {string} [profile] Truth aircraft profile label
  */
 
 export {}

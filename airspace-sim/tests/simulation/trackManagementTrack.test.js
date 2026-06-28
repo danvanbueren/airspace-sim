@@ -18,10 +18,10 @@ function managementWindow(overrides = {}) {
             lng: -75,
             lat: 40,
         },
-        domain: 'AIR',
+        domain: 'air',
         identity: 'NEUTRAL',
         type: '01:110104',
-        specificType: 'F-16',
+        specificType: 'F-16C',
         heading: 45,
         speed: 420,
         altitude: 12_000,
@@ -39,10 +39,10 @@ function existingTrack(overrides = {}) {
         trackId: 'AUTO-1',
         longitude: -76,
         latitude: 41,
-        domain: 'AIR',
+        domain: 'air',
         identity: 'NEUTRAL',
         type: '01:110104',
-        specificType: 'F-16',
+        specificType: 'F-16C',
         heading: 120,
         speed: 470,
         altitude: 13_000,
@@ -70,10 +70,10 @@ describe('track management track updates', () => {
             trackId: 'MAN-1',
             longitude: -75,
             latitude: 40,
-            domain: 'AIR',
+            domain: 'air',
             identity: 'NEUTRAL',
             type: '01:110104',
-            specificType: 'F-16',
+            specificType: 'F-16C',
             heading: 10,
             speed: null,
             altitude: 35_000,
@@ -221,10 +221,10 @@ describe('track management window live sync', () => {
                 lng: -77.5,
                 lat: 39.2,
             },
-            domain: 'AIR',
+            domain: 'air',
             identity: 'NEUTRAL',
             type: '01:110104',
-            specificType: 'F-16',
+            specificType: 'F-16C',
             callsign: 'VIP01',
             heading: 275,
             speed: 510,
@@ -248,10 +248,10 @@ describe('track management window live sync', () => {
                 lat: 40,
             },
             line: null,
-            domain: 'AIR',
+            domain: 'air',
             identity: 'NEUTRAL',
             type: '01:110104',
-            specificType: 'F-16',
+            specificType: 'F-16C',
             callsign: 'CIV01',
             heading: 45,
             speed: 420,
@@ -292,10 +292,10 @@ describe('track management window live sync', () => {
                 lat: 40,
             },
             line: null,
-            domain: 'AIR',
+            domain: 'air',
             identity: 'NEUTRAL',
             type: '01:110104',
-            specificType: 'F-16',
+            specificType: 'F-16C',
             callsign: 'CIV01',
             heading: 45,
             speed: 420,
@@ -345,10 +345,10 @@ describe('track management window live sync', () => {
                 lat: 40,
             },
             line: null,
-            domain: 'AIR',
+            domain: 'air',
             identity: 'NEUTRAL',
             type: '01:110104',
-            specificType: 'F-16',
+            specificType: 'F-16C',
             callsign: 'CIV01',
             heading: 45,
             speed: 420,
@@ -362,7 +362,7 @@ describe('track management window live sync', () => {
         const syncedWindows = syncTrackManagementWindowsFromTracks(
             [openWindow],
             [existingTrack({
-                domain: 'LAND',
+                domain: 'land',
                 type: '01:120101',
                 specificType: 'M1A2',
             })],
@@ -371,20 +371,20 @@ describe('track management window live sync', () => {
             },
         )
 
-        assert.equal(syncedWindows[0].domain, 'AIR')
+        assert.equal(syncedWindows[0].domain, 'air')
         assert.equal(syncedWindows[0].type, '01:110104')
-        assert.equal(syncedWindows[0].specificType, 'F-16')
+        assert.equal(syncedWindows[0].specificType, 'F-16C')
     })
 
     it('prefers map layer tracks for committed manual edits during live sync', () => {
         const simulationTracks = [existingTrack({
             callsign: 'CIV01',
-            domain: 'AIR',
+            domain: 'air',
             source: 'auto',
         })]
         const committedTrack = existingTrack({
             callsign: 'VIP01',
-            domain: 'LAND',
+            domain: 'land',
             source: 'manual',
             userDirected: true,
         })
@@ -397,7 +397,7 @@ describe('track management window live sync', () => {
 
         assert.equal(mergedTracks.length, 1)
         assert.equal(mergedTracks[0].callsign, 'VIP01')
-        assert.equal(mergedTracks[0].domain, 'LAND')
+        assert.equal(mergedTracks[0].domain, 'land')
     })
 
     it('keeps live simulation kinematics after metadata-only edits', () => {
@@ -539,6 +539,26 @@ describe('track management window live sync', () => {
         )
     })
 
+    it('normalizes stale cross-domain type and specific type values on track updates', () => {
+        const updated = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                domain: 'surface',
+                type: '01:110104',
+                specificType: 'F-16C',
+            }),
+            existingTrack({
+                domain: 'air',
+                type: '01:110104',
+                specificType: 'F-16C',
+            }),
+            ['domain', 'type', 'specificType'],
+        )
+
+        assert.equal(updated.domain, 'surface')
+        assert.equal(updated.type, '30:000000')
+        assert.equal(updated.specificType, '')
+    })
+
     it('does not revive expired kinematic skip fields on metadata-only updates', () => {
         const updated = createTrackUpdateFromManagementWindow(
             managementWindow({
@@ -593,10 +613,10 @@ describe('track management window live sync', () => {
                 lat: 40,
             },
             line: null,
-            domain: 'AIR',
+            domain: 'air',
             identity: 'NEUTRAL',
             type: '01:110104',
-            specificType: 'F-16',
+            specificType: 'F-16C',
             callsign: 'CIV01',
             heading: 90,
             speed: 420,
@@ -637,10 +657,10 @@ describe('track management window live sync', () => {
                 lat: 40,
             },
             line: null,
-            domain: 'AIR',
+            domain: 'air',
             identity: 'NEUTRAL',
             type: '01:110104',
-            specificType: 'F-16',
+            specificType: 'F-16C',
             callsign: 'CIV01',
             heading: 90,
             speed: 420,
@@ -681,10 +701,10 @@ describe('track management window live sync', () => {
                 lat: 40,
             },
             line: null,
-            domain: 'AIR',
+            domain: 'air',
             identity: 'NEUTRAL',
             type: '01:110104',
-            specificType: 'F-16',
+            specificType: 'F-16C',
             callsign: 'VIP01',
             heading: 90,
             speed: 420,

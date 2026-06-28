@@ -237,9 +237,11 @@ export function buildMergedTrackState(survivor, merged, timestamp) {
     if (iffSource.iffMode3Code) {
         mergedState.iffMode3Code = iffSource.iffMode3Code
         mergedState.iffMode3UpdatedAt = iffSource.iffMode3UpdatedAt ?? null
+        mergedState.iffMode3FirstCorrelatedAt = iffSource.iffMode3FirstCorrelatedAt ?? null
     } else {
         mergedState.iffMode3Code = null
         mergedState.iffMode3UpdatedAt = null
+        mergedState.iffMode3FirstCorrelatedAt = null
     }
 
     return mergedState

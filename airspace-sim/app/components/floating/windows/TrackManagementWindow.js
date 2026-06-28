@@ -16,6 +16,7 @@ import {
     Stack,
     TextField,
     Typography,
+    useTheme,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
@@ -38,10 +39,11 @@ import {
 import {
     TRACK_DOMAINS,
     TRACK_IDENTITY_OPTIONS,
-    getDefaultTrackTypeForDomain,
-    getTrackTypeOption,
     getTrackTypeOptionsForDomain,
+    getUnspecifiedTrackTypeForDomain,
+    resolveTrackTypeForDomain,
 } from '@/app/tools/milstd2525/trackSymbolCodes'
+import {getTrackIdentityChromeColors} from '@/app/tools/milstd2525/trackIdentityColors'
 import {
     getDefaultSpecificTypeForTrackType,
     getSpecificTypeOptionsForTrackType,
@@ -304,6 +306,8 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             zIndex,
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
+    const theme = useTheme()
+    const identityChrome = getTrackIdentityChromeColors(trackManagementWindow.identity, theme)
     const trackManagementWindowRef = useRef(null)
     const mapContainerSize = useMapContainerSize(mapContainerRef)
     const [kinematicFieldDrafts, setKinematicFieldDrafts] = useState({})
@@ -393,10 +397,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     )
 
     const availableTrackTypes = getTrackTypeOptionsForDomain(trackManagementWindow.domain)
-    const selectedTrackType = getTrackTypeOption(
+    const selectedTrackType = resolveTrackTypeForDomain(
         trackManagementWindow.type,
         trackManagementWindow.domain,
-    )?.value ?? getDefaultTrackTypeForDomain(trackManagementWindow.domain)
+    )
     const availableSpecificTypes = getSpecificTypeOptionsForTrackType(selectedTrackType)
     const selectedSpecificType = normalizeSpecificType(
         trackManagementWindow.specificType,
@@ -409,9 +413,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         }
 
         if (field === 'domain') {
-            const existingTypeOption = getTrackTypeOption(trackManagementWindow.type, value)
-
-            updates.type = existingTypeOption?.value ?? getDefaultTrackTypeForDomain(value)
+            updates.type = getUnspecifiedTrackTypeForDomain(value)
             updates.specificType = getDefaultSpecificTypeForTrackType(updates.type)
         }
 
@@ -745,7 +747,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 overflow: 'hidden',
                 ...TRACK_MANAGEMENT_MONOSPACE_SX,
                 ...(hasKeyboardCustody && {
-                    boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[8]}`,
+                    boxShadow: `inset 0 0 0 2px ${identityChrome.focusOutline}, ${theme.shadows[8]}`,
                 }),
             })}
         >
@@ -758,7 +760,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 onPointerUp={handleHeaderPointerUp}
                 onPointerCancel={handleHeaderPointerUp}
                 sx={{
-                    bgcolor: 'primary.main',
+                    bgcolor: identityChrome.headerBackground,
                     px: 2,
                     py: 1.25,
                     display: 'flex',
@@ -771,14 +773,14 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             >
                 <DragIndicatorIcon
                     sx={{
-                        color: 'primary.contrastText',
+                        color: identityChrome.headerText,
                         fontSize: '1rem',
                     }}
                 />
                 <Typography
                     sx={{
                         fontWeight: 'bold',
-                        color: 'primary.contrastText',
+                        color: identityChrome.headerText,
                         fontSize: '0.9rem',
                         flexGrow: 1,
                     }}
@@ -794,7 +796,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                         onClose(trackManagementWindow.id)
                     }}
                     sx={{
-                        color: 'primary.contrastText',
+                        color: identityChrome.headerText,
                         p: 0.25,
                     }}
                 >

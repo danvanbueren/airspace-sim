@@ -10,13 +10,20 @@ export const TRACK_DOMAINS = {
     CYBERSPACE: 'cyberspace',
 }
 
+export function normalizeTrackDomain(domain) {
+    if (domain && Object.values(TRACK_DOMAINS).includes(domain)) {
+        return domain
+    }
+
+    return TRACK_DOMAINS[String(domain ?? '').toUpperCase()] ?? TRACK_DOMAINS.AIR
+}
+
 export const TRACK_IDENTITIES = {
     PENDING: 'pending',
     NEUTRAL: 'neutral',
     UNKNOWN: 'unknown',
     ASSUMED_FRIENDLY: 'assumedFriendly',
     FRIENDLY: 'friendly',
-    CIVILIAN: 'civilian',
     SUSPECT: 'suspect',
     HOSTILE: 'hostile',
 }
@@ -26,7 +33,6 @@ export const TRACK_IDENTITY_OPTIONS = [
     {value: TRACK_IDENTITIES.UNKNOWN, label: 'Unknown'},
     {value: TRACK_IDENTITIES.ASSUMED_FRIENDLY, label: 'Assumed Friendly'},
     {value: TRACK_IDENTITIES.FRIENDLY, label: 'Friendly'},
-    {value: TRACK_IDENTITIES.CIVILIAN, label: 'Civilian'},
     {value: TRACK_IDENTITIES.NEUTRAL, label: 'Neutral'},
     {value: TRACK_IDENTITIES.SUSPECT, label: 'Suspect'},
     {value: TRACK_IDENTITIES.HOSTILE, label: 'Hostile'},
@@ -34,6 +40,8 @@ export const TRACK_IDENTITY_OPTIONS = [
 
 export const TRACK_TYPES = {
     AIR_UNSPECIFIED: '01:000000',
+    CIVILIAN_AIR: '01:120000',
+    GENERAL_AVIATION: '01:120100',
     FIGHTER: '01:110104',
     TANKER: '01:110109',
     AWACS: '01:110116',
@@ -50,7 +58,6 @@ const TRACK_IDENTITY_AFFILIATION_CODES = {
     [TRACK_IDENTITIES.UNKNOWN]: '1',
     [TRACK_IDENTITIES.ASSUMED_FRIENDLY]: '2',
     [TRACK_IDENTITIES.FRIENDLY]: '3',
-    [TRACK_IDENTITIES.CIVILIAN]: '3',
     [TRACK_IDENTITIES.NEUTRAL]: '4',
     [TRACK_IDENTITIES.SUSPECT]: '5',
     [TRACK_IDENTITIES.HOSTILE]: '6',
@@ -279,19 +286,39 @@ export function normalizeTrackType(type, domain) {
 }
 
 export function getDefaultTrackTypeForDomain(domain) {
-    return DEFAULT_TRACK_TYPE_BY_DOMAIN[domain]
-        ?? TRACK_TYPE_OPTIONS_BY_DOMAIN[domain]?.[0]?.value
+    const normalizedDomain = normalizeTrackDomain(domain)
+
+    return DEFAULT_TRACK_TYPE_BY_DOMAIN[normalizedDomain]
+        ?? TRACK_TYPE_OPTIONS_BY_DOMAIN[normalizedDomain]?.[0]?.value
+        ?? TRACK_TYPES.GROUND_UNIT
+}
+
+export function getUnspecifiedTrackTypeForDomain(domain) {
+    return getTrackTypeOptionsForDomain(domain)[0]?.value
         ?? TRACK_TYPES.GROUND_UNIT
 }
 
 export function getTrackTypeOptionsForDomain(domain) {
-    return TRACK_TYPE_OPTIONS_BY_DOMAIN[domain] ?? []
+    return TRACK_TYPE_OPTIONS_BY_DOMAIN[normalizeTrackDomain(domain)] ?? []
+}
+
+function isTrackTypeValidForDomain(type, domain) {
+    return getTrackTypeOptionsForDomain(domain).some((option) => option.value === type)
 }
 
 export function getTrackTypeOption(type, domain) {
     const normalizedType = normalizeTrackType(type, domain)
+    const option = TRACK_SYMBOL_CATALOG.optionsByValue[normalizedType]
 
-    return TRACK_SYMBOL_CATALOG.optionsByValue[normalizedType] ?? null
+    if (!option || !isTrackTypeValidForDomain(normalizedType, domain)) {
+        return null
+    }
+
+    return option
+}
+
+export function resolveTrackTypeForDomain(type, domain) {
+    return getTrackTypeOption(type, domain)?.value ?? getUnspecifiedTrackTypeForDomain(domain)
 }
 
 export function getTrackSymbolCode({domain, identity, type} = {}) {
@@ -311,8 +338,6 @@ export function getTrackSymbolCode({domain, identity, type} = {}) {
     return `100${affiliation}${option.symbolSet}0000${option.entity}0000`
 }
 
-export function getTrackSymbolOptions({identity} = {}) {
-    return identity === TRACK_IDENTITIES.CIVILIAN
-        ? {civilianColor: true}
-        : {}
+export function getTrackSymbolOptions() {
+    return {}
 }

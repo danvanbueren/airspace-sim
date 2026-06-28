@@ -1,4 +1,5 @@
 import {formatMode3Code} from './iffMode3.js'
+import {TRACK_TYPES} from '../tools/milstd2525/trackSymbolCodes.js'
 
 export const TRACK_CORRELATION_MODES = {
     ACTIVE: 'active',
@@ -28,18 +29,21 @@ export function trackFromInitiation({plotId, sensorType, longitude, latitude, ti
         lastExtrapolationAt: timestamp,
         stale: false,
         domain: nearest?.domain ?? 'air',
-        identity: nearest?.identity ?? 'pending',
-        type: nearest?.type ?? '01:110104',
+        identity: 'pending',
+        type: TRACK_TYPES.AIR_UNSPECIFIED,
+        specificType: '',
         callsign: nearest?.id ?? id,
         source: 'auto',
         initiatedBy: sensorType,
         correlationMode: TRACK_CORRELATION_MODES.ACTIVE,
         correlated: false,
         userDirected: false,
+        identityPendingSinceAt: timestamp,
         plotId,
         ...(normalizedMode3Code ? {
             iffMode3Code: normalizedMode3Code,
             iffMode3UpdatedAt: timestamp,
+            iffMode3FirstCorrelatedAt: timestamp,
         } : {}),
     }
 }
@@ -55,6 +59,7 @@ export function trackFromManualInput(track) {
         source: track.source ?? 'manual',
         lastExtrapolationAt: track.lastExtrapolationAt ?? Date.now(),
         lastSensorUpdateAt: track.lastSensorUpdateAt ?? Date.now(),
+        identityPendingSinceAt: track.identityPendingSinceAt ?? Date.now(),
         stale: false,
     }
 }
