@@ -10,6 +10,14 @@ export const TRACK_DOMAINS = {
     CYBERSPACE: 'cyberspace',
 }
 
+export function normalizeTrackDomain(domain) {
+    if (domain && Object.values(TRACK_DOMAINS).includes(domain)) {
+        return domain
+    }
+
+    return TRACK_DOMAINS[String(domain ?? '').toUpperCase()] ?? TRACK_DOMAINS.AIR
+}
+
 export const TRACK_IDENTITIES = {
     PENDING: 'pending',
     NEUTRAL: 'neutral',
@@ -279,19 +287,34 @@ export function normalizeTrackType(type, domain) {
 }
 
 export function getDefaultTrackTypeForDomain(domain) {
-    return DEFAULT_TRACK_TYPE_BY_DOMAIN[domain]
-        ?? TRACK_TYPE_OPTIONS_BY_DOMAIN[domain]?.[0]?.value
+    const normalizedDomain = normalizeTrackDomain(domain)
+
+    return DEFAULT_TRACK_TYPE_BY_DOMAIN[normalizedDomain]
+        ?? TRACK_TYPE_OPTIONS_BY_DOMAIN[normalizedDomain]?.[0]?.value
         ?? TRACK_TYPES.GROUND_UNIT
 }
 
 export function getTrackTypeOptionsForDomain(domain) {
-    return TRACK_TYPE_OPTIONS_BY_DOMAIN[domain] ?? []
+    return TRACK_TYPE_OPTIONS_BY_DOMAIN[normalizeTrackDomain(domain)] ?? []
+}
+
+function isTrackTypeValidForDomain(type, domain) {
+    return getTrackTypeOptionsForDomain(domain).some((option) => option.value === type)
 }
 
 export function getTrackTypeOption(type, domain) {
     const normalizedType = normalizeTrackType(type, domain)
+    const option = TRACK_SYMBOL_CATALOG.optionsByValue[normalizedType]
 
-    return TRACK_SYMBOL_CATALOG.optionsByValue[normalizedType] ?? null
+    if (!option || !isTrackTypeValidForDomain(normalizedType, domain)) {
+        return null
+    }
+
+    return option
+}
+
+export function resolveTrackTypeForDomain(type, domain) {
+    return getTrackTypeOption(type, domain)?.value ?? getDefaultTrackTypeForDomain(domain)
 }
 
 export function getTrackSymbolCode({domain, identity, type} = {}) {

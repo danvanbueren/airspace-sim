@@ -7,11 +7,27 @@ import {
     TRACK_DOMAINS,
     TRACK_IDENTITIES,
     getDefaultTrackTypeForDomain,
+    normalizeTrackDomain,
+    resolveTrackTypeForDomain,
 } from '../milstd2525/trackSymbolCodes.js'
-import {getDefaultSpecificTypeForTrackType} from '../milstd2525/trackSpecificTypes.js'
+import {
+    getDefaultSpecificTypeForTrackType,
+    normalizeSpecificType,
+} from '../milstd2525/trackSpecificTypes.js'
 import {applyUserKinematicEditHold, getAuthoritativeManagementEditFields, isCorrelationHoldActive, resolveExpiredCorrelationHold} from '../../simulation/correlationHold.js'
 
 const KINEMATIC_FIELDS = new Set(['heading', 'speed', 'altitude'])
+
+function resolveTrackClassificationFields(domain, type, specificType) {
+    const normalizedDomain = normalizeTrackDomain(domain)
+    const resolvedType = resolveTrackTypeForDomain(type, normalizedDomain)
+
+    return {
+        domain: normalizedDomain,
+        type: resolvedType,
+        specificType: normalizeSpecificType(specificType, resolvedType),
+    }
+}
 
 export const TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS = [
     'lngLat',
@@ -241,8 +257,13 @@ function getTrackKinematicFields(trackManagementWindow, existingTrack, changedFi
 
 export function getTrackManagementWindowLiveUpdatesFromTrack(track) {
     const trackId = track.trackId ?? track.id
-    const domain = track.domain ?? TRACK_DOMAINS.AIR
-    const type = track.type ?? getDefaultTrackTypeForDomain(domain)
+    const {domain, type, specificType} = resolveTrackClassificationFields(
+        track.domain ?? TRACK_DOMAINS.AIR,
+        track.type ?? getDefaultTrackTypeForDomain(track.domain ?? TRACK_DOMAINS.AIR),
+        track.specificType ?? getDefaultSpecificTypeForTrackType(
+            track.type ?? getDefaultTrackTypeForDomain(track.domain ?? TRACK_DOMAINS.AIR),
+        ),
+    )
     const kinematicFields = parseTrackKinematicFields(track)
 
     return {
@@ -253,7 +274,7 @@ export function getTrackManagementWindowLiveUpdatesFromTrack(track) {
         domain,
         identity: track.identity ?? TRACK_IDENTITIES.PENDING,
         type,
-        specificType: track.specificType ?? getDefaultSpecificTypeForTrackType(type),
+        specificType,
         callsign: track.callsign ?? trackId,
         heading: kinematicFields.heading,
         speed: kinematicFields.speed,
@@ -360,15 +381,21 @@ export function syncTrackManagementWindowsFromTracks(
 }
 
 export function createTrackFromManagementWindow(trackManagementWindow) {
+    const {domain, type, specificType} = resolveTrackClassificationFields(
+        trackManagementWindow.domain,
+        trackManagementWindow.type,
+        trackManagementWindow.specificType,
+    )
+
     return {
         id: trackManagementWindow.trackId,
         trackId: trackManagementWindow.trackId,
         longitude: trackManagementWindow.lngLat.lng,
         latitude: trackManagementWindow.lngLat.lat,
-        domain: trackManagementWindow.domain,
+        domain,
         identity: trackManagementWindow.identity,
-        type: trackManagementWindow.type,
-        specificType: trackManagementWindow.specificType ?? '',
+        type,
+        specificType,
         ...getTrackKinematicFields(trackManagementWindow),
         infoFields: Boolean(trackManagementWindow.infoFields),
         callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
@@ -383,15 +410,21 @@ export function createTrackUpdateFromManagementWindow(
     changedFields,
     evaluationTime = Date.now(),
 ) {
+    const {domain, type, specificType} = resolveTrackClassificationFields(
+        trackManagementWindow.domain,
+        trackManagementWindow.type,
+        trackManagementWindow.specificType,
+    )
+
     const update = {
         id: trackManagementWindow.trackId,
         trackId: trackManagementWindow.trackId,
         longitude: existingTrack?.longitude ?? trackManagementWindow.lngLat.lng,
         latitude: existingTrack?.latitude ?? trackManagementWindow.lngLat.lat,
-        domain: trackManagementWindow.domain,
+        domain,
         identity: trackManagementWindow.identity,
-        type: trackManagementWindow.type,
-        specificType: trackManagementWindow.specificType ?? '',
+        type,
+        specificType,
         ...getTrackKinematicFields(trackManagementWindow, existingTrack, changedFields),
         infoFields: Boolean(trackManagementWindow.infoFields),
         callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,

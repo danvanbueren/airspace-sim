@@ -38,9 +38,8 @@ import {
 import {
     TRACK_DOMAINS,
     TRACK_IDENTITY_OPTIONS,
-    getDefaultTrackTypeForDomain,
-    getTrackTypeOption,
     getTrackTypeOptionsForDomain,
+    resolveTrackTypeForDomain,
 } from '@/app/tools/milstd2525/trackSymbolCodes'
 import {
     getDefaultSpecificTypeForTrackType,
@@ -393,10 +392,10 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     )
 
     const availableTrackTypes = getTrackTypeOptionsForDomain(trackManagementWindow.domain)
-    const selectedTrackType = getTrackTypeOption(
+    const selectedTrackType = resolveTrackTypeForDomain(
         trackManagementWindow.type,
         trackManagementWindow.domain,
-    )?.value ?? getDefaultTrackTypeForDomain(trackManagementWindow.domain)
+    )
     const availableSpecificTypes = getSpecificTypeOptionsForTrackType(selectedTrackType)
     const selectedSpecificType = normalizeSpecificType(
         trackManagementWindow.specificType,
@@ -409,9 +408,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         }
 
         if (field === 'domain') {
-            const existingTypeOption = getTrackTypeOption(trackManagementWindow.type, value)
-
-            updates.type = existingTypeOption?.value ?? getDefaultTrackTypeForDomain(value)
+            updates.type = resolveTrackTypeForDomain(trackManagementWindow.type, value)
             updates.specificType = getDefaultSpecificTypeForTrackType(updates.type)
         }
 
