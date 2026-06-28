@@ -177,7 +177,7 @@ function normalizeSettings(settings) {
         qualityPreset,
         qualityPresetBeforeCustom,
         adaptivePerformanceEnabled: settings?.adaptivePerformanceEnabled !== false,
-        viewportBasedTrackDroppingEnabled: settings?.viewportBasedTrackDroppingEnabled !== false,
+        viewportBasedTrackDroppingEnabled: settings?.viewportBasedTrackDroppingEnabled === true,
         simulationEnabled: settings?.simulationEnabled !== false,
         showPerformanceOverlay: settings?.showPerformanceOverlay !== false,
         inhibitedAttentions: normalizeInhibitedSignalIds(

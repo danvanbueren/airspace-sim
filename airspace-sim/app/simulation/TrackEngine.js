@@ -307,7 +307,7 @@ export class TrackEngine {
         )
 
         const viewportTrackDroppingEnabled = (
-            this.settings.viewportBasedTrackDroppingEnabled !== false
+            this.settings.viewportBasedTrackDroppingEnabled === true
         )
         const aircraftInBounds = getSensorScanAircraft(
             this.flightWorld,

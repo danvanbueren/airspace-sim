@@ -8,8 +8,8 @@ import {
 } from '../../app/simulation/constants.js'
 
 describe('quality presets', () => {
-    it('defaults viewport-based track dropping to enabled', () => {
-        assert.equal(DEFAULT_SIMULATION_SETTINGS.viewportBasedTrackDroppingEnabled, true)
+    it('defaults viewport-based track dropping to disabled', () => {
+        assert.equal(DEFAULT_SIMULATION_SETTINGS.viewportBasedTrackDroppingEnabled, false)
     })
 
     it('matches preset tuning values exactly', () => {

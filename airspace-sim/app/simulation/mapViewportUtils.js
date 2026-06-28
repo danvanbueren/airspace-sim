@@ -15,12 +15,12 @@ export function getExpandedMapBounds(map, paddingDegrees = 0.5) {
     }, paddingDegrees)
 }
 
-export function getSensorScanAircraft(flightWorld, displayBounds, viewportBasedTrackDroppingEnabled = true) {
+export function getSensorScanAircraft(flightWorld, displayBounds, viewportBasedTrackDroppingEnabled = false) {
     if (!flightWorld) {
         return []
     }
 
-    return viewportBasedTrackDroppingEnabled !== false
+    return viewportBasedTrackDroppingEnabled === true
         ? flightWorld.getAircraftInBounds(displayBounds)
         : flightWorld.getAllAircraft()
 }
