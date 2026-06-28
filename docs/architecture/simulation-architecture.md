@@ -218,6 +218,7 @@ Sensor and overlay visibility are display-only toggles:
 | Max active flights (global) | Target fleet size |
 | Quality preset | Applies preset Hz and fleet caps |
 | Adaptive performance balancing | Reduces tick rate under frame pressure; does not cull the fleet by viewport |
+| Viewport-based track dropping | When enabled, limits sensor scans to the visible map area so off-viewport tracks may go stale and auto-drop; when disabled, scans the full global fleet to maintain all firm tracks |
 
 ## Look & Feel
 

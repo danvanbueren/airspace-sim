@@ -15,6 +15,33 @@ export function getExpandedMapBounds(map, paddingDegrees = 0.5) {
     }, paddingDegrees)
 }
 
+export function getSensorScanAircraft(flightWorld, displayBounds, viewportBasedTrackDroppingEnabled = false) {
+    if (!flightWorld) {
+        return []
+    }
+
+    return viewportBasedTrackDroppingEnabled === true
+        ? flightWorld.getAircraftInBounds(displayBounds)
+        : flightWorld.getAllAircraft()
+}
+
+export function filterDetectionsByBounds(detections, bounds) {
+    if (!bounds || !detections?.length) {
+        return detections ?? []
+    }
+
+    return detections.filter((detection) => {
+        const lng = detection.longitude
+        const lat = detection.latitude
+
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+            return false
+        }
+
+        return isPointInBounds(lng, lat, bounds)
+    })
+}
+
 export function filterTracksByBounds(tracks, bounds) {
     if (!bounds || !tracks?.length) {
         return tracks ?? []

@@ -3,6 +3,7 @@ import {SensorHistoryBuffer} from './SensorHistoryBuffer'
 import {HistoryPlaybackController} from './HistoryPlaybackController'
 import {PerfBudgetController} from './PerfBudgetController'
 import {expandBounds} from './geo'
+import {filterDetectionsByBounds, getSensorScanAircraft} from './mapViewportUtils'
 import {FlightWorldSimulator} from './FlightWorldSimulator'
 import {SensorSimulator, createSensorSimulator} from './SensorSimulator'
 import {TrackInitiationService} from './TrackInitiationService'
@@ -300,12 +301,19 @@ export class TrackEngine {
         })
     }
 
-    runSensorScan(sensorType, timestamp, bounds) {
+    runSensorScan(sensorType, timestamp, displayBounds) {
         this.trackInitiation.plotAssociationThresholdNm = (
             this.settings.plotAssociationThresholdNm ?? 3
         )
 
-        const aircraftInBounds = this.flightWorld.getAircraftInBounds(bounds)
+        const viewportTrackDroppingEnabled = (
+            this.settings.viewportBasedTrackDroppingEnabled === true
+        )
+        const aircraftInBounds = getSensorScanAircraft(
+            this.flightWorld,
+            displayBounds,
+            viewportTrackDroppingEnabled,
+        )
         const rawDetections = this.sensorSimulator.scan({
             aircraftInBounds,
             timestamp,
@@ -340,10 +348,13 @@ export class TrackEngine {
         const uncorrelatedDetections = correlatedDetections.filter(
             (detection) => !detection.correlated,
         )
+        const initiationDetections = viewportTrackDroppingEnabled
+            ? uncorrelatedDetections
+            : filterDetectionsByBounds(uncorrelatedDetections, displayBounds)
 
         this.trackInitiation.ingest(
             sensorType,
-            uncorrelatedDetections,
+            initiationDetections,
             timestamp,
             this.trackStore,
             {proximityNm},

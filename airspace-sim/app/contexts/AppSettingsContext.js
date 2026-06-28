@@ -177,6 +177,7 @@ function normalizeSettings(settings) {
         qualityPreset,
         qualityPresetBeforeCustom,
         adaptivePerformanceEnabled: settings?.adaptivePerformanceEnabled !== false,
+        viewportBasedTrackDroppingEnabled: settings?.viewportBasedTrackDroppingEnabled === true,
         simulationEnabled: settings?.simulationEnabled !== false,
         showPerformanceOverlay: settings?.showPerformanceOverlay !== false,
         inhibitedAttentions: normalizeInhibitedSignalIds(
@@ -290,6 +291,7 @@ export function AppSettingsProvider({children, initialSettings}) {
         correlationThresholdNm: appSettings.correlationThresholdNm,
         qualityPreset: appSettings.qualityPreset,
         adaptivePerformanceEnabled: appSettings.adaptivePerformanceEnabled,
+        viewportBasedTrackDroppingEnabled: appSettings.viewportBasedTrackDroppingEnabled,
         simulationEnabled: appSettings.simulationEnabled,
         maxActiveFlights: appSettings.maxActiveFlights,
         maxTruthAircraftInViewport: appSettings.maxActiveFlights,

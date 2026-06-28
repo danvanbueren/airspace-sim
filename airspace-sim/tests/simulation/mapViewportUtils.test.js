@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {isPointInBounds} from '../../app/simulation/geo.js'
-import {filterTracksByBounds} from '../../app/simulation/mapViewportUtils.js'
+import {
+    filterDetectionsByBounds,
+    filterTracksByBounds,
+    getSensorScanAircraft,
+} from '../../app/simulation/mapViewportUtils.js'
 
 describe('wrapped map bounds', () => {
     it('matches points inside world-copy longitude bounds', () => {
@@ -59,6 +63,51 @@ describe('wrapped map bounds', () => {
                 north: 60,
             }).map((track) => track.id),
             ['pacific-track'],
+        )
+    })
+
+    it('filters detections to display bounds for off-viewport initiation gating', () => {
+        const detections = [
+            {id: 'inside', longitude: -80, latitude: 40},
+            {id: 'outside', longitude: -100, latitude: 40},
+        ]
+
+        assert.deepEqual(
+            filterDetectionsByBounds(detections, {
+                west: -85,
+                south: 35,
+                east: -75,
+                north: 45,
+            }).map((detection) => detection.id),
+            ['inside'],
+        )
+    })
+
+    it('uses viewport aircraft when viewport-based track dropping is enabled', () => {
+        const displayBounds = {west: -85, south: 35, east: -75, north: 45}
+        const viewportAircraft = [{id: 'in-view'}]
+        const flightWorld = {
+            getAircraftInBounds: () => viewportAircraft,
+            getAllAircraft: () => [{id: 'global'}],
+        }
+
+        assert.deepEqual(
+            getSensorScanAircraft(flightWorld, displayBounds, true),
+            viewportAircraft,
+        )
+    })
+
+    it('uses the global fleet when viewport-based track dropping is disabled', () => {
+        const displayBounds = {west: -85, south: 35, east: -75, north: 45}
+        const globalAircraft = [{id: 'global'}]
+        const flightWorld = {
+            getAircraftInBounds: () => [],
+            getAllAircraft: () => globalAircraft,
+        }
+
+        assert.deepEqual(
+            getSensorScanAircraft(flightWorld, displayBounds, false),
+            globalAircraft,
         )
     })
 })
