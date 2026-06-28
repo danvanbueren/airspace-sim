@@ -1,15 +1,36 @@
 import {useEffect, useState} from 'react'
 
-const MARGIN_RATIO = 0.15
+const PHONE_MAX_WIDTH_PX = 599
+const TABLET_MARGIN_RATIO = 0.15
+const PHONE_MARGIN_PX = 16
 
 function nearlyEqual(a, b, epsilon = 0.001) {
     return Math.abs(a - b) < epsilon
+}
+
+function getLayoutProfile(mainWidth) {
+    return mainWidth <= PHONE_MAX_WIDTH_PX ? 'phone' : 'tablet'
+}
+
+function getMargins(mainWidth, mainHeight, layoutProfile) {
+    if (layoutProfile === 'phone') {
+        return {
+            horizontal: PHONE_MARGIN_PX,
+            vertical: PHONE_MARGIN_PX,
+        }
+    }
+
+    return {
+        horizontal: mainWidth * TABLET_MARGIN_RATIO,
+        vertical: mainHeight * TABLET_MARGIN_RATIO,
+    }
 }
 
 export function useMobileFallbackFitScale(mainRef, contentRef) {
     const [state, setState] = useState({
         scale: 1,
         margins: {horizontal: 0, vertical: 0},
+        layoutProfile: 'tablet',
         ready: false,
     })
 
@@ -29,8 +50,8 @@ export function useMobileFallbackFitScale(mainRef, contentRef) {
                 return
             }
 
-            const horizontal = mainWidth * MARGIN_RATIO
-            const vertical = mainHeight * MARGIN_RATIO
+            const layoutProfile = getLayoutProfile(mainWidth)
+            const {horizontal, vertical} = getMargins(mainWidth, mainHeight, layoutProfile)
             const availWidth = mainWidth - (horizontal * 2)
             const availHeight = mainHeight - (vertical * 2)
 
@@ -41,20 +62,26 @@ export function useMobileFallbackFitScale(mainRef, contentRef) {
                 return
             }
 
-            const scale = Math.min(
+            let scale = Math.min(
                 availWidth / contentWidth,
                 availHeight / contentHeight,
             )
+
+            if (layoutProfile === 'phone') {
+                scale = Math.min(1, scale)
+            }
 
             setState((previous) => {
                 const next = {
                     scale,
                     margins: {horizontal, vertical},
+                    layoutProfile,
                     ready: true,
                 }
 
                 if (
                     previous.ready === next.ready
+                    && previous.layoutProfile === next.layoutProfile
                     && nearlyEqual(previous.scale, next.scale)
                     && nearlyEqual(previous.margins.horizontal, next.margins.horizontal, 1)
                     && nearlyEqual(previous.margins.vertical, next.margins.vertical, 1)

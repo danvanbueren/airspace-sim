@@ -17,28 +17,30 @@ const MOBILE_BAR_SX = {
 
 const EMOJI_TITLE_GAP = '0.5rem'
 const SECTION_GAP = '1.75rem'
+const PHONE_SECTION_GAP = '1.25rem'
 
 const HEADING_SX = {
     fontWeight: 600,
     lineHeight: 1.2,
-    fontSize: '1.625rem',
+    fontSize: {xs: '1.75rem', sm: '1.625rem'},
 }
 
 const WARNING_ICON_SX = {
-    fontSize: '2.75rem',
+    fontSize: {xs: '3rem', sm: '2.75rem'},
     lineHeight: 1,
 }
 
 const BODY_SX = {
     lineHeight: 1.5,
-    fontSize: '0.9375rem',
+    fontSize: {xs: '1.0625rem', sm: '0.9375rem'},
 }
 
 export default function UnsupportedMobilePage() {
     const info = buildInfo()
     const mainRef = useRef(null)
     const contentRef = useRef(null)
-    const {scale, margins, ready} = useMobileFallbackFitScale(mainRef, contentRef)
+    const {scale, margins, layoutProfile, ready} = useMobileFallbackFitScale(mainRef, contentRef)
+    const isPhoneLayout = layoutProfile === 'phone'
 
     return (
         <Box
@@ -59,7 +61,7 @@ export default function UnsupportedMobilePage() {
                 sx={{
                     flex: '1 1 auto',
                     minHeight: 0,
-                    overflow: 'hidden',
+                    overflow: isPhoneLayout ? 'auto' : 'hidden',
                     display: 'flex',
                     width: '100%',
                 }}
@@ -70,10 +72,10 @@ export default function UnsupportedMobilePage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        flex: '1 1 auto',
-                        minHeight: 0,
+                        flex: '1 0 auto',
+                        minHeight: '100%',
                         minWidth: 0,
-                        overflow: 'hidden',
+                        width: '100%',
                         pl: `${margins.horizontal}px`,
                         pr: `${margins.horizontal}px`,
                         pt: `${margins.vertical}px`,
@@ -84,7 +86,7 @@ export default function UnsupportedMobilePage() {
                         ref={contentRef}
                         sx={{
                             width: '100%',
-                            transform: `scale(${scale})`,
+                            transform: scale === 1 ? undefined : `scale(${scale})`,
                             transformOrigin: 'center center',
                             visibility: ready ? 'visible' : 'hidden',
                         }}
@@ -114,11 +116,23 @@ export default function UnsupportedMobilePage() {
                                 Unsupported Device
                             </Typography>
 
-                            <Typography variant="inherit" sx={{...BODY_SX, mt: SECTION_GAP}}>
+                            <Typography
+                                variant="inherit"
+                                sx={{
+                                    ...BODY_SX,
+                                    mt: isPhoneLayout ? PHONE_SECTION_GAP : SECTION_GAP,
+                                }}
+                            >
                                 {info.projectName} is designed for desktop browsers with keyboard and mouse controls. Touch input and small viewports are not supported in this release.
                             </Typography>
 
-                            <Typography variant="inherit" sx={{...BODY_SX, mt: SECTION_GAP}}>
+                            <Typography
+                                variant="inherit"
+                                sx={{
+                                    ...BODY_SX,
+                                    mt: isPhoneLayout ? PHONE_SECTION_GAP : SECTION_GAP,
+                                }}
+                            >
                                 Please open this app on a desktop or laptop computer for the full simulator experience.
                             </Typography>
 
@@ -129,10 +143,10 @@ export default function UnsupportedMobilePage() {
                                 target="_blank"
                                 sx={{
                                     alignSelf: 'center',
-                                    mt: SECTION_GAP,
-                                    minHeight: '2.75rem',
+                                    mt: isPhoneLayout ? PHONE_SECTION_GAP : SECTION_GAP,
+                                    minHeight: {xs: '3rem', sm: '2.75rem'},
                                     px: 2.5,
-                                    fontSize: '0.9375rem',
+                                    fontSize: {xs: '1.0625rem', sm: '0.9375rem'},
                                     lineHeight: 1.3,
                                 }}
                             >
