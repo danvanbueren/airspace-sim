@@ -12,8 +12,11 @@ import {
     DEFAULT_CATEGORY_SELECT_PANEL_ID,
     DEFAULT_FIXED_FUNCTION_PANEL_ID,
 } from '../../app/tools/actionPanels/actionPanelDefaults.js'
+import {MAP_FLOATING_INSET_PX} from '../../app/constants/mapUiLayout.js'
 import {
+    ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX,
     createEmptyActionPanel,
+    createNewActionPanelLayout,
     normalizeActionPanelsState,
 } from '../../app/tools/actionPanels/normalizeActionPanels.js'
 
@@ -78,6 +81,16 @@ describe('normalizeActionPanelsState', () => {
         assert.equal(normalized.layouts['custom-panel'].anchor.horizontal.edge, 'right')
     })
 
+    it('preserves an explicitly empty panels list', () => {
+        const normalized = normalizeActionPanelsState({
+            panels: [],
+            layouts: {},
+        })
+
+        assert.deepEqual(normalized.panels, [])
+        assert.deepEqual(normalized.layouts, {})
+    })
+
     it('creates a new panel with a default layout', () => {
         const created = createEmptyActionPanel({title: 'Ops Panel'})
 
@@ -87,6 +100,66 @@ describe('normalizeActionPanelsState', () => {
         assert.equal(created.layout.width, 400)
         assert.equal(created.layout.height, null)
         assert.equal(created.layout.anchor.horizontal.edge, 'left')
+        assert.equal(created.layout.anchor.horizontal.offset, MAP_FLOATING_INSET_PX)
+        assert.equal(created.layout.anchor.vertical.offset, MAP_FLOATING_INSET_PX)
+    })
+})
+
+describe('createNewActionPanelLayout', () => {
+    it('uses the base inset when no top-left panels exist', () => {
+        const layout = createNewActionPanelLayout({
+            'bottom-panel': {
+                anchor: {
+                    horizontal: {edge: 'left', offset: MAP_FLOATING_INSET_PX},
+                    vertical: {edge: 'bottom', offset: MAP_FLOATING_INSET_PX},
+                },
+                width: 400,
+                height: null,
+            },
+        })
+
+        assert.equal(layout.anchor.horizontal.offset, MAP_FLOATING_INSET_PX)
+        assert.equal(layout.anchor.vertical.offset, MAP_FLOATING_INSET_PX)
+    })
+
+    it('offsets new panels from existing top-left anchored panels', () => {
+        const layout = createNewActionPanelLayout({
+            'existing-panel': {
+                anchor: {
+                    horizontal: {edge: 'left', offset: MAP_FLOATING_INSET_PX},
+                    vertical: {edge: 'top', offset: MAP_FLOATING_INSET_PX},
+                },
+                width: 400,
+                height: null,
+            },
+        })
+
+        assert.equal(layout.anchor.horizontal.offset, MAP_FLOATING_INSET_PX + ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX)
+        assert.equal(layout.anchor.vertical.offset, MAP_FLOATING_INSET_PX + ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX)
+    })
+
+    it('staggers from the furthest top-left panel already on the map', () => {
+        const layout = createNewActionPanelLayout({
+            'first-panel': {
+                anchor: {
+                    horizontal: {edge: 'left', offset: MAP_FLOATING_INSET_PX},
+                    vertical: {edge: 'top', offset: MAP_FLOATING_INSET_PX},
+                },
+                width: 400,
+                height: null,
+            },
+            'second-panel': {
+                anchor: {
+                    horizontal: {edge: 'left', offset: MAP_FLOATING_INSET_PX + ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX},
+                    vertical: {edge: 'top', offset: MAP_FLOATING_INSET_PX + ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX},
+                },
+                width: 400,
+                height: null,
+            },
+        })
+
+        assert.equal(layout.anchor.horizontal.offset, MAP_FLOATING_INSET_PX + (ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX * 2))
+        assert.equal(layout.anchor.vertical.offset, MAP_FLOATING_INSET_PX + (ACTION_PANEL_NEW_LAYOUT_OFFSET_STEP_PX * 2))
     })
 })
 

@@ -6,7 +6,7 @@ import {
     readCookieValue,
     writeCookieJsonValue,
 } from '@/app/tools/browser/CookieStorage'
-import {DEFAULT_ACTION_PANELS_STATE} from '@/app/tools/actionPanels/actionPanelDefaults'
+import {DEFAULT_ACTION_PANELS_STATE, MAX_ACTION_PANEL_COUNT} from '@/app/tools/actionPanels/actionPanelDefaults'
 import {
     createEmptyActionPanel,
     normalizeActionPanelsState,
@@ -70,17 +70,30 @@ export function ActionPanelsProvider({children, initialActionPanels}) {
     }, [])
 
     const addActionPanel = useCallback(({title} = {}) => {
-        const {panel, layout} = createEmptyActionPanel({title})
+        let newPanelId = null
 
-        updateActionPanelsState((currentState) => ({
-            panels: [...currentState.panels, panel],
-            layouts: {
-                ...currentState.layouts,
-                [panel.id]: layout,
-            },
-        }))
+        updateActionPanelsState((currentState) => {
+            if (currentState.panels.length >= MAX_ACTION_PANEL_COUNT) {
+                return currentState
+            }
 
-        return panel.id
+            const {panel, layout} = createEmptyActionPanel({
+                title,
+                existingLayouts: currentState.layouts,
+            })
+
+            newPanelId = panel.id
+
+            return {
+                panels: [...currentState.panels, panel],
+                layouts: {
+                    ...currentState.layouts,
+                    [panel.id]: layout,
+                },
+            }
+        })
+
+        return newPanelId
     }, [updateActionPanelsState])
 
     const removeActionPanel = useCallback((panelId) => {
