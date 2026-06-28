@@ -32,6 +32,7 @@ export const DEFAULT_SIMULATION_SETTINGS = {
     plotAssociationThresholdNm: 3,
     qualityPreset: 'low',
     adaptivePerformanceEnabled: true,
+    viewportBasedTrackDroppingEnabled: true,
     simulationEnabled: true,
     maxActiveFlights: 400,
     viewportPaddingDegrees: 0.5,

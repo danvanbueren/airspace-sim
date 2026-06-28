@@ -117,6 +117,30 @@ export default function SettingsModalSimulationPage() {
                     )}
                     label='Adaptive performance balancing'
                 />
+                <Typography variant='caption' color='text.secondary' sx={{display: 'block', mt: -1, mb: 2}}>
+                    Monitors frame times and gradually lowers the simulation tick rate when the
+                    system is under load. Does not delete flights or trim the global fleet. The
+                    performance overlay throttle percentage shows how far the engine has backed
+                    off from the configured track update rate.
+                </Typography>
+
+                <FormControlLabel
+                    control={(
+                        <Switch
+                            checked={Boolean(appSettings.viewportBasedTrackDroppingEnabled)}
+                            onChange={(event) => updateSimulationSettings({
+                                viewportBasedTrackDroppingEnabled: event.target.checked,
+                            })}
+                        />
+                    )}
+                    label='Viewport-based track dropping'
+                />
+                <Typography variant='caption' color='text.secondary' sx={{display: 'block', mt: -1, mb: 2}}>
+                    When enabled, sensor scans are limited to the visible map area (plus padding).
+                    Tracks that leave the viewport eventually go stale and may auto-drop. When
+                    disabled, the engine scans the full global fleet so all firm tracks keep
+                    receiving sensor updates regardless of map position.
+                </Typography>
 
                 <Stack spacing={2} sx={{mt: 2}}>
                     {SIMULATION_QUALITY_FIELDS.map((field) => (

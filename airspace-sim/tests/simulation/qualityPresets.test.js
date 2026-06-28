@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {
+    DEFAULT_SIMULATION_SETTINGS,
     QUALITY_PRESET_CUSTOM,
     qualityPresetMatchesSettings,
     resolveQualityPresetAfterManualTuning,
 } from '../../app/simulation/constants.js'
 
 describe('quality presets', () => {
+    it('defaults viewport-based track dropping to enabled', () => {
+        assert.equal(DEFAULT_SIMULATION_SETTINGS.viewportBasedTrackDroppingEnabled, true)
+    })
+
     it('matches preset tuning values exactly', () => {
         assert.equal(qualityPresetMatchesSettings('balanced', {
             trackUpdateHz: 10,
