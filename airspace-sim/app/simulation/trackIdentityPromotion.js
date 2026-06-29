@@ -5,6 +5,7 @@ import {
     normalizeTrackDomain,
 } from '../tools/milstd2525/trackSymbolCodes.js'
 import {getDefaultSpecificTypeForTrackType} from '../tools/milstd2525/trackSpecificTypes.js'
+import {isReferencePoint} from './trackKinds.js'
 import {
     isValidMode3Code,
 } from './iffMode3.js'
@@ -57,6 +58,10 @@ export function getIdentityPromotionTypeForTrack(track) {
 }
 
 export function getTrackIdentityPromotionUpdates(track, timestamp) {
+    if (isReferencePoint(track)) {
+        return null
+    }
+
     if (track.identity !== TRACK_IDENTITIES.PENDING) {
         return null
     }

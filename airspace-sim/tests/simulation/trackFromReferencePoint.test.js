@@ -95,7 +95,7 @@ describe('trackFromReferencePoint', () => {
             callsign: 'ALPHA1',
             identity: TRACK_IDENTITIES.HOSTILE,
             infoFields: false,
-        }, existingTrack, 2000)
+        }, existingTrack, ['identity'], 2000)
 
         assert.equal(updatedTrack.callsign, 'ALPHA1')
         assert.equal(updatedTrack.identity, TRACK_IDENTITIES.HOSTILE)
@@ -103,5 +103,29 @@ describe('trackFromReferencePoint', () => {
         assert.equal(updatedTrack.dropProtect, true)
         assert.equal(updatedTrack.speed, 0)
         assert.equal(updatedTrack.lastUserEditAt, 2000)
+        assert.deepEqual(updatedTrack.lastManagementEditFields, ['identity'])
+    })
+
+    it('resets pending timing and records identity edits when returning to pending', () => {
+        const existingTrack = createReferencePointTrack({
+            longitude: -77,
+            latitude: 38,
+            trackId: 'RP-EXIST01',
+            callsign: 'RP01',
+            identity: TRACK_IDENTITIES.FRIENDLY,
+            timestamp: 1000,
+        })
+
+        const updatedTrack = createReferencePointUpdateFromManagementWindow({
+            trackId: 'RP-EXIST01',
+            lngLat: {lng: -77, lat: 38},
+            callsign: 'RP01',
+            identity: TRACK_IDENTITIES.PENDING,
+            infoFields: false,
+        }, existingTrack, ['identity'], 20_000)
+
+        assert.equal(updatedTrack.identity, TRACK_IDENTITIES.PENDING)
+        assert.equal(updatedTrack.identityPendingSinceAt, 20_000)
+        assert.deepEqual(updatedTrack.lastManagementEditFields, ['identity'])
     })
 })

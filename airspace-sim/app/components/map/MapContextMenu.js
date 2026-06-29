@@ -16,6 +16,7 @@ import {
 } from '@/app/tools/formatting/GridReferenceFormatting'
 import GridReferenceSystemSelect from '@/app/components/map/GridReferenceSystemSelect'
 import {shouldShowDropAttention} from '@/app/simulation/trackAutoDrop'
+import {isReferencePoint} from '@/app/simulation/trackKinds'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
 function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef) {
@@ -60,8 +61,9 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     const hasBearingRangeLine = Boolean(elementContainer.line)
     const track = elementContainer.track ?? null
     const hasTrack = Boolean(track)
+    const isReferencePointTrack = isReferencePoint(track)
     const showRecoverTrack = hasTrack && shouldShowDropAttention(track)
-    const dropProtectEnabled = Boolean(track?.dropProtect)
+    const dropProtectEnabled = Boolean(track?.dropProtect) && !isReferencePointTrack
     const formattedCoordinates = formatPositionTextForGridReferenceSystem(
         elementContainer.lngLat.lat,
         elementContainer.lngLat.lng,
@@ -183,7 +185,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     </Button>
                 )}
 
-                {hasTrack && (
+                {hasTrack && !isReferencePointTrack && (
                     <Button
                         color='primary'
                         size='small'

@@ -193,6 +193,7 @@ export default function MapView({
             ? createReferencePointUpdateFromManagementWindow(
                 trackManagementWindow,
                 existingTrack,
+                changedFields,
                 getSimulationTimestamp(),
             )
             : createTrackUpdateFromManagementWindow(

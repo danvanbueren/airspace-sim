@@ -4,6 +4,8 @@ import {
     TRACK_DOMAINS,
     TRACK_IDENTITIES,
 } from '../tools/milstd2525/trackSymbolCodes.js'
+import {accumulateManagementEditFields} from '../tools/map/trackManagementTrack.js'
+import {getAuthoritativeManagementEditFields} from './correlationHold.js'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 import {TRACK_KINDS} from './trackKinds.js'
 
@@ -110,12 +112,18 @@ export function createTrackFromReferencePointManagementWindow(
 export function createReferencePointUpdateFromManagementWindow(
     trackManagementWindow,
     existingTrack,
+    changedFields,
     timestamp = Date.now(),
 ) {
     const baseTrack = existingTrack ?? createTrackFromReferencePointManagementWindow(
         trackManagementWindow,
         timestamp,
     )
+    const changedFieldSet = changedFields instanceof Set
+        ? changedFields
+        : new Set(changedFields ?? [])
+    const identityChangedToPending = changedFieldSet.has('identity')
+        && trackManagementWindow.identity === TRACK_IDENTITIES.PENDING
 
     return {
         ...baseTrack,
@@ -126,6 +134,11 @@ export function createReferencePointUpdateFromManagementWindow(
         infoFields: Boolean(trackManagementWindow.infoFields),
         userDirected: true,
         lastUserEditAt: timestamp,
+        lastManagementEditFields: accumulateManagementEditFields(
+            getAuthoritativeManagementEditFields(baseTrack, timestamp),
+            changedFields,
+        ),
+        ...(identityChangedToPending ? {identityPendingSinceAt: timestamp} : {}),
         trackKind: TRACK_KINDS.REFERENCE_POINT,
         correlationMode: TRACK_CORRELATION_MODES.SUSPEND,
         dropProtect: true,

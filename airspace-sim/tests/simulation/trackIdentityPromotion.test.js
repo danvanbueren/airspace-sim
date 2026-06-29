@@ -13,6 +13,7 @@ import {
     TRACK_IDENTITIES,
     TRACK_TYPES,
 } from '../../app/tools/milstd2525/trackSymbolCodes.js'
+import {TRACK_KINDS} from '../../app/simulation/trackKinds.js'
 import {MODE3_CODE_VFR_US} from '../../app/simulation/iffMode3.js'
 import {applyIffCorrelationFields} from '../../app/simulation/iffCorrelation.js'
 
@@ -192,5 +193,18 @@ describe('trackIdentityPromotion', () => {
         const track = trackStore.getTrack('TRK-1')
         assert.equal(track.identity, TRACK_IDENTITIES.UNKNOWN)
         assert.equal(track.type, TRACK_TYPES.AIR_UNSPECIFIED)
+    })
+
+    it('does not auto-promote reference point identities', () => {
+        const updates = getTrackIdentityPromotionUpdates({
+            trackKind: TRACK_KINDS.REFERENCE_POINT,
+            trackId: 'RP-1',
+            identity: TRACK_IDENTITIES.PENDING,
+            identityPendingSinceAt: 0,
+            domain: TRACK_DOMAINS.ACTIVITY,
+            dropProtect: true,
+        }, PENDING_IDENTITY_TIMEOUT_MS)
+
+        assert.equal(updates, null)
     })
 })
