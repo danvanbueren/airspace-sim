@@ -3,7 +3,6 @@
 import {forwardRef, useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react'
 import {
     Box,
-    Checkbox,
     Divider,
     FormControl,
     FormControlLabel,
@@ -14,6 +13,7 @@ import {
     Paper,
     Select,
     Stack,
+    Switch,
     TextField,
     Typography,
     useTheme,
@@ -134,7 +134,7 @@ function isTrackManagementInteractiveTarget(target) {
     }
 
     return Boolean(target.closest(
-        'input, textarea, select, button, label, [role="combobox"], [role="listbox"], [role="option"], [role="checkbox"], .MuiInputBase-root, .MuiFormControl-root, .MuiCheckbox-root, .MuiFormControlLabel-root, .MuiIconButton-root',
+        'input, textarea, select, button, label, [role="combobox"], [role="listbox"], [role="option"], [role="checkbox"], [role="switch"], .MuiInputBase-root, .MuiFormControl-root, .MuiCheckbox-root, .MuiSwitch-root, .MuiFormControlLabel-root, .MuiIconButton-root',
     ))
 }
 
@@ -808,75 +808,69 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 }}
             >
             <Stack spacing={1.5} sx={{p: 2}}>
-                <Typography sx={{fontWeight: 'bold'}}>
-                    {isReferencePoint ? 'Reference Point ID' : 'Track ID'}: {trackManagementWindow.trackId}
-                </Typography>
+                {isReferencePoint ? (
+                    <Typography sx={{fontWeight: 'bold'}}>
+                        Reference Point ID: {trackManagementWindow.trackId}
+                    </Typography>
+                ) : (
+                    <Typography
+                        variant='caption'
+                        color='text.secondary'
+                        sx={{fontSize: '0.7rem', lineHeight: 1.2}}
+                    >
+                        System ID: {trackManagementWindow.trackId}
+                    </Typography>
+                )}
 
                 {!isReferencePoint && (
                     <>
-                        <Box>
+                        {visibleAttentionFlags.length > 0 ? (
+                            <>
+                                <Box>
+                                    <Typography
+                                        sx={{
+                                            fontWeight: 'bold',
+                                            fontSize: '0.8rem',
+                                            mb: 0.75,
+                                        }}
+                                    >
+                                        Attention Flags
+                                    </Typography>
+                                    <AttentionFlagPills flagIds={visibleAttentionFlags} dense/>
+                                </Box>
+
+                                <Divider/>
+                            </>
+                        ) : null}
+
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.75,
+                                flexWrap: 'wrap',
+                            }}
+                        >
                             <Typography
                                 sx={{
                                     fontWeight: 'bold',
                                     fontSize: '0.8rem',
-                                    mb: 0.75,
                                 }}
                             >
-                                Attention Flags
+                                IFF Mode 3:
                             </Typography>
-                            {visibleAttentionFlags.length > 0 ? (
-                                <AttentionFlagPills flagIds={visibleAttentionFlags} dense/>
-                            ) : (
-                                <Typography
-                                    variant='body2'
-                                    color='text.secondary'
-                                    sx={{fontSize: '0.75rem'}}
-                                >
-                                    None
-                                </Typography>
-                            )}
-                        </Box>
-
-                        <Divider/>
-
-                        <Box>
                             <Typography
                                 sx={{
-                                    fontWeight: 'bold',
                                     fontSize: '0.8rem',
-                                    mb: 0.75,
+                                    color: iffMode3Stale ? 'text.disabled' : 'text.primary',
                                 }}
                             >
-                                IFF Mode 3
+                                {trackManagementWindow.iffMode3Code
+                                    ? iffMode3Display
+                                    : 'No correlated IFF return'}
                             </Typography>
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 0.75,
-                                    flexWrap: 'wrap',
-                                }}
-                            >
-                                <Typography
-                                    sx={{
-                                        fontSize: '0.8rem',
-                                        color: iffMode3Stale ? 'text.disabled' : 'text.primary',
-                                    }}
-                                >
-                                    {iffMode3Display}
-                                </Typography>
-                                {iffMode3Stale ? (
-                                    <AttentionFlagPills flagIds={['IFF_STALE']} dense/>
-                                ) : null}
-                            </Box>
-                            {!trackManagementWindow.iffMode3Code ? (
-                                <Typography
-                                    variant='body2'
-                                    color='text.secondary'
-                                    sx={{fontSize: '0.75rem', mt: 0.5}}
-                                >
-                                    No correlated IFF return
-                                </Typography>
+                            {iffMode3Stale ? (
+                                <AttentionFlagPills flagIds={['IFF_STALE']} dense/>
                             ) : null}
                         </Box>
 
@@ -918,7 +912,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     onBlur={handleCallsignBlur}
                     slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
                     error={Boolean(callsignError)}
-                    helperText={callsignError ?? 'Letters and numbers only.'}
+                    helperText={callsignError ?? undefined}
                     fullWidth
                 />
 
@@ -1049,7 +1043,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
 
                 <FormControlLabel
                     control={(
-                        <Checkbox
+                        <Switch
                             checked={Boolean(trackManagementWindow.infoFields)}
                             onChange={(event) => updateField('infoFields', event.target.checked)}
                             onFocus={() => handleNonKinematicFieldFocus('infoFields')}

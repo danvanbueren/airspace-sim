@@ -11,8 +11,6 @@ import {
 } from '@/app/tools/formatting/GridReferenceFormatting'
 import {TEXT_INPUT_ENTER_BLUR_SLOT_PROPS} from '@/app/tools/ui/textInputSlotProps'
 
-const POSITION_INPUT_LABEL_OFFSET_PX = 16
-
 function coordinatesEqual(first, second) {
     return Math.abs(first.lat - second.lat) < 1e-9
         && Math.abs(first.lng - second.lng) < 1e-9
@@ -102,7 +100,7 @@ export default function PositionReferenceEditor({
 
     return (
         <Box>
-            <Grid container spacing={1} sx={{alignItems: 'stretch'}}>
+            <Grid container spacing={1} sx={{alignItems: 'flex-start'}}>
                 <Grid size='grow' sx={{minWidth: 0}}>
                     <TextField
                         label='Position'
@@ -148,17 +146,23 @@ export default function PositionReferenceEditor({
                         }}
                     />
                 </Grid>
-                <Grid size='auto' sx={{display: 'flex', minWidth: '3rem'}}>
+                <Grid
+                    size='auto'
+                    sx={{
+                        display: 'flex',
+                        minWidth: '3rem',
+                        alignSelf: 'stretch',
+                        pt: '8px',
+                        boxSizing: 'border-box',
+                    }}
+                >
                     <GridReferenceSystemSelect
                         value={gridReferenceSystem}
                         onChange={handleGridReferenceSystemChange}
                         zIndex={zIndex}
                         disabled={disabled}
                         matchInputHeight
-                        sx={{
-                            alignSelf: 'stretch',
-                            mt: `${POSITION_INPUT_LABEL_OFFSET_PX}px`,
-                        }}
+                        sx={{width: '100%'}}
                     />
                 </Grid>
             </Grid>
