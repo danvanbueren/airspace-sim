@@ -123,11 +123,11 @@ describe('trackAttentionFlags', () => {
 })
 
 describe('trackAttentionDisplay', () => {
-    it('uses darker yellow with a black outline for light-mode map labels', () => {
+    it('uses darker yellow with a white outline for light-mode map labels', () => {
         const styles = getAttentionMapLabelStyles('light')
 
         assert.equal(styles.color, '#C9A000')
-        assert.match(styles.textShadow, /#000/)
+        assert.match(styles.textShadow, /#fff/)
     })
 
     it('keeps the amber glow styling for dark-mode map labels', () => {

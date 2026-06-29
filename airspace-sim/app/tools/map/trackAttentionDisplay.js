@@ -8,14 +8,14 @@ const ATTENTION_AMBER_LIGHT_MODE = '#C9A000'
 
 const ATTENTION_MAP_GLOW_SHADOW = '0 0 4px rgba(0, 0, 0, 0.85)'
 const ATTENTION_MAP_TEXT_OUTLINE_SHADOW = [
-    '-1px -1px 0 #000',
-    '1px -1px 0 #000',
-    '-1px 1px 0 #000',
-    '1px 1px 0 #000',
-    '0 -1px 0 #000',
-    '0 1px 0 #000',
-    '-1px 0 0 #000',
-    '1px 0 0 #000',
+    '-1px -1px 0 #fff',
+    '1px -1px 0 #fff',
+    '-1px 1px 0 #fff',
+    '1px 1px 0 #fff',
+    '0 -1px 0 #fff',
+    '0 1px 0 #fff',
+    '-1px 0 0 #fff',
+    '1px 0 0 #fff',
 ].join(', ')
 
 /**
