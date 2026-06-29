@@ -14,7 +14,7 @@ import {
     Typography,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import DeferredTextField from '@/app/components/global/DeferredTextField'
@@ -96,7 +96,7 @@ function PolygonVertexList({vertices, onChangeVertex, onAddVertex, onRemoveVerte
                             disabled={vertices.length <= 2}
                             onClick={() => onRemoveVertex(index)}
                         >
-                            <DeleteOutlineIcon fontSize='inherit'/>
+                            <DeleteOutlinedIcon fontSize='inherit'/>
                         </IconButton>
                     </Stack>
                     <PositionReferenceEditor
