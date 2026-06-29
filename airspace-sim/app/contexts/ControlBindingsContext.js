@@ -67,6 +67,22 @@ function normalizeKeyboardBindingKeys(value, fallbackKeys) {
         .map((key) => normalizeKey(key))
 }
 
+function normalizeScopeToolBindings(bindings) {
+    const defaults = DEFAULT_CONTROL_BINDINGS.scopeTool
+    const mergedBindings = {
+        ...defaults,
+        ...bindings,
+    }
+
+    return {
+        ...mergedBindings,
+        toggleGroupCriteriaCircle: normalizeKeyboardBindingKeys(
+            bindings?.toggleGroupCriteriaCircle,
+            defaults.toggleGroupCriteriaCircle,
+        ),
+    }
+}
+
 function normalizeBearingRangeToolBindings(bindings) {
     const defaults = DEFAULT_CONTROL_BINDINGS.bearingRangeTool
     const mergedBindings = {
@@ -108,6 +124,7 @@ function normalizeBindings(bindings) {
             DEFAULT_CONTROL_BINDINGS.mapCursor,
         ),
         bearingRangeTool: normalizeBearingRangeToolBindings(bindings?.bearingRangeTool),
+        scopeTool: normalizeScopeToolBindings(bindings?.scopeTool),
     }
 }
 

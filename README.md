@@ -275,6 +275,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - Optional **airport** and **air route** overlay layers.
 - Bearing/range measurements with configurable persistence (Settings → Look & Feel) and rebindable persist modifier (Settings → Keybinds).
 - Bearing/range line context menus and line removal controls (permanent lines only).
+- Group criteria circle toggle (default Caps Lock) that draws a 3 NM radius ring at the cursor, synced to the OS Caps Lock state when bound to Caps Lock.
 - Complete Control Reference in Settings → Usage Guide documenting every map control combo (with a link to Keybinds for rebinding).
 - Cursor coordinate overlay with selectable grid reference systems.
 - Supported coordinate displays include DD, DDM, DMS, GARS, Geohash, GEOREF, Killbox-style GARS, and MGRS.

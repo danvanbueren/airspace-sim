@@ -21,6 +21,7 @@ function formatKeyList(keys) {
         control: 'Control',
         alt: 'Alt',
         meta: 'Meta',
+        capslock: 'Caps Lock',
     }
 
     return keys.map((key) => labels[key.toLowerCase()] ?? key.toUpperCase()).join(' + ')
@@ -123,7 +124,7 @@ function buildBearingRangeReferenceEntries(bearingRangeTool, bearingRangeBehavio
 }
 
 export function buildControlReference(controlBindings, {bearingRangeBehavior = 'temporary_default'} = {}) {
-    const {keyboardCamera, mapCursor, bearingRangeTool} = controlBindings
+    const {keyboardCamera, mapCursor, bearingRangeTool, scopeTool} = controlBindings
     const centerKeyLabel = formatKeyList(keyboardCamera.centerMap)
     const panSpeedModifierLabel = formatKeyList(keyboardCamera.panSpeedModifier)
 
@@ -217,6 +218,16 @@ export function buildControlReference(controlBindings, {bearingRangeBehavior = '
                     action: 'Open line context menu',
                     combo: `${mouseClick(bearingRangeTool.contextMenuButton)} on line`,
                     notes: 'Hit-tests permanent lines only',
+                },
+            ],
+        },
+        {
+            title: 'Map Scope Tools',
+            entries: [
+                {
+                    action: 'Toggle group criteria circle',
+                    combo: formatKeyList(scopeTool.toggleGroupCriteriaCircle),
+                    notes: 'Shows a 3 NM radius circle at the cursor. Caps Lock binding stays synced with the OS toggle.',
                 },
             ],
         },
