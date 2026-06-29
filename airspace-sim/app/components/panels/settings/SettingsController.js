@@ -1,8 +1,10 @@
+import BugReportIcon from '@mui/icons-material/BugReport'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import SettingsModal from './modal/SettingsModal'
 import SettingsToolbelt from './toolbelt/SettingsToolbelt'
 import {useEffect, useMemo, useState} from 'react'
+import buildInfo from '@/app/buildInfo'
 import {useColorMode} from '@/app/contexts/CustomThemeContext'
 import {
     DEFAULT_SETTINGS_PAGE_ID,
@@ -59,6 +61,9 @@ export default function SettingsController({
                 ]),
         )
 
+        const githubIssuesLink = buildInfo().githubIssuesLink
+        const openGithubIssues = () => window.open(githubIssuesLink, '_blank', 'noopener,noreferrer')
+
         return {
             oneClick: [{
                 name: 'theme',
@@ -66,6 +71,12 @@ export default function SettingsController({
                 tooltip: 'Toggle theme',
                 onToolbeltClick: () => colorMode.toggleColorMode(),
                 onModalClick: () => colorMode.toggleColorMode(),
+            }, {
+                name: 'reportBug',
+                icon: <BugReportIcon/>,
+                tooltip: 'Report a bug',
+                onToolbeltClick: openGithubIssues,
+                onModalClick: openGithubIssues,
             }],
             sections: SETTINGS_NAV_SECTIONS.map((section) => {
                 if (section.type === 'divider') {
