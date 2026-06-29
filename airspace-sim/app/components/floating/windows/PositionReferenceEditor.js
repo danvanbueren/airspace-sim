@@ -157,11 +157,6 @@ export default function PositionReferenceEditor({
                                 fontSize: compact ? '0.7rem' : '0.8rem',
                                 whiteSpace: 'pre',
                             },
-                            ...(compact ? {
-                                '& .MuiInputLabel-root': {
-                                    fontSize: '0.75rem',
-                                },
-                            } : {}),
                         }}
                     />
                 </Box>

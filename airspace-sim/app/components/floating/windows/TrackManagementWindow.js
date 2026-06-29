@@ -908,6 +908,8 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     fullWidth
                 />
 
+                <Divider/>
+
                 {!isReferencePoint && (
                     <>
                         <FormControl size='small' fullWidth>
@@ -984,6 +986,8 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                             onOpen={() => handleSelectOpen('specificType')}
                             onClose={() => handleFieldBlur('specificType')}
                         />
+
+                        <Divider/>
                     </>
                 )}
 
