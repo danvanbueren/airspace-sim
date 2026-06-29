@@ -29,6 +29,7 @@ export default function GridReferenceSystemSelect({
     zIndex,
     disablePortal = true,
     disabled = false,
+    matchInputHeight = false,
     sx,
 }) {
     const {appSettings} = useAppSettings()
@@ -42,6 +43,14 @@ export default function GridReferenceSystemSelect({
             sx={{
                 minWidth: '3rem',
                 m: 0,
+                ...(matchInputHeight ? {
+                    height: '100%',
+                    display: 'flex',
+                    '& .MuiInputBase-root': {
+                        height: '100%',
+                        boxSizing: 'border-box',
+                    },
+                } : {}),
                 ...sx,
             }}
         >
@@ -53,10 +62,21 @@ export default function GridReferenceSystemSelect({
                 sx={{
                     fontFamily: 'monospace',
                     fontSize: '0.75rem',
+                    ...(matchInputHeight ? {
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                    } : {}),
                     '& .MuiSelect-select.MuiInputBase-input.MuiOutlinedInput-input': {
                         py: 0.5,
                         pl: 1,
                         paddingRight: '8px !important',
+                        ...(matchInputHeight ? {
+                            display: 'flex',
+                            alignItems: 'center',
+                            height: '100%',
+                            boxSizing: 'border-box',
+                        } : {}),
                     },
                     '& .MuiSelect-icon': {
                         display: 'none',
