@@ -1,0 +1,39 @@
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /airspace-sim
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    commit-message:
+      prefix: deps
+      include: scope
+    groups:
+      mui:
+        patterns:
+          - "@mui/*"
+          - "@emotion/*"
+      next-react:
+        patterns:
+          - next
+          - react
+          - react-dom
+      map:
+        patterns:
+          - maplibre-gl
+          - mgrs
+          - milsymbol
+      dev:
+        dependency-type: development
+        patterns:
+          - "*"
+    ignore:
+      # Optional: hold major bumps until you can run npm test && npm run build
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
