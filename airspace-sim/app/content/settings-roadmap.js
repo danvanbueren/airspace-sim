@@ -40,6 +40,7 @@ export default `Planned work for ${PROJECT_NAME}, grouped chronologically. Compl
 - ✅ Complete Control Reference in Settings → Usage Guide — ${commit('2294fef')} (moved from Keybinds)
 - ✅ Bearing/range persistence behavior selector in Settings → Look & Feel — ${commit('95f94c4')}
 - ✅ Group criteria circle toggle (Caps Lock, 3 NM radius) — ${commit('2478486')}
+- ✅ Draw Tool context menu entry opens compact draw-tools action panel — ${commit('d67c112')}
 
 ### Operator interface
 
@@ -70,6 +71,7 @@ export default `Planned work for ${PROJECT_NAME}, grouped chronologically. Compl
 
 ### Map & scope tools
 
+- 🔮 Draw geometry tools (rectangle, square, circle, oval, racetrack, polygon)
 - 🔮 Track-attached bearing/range line endpoints (line snapping)
 - 🔮 Reference point editing and management
 

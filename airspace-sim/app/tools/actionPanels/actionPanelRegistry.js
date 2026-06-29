@@ -23,6 +23,12 @@ export const ACTION_PANEL_ITEM_IDS = {
     ZOOM_OUT: 'ZOOM_OUT',
     HOME: 'HOME',
     CENTER_E3: 'CENTER_E3',
+    DRAW_RECTANGLE: 'DRAW_RECTANGLE',
+    DRAW_SQUARE: 'DRAW_SQUARE',
+    DRAW_CIRCLE: 'DRAW_CIRCLE',
+    DRAW_OVAL: 'DRAW_OVAL',
+    DRAW_RACETRACK: 'DRAW_RACETRACK',
+    DRAW_POLYGON: 'DRAW_POLYGON',
 }
 
 function formatActionLabel(itemId) {
@@ -103,13 +109,69 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         label: formatActionLabel(ACTION_PANEL_ITEM_IDS.CENTER_E3),
         actionKey: ACTION_PANEL_ITEM_IDS.CENTER_E3,
     },
+    {
+        id: ACTION_PANEL_ITEM_IDS.DRAW_RECTANGLE,
+        type: ACTION_PANEL_ITEM_TYPES.BUTTON,
+        label: 'Rectangle',
+        actionKey: ACTION_PANEL_ITEM_IDS.DRAW_RECTANGLE,
+        iconKey: ACTION_PANEL_ITEM_IDS.DRAW_RECTANGLE,
+        disabled: true,
+        assignable: false,
+    },
+    {
+        id: ACTION_PANEL_ITEM_IDS.DRAW_SQUARE,
+        type: ACTION_PANEL_ITEM_TYPES.BUTTON,
+        label: 'Square',
+        actionKey: ACTION_PANEL_ITEM_IDS.DRAW_SQUARE,
+        iconKey: ACTION_PANEL_ITEM_IDS.DRAW_SQUARE,
+        disabled: true,
+        assignable: false,
+    },
+    {
+        id: ACTION_PANEL_ITEM_IDS.DRAW_CIRCLE,
+        type: ACTION_PANEL_ITEM_TYPES.BUTTON,
+        label: 'Circle',
+        actionKey: ACTION_PANEL_ITEM_IDS.DRAW_CIRCLE,
+        iconKey: ACTION_PANEL_ITEM_IDS.DRAW_CIRCLE,
+        disabled: true,
+        assignable: false,
+    },
+    {
+        id: ACTION_PANEL_ITEM_IDS.DRAW_OVAL,
+        type: ACTION_PANEL_ITEM_TYPES.BUTTON,
+        label: 'Oval',
+        actionKey: ACTION_PANEL_ITEM_IDS.DRAW_OVAL,
+        iconKey: ACTION_PANEL_ITEM_IDS.DRAW_OVAL,
+        disabled: true,
+        assignable: false,
+    },
+    {
+        id: ACTION_PANEL_ITEM_IDS.DRAW_RACETRACK,
+        type: ACTION_PANEL_ITEM_TYPES.BUTTON,
+        label: 'Racetrack',
+        actionKey: ACTION_PANEL_ITEM_IDS.DRAW_RACETRACK,
+        iconKey: ACTION_PANEL_ITEM_IDS.DRAW_RACETRACK,
+        disabled: true,
+        assignable: false,
+    },
+    {
+        id: ACTION_PANEL_ITEM_IDS.DRAW_POLYGON,
+        type: ACTION_PANEL_ITEM_TYPES.BUTTON,
+        label: 'Polygon',
+        actionKey: ACTION_PANEL_ITEM_IDS.DRAW_POLYGON,
+        iconKey: ACTION_PANEL_ITEM_IDS.DRAW_POLYGON,
+        disabled: true,
+        assignable: false,
+    },
 ]
 
 export const ACTION_PANEL_ITEM_CATALOG_BY_ID = Object.fromEntries(
     ACTION_PANEL_ITEM_CATALOG.map((entry) => [entry.id, entry]),
 )
 
-export const ACTION_PANEL_ASSIGNABLE_ITEMS = ACTION_PANEL_ITEM_CATALOG
+export const ACTION_PANEL_ASSIGNABLE_ITEMS = ACTION_PANEL_ITEM_CATALOG.filter(
+    (item) => item.assignable !== false,
+)
 
 export function getActionPanelItemDefinition(itemId) {
     return ACTION_PANEL_ITEM_CATALOG_BY_ID[itemId] ?? null

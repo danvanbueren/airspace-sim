@@ -50,6 +50,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import './mapAttributionTheme.css'
 import {useAlarmAlertActions} from '../../hooks/global/useAlarmAlertActions'
 import {usePerformanceInstrumentation} from '@/app/contexts/PerformanceMonitorContext'
+import {useOpenDrawToolsPanel} from '@/app/hooks/map/useOpenDrawToolsPanel'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -143,6 +144,7 @@ export default function MapView({
         openBearingRangeContextMenu,
         closeContextMenu,
     } = useMapContextMenuState(contextMenuRef)
+    const {openDrawToolsPanel} = useOpenDrawToolsPanel()
 
     const handleMapContextMenu = useCallback(({point, mapPoint, lngLat, line}) => {
         const layerTrack = mapPoint ? trackMapLayer.getTrackAtMapPoint(mapPoint) : null
@@ -175,6 +177,11 @@ export default function MapView({
         clearBearingRangeLines()
         closeContextMenu()
     }, [clearBearingRangeLines, closeContextMenu])
+
+    const handleOpenDrawTools = useCallback((elementContainer) => {
+        openDrawToolsPanel(elementContainer, mapContainerRef)
+        closeContextMenu()
+    }, [closeContextMenu, mapContainerRef, openDrawToolsPanel])
 
     const handleTrackCreated = useCallback((trackManagementWindow) => {
         const track = isReferencePointManagementWindow(trackManagementWindow)
@@ -575,6 +582,7 @@ export default function MapView({
                 mapContainerRef={mapContainerRef}
                 onInitiateTrack={initiateTrack}
                 onCreateReferencePoint={handleCreateReferencePoint}
+                onOpenDrawTools={handleOpenDrawTools}
                 onDropTrack={handleDropTrack}
                 onRecoverTrack={handleRecoverTrack}
                 onToggleDropProtect={handleToggleDropProtect}
