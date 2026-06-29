@@ -5,19 +5,35 @@ import {
     Box,
     Button,
     Divider,
-    Grid,
     Paper,
     Stack,
-    Typography
+    Typography,
 } from '@mui/material'
-import {useAppSettings} from '@/app/contexts/AppSettingsContext'
-import {
-    formatPositionTextForGridReferenceSystem,
-} from '@/app/tools/formatting/GridReferenceFormatting'
-import GridReferenceSystemSelect from '@/app/components/map/GridReferenceSystemSelect'
+import PositionReferenceEditor from '@/app/components/floating/windows/PositionReferenceEditor'
 import {shouldShowDropAttention} from '@/app/simulation/trackAutoDrop'
 import {isReferencePoint} from '@/app/simulation/trackKinds'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
+
+const CONTEXT_MENU_WIDTH_PX = 300
+
+const CONTEXT_MENU_MONOSPACE_SX = {
+    fontFamily: 'monospace',
+    '& .MuiTypography-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiInputBase-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiInputLabel-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiFormHelperText-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiSelect-select': {
+        fontFamily: 'monospace',
+    },
+}
 
 function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef) {
     const edgePadding = 8
@@ -29,11 +45,13 @@ function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerR
     let left = elementContainer.x
     let top = elementContainer.y
 
-    if (menuWidth && left + menuWidth > containerWidth - edgePadding)
+    if (menuWidth && left + menuWidth > containerWidth - edgePadding) {
         left = elementContainer.x - menuWidth
+    }
 
-    if (menuHeight && top + menuHeight > containerHeight - edgePadding)
+    if (menuHeight && top + menuHeight > containerHeight - edgePadding) {
         top = elementContainer.y - menuHeight
+    }
 
     return {
         left: Math.max(edgePadding, left),
@@ -41,22 +59,34 @@ function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerR
     }
 }
 
-const MapContextMenu = forwardRef(function MapContextMenu({
-                                                                  elementContainer,
-                                                                  contextMenuSize,
-                                                                  mapContainerRef,
-                                                                  onInitiateTrack,
-                                                                  onCreateReferencePoint,
-                                                                  onDropTrack,
-                                                                  onRecoverTrack,
-                                                                  onToggleDropProtect,
-                                                                  onRemoveBearingRangeLine,
-                                                                  onClearBearingRangeLines,
-                                                                  lines,
-                                                              }, ref) {
-    const {appSettings, setGridReferenceSystem} = useAppSettings()
+function getDynamicActionsSectionTitle(track) {
+    if (isReferencePoint(track)) {
+        return 'RP Actions'
+    }
 
-    if (!elementContainer) return null
+    if (track) {
+        return 'Track Actions'
+    }
+
+    return 'Dynamic Actions'
+}
+
+const MapContextMenu = forwardRef(function MapContextMenu({
+    elementContainer,
+    contextMenuSize,
+    mapContainerRef,
+    onInitiateTrack,
+    onCreateReferencePoint,
+    onDropTrack,
+    onRecoverTrack,
+    onToggleDropProtect,
+    onRemoveBearingRangeLine,
+    onClearBearingRangeLines,
+    lines,
+}, ref) {
+    if (!elementContainer) {
+        return null
+    }
 
     const hasBearingRangeLine = Boolean(elementContainer.line)
     const track = elementContainer.track ?? null
@@ -64,11 +94,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     const isReferencePointTrack = isReferencePoint(track)
     const showRecoverTrack = hasTrack && shouldShowDropAttention(track)
     const dropProtectEnabled = Boolean(track?.dropProtect) && !isReferencePointTrack
-    const formattedCoordinates = formatPositionTextForGridReferenceSystem(
-        elementContainer.lngLat.lat,
-        elementContainer.lngLat.lng,
-        appSettings.gridReferenceSystem,
-    ).split('\n')
+    const dynamicActionsSectionTitle = getDynamicActionsSectionTitle(track)
 
     return (
         <Paper
@@ -79,49 +105,31 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                 position: 'absolute',
                 ...getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef),
                 zIndex: UI_Z_INDEX.CONTEXT_MENU,
-                width: 220,
+                width: CONTEXT_MENU_WIDTH_PX,
                 pointerEvents: 'auto',
                 userSelect: 'none',
                 overflow: 'hidden',
+                ...CONTEXT_MENU_MONOSPACE_SX,
             }}
         >
-
             <Box sx={{bgcolor: 'primary.main', p: 2}}>
-                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace', color: 'primary.contrastText', fontSize: '0.9rem'}}>
+                <Typography sx={{fontWeight: 'bold', color: 'primary.contrastText', fontSize: '0.9rem'}}>
                     Dynamic Context Menu
                 </Typography>
             </Box>
 
-            <Stack spacing={1} sx={{p: 2}}>
-                <Grid container spacing={1} sx={{display: 'flex', alignItems: 'center'}}>
-                    <Grid size='auto'>
-                        <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
-                            Position
-                        </Typography>
-                    </Grid>
-                    <Grid size='grow' sx={{display: 'flex', justifyContent: 'flex-end'}}>
-                        <GridReferenceSystemSelect
-                            value={appSettings.gridReferenceSystem}
-                            onChange={setGridReferenceSystem}
-                        />
-                    </Grid>
-                </Grid>
-
-                <Box>
-                    {formattedCoordinates.map((coordinateLine) => (
-                        <Typography
-                            key={coordinateLine}
-                            sx={{fontFamily: 'monospace', whiteSpace: 'pre', fontSize: '0.8rem'}}
-                        >
-                            {coordinateLine}
-                        </Typography>
-                    ))}
-                </Box>
+            <Stack spacing={1.5} sx={{p: 2}}>
+                <PositionReferenceEditor
+                    lat={elementContainer.lngLat.lat}
+                    lng={elementContainer.lngLat.lng}
+                    zIndex={UI_Z_INDEX.CONTEXT_MENU}
+                    readOnly
+                />
 
                 <Divider sx={{py: 0.5}}/>
 
-                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
-                    Actions
+                <Typography sx={{fontWeight: 'bold', fontSize: '0.8rem'}}>
+                    Scope Actions
                 </Typography>
 
                 <Button
@@ -129,7 +137,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     size='small'
                     variant='outlined'
                     onClick={() => {}}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    sx={{justifyContent: 'flex-start'}}
                     fullWidth
                     disabled
                 >
@@ -141,10 +149,10 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     size='small'
                     variant='outlined'
                     onClick={() => onCreateReferencePoint(elementContainer)}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    sx={{justifyContent: 'flex-start'}}
                     fullWidth
                 >
-                    Create Reference Point
+                    Initiate Ref Point
                 </Button>
 
                 <Button
@@ -152,82 +160,93 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     size='small'
                     variant='outlined'
                     onClick={() => onInitiateTrack(elementContainer)}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    sx={{justifyContent: 'flex-start'}}
                     fullWidth
                 >
                     Initiate Track
                 </Button>
 
-                {showRecoverTrack && (
+                <Divider sx={{py: 0.5}}/>
+
+                <Typography sx={{fontWeight: 'bold', fontSize: '0.8rem'}}>
+                    {dynamicActionsSectionTitle}
+                </Typography>
+
+                {showRecoverTrack ? (
                     <Button
                         color='warning'
                         size='small'
                         variant='outlined'
                         onClick={() => onRecoverTrack(track)}
-                        sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                        sx={{justifyContent: 'flex-start'}}
                         fullWidth
                     >
                         Recover Track
                     </Button>
-                )}
+                ) : null}
 
-                {hasTrack && (
+                {hasTrack ? (
                     <Button
                         color='warning'
                         size='small'
                         variant='outlined'
                         onClick={() => onDropTrack(track)}
-                        sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                        sx={{justifyContent: 'flex-start'}}
                         fullWidth
                         disabled={dropProtectEnabled}
                     >
                         Drop
                     </Button>
-                )}
+                ) : null}
 
-                {hasTrack && !isReferencePointTrack && (
+                {hasTrack && !isReferencePointTrack ? (
                     <Button
                         color='primary'
                         size='small'
                         variant='outlined'
                         onClick={() => onToggleDropProtect(track)}
-                        sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                        sx={{justifyContent: 'flex-start'}}
                         fullWidth
                     >
                         {dropProtectEnabled ? 'Disable Drop Protect' : 'Enable Drop Protect'}
                     </Button>
-                )}
+                ) : null}
 
                 <Divider sx={{py: 0.5}}/>
 
-                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
+                <Typography sx={{fontWeight: 'bold', fontSize: '0.8rem'}}>
                     Bearing/Range Lines
                 </Typography>
 
-                {hasBearingRangeLine && (<Button
-                    color='primary'
-                    size='small'
-                    variant='outlined'
-                    onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
-                    fullWidth
-                >
-                    Clear line
-                </Button>)}
+                {hasBearingRangeLine ? (
+                    <Button
+                        color='primary'
+                        size='small'
+                        variant='outlined'
+                        onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
+                        sx={{justifyContent: 'flex-start'}}
+                        fullWidth
+                    >
+                        Clear line
+                    </Button>
+                ) : null}
 
-                {!(hasBearingRangeLine && lines.length === 1) && (<Button
-                    color='warning'
-                    size='small'
-                    variant='outlined'
-                    onClick={onClearBearingRangeLines}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
-                    disabled={lines.length < 1}
-                    fullWidth
-                >
-                    Clear all lines
-                </Button>)}
+                {!(hasBearingRangeLine && lines.length === 1) ? (
+                    <Button
+                        color='warning'
+                        size='small'
+                        variant='outlined'
+                        onClick={onClearBearingRangeLines}
+                        sx={{justifyContent: 'flex-start'}}
+                        disabled={lines.length < 1}
+                        fullWidth
+                    >
+                        Clear all lines
+                    </Button>
+                ) : null}
             </Stack>
-        </Paper>)
+        </Paper>
+    )
 })
 
 export default MapContextMenu

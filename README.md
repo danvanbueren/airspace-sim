@@ -259,7 +259,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - **Track merge** after correlation — collapses duplicate tracks competing for the same sensor return; formation pairs correlating separately are left alone ([details](docs/architecture/simulation-architecture.md#track-merge-and-deduplication)).
 - **Automatic track initiation** after three per-sensor plot updates on uncorrelated returns only.
 - Manual track initiation and editing from the map context menu, with correlation mode (active / extrapolated / suspend); editing an auto track converts it to manual.
-- Reference point creation from the map context menu — suspended, drop-protected markers with MIL-STD control-measure symbology, auto-assigned RP## labels, and a simplified Reference Point management window.
+- Reference point creation from the map context menu (**Initiate Ref Point**) — suspended, drop-protected markers with MIL-STD control-measure symbology, auto-assigned RP## labels, and a simplified Reference Point management window.
 - Track Management window with domain, identity, MIL-STD type, searchable platform-specific type, callsign validation, optional symbol info fields, live attention-flag pills, and scrollable content when the map viewport is too short to show every field.
 - On-map track attention flags (amber, monospace, synchronized flash) pinned beside tracks; up to five lines with overflow summary. Emergency IFF codes (`7500`, `7600`, `7700`) raise both attention flags and alarm alerts.
 - Automatic drop of uncorrelated tracks after a countdown (invisible DROP-RISK, then visible DROP attention, then removal); drop protect shows a PROT attention flag and recover actions in the context menu.

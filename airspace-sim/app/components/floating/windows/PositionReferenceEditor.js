@@ -25,6 +25,7 @@ export default function PositionReferenceEditor({
     onBlur,
     zIndex,
     disabled = false,
+    readOnly = false,
 }) {
     const {appSettings, setGridReferenceSystem} = useAppSettings()
     const [draft, setDraft] = useState(null)
@@ -42,7 +43,7 @@ export default function PositionReferenceEditor({
     ).split('\n').length
     const positionFieldSize = useMeasuredElementSize(
         positionFieldRef,
-        [displayText, positionRowCount, error, disabled],
+        [displayText, positionRowCount, error, disabled, readOnly],
     )
 
     useEffect(() => {
@@ -115,9 +116,9 @@ export default function PositionReferenceEditor({
                         minRows={positionRowCount}
                         maxRows={4}
                         value={displayText}
-                        onFocus={handleFocus}
-                        onChange={(event) => setDraft(event.target.value)}
-                        onBlur={handleBlur}
+                        onFocus={readOnly ? undefined : handleFocus}
+                        onChange={readOnly ? undefined : (event) => setDraft(event.target.value)}
+                        onBlur={readOnly ? undefined : handleBlur}
                         error={Boolean(error)}
                         disabled={disabled}
                         fullWidth
@@ -125,7 +126,10 @@ export default function PositionReferenceEditor({
                             inputLabel: {
                                 shrink: true,
                             },
-                            htmlInput: TEXT_INPUT_ENTER_BLUR_SLOT_PROPS.htmlInput,
+                            htmlInput: {
+                                ...TEXT_INPUT_ENTER_BLUR_SLOT_PROPS.htmlInput,
+                                readOnly,
+                            },
                             input: {
                                 endAdornment: (
                                     <InputAdornment
