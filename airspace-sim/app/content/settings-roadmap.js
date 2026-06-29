@@ -41,6 +41,7 @@ export default `Planned work for ${PROJECT_NAME}, grouped chronologically. Compl
 - ✅ Bearing/range persistence behavior selector in Settings → Look & Feel — ${commit('95f94c4')}
 - ✅ Group criteria circle toggle (Caps Lock, 3 NM radius) — ${commit('2478486')}
 - ✅ Draw Tool context menu entry opens compact draw-tools action panel — ${commit('d67c112')}
+- ✅ Draw geometry tools with live preview, Geometry window, and map annotations — shipping in this change
 
 ### Operator interface
 

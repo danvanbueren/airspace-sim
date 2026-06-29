@@ -1,0 +1,658 @@
+'use client'
+
+import {useCallback, useEffect, useRef, useState} from 'react'
+import {
+    keyMatchesBinding,
+    useControlBindings,
+} from '@/app/contexts/ControlBindingsContext'
+import {useDrawGeometry} from '@/app/contexts/DrawGeometryContext'
+import {
+    MAP_CURSOR_PRIORITIES,
+    MAP_CURSOR_REQUESTS,
+} from '@/app/hooks/map/useMapCursorState'
+import {
+    deriveAxisAlignedHalfExtentsNm,
+    deriveCircleRadiusNm,
+    deriveRacetrackRadiusNm,
+    deriveSquareHalfSizeNm,
+    getRacetrackMaxRadiusNm,
+} from '@/app/tools/map/drawGeometry/drawGeometryGeometry'
+import {
+    isGeometryShapeComplete,
+    normalizeLngLat,
+} from '@/app/tools/map/drawGeometry/drawGeometryModels'
+import {
+    GEOMETRY_HIT_TEST_PIXEL_RADIUS,
+    GEOMETRY_SHAPE_TYPES,
+    GEOMETRY_STATUS,
+} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
+import {
+    createDrawGeometryPreviewOverlay,
+    drawGeometryPreviewOnOverlay,
+    removeDrawGeometryPreviewOverlay,
+    resizeDrawGeometryPreviewOverlay,
+} from '@/app/tools/map/drawGeometry/drawGeometryPreviewCanvas'
+import {
+    getDrawGeometryShapeAtMapPoint,
+    rehydrateDrawGeometryShapes,
+    setDrawGeometryShapes,
+} from '@/app/tools/map/drawGeometry/drawGeometryMapLayer'
+
+const DRAW_GEOMETRY_CURSOR = 'crosshair'
+
+function getDistancePixels(firstPoint, secondPoint) {
+    const deltaX = firstPoint.x - secondPoint.x
+    const deltaY = firstPoint.y - secondPoint.y
+
+    return Math.hypot(deltaX, deltaY)
+}
+
+export function useDrawGeometryTool(
+    mapRef,
+    enabled,
+    {
+        mapCursor,
+        themeMode = 'dark',
+        onShapePrimaryClick,
+        onShapeCommitted,
+        onDrawingCancelled,
+    } = {},
+) {
+    const {controlBindings} = useControlBindings()
+    const {
+        shapes,
+        activeDrawToolItemId,
+        activeShapeId,
+        updateShape,
+        deleteShape,
+        cancelPendingShape,
+        getShapeById,
+        getStrokeColor,
+        getFillColor,
+    } = useDrawGeometry()
+
+    const shapesRef = useRef(shapes)
+    const activeShapeIdRef = useRef(activeShapeId)
+    const activeDrawToolRef = useRef(activeDrawToolItemId)
+    const drawingPhaseRef = useRef(0)
+    const polygonPreviewLngLatRef = useRef(null)
+    const previewOverlayRef = useRef(null)
+    const appliedColorsRef = useRef(null)
+    const bindingsRef = useRef(controlBindings.drawGeometryTool)
+    const mapCursorRef = useRef(mapCursor)
+    const themeModeRef = useRef(themeMode)
+
+    shapesRef.current = shapes
+    activeShapeIdRef.current = activeShapeId
+    activeDrawToolRef.current = activeDrawToolItemId
+    bindingsRef.current = controlBindings.drawGeometryTool
+    mapCursorRef.current = mapCursor
+    themeModeRef.current = themeMode
+
+    const [isDrawingGeometry, setIsDrawingGeometry] = useState(false)
+
+    const getRenderableShapes = useCallback(() => shapesRef.current, [])
+
+    const getPreviewShapes = useCallback(() => {
+        const shapesList = shapesRef.current.map((shape) => ({...shape, params: {...shape.params}}))
+        const activeShape = activeShapeIdRef.current
+            ? shapesList.find((shape) => shape.id === activeShapeIdRef.current)
+            : null
+
+        if (
+            activeShape?.type === GEOMETRY_SHAPE_TYPES.POLYGON
+            && polygonPreviewLngLatRef.current
+            && (activeShape.params.vertices?.length ?? 0) > 0
+        ) {
+            activeShape.params.vertices = [
+                ...activeShape.params.vertices,
+                polygonPreviewLngLatRef.current,
+            ]
+        }
+
+        return shapesList
+    }, [])
+
+    const clearPreview = useCallback(() => {
+        removeDrawGeometryPreviewOverlay(previewOverlayRef.current)
+        previewOverlayRef.current = null
+    }, [])
+
+    const redrawPreview = useCallback(() => {
+        const map = mapRef.current
+        const overlay = previewOverlayRef.current
+
+        if (!map || !overlay) {
+            return
+        }
+
+        resizeDrawGeometryPreviewOverlay(map, overlay)
+        drawGeometryPreviewOnOverlay(
+            map,
+            overlay,
+            getPreviewShapes(),
+            getStrokeColor(themeModeRef.current),
+        )
+    }, [getPreviewShapes, getStrokeColor, mapRef])
+
+    const flushShapesToMapLayer = useCallback(() => {
+        const map = mapRef.current
+
+        if (!map) {
+            return false
+        }
+
+        const strokeColor = getStrokeColor(themeModeRef.current)
+        const fillColor = getFillColor(themeModeRef.current)
+        const textHaloColor = themeModeRef.current === 'dark' ? '#111111' : '#ffffff'
+
+        return setDrawGeometryShapes(
+            map,
+            getRenderableShapes(),
+            strokeColor,
+            fillColor,
+            textHaloColor,
+            appliedColorsRef,
+        )
+    }, [getFillColor, getRenderableShapes, getStrokeColor, mapRef])
+
+    const ensurePreviewOverlay = useCallback(() => {
+        const map = mapRef.current
+
+        if (!map) {
+            return
+        }
+
+        if (!previewOverlayRef.current) {
+            previewOverlayRef.current = createDrawGeometryPreviewOverlay(map)
+        }
+
+        redrawPreview()
+    }, [mapRef, redrawPreview])
+
+    const syncMapAndPreview = useCallback(() => {
+        if (!flushShapesToMapLayer()) {
+            const map = mapRef.current
+
+            if (map) {
+                const handleIdle = () => {
+                    flushShapesToMapLayer()
+                }
+
+                map.once('idle', handleIdle)
+            }
+        }
+
+        ensurePreviewOverlay()
+    }, [ensurePreviewOverlay, flushShapesToMapLayer, mapRef])
+
+    const resetDrawingPhase = useCallback(() => {
+        drawingPhaseRef.current = 0
+        setIsDrawingGeometry(false)
+        mapCursorRef.current?.clearCursorRequest(MAP_CURSOR_REQUESTS.DRAW_GEOMETRY)
+    }, [])
+
+    const applyShapeUpdate = useCallback((shapeId, paramsUpdate, extraUpdates = {}) => {
+        updateShape(shapeId, {
+            ...extraUpdates,
+            params: paramsUpdate,
+        })
+        syncMapAndPreview()
+    }, [syncMapAndPreview, updateShape])
+
+    const finalizeShapeIfComplete = useCallback((shapeId) => {
+        const shape = getShapeById(shapeId)
+
+        if (!shape || !isGeometryShapeComplete(shape)) {
+            return false
+        }
+
+        updateShape(shapeId, {status: GEOMETRY_STATUS.COMMITTED})
+        resetDrawingPhase()
+        onShapeCommitted?.(shape)
+        syncMapAndPreview()
+        return true
+    }, [getShapeById, onShapeCommitted, resetDrawingPhase, syncMapAndPreview, updateShape])
+
+    const handlePolygonClick = useCallback((shape, lngLat, mapPoint) => {
+        const vertices = [...(shape.params.vertices ?? [])]
+
+        if (vertices.length >= 3) {
+            const firstVertex = vertices[0]
+            const firstPoint = mapRef.current?.project([firstVertex.lng, firstVertex.lat])
+
+            if (
+                firstPoint
+                && getDistancePixels(firstPoint, mapPoint) <= GEOMETRY_HIT_TEST_PIXEL_RADIUS
+            ) {
+                applyShapeUpdate(shape.id, {
+                    vertices,
+                    closed: true,
+                    finalized: true,
+                })
+                finalizeShapeIfComplete(shape.id)
+                return true
+            }
+        }
+
+        vertices.push(normalizeLngLat(lngLat))
+        polygonPreviewLngLatRef.current = null
+        applyShapeUpdate(shape.id, {vertices, closed: false, finalized: false})
+
+        if (vertices.length >= 2) {
+            drawingPhaseRef.current = vertices.length
+        }
+
+        return true
+    }, [applyShapeUpdate, finalizeShapeIfComplete, mapRef])
+
+    const handleMapDrawClick = useCallback((lngLat) => {
+        const shapeId = activeShapeIdRef.current
+        const shape = shapeId ? getShapeById(shapeId) : null
+
+        if (!shape) {
+            return
+        }
+
+        const point = normalizeLngLat(lngLat)
+        const map = mapRef.current
+        const mapPoint = map?.project([point.lng, point.lat])
+
+        setIsDrawingGeometry(true)
+        mapCursorRef.current?.requestCursor(
+            MAP_CURSOR_REQUESTS.DRAW_GEOMETRY,
+            DRAW_GEOMETRY_CURSOR,
+            MAP_CURSOR_PRIORITIES.ACTIVE,
+        )
+
+        switch (shape.type) {
+            case GEOMETRY_SHAPE_TYPES.RECTANGLE: {
+                if (drawingPhaseRef.current === 0) {
+                    applyShapeUpdate(shape.id, {
+                        center: point,
+                        halfWidthNm: 0,
+                        halfHeightNm: 0,
+                    })
+                    drawingPhaseRef.current = 1
+                    return
+                }
+
+                const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(shape.params.center, point)
+
+                applyShapeUpdate(shape.id, {halfWidthNm, halfHeightNm})
+                finalizeShapeIfComplete(shape.id)
+                return
+            }
+            case GEOMETRY_SHAPE_TYPES.SQUARE: {
+                if (drawingPhaseRef.current === 0) {
+                    applyShapeUpdate(shape.id, {
+                        center: point,
+                        halfSizeNm: 0,
+                    })
+                    drawingPhaseRef.current = 1
+                    return
+                }
+
+                const halfSizeNm = deriveSquareHalfSizeNm(shape.params.center, point)
+
+                applyShapeUpdate(shape.id, {halfSizeNm})
+                finalizeShapeIfComplete(shape.id)
+                return
+            }
+            case GEOMETRY_SHAPE_TYPES.CIRCLE: {
+                if (drawingPhaseRef.current === 0) {
+                    applyShapeUpdate(shape.id, {
+                        center: point,
+                        radiusNm: 0,
+                    })
+                    drawingPhaseRef.current = 1
+                    return
+                }
+
+                const radiusNm = deriveCircleRadiusNm(shape.params.center, point)
+
+                applyShapeUpdate(shape.id, {radiusNm})
+                finalizeShapeIfComplete(shape.id)
+                return
+            }
+            case GEOMETRY_SHAPE_TYPES.OVAL: {
+                if (drawingPhaseRef.current === 0) {
+                    applyShapeUpdate(shape.id, {
+                        center: point,
+                        halfWidthNm: 0,
+                        halfHeightNm: 0,
+                    })
+                    drawingPhaseRef.current = 1
+                    return
+                }
+
+                const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(shape.params.center, point)
+
+                applyShapeUpdate(shape.id, {halfWidthNm, halfHeightNm})
+                finalizeShapeIfComplete(shape.id)
+                return
+            }
+            case GEOMETRY_SHAPE_TYPES.RACETRACK: {
+                if (drawingPhaseRef.current === 0) {
+                    applyShapeUpdate(shape.id, {
+                        center1: point,
+                        center2: null,
+                        radiusNm: 0,
+                    })
+                    drawingPhaseRef.current = 1
+                    return
+                }
+
+                if (drawingPhaseRef.current === 1) {
+                    applyShapeUpdate(shape.id, {
+                        center2: point,
+                        radiusNm: 0,
+                    })
+                    drawingPhaseRef.current = 2
+                    return
+                }
+
+                const radiusNm = Math.min(
+                    deriveRacetrackRadiusNm(shape.params.center1, shape.params.center2, point),
+                    getRacetrackMaxRadiusNm(shape.params.center1, shape.params.center2),
+                )
+
+                applyShapeUpdate(shape.id, {radiusNm})
+                finalizeShapeIfComplete(shape.id)
+                return
+            }
+            case GEOMETRY_SHAPE_TYPES.POLYGON:
+                if (mapPoint) {
+                    handlePolygonClick(shape, point, mapPoint)
+                }
+                return
+            default:
+                return
+        }
+    }, [
+        applyShapeUpdate,
+        finalizeShapeIfComplete,
+        getShapeById,
+        handlePolygonClick,
+        mapRef,
+    ])
+
+    const handlePointerMovePreview = useCallback((lngLat) => {
+        const shapeId = activeShapeIdRef.current
+        const shape = shapeId ? getShapeById(shapeId) : null
+
+        if (!shape || shape.status === GEOMETRY_STATUS.COMMITTED) {
+            return
+        }
+
+        const point = normalizeLngLat(lngLat)
+
+        switch (shape.type) {
+            case GEOMETRY_SHAPE_TYPES.RECTANGLE:
+                if (shape.params.center && drawingPhaseRef.current >= 1) {
+                    const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(shape.params.center, point)
+
+                    applyShapeUpdate(shape.id, {halfWidthNm, halfHeightNm})
+                }
+                break
+            case GEOMETRY_SHAPE_TYPES.SQUARE:
+                if (shape.params.center && drawingPhaseRef.current >= 1) {
+                    applyShapeUpdate(shape.id, {
+                        halfSizeNm: deriveSquareHalfSizeNm(shape.params.center, point),
+                    })
+                }
+                break
+            case GEOMETRY_SHAPE_TYPES.CIRCLE:
+                if (shape.params.center && drawingPhaseRef.current >= 1) {
+                    applyShapeUpdate(shape.id, {
+                        radiusNm: deriveCircleRadiusNm(shape.params.center, point),
+                    })
+                }
+                break
+            case GEOMETRY_SHAPE_TYPES.OVAL:
+                if (shape.params.center && drawingPhaseRef.current >= 1) {
+                    const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(shape.params.center, point)
+
+                    applyShapeUpdate(shape.id, {halfWidthNm, halfHeightNm})
+                }
+                break
+            case GEOMETRY_SHAPE_TYPES.RACETRACK:
+                if (drawingPhaseRef.current === 1 && shape.params.center1) {
+                    applyShapeUpdate(shape.id, {center2: point, radiusNm: 0})
+                } else if (drawingPhaseRef.current === 2 && shape.params.center1 && shape.params.center2) {
+                    applyShapeUpdate(shape.id, {
+                        radiusNm: Math.min(
+                            deriveRacetrackRadiusNm(shape.params.center1, shape.params.center2, point),
+                            getRacetrackMaxRadiusNm(shape.params.center1, shape.params.center2),
+                        ),
+                    })
+                }
+                break
+            case GEOMETRY_SHAPE_TYPES.POLYGON:
+                polygonPreviewLngLatRef.current = point
+                redrawPreview()
+                break
+            default:
+                break
+        }
+    }, [applyShapeUpdate, getShapeById])
+
+    const cancelDrawing = useCallback(() => {
+        cancelPendingShape()
+        resetDrawingPhase()
+        clearPreview()
+        onDrawingCancelled?.()
+    }, [cancelPendingShape, clearPreview, onDrawingCancelled, resetDrawingPhase])
+
+    const completePolygon = useCallback(() => {
+        const shapeId = activeShapeIdRef.current
+        const shape = shapeId ? getShapeById(shapeId) : null
+
+        if (!shape || shape.type !== GEOMETRY_SHAPE_TYPES.POLYGON) {
+            return
+        }
+
+        const vertices = shape.params.vertices ?? []
+
+        if (vertices.length < 2) {
+            return
+        }
+
+        applyShapeUpdate(shape.id, {
+            vertices,
+            closed: false,
+            finalized: true,
+        })
+        finalizeShapeIfComplete(shape.id)
+    }, [applyShapeUpdate, finalizeShapeIfComplete, getShapeById, redrawPreview])
+
+    useEffect(() => {
+        if (!enabled || !activeDrawToolItemId) {
+            resetDrawingPhase()
+        }
+    }, [activeDrawToolItemId, enabled, resetDrawingPhase])
+
+    useEffect(() => {
+        if (!enabled) {
+            return
+        }
+
+        appliedColorsRef.current = null
+        syncMapAndPreview()
+    }, [enabled, shapes, themeMode, syncMapAndPreview])
+
+    useEffect(() => {
+        if (!enabled || !mapRef.current) {
+            return
+        }
+
+        const map = mapRef.current
+
+        const handleStyleLoad = () => {
+            const strokeColor = getStrokeColor(themeModeRef.current)
+            const fillColor = getFillColor(themeModeRef.current)
+            const textHaloColor = themeModeRef.current === 'dark' ? '#111111' : '#ffffff'
+
+            void rehydrateDrawGeometryShapes(
+                map,
+                getRenderableShapes(),
+                strokeColor,
+                fillColor,
+                textHaloColor,
+                appliedColorsRef,
+            )
+            ensurePreviewOverlay()
+        }
+
+        const handleViewChange = () => {
+            redrawPreview()
+        }
+
+        map.on('style.load', handleStyleLoad)
+        map.on('resize', handleViewChange)
+        map.on('move', handleViewChange)
+        map.on('zoom', handleViewChange)
+
+        handleStyleLoad()
+
+        return () => {
+            map.off('style.load', handleStyleLoad)
+            map.off('resize', handleViewChange)
+            map.off('move', handleViewChange)
+            map.off('zoom', handleViewChange)
+        }
+    }, [
+        enabled,
+        ensurePreviewOverlay,
+        getFillColor,
+        getRenderableShapes,
+        getStrokeColor,
+        mapRef,
+        redrawPreview,
+    ])
+
+    useEffect(() => () => {
+        clearPreview()
+    }, [clearPreview])
+
+    useEffect(() => {
+        if (!enabled || !mapRef.current) {
+            return
+        }
+
+        const map = mapRef.current
+        const canvas = map.getCanvas()
+
+        const getMapPoint = (event) => {
+            const bounds = canvas.getBoundingClientRect()
+
+            return {
+                x: event.clientX - bounds.left,
+                y: event.clientY - bounds.top,
+            }
+        }
+
+        const handleClick = (event) => {
+            if (!activeDrawToolItemId || event.defaultPrevented) {
+                return
+            }
+
+            const shape = activeShapeIdRef.current ? getShapeById(activeShapeIdRef.current) : null
+
+            if (!shape || shape.status === GEOMETRY_STATUS.COMMITTED) {
+                return
+            }
+
+            event.preventDefault()
+            handleMapDrawClick(event.lngLat)
+        }
+
+        const handleMouseMove = (event) => {
+            if (!activeDrawToolItemId) {
+                return
+            }
+
+            handlePointerMovePreview(event.lngLat)
+        }
+
+        const handlePrimarySelect = (event) => {
+            if (activeDrawToolItemId || event.defaultPrevented) {
+                return
+            }
+
+            const mapPoint = getMapPoint(event.originalEvent)
+            const shape = getDrawGeometryShapeAtMapPoint(
+                map,
+                mapPoint,
+                shapesRef.current,
+                GEOMETRY_HIT_TEST_PIXEL_RADIUS,
+            )
+
+            if (shape) {
+                onShapePrimaryClick?.(shape, {
+                    x: mapPoint.x,
+                    y: mapPoint.y,
+                    lngLat: event.lngLat,
+                })
+            }
+        }
+
+        map.on('click', handleClick)
+        map.on('click', handlePrimarySelect)
+        map.on('mousemove', handleMouseMove)
+
+        return () => {
+            map.off('click', handleClick)
+            map.off('click', handlePrimarySelect)
+            map.off('mousemove', handleMouseMove)
+        }
+    }, [
+        activeDrawToolItemId,
+        enabled,
+        getShapeById,
+        handleMapDrawClick,
+        handlePointerMovePreview,
+        mapRef,
+        onShapePrimaryClick,
+    ])
+
+    useEffect(() => {
+        if (!enabled) {
+            return
+        }
+
+        const handleKeyDown = (event) => {
+            const bindings = bindingsRef.current
+
+            if (keyMatchesBinding(event.key, bindings.cancelButton)) {
+                event.preventDefault()
+                cancelDrawing()
+                return
+            }
+
+            if (keyMatchesBinding(event.key, bindings.completePolygonButton)) {
+                event.preventDefault()
+                completePolygon()
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+        }
+    }, [cancelDrawing, completePolygon, enabled])
+
+    const removeGeometryShape = useCallback((shapeId) => {
+        deleteShape(shapeId)
+        syncMapAndPreview()
+    }, [deleteShape, syncMapAndPreview])
+
+    return {
+        isDrawingGeometry,
+        removeGeometryShape,
+        cancelDrawing,
+        completePolygon,
+        syncMapAndPreview,
+    }
+}

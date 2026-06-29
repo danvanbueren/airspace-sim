@@ -51,6 +51,12 @@ import './mapAttributionTheme.css'
 import {useAlarmAlertActions} from '../../hooks/global/useAlarmAlertActions'
 import {usePerformanceInstrumentation} from '@/app/contexts/PerformanceMonitorContext'
 import {useOpenDrawToolsPanel} from '@/app/hooks/map/useOpenDrawToolsPanel'
+import {useDrawGeometry} from '@/app/contexts/DrawGeometryContext'
+import {useDrawGeometryTool} from '@/app/hooks/map/useDrawGeometryTool'
+import {useGeometryWindows} from '@/app/hooks/map/useGeometryWindows'
+import GeometryWindow from '@/app/components/floating/windows/GeometryWindow'
+import {getDrawGeometryShapeAtMapPoint} from '@/app/tools/map/drawGeometry/drawGeometryMapLayer'
+import {GEOMETRY_HIT_TEST_PIXEL_RADIUS} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -145,14 +151,42 @@ export default function MapView({
         closeContextMenu,
     } = useMapContextMenuState(contextMenuRef)
     const {openDrawToolsPanel} = useOpenDrawToolsPanel()
+    const {
+        shapes,
+        registerGeometryWindowOpener,
+        setActiveShapeId,
+        setActiveDrawToolItemId,
+    } = useDrawGeometry()
+
+    const {
+        geometryWindows,
+        openGeometryWindowForShape,
+        closeGeometryWindow,
+        setGeometryWindowPositionAnchor,
+        closeGeometryWindowsForShape,
+    } = useGeometryWindows()
+
+    const {
+        sortedTrackManagementWindows: sortedGeometryWindows,
+        bringTrackManagementWindowToFront: bringGeometryWindowToFront,
+        getWindowZIndex: getGeometryWindowZIndex,
+    } = useTrackManagementWindowFocusOrder(geometryWindows)
 
     const handleMapContextMenu = useCallback(({point, mapPoint, lngLat, line}) => {
         const layerTrack = mapPoint ? trackMapLayer.getTrackAtMapPoint(mapPoint) : null
         const trackId = layerTrack?.trackId ?? layerTrack?.id
         const track = trackId ? (getTrack(trackId) ?? layerTrack) : null
+        const geometry = mapPoint && mapRef.current
+            ? getDrawGeometryShapeAtMapPoint(
+                mapRef.current,
+                mapPoint,
+                shapes,
+                GEOMETRY_HIT_TEST_PIXEL_RADIUS,
+            )
+            : null
 
-        openBearingRangeContextMenu({point, lngLat, line, track})
-    }, [getTrack, openBearingRangeContextMenu, trackMapLayer])
+        openBearingRangeContextMenu({point, lngLat, line, track, geometry})
+    }, [getTrack, mapRef, openBearingRangeContextMenu, shapes, trackMapLayer])
 
     const {
         removeBearingRangeLine,
@@ -182,6 +216,49 @@ export default function MapView({
         openDrawToolsPanel(elementContainer, mapContainerRef)
         closeContextMenu()
     }, [closeContextMenu, mapContainerRef, openDrawToolsPanel])
+
+    const handleOpenGeometryWindow = useCallback((shape, elementContainer = null) => {
+        const geometryWindow = openGeometryWindowForShape(shape, elementContainer ?? {
+            x: 120,
+            y: 120,
+        })
+
+        if (geometryWindow) {
+            bringGeometryWindowToFront(geometryWindow.id)
+        }
+    }, [bringGeometryWindowToFront, openGeometryWindowForShape])
+
+    useEffect(() => {
+        registerGeometryWindowOpener((shape) => {
+            handleOpenGeometryWindow(shape)
+        })
+    }, [handleOpenGeometryWindow, registerGeometryWindowOpener])
+
+    const handleShapePrimaryClick = useCallback((shape, elementContainer) => {
+        setActiveShapeId(shape.id)
+        setActiveDrawToolItemId(null)
+        handleOpenGeometryWindow(shape, elementContainer)
+    }, [handleOpenGeometryWindow, setActiveDrawToolItemId, setActiveShapeId])
+
+    const {
+        removeGeometryShape,
+        isDrawingGeometry,
+    } = useDrawGeometryTool(mapRef, mapReady && mapInteractionsEnabled, {
+        mapCursor,
+        themeMode: colorMode,
+        onShapePrimaryClick: handleShapePrimaryClick,
+    })
+
+    const handleDeleteGeometry = useCallback((geometry) => {
+        removeGeometryShape(geometry.id)
+        closeGeometryWindowsForShape(geometry.id)
+        closeContextMenu()
+    }, [closeContextMenu, closeGeometryWindowsForShape, removeGeometryShape])
+
+    const handleOpenGeometryFromContextMenu = useCallback((geometry, elementContainer) => {
+        handleOpenGeometryWindow(geometry, elementContainer)
+        closeContextMenu()
+    }, [closeContextMenu, handleOpenGeometryWindow])
 
     const handleTrackCreated = useCallback((trackManagementWindow) => {
         const track = isReferencePointManagementWindow(trackManagementWindow)
@@ -545,7 +622,7 @@ export default function MapView({
     }, [mapReady, mapRef, trackMapLayer.layerId, trackMapLayer.labelLayerId, releaseTrackManagementKeyboardCustody])
 
     const cursorInfo = useCursorHooks(mapRef, interactionsEnabled, mapContainerRef)
-    const visibleCursorInfo = isDrawingBearingRangeLine ? null : cursorInfo
+    const visibleCursorInfo = isDrawingBearingRangeLine || isDrawingGeometry ? null : cursorInfo
 
     useGroupCriteriaCircleTool(mapRef, interactionsEnabled, {
         strokeColor: scopeCircleStrokeColor,
@@ -575,6 +652,20 @@ export default function MapView({
                 />
             ))}
 
+            {sortedGeometryWindows.map((geometryWindow) => (
+                <GeometryWindow
+                    key={geometryWindow.id}
+                    geometryWindow={geometryWindow}
+                    mapContainerRef={mapContainerRef}
+                    zIndex={getGeometryWindowZIndex(geometryWindow.id)}
+                    onClose={() => closeGeometryWindow(geometryWindow.id)}
+                    onMoveComplete={(positionAnchor) => (
+                        setGeometryWindowPositionAnchor(geometryWindow.id, positionAnchor)
+                    )}
+                    onActivate={() => bringGeometryWindowToFront(geometryWindow.id)}
+                />
+            ))}
+
             <MapContextMenu
                 ref={contextMenuRef}
                 elementContainer={currentContextMenuElement}
@@ -588,6 +679,8 @@ export default function MapView({
                 onToggleDropProtect={handleToggleDropProtect}
                 onRemoveBearingRangeLine={handleRemoveBearingRangeLine}
                 onClearBearingRangeLines={handleClearBearingRangeLines}
+                onDeleteGeometry={handleDeleteGeometry}
+                onOpenGeometry={handleOpenGeometryFromContextMenu}
                 lines={lines}
             />
         </>

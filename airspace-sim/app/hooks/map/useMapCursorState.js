@@ -9,6 +9,7 @@ export const MAP_CURSOR_REQUESTS = {
     TRACK_HOVER: 'track-hover',
     BEARING_RANGE_HOVER: 'bearing-range-hover',
     BEARING_RANGE_DRAW: 'bearing-range-draw',
+    DRAW_GEOMETRY: 'draw-geometry',
 }
 
 export const MAP_CURSOR_PRIORITIES = {

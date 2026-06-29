@@ -19,6 +19,7 @@ import {
 } from './contexts/ActionPanelsContext'
 import {FloatingDraggableStackProvider} from './contexts/FloatingDraggableStackContext'
 import {DrawToolsProvider} from './contexts/DrawToolsContext'
+import {DrawGeometryProvider} from './contexts/DrawGeometryContext'
 import {UseGlobalInteractionGuards} from '@/app/hooks/global/useGlobalInteractionGuards'
 import {THEME_COOKIE_NAME} from '@/app/contexts/CustomThemeContext'
 import {MapStateProvider} from './contexts/MapStateContext'
@@ -57,6 +58,7 @@ export default async function RootLayout({children}) {
                 <AppSettingsProvider initialSettings={appSettingsCookie}>
                     <ActionPanelsProvider initialActionPanels={actionPanelsCookie}>
                         <DrawToolsProvider>
+                        <DrawGeometryProvider>
                         <FloatingDraggableStackProvider>
                             <SensorDisplayProvider>
                             <SimulationProvider>
@@ -68,6 +70,7 @@ export default async function RootLayout({children}) {
                             </SimulationProvider>
                         </SensorDisplayProvider>
                         </FloatingDraggableStackProvider>
+                        </DrawGeometryProvider>
                         </DrawToolsProvider>
                     </ActionPanelsProvider>
                 </AppSettingsProvider>

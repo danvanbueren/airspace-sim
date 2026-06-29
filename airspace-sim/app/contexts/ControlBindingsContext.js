@@ -112,6 +112,26 @@ function normalizeBearingRangeToolBindings(bindings) {
     }
 }
 
+function normalizeDrawGeometryToolBindings(bindings) {
+    const defaults = DEFAULT_CONTROL_BINDINGS.drawGeometryTool
+    const mergedBindings = {
+        ...defaults,
+        ...bindings,
+    }
+
+    return {
+        ...mergedBindings,
+        cancelButton: normalizeKeyboardBindingKeys(
+            bindings?.cancelButton,
+            defaults.cancelButton,
+        ),
+        completePolygonButton: normalizeKeyboardBindingKeys(
+            bindings?.completePolygonButton,
+            defaults.completePolygonButton,
+        ),
+    }
+}
+
 function normalizeBindings(bindings) {
     return {
         ...DEFAULT_CONTROL_BINDINGS, ...bindings, keyboardCamera: {
@@ -125,6 +145,7 @@ function normalizeBindings(bindings) {
         ),
         bearingRangeTool: normalizeBearingRangeToolBindings(bindings?.bearingRangeTool),
         scopeTool: normalizeScopeToolBindings(bindings?.scopeTool),
+        drawGeometryTool: normalizeDrawGeometryToolBindings(bindings?.drawGeometryTool),
     }
 }
 

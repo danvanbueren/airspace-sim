@@ -94,6 +94,8 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     onToggleDropProtect,
     onRemoveBearingRangeLine,
     onClearBearingRangeLines,
+    onDeleteGeometry,
+    onOpenGeometry,
     lines,
 }, ref) {
     if (!elementContainer) {
@@ -103,6 +105,8 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     const hasBearingRangeLine = Boolean(elementContainer.line)
     const showBearingRangeSection = lines.length >= 1 || hasBearingRangeLine
     const track = elementContainer.track ?? null
+    const geometry = elementContainer.geometry ?? null
+    const hasGeometry = Boolean(geometry)
     const hasTrack = Boolean(track)
     const isReferencePointTrack = isReferencePoint(track)
     const showRecoverTrack = hasTrack && shouldShowDropAttention(track)
@@ -249,6 +253,38 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                                 {dropProtectEnabled ? 'Disable Drop Protect' : 'Enable Drop Protect'}
                             </Button>
                         ) : null}
+                    </>
+                ) : null}
+
+                {hasGeometry ? (
+                    <>
+                        <Divider sx={{py: 0.5}}/>
+
+                        <Typography sx={CONTEXT_MENU_SECTION_HEADING_SX}>
+                            Geometry Actions
+                        </Typography>
+
+                        <Button
+                            color='primary'
+                            size='small'
+                            variant='outlined'
+                            onClick={() => onOpenGeometry(geometry, elementContainer)}
+                            sx={CONTEXT_MENU_BUTTON_SX}
+                            fullWidth
+                        >
+                            Edit Geometry
+                        </Button>
+
+                        <Button
+                            color='warning'
+                            size='small'
+                            variant='outlined'
+                            onClick={() => onDeleteGeometry(geometry)}
+                            sx={CONTEXT_MENU_BUTTON_SX}
+                            fullWidth
+                        >
+                            Delete Geometry
+                        </Button>
                     </>
                 ) : null}
 
