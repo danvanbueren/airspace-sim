@@ -619,7 +619,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
     )
     const iffMode3Display = trackManagementWindow.iffMode3Code
         ? getMode3DisplayLabel(trackManagementWindow.iffMode3Code)
-        : '—'
+        : '-'
 
     const activateWindow = useCallback(() => {
         if (trackManagementWindow.dismissOnMapClick) {
@@ -859,9 +859,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                     color: iffMode3Stale ? 'text.disabled' : 'text.primary',
                                 }}
                             >
-                                {trackManagementWindow.iffMode3Code
-                                    ? iffMode3Display
-                                    : 'No correlated IFF return'}
+                                {iffMode3Display}
                             </Typography>
                             {iffMode3Stale ? (
                                 <AttentionFlagPills flagIds={['IFF_STALE']} dense/>

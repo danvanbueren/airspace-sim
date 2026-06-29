@@ -31,6 +31,7 @@ export default function GridReferenceSystemSelect({
     disabled = false,
     matchInputHeight = false,
     matchedHeight,
+    compact = false,
     sx,
 }) {
     const {appSettings} = useAppSettings()
@@ -43,7 +44,7 @@ export default function GridReferenceSystemSelect({
             disabled={disabled}
             variant='outlined'
             sx={{
-                minWidth: '3rem',
+                minWidth: compact ? '2.5rem' : '3rem',
                 m: 0,
                 ...(shouldStretchInput ? {
                     display: 'flex',
@@ -64,7 +65,8 @@ export default function GridReferenceSystemSelect({
                 size='small'
                 sx={{
                     fontFamily: 'monospace',
-                    fontSize: '0.75rem',
+                    fontSize: compact ? '0.65rem' : '0.75rem',
+                    ...(compact ? {minWidth: '2.5rem'} : {}),
                     ...(shouldStretchInput ? {
                         flex: 1,
                         minHeight: 0,

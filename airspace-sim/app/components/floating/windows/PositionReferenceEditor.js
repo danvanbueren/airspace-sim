@@ -26,6 +26,7 @@ export default function PositionReferenceEditor({
     zIndex,
     disabled = false,
     readOnly = false,
+    compact = false,
 }) {
     const {appSettings, setGridReferenceSystem} = useAppSettings()
     const [draft, setDraft] = useState(null)
@@ -43,7 +44,7 @@ export default function PositionReferenceEditor({
     ).split('\n').length
     const positionFieldSize = useMeasuredElementSize(
         positionFieldRef,
-        [displayText, positionRowCount, error, disabled, readOnly],
+        [displayText, positionRowCount, error, disabled, readOnly, compact],
     )
 
     useEffect(() => {
@@ -107,7 +108,7 @@ export default function PositionReferenceEditor({
 
     return (
         <Box>
-            <Box sx={{display: 'flex', gap: 1, alignItems: 'flex-start'}}>
+            <Box sx={{display: 'flex', gap: compact ? 0.75 : 1, alignItems: 'flex-start'}}>
                 <Box ref={positionFieldRef} sx={{flex: 1, minWidth: 0}}>
                     <TextField
                         label='Position'
@@ -153,9 +154,14 @@ export default function PositionReferenceEditor({
                         sx={{
                             '& .MuiInputBase-input': {
                                 fontFamily: 'monospace',
-                                fontSize: '0.8rem',
+                                fontSize: compact ? '0.7rem' : '0.8rem',
                                 whiteSpace: 'pre',
                             },
+                            ...(compact ? {
+                                '& .MuiInputLabel-root': {
+                                    fontSize: '0.75rem',
+                                },
+                            } : {}),
                         }}
                     />
                 </Box>
@@ -164,6 +170,7 @@ export default function PositionReferenceEditor({
                     onChange={handleGridReferenceSystemChange}
                     zIndex={zIndex}
                     disabled={disabled}
+                    compact={compact}
                     matchInputHeight
                     matchedHeight={positionFieldSize.height > 0 ? positionFieldSize.height : undefined}
                     sx={{flexShrink: 0}}

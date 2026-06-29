@@ -14,7 +14,18 @@ import {shouldShowDropAttention} from '@/app/simulation/trackAutoDrop'
 import {isReferencePoint} from '@/app/simulation/trackKinds'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
-const CONTEXT_MENU_WIDTH_PX = 300
+const CONTEXT_MENU_WIDTH_PX = 236
+
+const CONTEXT_MENU_SECTION_HEADING_SX = {
+    fontWeight: 'bold',
+    fontSize: '0.9rem',
+}
+
+const CONTEXT_MENU_BUTTON_SX = {
+    justifyContent: 'flex-start',
+    py: 0.875,
+    minHeight: 36,
+}
 
 const CONTEXT_MENU_MONOSPACE_SX = {
     fontFamily: 'monospace',
@@ -94,6 +105,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     const isReferencePointTrack = isReferencePoint(track)
     const showRecoverTrack = hasTrack && shouldShowDropAttention(track)
     const dropProtectEnabled = Boolean(track?.dropProtect) && !isReferencePointTrack
+    const hasDynamicActions = hasTrack
     const dynamicActionsSectionTitle = getDynamicActionsSectionTitle(track)
 
     return (
@@ -124,11 +136,10 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     lng={elementContainer.lngLat.lng}
                     zIndex={UI_Z_INDEX.CONTEXT_MENU}
                     readOnly
+                    compact
                 />
 
-                <Divider sx={{py: 0.5}}/>
-
-                <Typography sx={{fontWeight: 'bold', fontSize: '0.8rem'}}>
+                <Typography sx={CONTEXT_MENU_SECTION_HEADING_SX}>
                     Scope Actions
                 </Typography>
 
@@ -137,7 +148,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     size='small'
                     variant='outlined'
                     onClick={() => {}}
-                    sx={{justifyContent: 'flex-start'}}
+                    sx={CONTEXT_MENU_BUTTON_SX}
                     fullWidth
                     disabled
                 >
@@ -149,7 +160,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     size='small'
                     variant='outlined'
                     onClick={() => onCreateReferencePoint(elementContainer)}
-                    sx={{justifyContent: 'flex-start'}}
+                    sx={CONTEXT_MENU_BUTTON_SX}
                     fullWidth
                 >
                     Initiate Ref Point
@@ -160,61 +171,63 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     size='small'
                     variant='outlined'
                     onClick={() => onInitiateTrack(elementContainer)}
-                    sx={{justifyContent: 'flex-start'}}
+                    sx={CONTEXT_MENU_BUTTON_SX}
                     fullWidth
                 >
                     Initiate Track
                 </Button>
 
+                {hasDynamicActions ? (
+                    <>
+                        <Divider sx={{py: 0.5}}/>
+
+                        <Typography sx={CONTEXT_MENU_SECTION_HEADING_SX}>
+                            {dynamicActionsSectionTitle}
+                        </Typography>
+
+                        {showRecoverTrack ? (
+                            <Button
+                                color='warning'
+                                size='small'
+                                variant='outlined'
+                                onClick={() => onRecoverTrack(track)}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                            >
+                                Recover Track
+                            </Button>
+                        ) : null}
+
+                        <Button
+                            color='warning'
+                            size='small'
+                            variant='outlined'
+                            onClick={() => onDropTrack(track)}
+                            sx={CONTEXT_MENU_BUTTON_SX}
+                            fullWidth
+                            disabled={dropProtectEnabled}
+                        >
+                            Drop
+                        </Button>
+
+                        {!isReferencePointTrack ? (
+                            <Button
+                                color='primary'
+                                size='small'
+                                variant='outlined'
+                                onClick={() => onToggleDropProtect(track)}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                            >
+                                {dropProtectEnabled ? 'Disable Drop Protect' : 'Enable Drop Protect'}
+                            </Button>
+                        ) : null}
+                    </>
+                ) : null}
+
                 <Divider sx={{py: 0.5}}/>
 
-                <Typography sx={{fontWeight: 'bold', fontSize: '0.8rem'}}>
-                    {dynamicActionsSectionTitle}
-                </Typography>
-
-                {showRecoverTrack ? (
-                    <Button
-                        color='warning'
-                        size='small'
-                        variant='outlined'
-                        onClick={() => onRecoverTrack(track)}
-                        sx={{justifyContent: 'flex-start'}}
-                        fullWidth
-                    >
-                        Recover Track
-                    </Button>
-                ) : null}
-
-                {hasTrack ? (
-                    <Button
-                        color='warning'
-                        size='small'
-                        variant='outlined'
-                        onClick={() => onDropTrack(track)}
-                        sx={{justifyContent: 'flex-start'}}
-                        fullWidth
-                        disabled={dropProtectEnabled}
-                    >
-                        Drop
-                    </Button>
-                ) : null}
-
-                {hasTrack && !isReferencePointTrack ? (
-                    <Button
-                        color='primary'
-                        size='small'
-                        variant='outlined'
-                        onClick={() => onToggleDropProtect(track)}
-                        sx={{justifyContent: 'flex-start'}}
-                        fullWidth
-                    >
-                        {dropProtectEnabled ? 'Disable Drop Protect' : 'Enable Drop Protect'}
-                    </Button>
-                ) : null}
-
-                <Divider sx={{py: 0.5}}/>
-
-                <Typography sx={{fontWeight: 'bold', fontSize: '0.8rem'}}>
+                <Typography sx={CONTEXT_MENU_SECTION_HEADING_SX}>
                     Bearing/Range Lines
                 </Typography>
 
@@ -224,7 +237,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                         size='small'
                         variant='outlined'
                         onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
-                        sx={{justifyContent: 'flex-start'}}
+                        sx={CONTEXT_MENU_BUTTON_SX}
                         fullWidth
                     >
                         Clear line
@@ -237,7 +250,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                         size='small'
                         variant='outlined'
                         onClick={onClearBearingRangeLines}
-                        sx={{justifyContent: 'flex-start'}}
+                        sx={CONTEXT_MENU_BUTTON_SX}
                         disabled={lines.length < 1}
                         fullWidth
                     >
