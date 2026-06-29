@@ -808,13 +808,15 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 }}
             >
             <Stack spacing={1.5} sx={{p: 2}}>
-                <Typography
-                    variant='caption'
-                    color='text.secondary'
-                    sx={{fontSize: '0.7rem', lineHeight: 1.2}}
-                >
-                    System ID: {trackManagementWindow.trackId}
-                </Typography>
+                {appSettings.verboseMode ? (
+                    <Typography
+                        variant='caption'
+                        color='text.secondary'
+                        sx={{fontSize: '0.7rem', lineHeight: 1.2}}
+                    >
+                        System ID: {trackManagementWindow.trackId}
+                    </Typography>
+                ) : null}
 
                 {!isReferencePoint && (
                     <>

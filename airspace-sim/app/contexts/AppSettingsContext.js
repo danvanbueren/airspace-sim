@@ -44,6 +44,7 @@ export const DEFAULT_APP_SETTINGS = {
     inhibitedAttentions: [],
     inhibitedAlerts: [],
     showPerformanceOverlay: true,
+    verboseMode: true,
     ...DEFAULT_SIMULATION_SETTINGS,
 }
 
@@ -144,6 +145,7 @@ function normalizeSettings(settings) {
         viewportBasedTrackDroppingEnabled: settings?.viewportBasedTrackDroppingEnabled === true,
         simulationEnabled: settings?.simulationEnabled !== false,
         showPerformanceOverlay: settings?.showPerformanceOverlay !== false,
+        verboseMode: settings?.verboseMode !== false,
         inhibitedAttentions: normalizeInhibitedSignalIds(
             settings?.inhibitedAttentions,
             ATTENTION_SIGNAL_IDS,
