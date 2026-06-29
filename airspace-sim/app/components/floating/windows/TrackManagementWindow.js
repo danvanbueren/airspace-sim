@@ -812,19 +812,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     {isReferencePoint ? 'Reference Point ID' : 'Track ID'}: {trackManagementWindow.trackId}
                 </Typography>
 
-                <PositionReferenceEditor
-                    lat={trackManagementWindow.lngLat.lat}
-                    lng={trackManagementWindow.lngLat.lng}
-                    zIndex={zIndex}
-                    onFocus={() => handleNonKinematicFieldFocus('lngLat')}
-                    onBlur={() => handleFieldBlur('lngLat')}
-                    onCommit={({lat, lng}) => {
-                        updateField('lngLat', {lat, lng})
-                    }}
-                />
-
-                <Divider/>
-
                 {!isReferencePoint && (
                     <>
                         <Box>
@@ -1041,6 +1028,25 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     </FormControl>
                 )}
 
+                <PositionReferenceEditor
+                    lat={trackManagementWindow.lngLat.lat}
+                    lng={trackManagementWindow.lngLat.lng}
+                    zIndex={zIndex}
+                    onFocus={() => handleNonKinematicFieldFocus('lngLat')}
+                    onBlur={() => handleFieldBlur('lngLat')}
+                    onCommit={({lat, lng}) => {
+                        updateField('lngLat', {lat, lng})
+                    }}
+                />
+
+                {!isReferencePoint && (
+                    <>
+                        {renderKinematicField('heading', 'Heading (deg)')}
+                        {renderKinematicField('speed', 'Speed (kts)')}
+                        {renderKinematicField('altitude', 'Altitude (ft)')}
+                    </>
+                )}
+
                 <FormControlLabel
                     control={(
                         <Checkbox
@@ -1054,14 +1060,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     label='Show symbol info fields'
                     sx={{m: 0}}
                 />
-
-                {!isReferencePoint && (
-                    <>
-                        {renderKinematicField('heading', 'Heading (deg)')}
-                        {renderKinematicField('speed', 'Speed (kts)')}
-                        {renderKinematicField('altitude', 'Altitude (ft)')}
-                    </>
-                )}
             </Stack>
             </Box>
         </Paper>
