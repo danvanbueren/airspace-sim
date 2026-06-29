@@ -9,6 +9,10 @@ import {
     DEFAULT_ACTION_PANEL_WIDTH_PX,
 } from './actionPanelDefaults.js'
 import {edgeAnchorsEqual} from '../map/edgeAnchoredPosition.js'
+import {
+    isPersistedDrawToolsPanel,
+    stripDrawToolItemIds,
+} from './drawToolsActionPanel.js'
 
 export const ACTION_PANEL_MIN_WIDTH_PX = 200
 export const ACTION_PANEL_MIN_HEIGHT_PX = 160
@@ -110,7 +114,7 @@ function normalizeDisplayStyle(displayStyle) {
 }
 
 function normalizeItemIds(itemIds, fallbackItemIds, panelId) {
-    const filteredItemIds = filterRenderableItemIds(itemIds)
+    const filteredItemIds = stripDrawToolItemIds(filterRenderableItemIds(itemIds))
 
     if (filteredItemIds.length > 0) {
         return filteredItemIds
@@ -195,7 +199,9 @@ export function normalizeActionPanelsState(state) {
     const sourcePanels = Array.isArray(state?.panels) ? state.panels : DEFAULT_ACTION_PANELS_STATE.panels
     const sourceLayouts = state?.layouts ?? DEFAULT_ACTION_PANELS_STATE.layouts
 
-    const panels = sourcePanels.map((panel, index) => {
+    const panels = sourcePanels
+        .filter((panel) => !isPersistedDrawToolsPanel(panel))
+        .map((panel, index) => {
         const fallbackPanel = getDefaultPanelById(panel?.id) ?? DEFAULT_ACTION_PANELS_STATE.panels[0]
         const id = normalizePanelId(panel?.id, index)
 
