@@ -32,6 +32,7 @@ Planned work for Airspace Simulator, grouped chronologically. Completed items li
 - ✅ Temporary vs permanent bearing/range lines with rebindable persist modifier — [`2294fef`](https://github.com/danvanbueren/airspace-sim/commit/2294fef)
 - ✅ Complete Control Reference in Settings → Usage Guide — [`2294fef`](https://github.com/danvanbueren/airspace-sim/commit/2294fef) (moved from Keybinds)
 - ✅ Bearing/range persistence behavior selector in Settings → Look & Feel — [`95f94c4`](https://github.com/danvanbueren/airspace-sim/commit/95f94c4)
+- ✅ Group criteria circle toggle (Caps Lock, 3 NM radius) — pending PR
 
 ### Operator interface
 

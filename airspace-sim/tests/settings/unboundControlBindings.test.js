@@ -32,6 +32,7 @@ describe('UNBOUND_CONTROL_BINDINGS', () => {
         assert.equal(UNBOUND_CONTROL_BINDINGS.mapCursor.dragButton, MOUSE_BUTTONS.unbound)
         assert.deepEqual(UNBOUND_CONTROL_BINDINGS.keyboardCamera.panUp, [])
         assert.deepEqual(UNBOUND_CONTROL_BINDINGS.keyboardCamera.centerMap, [])
+        assert.deepEqual(UNBOUND_CONTROL_BINDINGS.scopeTool.toggleGroupCriteriaCircle, [])
     })
 })
 

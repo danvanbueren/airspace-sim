@@ -28,6 +28,9 @@ const MOCK_CONTROL_BINDINGS = {
         contextMenuMaxPixels: 6,
         minPersistedLinePixels: 24,
     },
+    scopeTool: {
+        toggleGroupCriteriaCircle: ['capslock'],
+    },
 }
 
 describe('eventModifierKeysMatchBinding', () => {
@@ -83,5 +86,14 @@ describe('buildControlReference', () => {
 
         assert.ok(navigationSection.entries.some((entry) => entry.combo.includes('Shift + Left Mouse + drag')))
         assert.ok(navigationSection.entries.some((entry) => entry.combo === 'Scroll wheel'))
+    })
+
+    it('documents the group criteria circle toggle', () => {
+        const sections = buildControlReference(MOCK_CONTROL_BINDINGS)
+        const scopeSection = sections.find((section) => section.title === 'Map Scope Tools')
+
+        assert.ok(scopeSection)
+        assert.ok(scopeSection.entries.some((entry) => entry.action === 'Toggle group criteria circle'))
+        assert.ok(scopeSection.entries.some((entry) => entry.combo.includes('Caps Lock')))
     })
 })

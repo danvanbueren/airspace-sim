@@ -8,6 +8,7 @@ import {useCursorHooks} from '../../hooks/map/useCursorHooks'
 import {useMapLibreMap} from '../../hooks/map/useMapLibreMap'
 import {useMeasuredElementSize} from '../../hooks/global/useMeasuredElementSize'
 import {useBearingRangeTool} from '../../hooks/map/useBearingRangeTool'
+import {useGroupCriteriaCircleTool} from '../../hooks/map/useGroupCriteriaCircleTool'
 import {useRegisteredMap} from '../../hooks/map/useRegisteredMap'
 import {useMapViewInteractions} from '../../hooks/map/useMapViewInteractions/useMapViewInteractions'
 import {useMapContextMenuState} from '../../hooks/map/useMapContextMenuState'
@@ -162,6 +163,8 @@ export default function MapView({
         mapCursor,
         bearingRangeBehavior: appSettings.bearingRangeBehavior,
     })
+
+    const scopeCircleStrokeColor = theme.palette.mode === 'dark' ? '#fff' : '#111'
 
     const handleRemoveBearingRangeLine = useCallback((lineId) => {
         removeBearingRangeLine(lineId)
@@ -536,6 +539,11 @@ export default function MapView({
 
     const cursorInfo = useCursorHooks(mapRef, interactionsEnabled, mapContainerRef)
     const visibleCursorInfo = isDrawingBearingRangeLine ? null : cursorInfo
+
+    useGroupCriteriaCircleTool(mapRef, interactionsEnabled, {
+        strokeColor: scopeCircleStrokeColor,
+        cursorInfo: visibleCursorInfo,
+    })
     const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [visibleCursorInfo])
     const contextMenuSize = useMeasuredElementSize(contextMenuRef, [currentContextMenuElement])
 

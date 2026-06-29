@@ -37,6 +37,12 @@ const BEARING_RANGE_KEYBOARD_BINDINGS = [{
     description: 'Hold while releasing a bearing/range draw to keep the line on the map. Without this key, lines disappear when the draw button is released.',
 },]
 
+const SCOPE_TOOL_KEYBOARD_BINDINGS = [{
+    key: 'toggleGroupCriteriaCircle',
+    label: 'Group Criteria Circle',
+    description: 'Toggle a 3 NM radius circle at the cursor to assess group criteria. Caps Lock stays synced with the OS toggle when bound to Caps Lock.',
+},]
+
 const MOUSE_BUTTON_OPTIONS = [{
     label: 'Unbound', value: MOUSE_BUTTONS.unbound,
 }, {
@@ -61,6 +67,7 @@ function formatKeyName(key) {
         control: 'Control',
         alt: 'Alt',
         meta: 'Meta',
+        capslock: 'Caps Lock',
     }
 
     return labels[key.toLowerCase()] ?? key.toUpperCase()
@@ -121,6 +128,7 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
     const keyboardCamera = controlBindings.keyboardCamera
     const mapCursor = controlBindings.mapCursor
     const bearingRangeTool = controlBindings.bearingRangeTool
+    const scopeTool = controlBindings.scopeTool
 
     const updateKeyboardCameraBinding = useCallback((bindingKey, nextValue) => {
         updateControlBindings((currentBindings) => ({
@@ -143,6 +151,15 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
         updateControlBindings((currentBindings) => ({
             ...currentBindings, bearingRangeTool: {
                 ...currentBindings.bearingRangeTool,
+                [bindingKey]: [nextValue],
+            },
+        }))
+    }, [updateControlBindings])
+
+    const updateScopeToolKeyboardBinding = useCallback((bindingKey, nextValue) => {
+        updateControlBindings((currentBindings) => ({
+            ...currentBindings, scopeTool: {
+                ...currentBindings.scopeTool,
                 [bindingKey]: [nextValue],
             },
         }))
@@ -173,10 +190,12 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
             updateKeyboardCameraBinding(parsedTarget.bindingKey, nextKey)
         } else if (parsedTarget.section === 'bearingRangeTool') {
             updateBearingRangeKeyboardBinding(parsedTarget.bindingKey, nextKey)
+        } else if (parsedTarget.section === 'scopeTool') {
+            updateScopeToolKeyboardBinding(parsedTarget.bindingKey, nextKey)
         }
 
         setListeningForBinding(null)
-    }, [updateKeyboardCameraBinding, updateBearingRangeKeyboardBinding])
+    }, [updateKeyboardCameraBinding, updateBearingRangeKeyboardBinding, updateScopeToolKeyboardBinding])
 
     useEffect(() => {
         if (!listeningForBinding) return
@@ -217,6 +236,10 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
 
         if (parsedTarget.section === 'bearingRangeTool') {
             return BEARING_RANGE_KEYBOARD_BINDINGS.find((binding) => binding.key === parsedTarget.bindingKey)?.label
+        }
+
+        if (parsedTarget.section === 'scopeTool') {
+            return SCOPE_TOOL_KEYBOARD_BINDINGS.find((binding) => binding.key === parsedTarget.bindingKey)?.label
         }
 
         return null
@@ -328,6 +351,16 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
                 return renderKeyboardBindingRow(binding, {
                     bindingTarget,
                     currentKey: bearingRangeTool[binding.key]?.[0],
+                    isListening: listeningForBinding === bindingTarget,
+                })
+            })}
+
+            {SCOPE_TOOL_KEYBOARD_BINDINGS.map((binding) => {
+                const bindingTarget = `scopeTool:${binding.key}`
+
+                return renderKeyboardBindingRow(binding, {
+                    bindingTarget,
+                    currentKey: scopeTool[binding.key]?.[0],
                     isListening: listeningForBinding === bindingTarget,
                 })
             })}

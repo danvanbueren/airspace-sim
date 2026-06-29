@@ -30,6 +30,9 @@ export const DEFAULT_CONTROL_BINDINGS = {
         contextMenuMaxPixels: 6,
         minPersistedLinePixels: 24,
     },
+    scopeTool: {
+        toggleGroupCriteriaCircle: ['capslock'],
+    },
 }
 
 const KEYBOARD_BINDING_KEYS = [
@@ -57,6 +60,10 @@ const BEARING_RANGE_KEYBOARD_BINDING_KEYS = [
     'persistModifier',
 ]
 
+const SCOPE_TOOL_KEYBOARD_BINDING_KEYS = [
+    'toggleGroupCriteriaCircle',
+]
+
 function clearBindingSection(bindings, bindingKeys) {
     return bindingKeys.reduce((clearedBindings, bindingKey) => ({
         ...clearedBindings,
@@ -82,6 +89,7 @@ export const UNBOUND_CONTROL_BINDINGS = {
         [bindingKey]: MOUSE_BUTTONS.unbound,
     }), {...DEFAULT_CONTROL_BINDINGS.mapCursor}),
     bearingRangeTool: clearBearingRangeToolBindings(DEFAULT_CONTROL_BINDINGS.bearingRangeTool),
+    scopeTool: clearBindingSection(DEFAULT_CONTROL_BINDINGS.scopeTool, SCOPE_TOOL_KEYBOARD_BINDING_KEYS),
 }
 
 export function buildClearedControlBindings(currentBindings) {
@@ -93,6 +101,7 @@ export function buildClearedControlBindings(currentBindings) {
             [bindingKey]: MOUSE_BUTTONS.unbound,
         }), {...currentBindings.mapCursor}),
         bearingRangeTool: clearBearingRangeToolBindings(currentBindings.bearingRangeTool),
+        scopeTool: clearBindingSection(currentBindings.scopeTool, SCOPE_TOOL_KEYBOARD_BINDING_KEYS),
     }
 }
 
@@ -101,4 +110,5 @@ export const CONTROL_BINDING_KEY_GROUPS = {
     mapCursor: MAP_CURSOR_BINDING_KEYS,
     bearingRangeMouse: BEARING_RANGE_BINDING_KEYS,
     bearingRangeKeyboard: BEARING_RANGE_KEYBOARD_BINDING_KEYS,
+    scopeToolKeyboard: SCOPE_TOOL_KEYBOARD_BINDING_KEYS,
 }
