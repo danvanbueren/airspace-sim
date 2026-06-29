@@ -33,6 +33,7 @@ import {
     createTrackFromManagementWindow,
     createTrackUpdateFromManagementWindow,
     isReferencePointManagementWindow,
+    getTrackIdsRemovedFromLiveSet,
     mergeLiveTracksForManagementWindowSync,
     TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
 } from '../../tools/map/trackManagementTrack'
@@ -79,6 +80,7 @@ export default function MapView({
     const trackManagementWindowsRef = useRef([])
     const trackMapLayerGetTrackRef = useRef(null)
     const syncTrackManagementWindowsFromLiveTracksRef = useRef(null)
+    const previousLiveTrackIdsRef = useRef(new Set())
     const mapStyle = MAP_STYLES[colorMode]
 
     const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
@@ -257,6 +259,16 @@ export default function MapView({
         keyboardCameraControlsEnabled,
     )
 
+    const dismissManagementWindowsForDroppedTrack = useCallback((trackId) => {
+        blurTrackWindowsForTrack(trackId)
+        clearKeyboardCustodyForTrack(trackId)
+        closeTrackManagementWindowsForTrack(trackId)
+    }, [
+        blurTrackWindowsForTrack,
+        clearKeyboardCustodyForTrack,
+        closeTrackManagementWindowsForTrack,
+    ])
+
     const handleDropTrack = useCallback((track) => {
         const trackId = track.trackId ?? track.id
 
@@ -264,19 +276,14 @@ export default function MapView({
             return
         }
 
-        blurTrackWindowsForTrack(trackId)
-        clearKeyboardCustodyForTrack(trackId)
-
         trackMapLayer.removeTrack(trackId)
         dropTrack(trackId)
-        closeTrackManagementWindowsForTrack(trackId)
+        dismissManagementWindowsForDroppedTrack(trackId)
         closeContextMenu()
     }, [
-        blurTrackWindowsForTrack,
-        clearKeyboardCustodyForTrack,
         trackMapLayer,
         dropTrack,
-        closeTrackManagementWindowsForTrack,
+        dismissManagementWindowsForDroppedTrack,
         closeContextMenu,
     ])
 
@@ -396,6 +403,31 @@ export default function MapView({
     useEffect(() => {
         syncTrackManagementWindowsFromLiveTracksRef.current = syncTrackManagementWindowsFromLiveTracks
     }, [syncTrackManagementWindowsFromLiveTracks])
+
+    useEffect(() => {
+        const {currentLiveTrackIds, removedTrackIds} = getTrackIdsRemovedFromLiveSet(
+            previousLiveTrackIdsRef.current,
+            simulationSnapshot?.tracks ?? EMPTY_TRACKS,
+        )
+
+        previousLiveTrackIdsRef.current = currentLiveTrackIds
+
+        if (removedTrackIds.length === 0 || trackManagementWindows.length === 0) {
+            return
+        }
+
+        const openTrackIds = new Set(trackManagementWindows.map((window) => window.trackId))
+
+        for (const trackId of removedTrackIds) {
+            if (openTrackIds.has(trackId)) {
+                dismissManagementWindowsForDroppedTrack(trackId)
+            }
+        }
+    }, [
+        dismissManagementWindowsForDroppedTrack,
+        simulationSnapshot?.tracks,
+        trackManagementWindows,
+    ])
 
     useEffect(() => {
         if (trackManagementWindows.length === 0) {

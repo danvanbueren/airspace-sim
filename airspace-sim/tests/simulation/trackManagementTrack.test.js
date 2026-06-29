@@ -5,6 +5,7 @@ import {
     createTrackUpdateFromManagementWindow,
     expandSkipFieldsWithCommittedManagementEdits,
     expandTrackManagementWindowSkipLiveFields,
+    getTrackIdsRemovedFromLiveSet,
     getTrackManagementWindowLiveUpdatesFromTrack,
     mergeLiveTracksForManagementWindowSync,
     mergeUserDirectedLayerTrackOverSimulation,
@@ -771,5 +772,16 @@ describe('track management window live sync', () => {
             mergedTrack.lastManagementEditFields.sort(),
             ['callsign', 'heading'],
         )
+    })
+
+    it('detects track ids removed from the live simulation set', () => {
+        const previousLiveTrackIds = new Set(['TRK-1', 'TRK-2', 'RP-1'])
+        const {currentLiveTrackIds, removedTrackIds} = getTrackIdsRemovedFromLiveSet(
+            previousLiveTrackIds,
+            [existingTrack({trackId: 'TRK-2', id: 'TRK-2'})],
+        )
+
+        assert.deepEqual([...currentLiveTrackIds], ['TRK-2'])
+        assert.deepEqual(removedTrackIds, ['TRK-1', 'RP-1'])
     })
 })

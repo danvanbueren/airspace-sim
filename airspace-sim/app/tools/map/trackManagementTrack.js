@@ -203,6 +203,36 @@ export function mergeLiveTracksForManagementWindowSync(
     return Array.from(tracksById.values())
 }
 
+export function collectLiveTrackIds(tracks) {
+    const liveTrackIds = new Set()
+
+    for (const track of tracks ?? []) {
+        const trackId = track.trackId ?? track.id
+
+        if (trackId) {
+            liveTrackIds.add(trackId)
+        }
+    }
+
+    return liveTrackIds
+}
+
+export function getTrackIdsRemovedFromLiveSet(previousLiveTrackIds, currentLiveTracks) {
+    const currentLiveTrackIds = collectLiveTrackIds(currentLiveTracks)
+    const removedTrackIds = []
+
+    for (const trackId of previousLiveTrackIds) {
+        if (!currentLiveTrackIds.has(trackId)) {
+            removedTrackIds.push(trackId)
+        }
+    }
+
+    return {
+        currentLiveTrackIds,
+        removedTrackIds,
+    }
+}
+
 function getChangedFieldSet(changedFields) {
     if (!changedFields) {
         return null
