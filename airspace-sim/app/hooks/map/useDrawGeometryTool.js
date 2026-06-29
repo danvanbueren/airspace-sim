@@ -37,8 +37,7 @@ import {
     rehydrateDrawGeometryShapes,
     setDrawGeometryShapes,
 } from '@/app/tools/map/drawGeometry/drawGeometryMapLayer'
-
-const DRAW_GEOMETRY_CURSOR = 'crosshair'
+import {getDrawGeometryCursor} from '@/app/tools/map/drawGeometry/drawGeometryCursor'
 
 function getDistancePixels(firstPoint, secondPoint) {
     const deltaX = firstPoint.x - secondPoint.x
@@ -190,12 +189,24 @@ export function useDrawGeometryTool(
         drawingPhaseRef.current = 0
         polygonPreviewLngLatRef.current = null
         setIsDrawingGeometry(false)
+    }, [])
+
+    const clearDrawGeometryCursor = useCallback(() => {
         mapCursorRef.current?.clearCursorRequest(MAP_CURSOR_REQUESTS.DRAW_GEOMETRY)
+    }, [])
+
+    const applyDrawGeometryCursor = useCallback(() => {
+        mapCursorRef.current?.requestCursor(
+            MAP_CURSOR_REQUESTS.DRAW_GEOMETRY,
+            getDrawGeometryCursor(themeModeRef.current),
+            MAP_CURSOR_PRIORITIES.ACTIVE,
+        )
     }, [])
 
     const resetDrawingPhase = useCallback(() => {
         resetDrawingInteraction()
-    }, [resetDrawingInteraction])
+        clearDrawGeometryCursor()
+    }, [clearDrawGeometryCursor, resetDrawingInteraction])
 
     const applyShapeUpdate = useCallback((shapeId, paramsUpdate, extraUpdates = {}) => {
         updateShape(shapeId, {
@@ -270,11 +281,6 @@ export function useDrawGeometryTool(
         const params = getShapeById(shape.id)?.params ?? shape.params
 
         setIsDrawingGeometry(true)
-        mapCursorRef.current?.requestCursor(
-            MAP_CURSOR_REQUESTS.DRAW_GEOMETRY,
-            DRAW_GEOMETRY_CURSOR,
-            MAP_CURSOR_PRIORITIES.ACTIVE,
-        )
 
         switch (shape.type) {
             case GEOMETRY_SHAPE_TYPES.RECTANGLE: {
@@ -492,6 +498,15 @@ export function useDrawGeometryTool(
     useEffect(() => {
         resetDrawingInteraction()
     }, [activeShapeId, resetDrawingInteraction])
+
+    useEffect(() => {
+        if (!enabled || !activeDrawToolItemId) {
+            clearDrawGeometryCursor()
+            return
+        }
+
+        applyDrawGeometryCursor()
+    }, [activeDrawToolItemId, applyDrawGeometryCursor, clearDrawGeometryCursor, enabled, themeMode])
 
     useEffect(() => {
         if (!enabled || !activeDrawToolItemId) {
