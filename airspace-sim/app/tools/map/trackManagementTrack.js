@@ -14,6 +14,7 @@ import {
     getDefaultSpecificTypeForTrackType,
     normalizeSpecificType,
 } from '../milstd2525/trackSpecificTypes.js'
+import {normalizeNationality} from '../milstd2525/trackNationalities.js'
 import {applyUserKinematicEditHold, getAuthoritativeManagementEditFields, isCorrelationHoldActive, resolveExpiredCorrelationHold} from '../../simulation/correlationHold.js'
 import {TRACK_KINDS} from '../../simulation/trackKinds.js'
 
@@ -40,6 +41,7 @@ export const TRACK_MANAGEMENT_WINDOW_LIVE_FIELDS = [
     'identity',
     'type',
     'specificType',
+    'nationality',
     'callsign',
     'heading',
     'speed',
@@ -68,6 +70,7 @@ const USER_DIRECTED_LAYER_METADATA_FIELDS = [
     'identity',
     'type',
     'specificType',
+    'nationality',
     'callsign',
     'infoFields',
     'correlationMode',
@@ -310,6 +313,7 @@ export function getTrackManagementWindowLiveUpdatesFromTrack(track) {
         identity: track.identity ?? TRACK_IDENTITIES.PENDING,
         type,
         specificType,
+        nationality: normalizeNationality(track.nationality),
         callsign: track.callsign ?? trackId,
         heading: kinematicFields.heading,
         speed: kinematicFields.speed,
@@ -435,6 +439,7 @@ export function createTrackFromManagementWindow(trackManagementWindow) {
         identity: trackManagementWindow.identity,
         type,
         specificType,
+        nationality: normalizeNationality(trackManagementWindow.nationality),
         ...getTrackKinematicFields(trackManagementWindow),
         infoFields: Boolean(trackManagementWindow.infoFields),
         callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
@@ -471,6 +476,7 @@ export function createTrackUpdateFromManagementWindow(
         identity: trackManagementWindow.identity,
         type,
         specificType,
+        nationality: normalizeNationality(trackManagementWindow.nationality),
         ...getTrackKinematicFields(trackManagementWindow, existingTrack, changedFields),
         infoFields: Boolean(trackManagementWindow.infoFields),
         callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,

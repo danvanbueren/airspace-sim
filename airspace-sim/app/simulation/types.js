@@ -51,6 +51,8 @@
  * @property {string} domain
  * @property {string} identity
  * @property {string} type
+ * @property {string} [specificType]
+ * @property {string} [nationality] ISO 3166-1 alpha-2 nationality code, or empty when unspecified
  * @property {string} callsign
  * @property {'track'|'referencePoint'} [trackKind]
  * @property {'auto'|'manual'} [source]

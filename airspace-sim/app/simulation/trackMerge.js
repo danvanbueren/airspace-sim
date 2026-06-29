@@ -9,6 +9,7 @@ const PROPERTY_MERGE_FIELDS = [
     'domain',
     'identity',
     'specificType',
+    'nationality',
     'infoFields',
     'correlationMode',
     'iconLabel',
