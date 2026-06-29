@@ -3,6 +3,8 @@
  * Add entries here to surface operator notices on startup.
  */
 
+import {EXTERNAL_LINKS, githubBlobUrl} from '../content/externalLinks.js'
+
 /** @typedef {Object} SeedAlarmAlertDefinition
  * @property {string} seedKey Stable key used for deduplication within a page session
  * @property {string} signalId Alert signal ID from signalDefinitions.js
@@ -19,7 +21,7 @@ export const SEED_ALARM_ALERTS = [
         signalId: 'SYSTEM_NOTICE',
         messageIcon: '⚠️',
         message: 'The bearing range line system is currently buggy and undergoing active fixes.',
-        linkUrl: 'https://github.com/danvanbueren/airspace-sim/blob/main/docs/bearing-range-tool-rewrite-plan.md',
+        linkUrl: githubBlobUrl(EXTERNAL_LINKS.docs.bearingRangeRewritePlan),
         linkLabel: 'View bearing range rewrite plan',
     },
 ]

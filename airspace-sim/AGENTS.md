@@ -281,7 +281,13 @@ When you add a new multi-step feature or refactor, create a new plan under `docs
 
 ## Settings Roadmap Page
 
-The in-app **Settings → Roadmap** page is backed by [`app/content/settings-roadmap.md`](app/content/settings-roadmap.md). Treat it as part of every change that affects project direction or delivered capabilities, not a separate follow-up task.
+The in-app **Settings → Roadmap** page is backed by [`app/content/settings-roadmap.js`](app/content/settings-roadmap.js). Treat it as part of every change that affects project direction or delivered capabilities, not a separate follow-up task.
+
+## External Links
+
+Maintain outbound URLs in [`app/content/externalLinks.js`](app/content/externalLinks.js). Import helpers such as `githubCommitUrl` and `githubBlobUrl` instead of hardcoding GitHub paths. After changing CARTO basemap URLs, run `npm run sync:map-style-urls` to update `public/map-styles/`.
+
+The program name shown in the app comes from `package.json` `name` via [`app/config/projectName.js`](app/config/projectName.js).
 
 Whenever you ship a user-visible feature, close out planned work, or add or reprioritize future items, validate whether the roadmap still reflects reality. Update it in the same work session when anything is out of date or missing. Do not leave roadmap drift for a later pass.
 

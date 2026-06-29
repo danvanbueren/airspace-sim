@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "node --experimental-default-type=module --import ./tests/register-mgrs.mjs --test \"tests/**/*.test.js\"",
-    "generate:flight-world": "node scripts/generate-flight-world-data.mjs"
+    "generate:flight-world": "node scripts/generate-flight-world-data.mjs",
+    "sync:map-style-urls": "node scripts/sync-map-style-urls.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

@@ -27,12 +27,13 @@ import {PerformanceMonitorProvider} from './contexts/PerformanceMonitorContext'
 
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next"
+import {PROJECT_NAME} from './config/projectName'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-    title: 'airspace-sim',
-    description: 'airspace-sim - Non-secure simulator to train on a simulated operational airspace for Command and Control aircrew. This project is personal, and is not owned, operated, or endorsed by any government entities. This repository is unclassified.',
+    title: PROJECT_NAME,
+    description: `${PROJECT_NAME} - Non-secure simulator to train on a simulated operational airspace for Command and Control aircrew. This project is personal, and is not owned, operated, or endorsed by any government entities. This repository is unclassified.`,
 }
 
 export const viewport = {

@@ -1,7 +1,9 @@
 import buildInfo from '../../buildInfo'
+import {EXTERNAL_LINKS} from '../../content/externalLinks'
 
 const OWNER = buildInfo().githubRepoOwner
 const REPO = buildInfo().githubRepoName
+const GITHUB_API_BASE = EXTERNAL_LINKS.github.apiBase
 const CACHE_TTL_MS = 1000 * 60 * 2 // 2 minutes
 
 const commitCache = new Map()
@@ -84,7 +86,7 @@ export default async function fetchLatestGithubCommit({
         searchParams.set('sha', branch)
     }
 
-    const apiUrl = `https://api.github.com/repos/${resolvedOwner}/${repo}/commits?${searchParams}`
+    const apiUrl = `${GITHUB_API_BASE}/repos/${resolvedOwner}/${repo}/commits?${searchParams}`
 
     const commitRequest = fetch(apiUrl, {
         headers: {

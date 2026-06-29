@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Generates app/data/airports.json and app/data/airRoutes.json from OurAirports
- * open data (https://ourairports.com/data/). Run from airspace-sim/:
+ * open data. Run from airspace-sim/:
  *
  *   node scripts/generate-flight-world-data.mjs
  */
@@ -11,13 +11,14 @@ import {createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync} f
 import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {pipeline} from 'node:stream/promises'
+import {EXTERNAL_LINKS} from '../app/content/externalLinks.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 const DATA_DIR = join(ROOT, 'app', 'data')
 const CACHE_DIR = join(__dirname, 'data-cache')
 
-const OURAIRPORTS_BASE = 'https://davidmegginson.github.io/ourairports-data'
+const OURAIRPORTS_BASE = EXTERNAL_LINKS.ourAirports.rawDataBase
 const MIN_RUNWAY_FT = 500
 const GRID_CELL_DEG = 2
 
