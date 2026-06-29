@@ -88,6 +88,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     mapContainerRef,
     onInitiateTrack,
     onCreateReferencePoint,
+    onOpenDrawTools,
     onDropTrack,
     onRecoverTrack,
     onToggleDropProtect,
@@ -154,6 +155,17 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     disabled
                 >
                     Set Home
+                </Button>
+
+                <Button
+                    color='primary'
+                    size='small'
+                    variant='outlined'
+                    onClick={() => onOpenDrawTools(elementContainer)}
+                    sx={CONTEXT_MENU_BUTTON_SX}
+                    fullWidth
+                >
+                    Draw Tool
                 </Button>
 
                 <Button

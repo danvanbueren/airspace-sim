@@ -28,6 +28,7 @@ import {ACTION_PANEL_BODY_BOTTOM_PADDING_PX} from '@/app/tools/actionPanels/acti
 import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import {MISC_SIGNAL_ID} from '@/app/simulation/signalDefinitions'
+import {getDrawShapeIconComponent} from '@/app/components/floating/actionPanels/DrawShapeIcons'
 
 const LARGE_CONTROL_HEIGHT_PX = 80
 
@@ -52,6 +53,41 @@ const MONO_LABEL_STYLE = {
     textOverflow: 'ellipsis',
     fontFamily: 'monospace',
     fontWeight: 'bold',
+}
+
+function ActionPanelButtonLabel({definition}) {
+    const IconComponent = definition.iconKey
+        ? getDrawShapeIconComponent(definition.iconKey)
+        : null
+
+    if (!IconComponent) {
+        return definition.label
+    }
+
+    return (
+        <Box
+            component='span'
+            sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 1,
+                minWidth: 0,
+                width: '100%',
+            }}
+        >
+            <IconComponent />
+            <Box
+                component='span'
+                sx={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                }}
+            >
+                {definition.label}
+            </Box>
+        </Box>
+    )
 }
 
 export function ActionPanelEmptyContent({onConfigure}) {
@@ -195,9 +231,10 @@ function UnifiedLargeControls({
                         variant='outlined'
                         color='inherit'
                         sx={LARGE_BUTTON_SX}
+                        disabled={definition.disabled}
                         onClick={() => runButtonAction(definition.actionKey)}
                     >
-                        {definition.label}
+                        <ActionPanelButtonLabel definition={definition} />
                     </Button>
                 )
             })}
@@ -264,6 +301,7 @@ function UnifiedCompactControls({
                             color='inherit'
                             size='small'
                             fullWidth
+                            disabled={definition.disabled}
                             sx={{
                                 minHeight: COMPACT_BUTTON_MIN_HEIGHT_PX,
                                 px: 2,
@@ -273,7 +311,7 @@ function UnifiedCompactControls({
                             }}
                             onClick={() => runButtonAction(definition.actionKey)}
                         >
-                            {definition.label}
+                            <ActionPanelButtonLabel definition={definition} />
                         </Button>
                     </Box>
                 )
