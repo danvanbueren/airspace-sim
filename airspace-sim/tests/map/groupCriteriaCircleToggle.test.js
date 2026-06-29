@@ -40,7 +40,10 @@ describe('eventMatchesCapsLockToggleBinding', () => {
             true,
         )
         assert.equal(
-            eventMatchesCapsLockToggleBinding(createKeyboardEvent('keydown', {key: 'a'}), ['capslock']),
+            eventMatchesCapsLockToggleBinding(
+                createKeyboardEvent('keydown', {key: 'a', code: 'KeyA'}),
+                ['capslock'],
+            ),
             false,
         )
     })

@@ -115,6 +115,7 @@ describe('iffMode3', () => {
         const track = {
             iffMode3Code: '4231',
             iffMode3UpdatedAt: 1_000,
+            correlated: true,
         }
 
         assert.ok(!isIffMode3Stale(track, 2_000, 1000))
@@ -129,6 +130,7 @@ describe('iffMode3', () => {
         const track = {
             iffMode3Code: '7700',
             iffMode3UpdatedAt: 1_000,
+            correlated: true,
         }
 
         const flags = deriveAttentionFlagsFromTrackState(track, 5_000, 1000)
@@ -366,7 +368,7 @@ describe('iffCorrelation', () => {
 
     it('updates track IFF fields from correlated detections', () => {
         const trackStore = new TrackStore()
-        trackStore.addTrack(activeTrack({id: 'TRK-1'}))
+        trackStore.addTrack(activeTrack({id: 'TRK-1', correlated: true}))
 
         applyIffCorrelationFields(trackStore, [
             {
