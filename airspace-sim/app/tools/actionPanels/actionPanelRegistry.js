@@ -116,6 +116,7 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_RECTANGLE,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_RECTANGLE,
         disabled: true,
+        assignable: false,
     },
     {
         id: ACTION_PANEL_ITEM_IDS.DRAW_SQUARE,
@@ -124,6 +125,7 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_SQUARE,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_SQUARE,
         disabled: true,
+        assignable: false,
     },
     {
         id: ACTION_PANEL_ITEM_IDS.DRAW_CIRCLE,
@@ -132,6 +134,7 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_CIRCLE,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_CIRCLE,
         disabled: true,
+        assignable: false,
     },
     {
         id: ACTION_PANEL_ITEM_IDS.DRAW_OVAL,
@@ -140,6 +143,7 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_OVAL,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_OVAL,
         disabled: true,
+        assignable: false,
     },
     {
         id: ACTION_PANEL_ITEM_IDS.DRAW_RACETRACK,
@@ -148,6 +152,7 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_RACETRACK,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_RACETRACK,
         disabled: true,
+        assignable: false,
     },
     {
         id: ACTION_PANEL_ITEM_IDS.DRAW_POLYGON,
@@ -156,6 +161,7 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_POLYGON,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_POLYGON,
         disabled: true,
+        assignable: false,
     },
 ]
 
@@ -163,7 +169,9 @@ export const ACTION_PANEL_ITEM_CATALOG_BY_ID = Object.fromEntries(
     ACTION_PANEL_ITEM_CATALOG.map((entry) => [entry.id, entry]),
 )
 
-export const ACTION_PANEL_ASSIGNABLE_ITEMS = ACTION_PANEL_ITEM_CATALOG
+export const ACTION_PANEL_ASSIGNABLE_ITEMS = ACTION_PANEL_ITEM_CATALOG.filter(
+    (item) => item.assignable !== false,
+)
 
 export function getActionPanelItemDefinition(itemId) {
     return ACTION_PANEL_ITEM_CATALOG_BY_ID[itemId] ?? null

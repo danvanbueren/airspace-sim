@@ -3,6 +3,7 @@
 import {Box} from '@mui/material'
 import ActionPanel from '../actionPanels/ActionPanel'
 import PerformanceAnalyticsOverlay from '@/app/components/map/PerformanceAnalyticsOverlay'
+import DrawToolsPanel from '@/app/components/floating/drawTools/DrawToolsPanel'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 import {useActionPanels} from '@/app/contexts/ActionPanelsContext'
 
@@ -25,6 +26,8 @@ export default function DraggableOverlaysLayer({
             }}
         >
             <PerformanceAnalyticsOverlay/>
+
+            <DrawToolsPanel interactionsEnabled={interactionsEnabled}/>
 
             {actionPanelsState.panels.map((panel) => (
                 <ActionPanel

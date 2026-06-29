@@ -3,7 +3,6 @@ import {
     ACTION_PANEL_ITEM_IDS,
 } from './actionPanelRegistry.js'
 import {estimateActionPanelAutoHeight} from './actionPanelSizeEstimate.js'
-import {createActionPanelId} from './normalizeActionPanels.js'
 import {absoluteToEdgeAnchor, clampAbsolutePosition} from '../map/edgeAnchoredPosition.js'
 
 export const DRAW_TOOLS_PANEL_TITLE = 'Draw Tools'
@@ -18,6 +17,8 @@ export const DRAW_TOOLS_DEFAULT_ITEM_IDS = [
     ACTION_PANEL_ITEM_IDS.DRAW_RACETRACK,
     ACTION_PANEL_ITEM_IDS.DRAW_POLYGON,
 ]
+
+export const DRAW_TOOL_ITEM_ID_SET = new Set(DRAW_TOOLS_DEFAULT_ITEM_IDS)
 
 const DRAW_TOOLS_PANEL_EDGE_PADDING_PX = 8
 
@@ -67,20 +68,26 @@ export function computeDrawToolsPanelPosition(elementContainer, mapContainerRef)
     }
 }
 
-export function createDrawToolsActionPanel({anchor, width, height}) {
-    const id = createActionPanelId()
-
-    return {
-        panel: {
-            id,
-            title: DRAW_TOOLS_PANEL_TITLE,
-            displayStyle: ACTION_PANEL_DISPLAY_STYLES.COMPACT,
-            itemIds: DRAW_TOOLS_DEFAULT_ITEM_IDS,
-        },
-        layout: {
-            anchor,
-            width: width ?? DRAW_TOOLS_PANEL_WIDTH_PX,
-            height: height ?? null,
-        },
+export function isPersistedDrawToolsPanel(panel) {
+    if (!panel) {
+        return false
     }
+
+    if (panel.title === DRAW_TOOLS_PANEL_TITLE) {
+        return true
+    }
+
+    if (!Array.isArray(panel.itemIds) || panel.itemIds.length === 0) {
+        return false
+    }
+
+    return panel.itemIds.every((itemId) => DRAW_TOOL_ITEM_ID_SET.has(itemId))
+}
+
+export function stripDrawToolItemIds(itemIds) {
+    if (!Array.isArray(itemIds)) {
+        return []
+    }
+
+    return itemIds.filter((itemId) => !DRAW_TOOL_ITEM_ID_SET.has(itemId))
 }
