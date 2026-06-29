@@ -199,6 +199,20 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                             </Button>
                         ) : null}
 
+                        {isReferencePointTrack ? (
+                            <Button
+                                color='primary'
+                                size='small'
+                                variant='outlined'
+                                onClick={() => {}}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                                disabled
+                            >
+                                Set Bullseye
+                            </Button>
+                        ) : null}
+
                         <Button
                             color='warning'
                             size='small'
