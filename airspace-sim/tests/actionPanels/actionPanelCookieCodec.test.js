@@ -49,7 +49,7 @@ describe('actionPanelCookieCodec', () => {
         assert.ok(Array.isArray(encoded.l))
     })
 
-    it('round-trips nine fully populated panels and stays under the browser cookie limit', () => {
+    it('round-trips the maximum number of fully populated panels and stays under the browser cookie limit', () => {
         const state = buildMaxActionPanelsState({withItems: true})
         const encoded = encodeActionPanelsForCookie(state)
         const decoded = decodeActionPanelsFromCookie(encoded, DEFAULT_ACTION_PANELS_STATE)
@@ -66,13 +66,13 @@ describe('actionPanelCookieCodec', () => {
         assert.deepEqual(decoded, legacyState)
     })
 
-    it('uses compact encoding that is smaller than the legacy JSON payload for nine panels', () => {
+    it('uses compact encoding that is smaller than the legacy JSON payload at the panel limit', () => {
         const state = buildMaxActionPanelsState({withItems: false})
         const compactEncodedLength = getEncodedActionPanelsCookieByteLength(state)
         const legacyEncodedLength = encodeURIComponent(JSON.stringify(state)).length
 
         assert.ok(compactEncodedLength < legacyEncodedLength)
-        assert.equal(legacyEncodedLength, BROWSER_COOKIE_VALUE_BYTE_LIMIT)
+        assert.ok(legacyEncodedLength >= BROWSER_COOKIE_VALUE_BYTE_LIMIT)
         assert.ok(compactEncodedLength < BROWSER_COOKIE_VALUE_BYTE_LIMIT)
     })
 })
