@@ -17,24 +17,8 @@ function clampLatitude(lat) {
     return Math.max(-90, Math.min(90, lat))
 }
 
-function formatDegrees(value) {
-    return String(value).padStart(4, ' ')
-}
-
-function formatMinutes(value) {
-    return String(value).padStart(2, '0')
-}
-
-function formatDecimalMinutes(value) {
-    return value.toFixed(4).padStart(7, '0')
-}
-
-function formatSeconds(value) {
-    return value.toFixed(2).padStart(5, '0')
-}
-
 function formatDdCoordinate(value) {
-    return `${value.toFixed(5).padStart(10, ' ')}°`
+    return `${value.toFixed(5)}°`
 }
 
 function formatDdmCoordinate(value) {
@@ -42,7 +26,7 @@ function formatDdmCoordinate(value) {
     const degrees = Math.trunc(value)
     const minutes = (absoluteValue - Math.floor(absoluteValue)) * 60
 
-    return `${formatDegrees(degrees)}° ${formatDecimalMinutes(minutes)}'`
+    return `${degrees}° ${minutes.toFixed(3)}'`
 }
 
 function formatDmsCoordinate(value, positiveSuffix, negativeSuffix) {
@@ -53,7 +37,7 @@ function formatDmsCoordinate(value, positiveSuffix, negativeSuffix) {
     const seconds = (minutesFloat - minutes) * 60
     const suffix = value >= 0 ? positiveSuffix : negativeSuffix
 
-    return `${formatDegrees(degrees)}° ${formatMinutes(minutes)}' ${formatSeconds(seconds)}" ${suffix}`
+    return `${degrees}° ${minutes}' ${seconds.toFixed(1)}" ${suffix}`
 }
 
 function getGarsLetterPair(latitudeBand) {
@@ -476,13 +460,16 @@ export function formatCoordinatePairForGridReferenceSystem(lat, lng, gridReferen
     switch (gridReferenceSystem) {
 
         case GRID_REFERENCE_SYSTEMS.dd.value:
-            return [`LAT: ${formatDdCoordinate(lat)}`, `LNG: ${formatDdCoordinate(lng)}`,]
+            return [formatDdCoordinate(lat), formatDdCoordinate(lng)]
 
         case GRID_REFERENCE_SYSTEMS.ddm.value:
-            return [`LAT: ${formatDdmCoordinate(lat)}`, `LNG: ${formatDdmCoordinate(lng)}`,]
+            return [formatDdmCoordinate(lat), formatDdmCoordinate(lng)]
 
         case GRID_REFERENCE_SYSTEMS.dms.value:
-            return [`LAT: ${formatDmsCoordinate(lat, 'N', 'S')}`, `LNG: ${formatDmsCoordinate(lng, 'E', 'W')}`,]
+            return [
+                formatDmsCoordinate(lat, 'N', 'S'),
+                formatDmsCoordinate(lng, 'E', 'W'),
+            ]
 
         case GRID_REFERENCE_SYSTEMS.gars.value:
             return [`${formatGarsCoordinate(lat, lng)}`,]

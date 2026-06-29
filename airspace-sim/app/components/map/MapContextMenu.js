@@ -159,22 +159,22 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     color='primary'
                     size='small'
                     variant='outlined'
-                    onClick={() => onCreateReferencePoint(elementContainer)}
+                    onClick={() => onInitiateTrack(elementContainer)}
                     sx={CONTEXT_MENU_BUTTON_SX}
                     fullWidth
                 >
-                    Initiate Ref Point
+                    Initiate Track
                 </Button>
 
                 <Button
                     color='primary'
                     size='small'
                     variant='outlined'
-                    onClick={() => onInitiateTrack(elementContainer)}
+                    onClick={() => onCreateReferencePoint(elementContainer)}
                     sx={CONTEXT_MENU_BUTTON_SX}
                     fullWidth
                 >
-                    Initiate Track
+                    Initiate Ref Point
                 </Button>
 
                 {hasDynamicActions ? (
