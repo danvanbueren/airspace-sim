@@ -87,10 +87,43 @@ const TRACK_IDENTITY_CHROME_BY_MODE = {
     },
 }
 
-export function getTrackIdentityChromeColors(identity, theme) {
-    const mode = theme.palette.mode === 'light' ? 'light' : 'dark'
-    const palette = TRACK_IDENTITY_CHROME_BY_MODE[identity]
+function normalizeTrackIdentityColorMode(mode) {
+    return mode === 'light' ? 'light' : 'dark'
+}
+
+function withAlpha(hex, alpha) {
+    const normalized = hex.replace('#', '')
+
+    if (normalized.length !== 6) {
+        return hex
+    }
+
+    const red = Number.parseInt(normalized.slice(0, 2), 16)
+    const green = Number.parseInt(normalized.slice(2, 4), 16)
+    const blue = Number.parseInt(normalized.slice(4, 6), 16)
+
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`
+}
+
+function getTrackIdentityChromePalette(identity) {
+    return TRACK_IDENTITY_CHROME_BY_MODE[identity]
         ?? TRACK_IDENTITY_CHROME_BY_MODE[TRACK_IDENTITIES.UNKNOWN]
+}
+
+export function getTrackIdentityChromeColors(identity, theme) {
+    const mode = normalizeTrackIdentityColorMode(theme.palette.mode)
+    const palette = getTrackIdentityChromePalette(identity)
 
     return palette[mode]
+}
+
+export function getTrackIdentityMapStyle(identity, mode = 'dark') {
+    const palette = getTrackIdentityChromePalette(identity)
+    const chrome = palette[normalizeTrackIdentityColorMode(mode)]
+    const stroke = chrome.focusOutline
+
+    return {
+        stroke,
+        fill: withAlpha(stroke, 0.22),
+    }
 }

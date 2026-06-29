@@ -1,5 +1,6 @@
 'use client'
 
+import {getTrackIdentityMapStyle} from './trackIdentityColors'
 import {
     TRACK_DOMAINS,
     TRACK_IDENTITIES,
@@ -43,37 +44,6 @@ const DOMAIN_ICON_KINDS = {
     [TRACK_DOMAINS.SPACE]: TRACK_ICON_KINDS.SATELLITE,
     [TRACK_DOMAINS.ACTIVITY]: TRACK_ICON_KINDS.ACTIVITY,
     [TRACK_DOMAINS.CYBERSPACE]: TRACK_ICON_KINDS.CYBER,
-}
-
-const IDENTITY_STYLES = {
-    [TRACK_IDENTITIES.PENDING]: {
-        stroke: '#ffd24d',
-        fill: 'rgba(255, 210, 77, 0.24)',
-    },
-    [TRACK_IDENTITIES.UNKNOWN]: {
-        stroke: '#ffd24d',
-        fill: 'rgba(255, 210, 77, 0.24)',
-    },
-    [TRACK_IDENTITIES.ASSUMED_FRIENDLY]: {
-        stroke: '#66c7ff',
-        fill: 'rgba(102, 199, 255, 0.22)',
-    },
-    [TRACK_IDENTITIES.FRIENDLY]: {
-        stroke: '#2ea7ff',
-        fill: 'rgba(46, 167, 255, 0.22)',
-    },
-    [TRACK_IDENTITIES.NEUTRAL]: {
-        stroke: '#61d36b',
-        fill: 'rgba(97, 211, 107, 0.22)',
-    },
-    [TRACK_IDENTITIES.SUSPECT]: {
-        stroke: '#ff9a3d',
-        fill: 'rgba(255, 154, 61, 0.24)',
-    },
-    [TRACK_IDENTITIES.HOSTILE]: {
-        stroke: '#ff5252',
-        fill: 'rgba(255, 82, 82, 0.24)',
-    },
 }
 
 function getIconKind({domain, type} = {}) {
@@ -376,7 +346,10 @@ export function createFamiliarTrackIconCanvas(options = {}) {
     const size = options.size ?? DEFAULT_ICON_SIZE
     const canvas = createCanvas(size)
     const ctx = canvas.getContext('2d')
-    const style = IDENTITY_STYLES[options.identity] ?? IDENTITY_STYLES[TRACK_IDENTITIES.UNKNOWN]
+    const style = getTrackIdentityMapStyle(
+        options.identity ?? TRACK_IDENTITIES.UNKNOWN,
+        options.mapColorMode,
+    )
     const scale = size / 100
 
     ctx.save()
