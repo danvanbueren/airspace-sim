@@ -1,6 +1,7 @@
 'use client'
 
-import {FormControl, MenuItem, Select} from '@mui/material'
+import {FormControl, InputLabel, MenuItem, Select} from '@mui/material'
+import {useId} from 'react'
 import {GRID_REFERENCE_SYSTEMS, useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {getGridReferenceSystemDisplayName} from '@/app/tools/formatting/GridReferenceFormatting'
 
@@ -30,16 +31,20 @@ export default function GridReferenceSystemSelect({
     disablePortal = true,
     disabled = false,
     matchInputHeight = false,
+    alignWithLabeledInput = false,
+    alignLabel = 'Position',
     sx,
 }) {
     const {appSettings} = useAppSettings()
     const selectedValue = value ?? appSettings.gridReferenceSystem
+    const labelId = useId()
+    const usesAlignedLabel = alignWithLabeledInput && alignLabel
 
     return (
         <FormControl
-            variant='filled'
             size='small'
             disabled={disabled}
+            variant='outlined'
             sx={{
                 minWidth: '3rem',
                 m: 0,
@@ -54,10 +59,20 @@ export default function GridReferenceSystemSelect({
                 ...sx,
             }}
         >
+            {usesAlignedLabel ? (
+                <InputLabel
+                    id={labelId}
+                    shrink
+                    sx={{visibility: 'hidden'}}
+                >
+                    {alignLabel}
+                </InputLabel>
+            ) : null}
             <Select
+                labelId={usesAlignedLabel ? labelId : undefined}
+                label={usesAlignedLabel ? alignLabel : undefined}
                 value={selectedValue}
                 onChange={(event) => onChange?.(event.target.value)}
-                variant='outlined'
                 size='small'
                 sx={{
                     fontFamily: 'monospace',
