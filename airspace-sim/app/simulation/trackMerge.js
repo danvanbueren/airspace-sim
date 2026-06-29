@@ -133,6 +133,31 @@ export function findNearestActiveTrack(tracks, latitude, longitude, thresholdNm)
     return bestTrack
 }
 
+export function findNearestCorrelatedActiveTrack(tracks, latitude, longitude, thresholdNm) {
+    let bestTrack = null
+    let bestDistance = Infinity
+
+    tracks.forEach((track) => {
+        if (track.correlationMode !== TRACK_CORRELATION_MODES.ACTIVE || track.correlated !== true) {
+            return
+        }
+
+        const distance = haversineDistanceNm(
+            latitude,
+            longitude,
+            track.latitude,
+            track.longitude,
+        )
+
+        if (distance <= thresholdNm && distance < bestDistance) {
+            bestDistance = distance
+            bestTrack = track
+        }
+    })
+
+    return bestTrack
+}
+
 export function selectMergeSurvivor(tracks, trackStore) {
     if (!tracks.length) {
         return null

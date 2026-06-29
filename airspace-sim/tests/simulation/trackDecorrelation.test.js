@@ -70,6 +70,29 @@ describe('trackDecorrelation', () => {
         assert.equal(track.iffMode3UpdatedAt, null)
     })
 
+    it('does not decorrelate stale active tracks while linked truth aircraft remain nearby', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(createTrack({
+            truthAircraftId: 'FLT-1',
+            lastSensorUpdateAt: 0,
+        }))
+        const flightWorld = {
+            getAircraftById(id) {
+                return id === 'FLT-1'
+                    ? {id: 'FLT-1', longitude: -77.5, latitude: 39.2}
+                    : null
+            },
+        }
+
+        refreshTrackStaleAndDecorrelation(trackStore, 9000, settings, flightWorld)
+
+        const track = trackStore.getTrack('TRK-test')
+
+        assert.equal(track.stale, false)
+        assert.equal(track.correlated, true)
+        assert.equal(track.iffMode3Code, '4231')
+    })
+
     it('does not decorrelate tracks still inside the stale threshold', () => {
         const trackStore = new TrackStore()
         trackStore.addTrack(createTrack({lastSensorUpdateAt: 5000}))

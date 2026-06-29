@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {isPointInBounds} from '../../app/simulation/geo.js'
 import {
+    computeSensorScanBounds,
     filterDetectionsByBounds,
     filterTracksByBounds,
     getSensorScanAircraft,
@@ -85,20 +86,23 @@ describe('wrapped map bounds', () => {
 
     it('uses viewport aircraft when viewport-based track dropping is enabled', () => {
         const displayBounds = {west: -85, south: 35, east: -75, north: 45}
+        const sensorScanBounds = {west: -90, south: 30, east: -70, north: 50}
         const viewportAircraft = [{id: 'in-view'}]
         const flightWorld = {
-            getAircraftInBounds: () => viewportAircraft,
+            getAircraftInBounds: (bounds) => (
+                bounds === sensorScanBounds ? viewportAircraft : []
+            ),
             getAllAircraft: () => [{id: 'global'}],
         }
 
         assert.deepEqual(
-            getSensorScanAircraft(flightWorld, displayBounds, true),
+            getSensorScanAircraft(flightWorld, sensorScanBounds, true),
             viewportAircraft,
         )
     })
 
     it('uses the global fleet when viewport-based track dropping is disabled', () => {
-        const displayBounds = {west: -85, south: 35, east: -75, north: 45}
+        const sensorScanBounds = {west: -85, south: 35, east: -75, north: 45}
         const globalAircraft = [{id: 'global'}]
         const flightWorld = {
             getAircraftInBounds: () => [],
@@ -106,8 +110,21 @@ describe('wrapped map bounds', () => {
         }
 
         assert.deepEqual(
-            getSensorScanAircraft(flightWorld, displayBounds, false),
+            getSensorScanAircraft(flightWorld, sensorScanBounds, false),
             globalAircraft,
         )
+    })
+
+    it('unions display bounds with a padded firm-track envelope', () => {
+        const displayBounds = {west: -90, south: 30, east: -80, north: 40}
+        const tracks = [{
+            longitude: -100,
+            latitude: 35,
+        }]
+
+        const sensorScanBounds = computeSensorScanBounds(displayBounds, tracks, 15)
+
+        assert.ok(sensorScanBounds.west < displayBounds.west)
+        assert.ok(sensorScanBounds.east >= displayBounds.east)
     })
 })
