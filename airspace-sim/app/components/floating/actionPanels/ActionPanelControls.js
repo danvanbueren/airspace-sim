@@ -27,6 +27,7 @@ import {
 import {ACTION_PANEL_BODY_BOTTOM_PADDING_PX} from '@/app/tools/actionPanels/actionPanelSizeEstimate'
 import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
+import {MISC_SIGNAL_ID} from '@/app/simulation/signalDefinitions'
 
 const LARGE_CONTROL_HEIGHT_PX = 80
 
@@ -97,13 +98,13 @@ function useActionPanelItemActions() {
                 break
             case 'HOME':
                 raiseAlarmAlert({
-                    signalId: 'UI_HOME',
+                    signalId: MISC_SIGNAL_ID,
                     message: 'HOME action is not yet implemented.',
                 })
                 break
             case 'CENTER_E3':
                 raiseAlarmAlert({
-                    signalId: 'UI_CENTER_E3',
+                    signalId: MISC_SIGNAL_ID,
                     message: 'CENTER ON E-3 action is not yet implemented.',
                 })
                 break
