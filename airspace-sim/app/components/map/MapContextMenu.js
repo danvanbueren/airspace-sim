@@ -100,6 +100,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     }
 
     const hasBearingRangeLine = Boolean(elementContainer.line)
+    const showBearingRangeSection = lines.length >= 1 || hasBearingRangeLine
     const track = elementContainer.track ?? null
     const hasTrack = Boolean(track)
     const isReferencePointTrack = isReferencePoint(track)
@@ -225,37 +226,40 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     </>
                 ) : null}
 
-                <Divider sx={{py: 0.5}}/>
+                {showBearingRangeSection ? (
+                    <>
+                        <Divider sx={{py: 0.5}}/>
 
-                <Typography sx={CONTEXT_MENU_SECTION_HEADING_SX}>
-                    Bearing/Range Lines
-                </Typography>
+                        <Typography sx={CONTEXT_MENU_SECTION_HEADING_SX}>
+                            Bearing/Range Lines
+                        </Typography>
 
-                {hasBearingRangeLine ? (
-                    <Button
-                        color='primary'
-                        size='small'
-                        variant='outlined'
-                        onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
-                        sx={CONTEXT_MENU_BUTTON_SX}
-                        fullWidth
-                    >
-                        Clear line
-                    </Button>
-                ) : null}
+                        {hasBearingRangeLine ? (
+                            <Button
+                                color='primary'
+                                size='small'
+                                variant='outlined'
+                                onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                            >
+                                Clear line
+                            </Button>
+                        ) : null}
 
-                {!(hasBearingRangeLine && lines.length === 1) ? (
-                    <Button
-                        color='warning'
-                        size='small'
-                        variant='outlined'
-                        onClick={onClearBearingRangeLines}
-                        sx={CONTEXT_MENU_BUTTON_SX}
-                        disabled={lines.length < 1}
-                        fullWidth
-                    >
-                        Clear all lines
-                    </Button>
+                        {!(hasBearingRangeLine && lines.length === 1) ? (
+                            <Button
+                                color='warning'
+                                size='small'
+                                variant='outlined'
+                                onClick={onClearBearingRangeLines}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                            >
+                                Clear all lines
+                            </Button>
+                        ) : null}
+                    </>
                 ) : null}
             </Stack>
         </Paper>
