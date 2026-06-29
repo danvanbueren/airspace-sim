@@ -127,7 +127,7 @@ Track merge is a **separate step from correlation**. Correlation links sensor re
 
 **What it does not do:** Merge is **not** a general “combine everything within 3 NM” rule. Two fighters in formation each correlating to their **own** return stay as two tracks. Tracks in **Extrapolated** or **Suspended** mode never participate in merge.
 
-**Who can merge:** Manual and auto tracks use the same rules. The only hard block on merge is a **different identity** (for example Friendly vs Hostile).
+**Who can merge:** Manual and auto tracks use the same rules. Merge is blocked when identities are incompatible (for example Friendly vs Hostile). Unclassified auto identities (`pending`, `neutral`, `unknown`) are treated as merge-compatible so decorrelated tracks can still collapse into freshly initiated duplicates.
 
 ## When merge happens
 

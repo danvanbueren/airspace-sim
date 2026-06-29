@@ -166,6 +166,32 @@ describe('mergeTracksFromCorrelatedDetections', () => {
         assert.deepEqual(mergedAwayIds, [])
     })
 
+    it('merges auto tracks when one is pending and the other is neutral', () => {
+        const trackStore = createFakeTrackStore([
+            activeTrack({
+                id: 'TRK-winner',
+                identity: TRACK_IDENTITIES.PENDING,
+                correlated: true,
+                lastSensorUpdateAt: 2_000,
+            }),
+            activeTrack({
+                id: 'TRK-stale',
+                identity: TRACK_IDENTITIES.NEUTRAL,
+                latitude: 40.01,
+                correlated: false,
+            }),
+        ])
+
+        const mergedAwayIds = mergeTracksFromCorrelatedDetections(trackStore, [{
+            correlated: true,
+            correlatedTrackId: 'TRK-winner',
+            latitude: 40,
+            longitude: -75,
+        }], 3, 2_000)
+
+        assert.deepEqual(mergedAwayIds, ['TRK-stale'])
+    })
+
     it('merges manual and auto tracks when the auto track won correlation', () => {
         const trackStore = createFakeTrackStore([
             activeTrack({
