@@ -49,6 +49,10 @@ import {
     getSpecificTypeOptionsForTrackType,
     normalizeSpecificType,
 } from '@/app/tools/milstd2525/trackSpecificTypes'
+import {
+    getNationalityOptions,
+    normalizeNationality,
+} from '@/app/tools/milstd2525/trackNationalities'
 import {TRACK_CORRELATION_MODES} from '@/app/simulation/trackFromDetection'
 import {TRACK_KINDS} from '@/app/simulation/trackKinds'
 import {expandTrackManagementWindowSkipLiveFields} from '@/app/tools/map/trackManagementTrack'
@@ -402,6 +406,8 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         trackManagementWindow.specificType,
         selectedTrackType,
     )
+    const nationalityOptions = getNationalityOptions()
+    const selectedNationality = normalizeNationality(trackManagementWindow.nationality)
 
     const updateField = (field, value) => {
         const updates = {
@@ -987,6 +993,18 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                             zIndex={zIndex}
                             onOpen={() => handleSelectOpen('specificType')}
                             onClose={() => handleFieldBlur('specificType')}
+                        />
+
+                        <SearchableSelect
+                            label='Nationality'
+                            labelId={`${trackManagementWindow.id}-nationality-label`}
+                            value={selectedNationality}
+                            options={nationalityOptions}
+                            onChange={(value) => updateField('nationality', value)}
+                            emptyResultsLabel='No matching nationalities'
+                            zIndex={zIndex}
+                            onOpen={() => handleSelectOpen('nationality')}
+                            onClose={() => handleFieldBlur('nationality')}
                         />
 
                         <Divider/>

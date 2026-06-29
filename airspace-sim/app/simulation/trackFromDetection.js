@@ -32,6 +32,7 @@ export function trackFromInitiation({plotId, sensorType, longitude, latitude, ti
         identity: 'pending',
         type: TRACK_TYPES.AIR_UNSPECIFIED,
         specificType: '',
+        nationality: '',
         callsign: nearest?.id ?? id,
         source: 'auto',
         initiatedBy: sensorType,

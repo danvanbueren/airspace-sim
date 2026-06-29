@@ -8,6 +8,7 @@ import {
     getUnspecifiedTrackTypeForDomain,
 } from '../../tools/milstd2525/trackSymbolCodes'
 import {getDefaultSpecificTypeForTrackType} from '../../tools/milstd2525/trackSpecificTypes'
+import {getDefaultNationality} from '../../tools/milstd2525/trackNationalities'
 import {parseTrackKinematicFields} from '../../tools/formatting/trackFieldFormatting'
 import {syncTrackManagementWindowsFromTracks} from '../../tools/map/trackManagementTrack'
 import {edgeAnchorsEqual} from '../../tools/map/edgeAnchoredPosition'
@@ -35,6 +36,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             specificType: getDefaultSpecificTypeForTrackType(
                 getUnspecifiedTrackTypeForDomain(TRACK_DOMAINS.AIR),
             ),
+            nationality: getDefaultNationality(),
             callsign: trackId,
             heading: 0,
             speed: '',
@@ -70,6 +72,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             identity: TRACK_IDENTITIES.PENDING,
             type: REFERENCE_POINT_SYMBOL_CODE,
             specificType: '',
+            nationality: getDefaultNationality(),
             callsign: allocateNextReferencePointLabel(existingTracks),
             heading: 0,
             speed: '',
@@ -157,6 +160,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     specificType: track.specificType ?? getDefaultSpecificTypeForTrackType(
                         track.type ?? getUnspecifiedTrackTypeForDomain(domain),
                     ),
+                    nationality: track.nationality ?? getDefaultNationality(),
                     callsign: track.callsign ?? track.trackId ?? track.id,
                     heading: kinematicFields.heading,
                     speed: kinematicFields.speed,

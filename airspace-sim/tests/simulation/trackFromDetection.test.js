@@ -30,6 +30,7 @@ describe('trackFromInitiation', () => {
         assert.equal(track.identity, TRACK_IDENTITIES.PENDING)
         assert.equal(track.type, TRACK_TYPES.AIR_UNSPECIFIED)
         assert.equal(track.specificType, '')
+        assert.equal(track.nationality, '')
         assert.equal(track.identityPendingSinceAt, 1000)
     })
 })
