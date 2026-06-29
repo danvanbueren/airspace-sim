@@ -1,4 +1,4 @@
-import mgrs from 'mgrs'
+import {forward, inverse} from 'mgrs'
 
 import {
     GRID_REFERENCE_SYSTEMS,
@@ -161,7 +161,7 @@ function formatKillboxCoordinate(lat, lng) {
 
 function formatMgrsCoordinate(lat, lng) {
     try {
-        return mgrs.forward([normalizeLongitude(lng), clampLatitude(lat)], 5)
+        return forward([normalizeLongitude(lng), clampLatitude(lat)], 5)
     } catch (error) {
         return 'Invalid MGRS Coordinate'
     }
@@ -423,7 +423,9 @@ function parseMgrsCoordinate(text) {
     }
 
     try {
-        const [lng, lat] = mgrs.toPoint(normalized)
+        const bbox = inverse(normalized)
+        const lng = (bbox[0] + bbox[2]) / 2
+        const lat = (bbox[1] + bbox[3]) / 2
 
         return validateLatLng(lat, lng)
     } catch (error) {
