@@ -165,8 +165,6 @@ export default function PositionReferenceEditor({
                     zIndex={zIndex}
                     disabled={disabled}
                     matchInputHeight
-                    alignWithLabeledInput
-                    alignLabel='Position'
                     matchedHeight={positionFieldSize.height > 0 ? positionFieldSize.height : undefined}
                     sx={{flexShrink: 0}}
                 />

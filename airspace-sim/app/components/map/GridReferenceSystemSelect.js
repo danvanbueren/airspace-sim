@@ -1,7 +1,6 @@
 'use client'
 
-import {FormControl, InputLabel, MenuItem, Select} from '@mui/material'
-import {useId} from 'react'
+import {FormControl, MenuItem, Select} from '@mui/material'
 import {GRID_REFERENCE_SYSTEMS, useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {getGridReferenceSystemDisplayName} from '@/app/tools/formatting/GridReferenceFormatting'
 
@@ -31,15 +30,11 @@ export default function GridReferenceSystemSelect({
     disablePortal = true,
     disabled = false,
     matchInputHeight = false,
-    alignWithLabeledInput = false,
-    alignLabel = 'Position',
     matchedHeight,
     sx,
 }) {
     const {appSettings} = useAppSettings()
     const selectedValue = value ?? appSettings.gridReferenceSystem
-    const labelId = useId()
-    const usesAlignedLabel = alignWithLabeledInput && alignLabel
     const shouldStretchInput = matchInputHeight || matchedHeight != null
 
     return (
@@ -63,18 +58,7 @@ export default function GridReferenceSystemSelect({
                 ...sx,
             }}
         >
-            {usesAlignedLabel ? (
-                <InputLabel
-                    id={labelId}
-                    shrink
-                    sx={{visibility: 'hidden'}}
-                >
-                    {alignLabel}
-                </InputLabel>
-            ) : null}
             <Select
-                labelId={usesAlignedLabel ? labelId : undefined}
-                label={usesAlignedLabel ? alignLabel : undefined}
                 value={selectedValue}
                 onChange={(event) => onChange?.(event.target.value)}
                 size='small'
@@ -87,6 +71,9 @@ export default function GridReferenceSystemSelect({
                         display: 'flex',
                         alignItems: 'stretch',
                     } : {}),
+                    '& .MuiOutlinedInput-notchedOutline legend': {
+                        maxWidth: 0,
+                    },
                     '& .MuiSelect-select.MuiInputBase-input.MuiOutlinedInput-input': {
                         py: 0.5,
                         pl: 1,
