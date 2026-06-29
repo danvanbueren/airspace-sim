@@ -3,6 +3,11 @@ import {
     keyMatchesBinding,
     useControlBindings,
 } from '../../contexts/ControlBindingsContext'
+import {
+    bindingUsesCapsLock,
+    resolveGroupCriteriaCircleVisible,
+    resolveNextCapsLockActive,
+} from '../../tools/map/groupCriteriaCircleToggle.js'
 import {GROUP_CRITERIA_RADIUS_NM} from '../../tools/map/scopeCircleGeometry.js'
 import {
     createScopeCircleOverlay,
@@ -10,14 +15,6 @@ import {
     removeScopeCircleOverlay,
     resizeScopeCircleOverlay,
 } from '../../tools/map/scopeCirclePreviewCanvas.js'
-
-function bindingUsesCapsLock(toggleBindingKeys) {
-    return toggleBindingKeys.some((key) => key.toLowerCase() === 'capslock')
-}
-
-function readCapsLockState(event) {
-    return event.getModifierState('CapsLock')
-}
 
 export function useGroupCriteriaCircleTool(mapRef, enabled, {
     strokeColor = '#fff',
@@ -33,6 +30,7 @@ export function useGroupCriteriaCircleTool(mapRef, enabled, {
     const radiusNmRef = useRef(radiusNm)
     const cursorInfoRef = useRef(cursorInfo)
     const toggleBindingKeysRef = useRef(toggleBindingKeys)
+    const capsLockActiveRef = useRef(false)
     const [capsLockActive, setCapsLockActive] = useState(false)
     const [alternateToggleActive, setAlternateToggleActive] = useState(false)
 
@@ -40,6 +38,7 @@ export function useGroupCriteriaCircleTool(mapRef, enabled, {
     radiusNmRef.current = radiusNm
     cursorInfoRef.current = cursorInfo
     toggleBindingKeysRef.current = toggleBindingKeys
+    capsLockActiveRef.current = capsLockActive
 
     const clearOverlay = useCallback(() => {
         removeScopeCircleOverlay(overlayRef.current)
@@ -66,7 +65,11 @@ export function useGroupCriteriaCircleTool(mapRef, enabled, {
         )
     }, [mapRef])
 
-    const isCircleVisible = usesCapsLockBinding ? capsLockActive : alternateToggleActive
+    const isCircleVisible = resolveGroupCriteriaCircleVisible({
+        usesCapsLockBinding,
+        capsLockActive,
+        alternateToggleActive,
+    })
 
     useEffect(() => {
         if (!enabled) {
@@ -83,15 +86,19 @@ export function useGroupCriteriaCircleTool(mapRef, enabled, {
                 return
             }
 
-            setCapsLockActive(readCapsLockState(event))
+            setCapsLockActive((previousActive) => {
+                const nextActive = resolveNextCapsLockActive(
+                    previousActive,
+                    event,
+                    toggleBindingKeysRef.current,
+                )
+
+                return previousActive === nextActive ? previousActive : nextActive
+            })
         }
 
-        const handleKeyDown = (event) => {
+        const handleAlternateToggle = (event) => {
             if (bindingUsesCapsLock(toggleBindingKeysRef.current)) {
-                if (keyMatchesBinding(event.key, toggleBindingKeysRef.current)) {
-                    setCapsLockActive(readCapsLockState(event))
-                }
-
                 return
             }
 
@@ -102,7 +109,16 @@ export function useGroupCriteriaCircleTool(mapRef, enabled, {
             setAlternateToggleActive((previous) => !previous)
         }
 
-        const handlePointerDown = (event) => {
+        const handleKeyDown = (event) => {
+            syncCapsLockState(event)
+            handleAlternateToggle(event)
+        }
+
+        const handleKeyUp = (event) => {
+            syncCapsLockState(event)
+        }
+
+        const handlePointerEvent = (event) => {
             syncCapsLockState(event)
         }
 
@@ -110,13 +126,17 @@ export function useGroupCriteriaCircleTool(mapRef, enabled, {
             syncCapsLockState(event)
         }
 
-        window.addEventListener('keydown', handleKeyDown)
-        window.addEventListener('pointerdown', handlePointerDown, true)
+        window.addEventListener('keydown', handleKeyDown, true)
+        window.addEventListener('keyup', handleKeyUp, true)
+        window.addEventListener('pointermove', handlePointerEvent, {capture: true, passive: true})
+        window.addEventListener('pointerdown', handlePointerEvent, true)
         window.addEventListener('focus', handleFocus)
 
         return () => {
-            window.removeEventListener('keydown', handleKeyDown)
-            window.removeEventListener('pointerdown', handlePointerDown, true)
+            window.removeEventListener('keydown', handleKeyDown, true)
+            window.removeEventListener('keyup', handleKeyUp, true)
+            window.removeEventListener('pointermove', handlePointerEvent, true)
+            window.removeEventListener('pointerdown', handlePointerEvent, true)
             window.removeEventListener('focus', handleFocus)
         }
     }, [enabled, clearOverlay, usesCapsLockBinding, toggleBindingKeys])
@@ -130,7 +150,11 @@ export function useGroupCriteriaCircleTool(mapRef, enabled, {
         const map = mapRef.current
 
         const handleViewChange = () => {
-            if (!isCircleVisible) {
+            if (!resolveGroupCriteriaCircleVisible({
+                usesCapsLockBinding: bindingUsesCapsLock(toggleBindingKeysRef.current),
+                capsLockActive: capsLockActiveRef.current,
+                alternateToggleActive,
+            })) {
                 return
             }
 
@@ -146,7 +170,7 @@ export function useGroupCriteriaCircleTool(mapRef, enabled, {
             map.off('zoom', handleViewChange)
             map.off('resize', handleViewChange)
         }
-    }, [enabled, isCircleVisible, mapRef, redrawCircle, clearOverlay])
+    }, [enabled, alternateToggleActive, capsLockActive, usesCapsLockBinding, mapRef, redrawCircle, clearOverlay])
 
     useEffect(() => {
         if (!enabled || !mapRef.current || !isCircleVisible) {
