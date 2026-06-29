@@ -6,6 +6,10 @@ import {
     readCookieValue,
     writeCookieJsonValue,
 } from '@/app/tools/browser/CookieStorage'
+import {
+    decodeActionPanelsFromCookie,
+    encodeActionPanelsForCookie,
+} from '@/app/tools/actionPanels/actionPanelCookieCodec'
 import {DEFAULT_ACTION_PANELS_STATE, MAX_ACTION_PANEL_COUNT} from '@/app/tools/actionPanels/actionPanelDefaults'
 import {
     createEmptyActionPanel,
@@ -18,21 +22,24 @@ export const ACTION_PANELS_COOKIE_NAME = 'actionPanels'
 const ActionPanelsContext = createContext(null)
 
 function parseInitialActionPanels(initialActionPanels) {
-    return normalizeActionPanelsState(parseCookieJsonValue(
-        initialActionPanels,
+    return decodeActionPanelsFromCookie(
+        parseCookieJsonValue(initialActionPanels, null),
         DEFAULT_ACTION_PANELS_STATE,
-    ))
+    )
 }
 
 function readBrowserActionPanels() {
-    return normalizeActionPanelsState(parseCookieJsonValue(
-        readCookieValue(ACTION_PANELS_COOKIE_NAME),
+    return decodeActionPanelsFromCookie(
+        parseCookieJsonValue(readCookieValue(ACTION_PANELS_COOKIE_NAME), null),
         DEFAULT_ACTION_PANELS_STATE,
-    ))
+    )
 }
 
 function writeActionPanelsCookie(actionPanelsState) {
-    writeCookieJsonValue(ACTION_PANELS_COOKIE_NAME, actionPanelsState)
+    writeCookieJsonValue(
+        ACTION_PANELS_COOKIE_NAME,
+        encodeActionPanelsForCookie(actionPanelsState),
+    )
 }
 
 export function ActionPanelsProvider({children, initialActionPanels}) {
