@@ -165,8 +165,22 @@ export function normalizeTrackIdentity(identity) {
     return identity ?? 'pending'
 }
 
+const UNCLASSIFIED_MERGE_IDENTITIES = new Set([
+    'pending',
+    'neutral',
+    'unknown',
+])
+
 export function tracksShareMergeIdentity(trackA, trackB) {
-    return normalizeTrackIdentity(trackA?.identity) === normalizeTrackIdentity(trackB?.identity)
+    const identityA = normalizeTrackIdentity(trackA?.identity)
+    const identityB = normalizeTrackIdentity(trackB?.identity)
+
+    if (identityA === identityB) {
+        return true
+    }
+
+    return UNCLASSIFIED_MERGE_IDENTITIES.has(identityA)
+        && UNCLASSIFIED_MERGE_IDENTITIES.has(identityB)
 }
 
 export function isActiveMergeCandidate(track) {
