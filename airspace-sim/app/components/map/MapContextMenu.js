@@ -72,7 +72,7 @@ function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerR
 
 function getDynamicActionsSectionTitle(track) {
     if (isReferencePoint(track)) {
-        return 'RP Actions'
+        return 'Reference Point Actions'
     }
 
     if (track) {
@@ -175,7 +175,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     sx={CONTEXT_MENU_BUTTON_SX}
                     fullWidth
                 >
-                    Initiate Ref Point
+                    Initiate Reference Point
                 </Button>
 
                 {hasDynamicActions ? (
