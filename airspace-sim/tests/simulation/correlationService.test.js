@@ -102,4 +102,45 @@ describe('CorrelationService', () => {
         assert.equal(track.longitude, -75)
         assert.equal(track.correlated, true)
     })
+
+    it('updates kinematics when correlated position snaps to a sensor return', () => {
+        const trackStore = new TrackStore()
+        trackStore.addTrack(activeTrack({
+            id: 'TRK-1',
+            latitude: 40,
+            longitude: -75,
+            heading: 90,
+            speed: 400,
+            altitude: 30_000,
+        }))
+
+        const correlation = new CorrelationService({
+            flightWorld: {
+                findNearestAircraft() {
+                    return {
+                        heading: 215.4,
+                        speed: 478.6,
+                        altitude: 28_400.2,
+                    }
+                },
+            },
+        })
+
+        correlation.apply([
+            {
+                plotId: 'PLOT-1',
+                latitude: 40.02,
+                longitude: -74.98,
+            },
+        ], trackStore, 5, 2_000)
+
+        const track = trackStore.getTrack('TRK-1')
+
+        assert.equal(track.latitude, 40.02)
+        assert.equal(track.longitude, -74.98)
+        assert.equal(track.heading, 215)
+        assert.equal(track.speed, 479)
+        assert.equal(track.altitude, 28_400)
+        assert.equal(track.correlated, true)
+    })
 })

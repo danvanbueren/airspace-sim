@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
-import {syncActiveTrackKinematicsFromFlightWorld} from '../../app/simulation/syncActiveTrackKinematicsFromFlightWorld.js'
+import {
+    buildCorrelatedTrackKinematicUpdates,
+    findCorrelatedAircraftForTrack,
+    syncActiveTrackKinematicsFromFlightWorld,
+} from '../../app/simulation/syncActiveTrackKinematicsFromFlightWorld.js'
 import {TrackStore} from '../../app/simulation/TrackStore.js'
 import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
 
@@ -15,6 +19,26 @@ function createFlightWorld(aircraft = []) {
                     + Math.abs(candidate.latitude - latitude)
 
                 if (distance < bestDistance) {
+                    bestDistance = distance
+                    best = candidate
+                }
+            }
+
+            return best
+        },
+        findAircraftByMode3Code(mode3Code, maxDistanceNm, longitude, latitude) {
+            let best = null
+            let bestDistance = Infinity
+
+            for (const candidate of aircraft) {
+                if (candidate.mode3Code !== mode3Code) {
+                    continue
+                }
+
+                const distance = Math.abs(candidate.longitude - longitude)
+                    + Math.abs(candidate.latitude - latitude)
+
+                if (distance < bestDistance && distance <= maxDistanceNm) {
                     bestDistance = distance
                     best = candidate
                 }
@@ -172,5 +196,64 @@ describe('syncActiveTrackKinematicsFromFlightWorld', () => {
         assert.equal(updatedTrack.heading, 90)
         assert.equal(updatedTrack.speed, 0)
         assert.equal(updatedTrack.altitude, 30_000)
+    })
+
+    it('prefers IFF mode 3 aircraft over a closer unrelated neighbor', () => {
+        const flightWorld = createFlightWorld([
+            {
+                longitude: -75,
+                latitude: 40,
+                heading: 10,
+                speed: 300,
+                altitude: 20_000,
+            },
+            {
+                longitude: -75.01,
+                latitude: 40.01,
+                mode3Code: '4521',
+                heading: 210,
+                speed: 510,
+                altitude: 33_000,
+            },
+        ])
+        const track = activeTrack({
+            iffMode3Code: '4521',
+            longitude: -75.2,
+            latitude: 40.2,
+        })
+
+        const aircraft = findCorrelatedAircraftForTrack(flightWorld, track, {
+            longitude: -75.2,
+            latitude: 40.2,
+            mode3Code: '4521',
+        })
+
+        assert.equal(aircraft.mode3Code, '4521')
+        assert.equal(aircraft.heading, 210)
+    })
+
+    it('derives heading and speed from a position update when truth aircraft is unavailable', () => {
+        const track = activeTrack({
+            longitude: -75,
+            latitude: 40,
+            heading: 90,
+            speed: 400,
+            lastSensorUpdateAt: 0,
+            lastExtrapolationAt: 0,
+        })
+
+        const updates = buildCorrelatedTrackKinematicUpdates(
+            createFlightWorld([]),
+            track,
+            {
+                longitude: -74.5,
+                latitude: 40,
+            },
+            234_000,
+        )
+
+        assert.ok(updates)
+        assert.equal(updates.heading, 90)
+        assert.equal(updates.speed, 354)
     })
 })

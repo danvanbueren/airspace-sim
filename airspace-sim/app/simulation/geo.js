@@ -1,5 +1,20 @@
 const EARTH_RADIUS_NM = 3440.065
 
+export function bearingDegrees(lat1, lng1, lat2, lng2) {
+    const toRadians = (degrees) => degrees * (Math.PI / 180)
+    const toDegrees = (radians) => radians * (180 / Math.PI)
+    const lat1Radians = toRadians(lat1)
+    const lat2Radians = toRadians(lat2)
+    const deltaLngRadians = toRadians(lng2 - lng1)
+    const y = Math.sin(deltaLngRadians) * Math.cos(lat2Radians)
+    const x = (
+        Math.cos(lat1Radians) * Math.sin(lat2Radians)
+        - Math.sin(lat1Radians) * Math.cos(lat2Radians) * Math.cos(deltaLngRadians)
+    )
+
+    return (toDegrees(Math.atan2(y, x)) + 360) % 360
+}
+
 export function haversineDistanceNm(lat1, lng1, lat2, lng2) {
     const toRadians = (degrees) => degrees * (Math.PI / 180)
     const dLat = toRadians(lat2 - lat1)
