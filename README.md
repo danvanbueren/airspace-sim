@@ -182,6 +182,12 @@ npm test
 
 Runs the Node test runner over `tests/formatting`, `tests/simulation`, and `tests/milstd2525`.
 
+```bash
+npm run generate:flight-world
+```
+
+Regenerates `app/data/airports.json` and `app/data/airRoutes.json` from [OurAirports](https://ourairports.com/data/) open data.
+
 ## Architecture
 
 The simulator splits **UI** (Next.js + MapLibre) from **simulation** (track engine modules). Simulation state flows from `TrackEngine` through React context into map hooks; operator actions call back into the engine API.

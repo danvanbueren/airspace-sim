@@ -12,7 +12,7 @@
  * @property {number} [altitude]
  * @property {string} [profile]
  * @property {string} [mode3Code]
- * @property {'commercial'|'generalAviation'} [trafficKind]
+ * @property {'commercial'|'generalAviation'|'military'} [trafficKind]
  */
 
 /**
@@ -73,7 +73,7 @@
  * @property {string|null} [iffMode3UpdatedAt] Timestamp of last IFF code correlation
  * @property {number|null} [iffMode3FirstCorrelatedAt] Timestamp when the current IFF code was first correlated
  * @property {number} [identityPendingSinceAt] Timestamp when the track entered pending identity
- * @property {'commercial'|'generalAviation'} [trafficKind] Truth traffic profile used for automatic type assignment
+ * @property {'commercial'|'generalAviation'|'military'} [trafficKind] Truth traffic profile used for automatic type assignment
  * @property {string} [profile] Truth aircraft profile label
  */
 

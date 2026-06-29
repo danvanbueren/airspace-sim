@@ -20,6 +20,7 @@ export function getGeneralAviationAirports(airports) {
         Number.isFinite(airport.lng)
         && Number.isFinite(airport.lat)
         && airport.class !== 'strip'
+        && airport.class !== 'military'
     ))
 }
 
