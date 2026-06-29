@@ -24,7 +24,7 @@ import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
 import {useMapContainerSize} from '@/app/hooks/map/useMapContainerSize'
 import {getMapFloatingWindowMaxHeight} from '@/app/tools/map/mapFloatingWindowLayout'
-import {formatCoordinatePairForGridReferenceSystem} from '@/app/tools/formatting/GridReferenceFormatting'
+import PositionReferenceEditor from '@/app/components/floating/windows/PositionReferenceEditor'
 import {
     formatEditableWholeNumber,
     formatHeadingDisplay,
@@ -391,12 +391,6 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             setCallsignError(null)
         }
     }, [trackManagementWindow.callsign, callsignDraft])
-
-    const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
-        trackManagementWindow.lngLat.lat,
-        trackManagementWindow.lngLat.lng,
-        appSettings.gridReferenceSystem,
-    )
 
     const availableTrackTypes = getTrackTypeOptionsForDomain(trackManagementWindow.domain)
     const selectedTrackType = resolveTrackTypeForDomain(
@@ -818,16 +812,16 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                     {isReferencePoint ? 'Reference Point ID' : 'Track ID'}: {trackManagementWindow.trackId}
                 </Typography>
 
-                <Box>
-                    {formattedCoordinates.map((coordinateLine) => (
-                        <Typography
-                            key={coordinateLine}
-                            sx={{whiteSpace: 'pre', fontSize: '0.8rem'}}
-                        >
-                            {coordinateLine}
-                        </Typography>
-                    ))}
-                </Box>
+                <PositionReferenceEditor
+                    lat={trackManagementWindow.lngLat.lat}
+                    lng={trackManagementWindow.lngLat.lng}
+                    zIndex={zIndex}
+                    onFocus={() => handleNonKinematicFieldFocus('lngLat')}
+                    onBlur={() => handleFieldBlur('lngLat')}
+                    onCommit={({lat, lng}) => {
+                        updateField('lngLat', {lat, lng})
+                    }}
+                />
 
                 <Divider/>
 

@@ -91,6 +91,7 @@ describe('trackFromReferencePoint', () => {
 
         const updatedTrack = createReferencePointUpdateFromManagementWindow({
             trackId: 'RP-EXIST01',
+            lngLat: {lng: -77, lat: 38},
             callsign: 'ALPHA1',
             identity: TRACK_IDENTITIES.HOSTILE,
             infoFields: false,

@@ -5,19 +5,16 @@ import {
     Box,
     Button,
     Divider,
-    FormControl,
     Grid,
-    MenuItem,
     Paper,
-    Select,
     Stack,
     Typography
 } from '@mui/material'
-import {useAppSettings, GRID_REFERENCE_SYSTEMS} from '@/app/contexts/AppSettingsContext'
+import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {
-    formatCoordinatePairForGridReferenceSystem,
-    getGridReferenceSystemDisplayName,
+    formatPositionTextForGridReferenceSystem,
 } from '@/app/tools/formatting/GridReferenceFormatting'
+import GridReferenceSystemSelect from '@/app/components/map/GridReferenceSystemSelect'
 import {shouldShowDropAttention} from '@/app/simulation/trackAutoDrop'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
@@ -65,11 +62,11 @@ const MapContextMenu = forwardRef(function MapContextMenu({
     const hasTrack = Boolean(track)
     const showRecoverTrack = hasTrack && shouldShowDropAttention(track)
     const dropProtectEnabled = Boolean(track?.dropProtect)
-    const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
+    const formattedCoordinates = formatPositionTextForGridReferenceSystem(
         elementContainer.lngLat.lat,
         elementContainer.lngLat.lng,
         appSettings.gridReferenceSystem,
-    )
+    ).split('\n')
 
     return (
         <Paper
@@ -101,57 +98,10 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                         </Typography>
                     </Grid>
                     <Grid size='grow' sx={{display: 'flex', justifyContent: 'flex-end'}}>
-                        <FormControl
-                            variant="filled"
-                            size="small"
-                            sx={{
-                                minWidth: '3rem',
-                                m: 0,
-                            }}
-                        >
-                            <Select
-                                value={appSettings.gridReferenceSystem}
-                                onChange={(event) => setGridReferenceSystem(event.target.value)}
-                                variant='outlined'
-                                size='small'
-                                sx={{
-                                    fontFamily: 'monospace',
-                                    fontSize: '0.75rem',
-                                    '& .MuiSelect-select.MuiInputBase-input.MuiOutlinedInput-input': {
-                                        py: 0.5,
-                                        pl: 1,
-                                        paddingRight: '8px !important',
-                                    },
-                                    '& .MuiSelect-icon': {
-                                        display: 'none',
-                                    },
-                                }}
-                                MenuProps={{
-                                    disablePortal: true,
-                                    slotProps: {
-                                        paper: {
-                                            sx: {
-                                                '& .MuiMenuItem-root': {
-                                                    fontFamily: 'monospace',
-                                                    fontSize: '0.75rem',
-                                                    minHeight: 28,
-                                                    py: 0.25,
-                                                },
-                                            },
-                                        },
-                                    },
-                                }}
-                            >
-                                {Object.values(GRID_REFERENCE_SYSTEMS).map((gridReferenceSystem) => (
-                                    <MenuItem
-                                        key={gridReferenceSystem.value}
-                                        value={gridReferenceSystem.value}
-                                    >
-                                        {getGridReferenceSystemDisplayName(gridReferenceSystem.value)}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
+                        <GridReferenceSystemSelect
+                            value={appSettings.gridReferenceSystem}
+                            onChange={setGridReferenceSystem}
+                        />
                     </Grid>
                 </Grid>
 

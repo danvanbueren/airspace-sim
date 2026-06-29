@@ -539,6 +539,22 @@ describe('track management window live sync', () => {
         )
     })
 
+    it('applies management window position updates when lngLat changes', () => {
+        const updated = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                lngLat: {lng: -75, lat: 40},
+            }),
+            existingTrack({
+                longitude: -77.03,
+                latitude: 38.89,
+            }),
+            ['lngLat'],
+        )
+
+        assert.equal(updated.longitude, -75)
+        assert.equal(updated.latitude, 40)
+    })
+
     it('normalizes stale cross-domain type and specific type values on track updates', () => {
         const updated = createTrackUpdateFromManagementWindow(
             managementWindow({

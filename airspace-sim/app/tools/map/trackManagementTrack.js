@@ -425,11 +425,18 @@ export function createTrackUpdateFromManagementWindow(
         trackManagementWindow.specificType,
     )
 
+    const changedFieldSet = getChangedFieldSet(changedFields)
+    const useWindowPosition = !existingTrack || changedFieldSet?.has('lngLat')
+
     const update = {
         id: trackManagementWindow.trackId,
         trackId: trackManagementWindow.trackId,
-        longitude: existingTrack?.longitude ?? trackManagementWindow.lngLat.lng,
-        latitude: existingTrack?.latitude ?? trackManagementWindow.lngLat.lat,
+        longitude: useWindowPosition
+            ? trackManagementWindow.lngLat.lng
+            : (existingTrack?.longitude ?? trackManagementWindow.lngLat.lng),
+        latitude: useWindowPosition
+            ? trackManagementWindow.lngLat.lat
+            : (existingTrack?.latitude ?? trackManagementWindow.lngLat.lat),
         domain,
         identity: trackManagementWindow.identity,
         type,

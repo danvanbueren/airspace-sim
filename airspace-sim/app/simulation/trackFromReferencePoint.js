@@ -119,6 +119,8 @@ export function createReferencePointUpdateFromManagementWindow(
 
     return {
         ...baseTrack,
+        longitude: trackManagementWindow.lngLat?.lng ?? baseTrack.longitude,
+        latitude: trackManagementWindow.lngLat?.lat ?? baseTrack.latitude,
         callsign: trackManagementWindow.callsign || trackManagementWindow.trackId,
         identity: trackManagementWindow.identity ?? baseTrack.identity,
         infoFields: Boolean(trackManagementWindow.infoFields),
