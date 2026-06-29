@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useRef} from 'react'
+import {useCallback, useLayoutEffect, useRef} from 'react'
 import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import {
@@ -18,6 +18,7 @@ import {
     getTrackManagementWindowPosition,
     useTrackManagementWindowDrag,
 } from '@/app/hooks/map/useTrackManagementWindowDrag'
+import {absoluteToEdgeAnchor} from '@/app/tools/map/edgeAnchoredPosition'
 import {getMapFloatingWindowMaxHeight} from '@/app/tools/map/mapFloatingWindowLayout'
 
 const GEOMETRY_WINDOW_WIDTH = 300
@@ -42,32 +43,72 @@ export default function GeometryWindow({
         height: GEOMETRY_WINDOW_HEIGHT,
     }).current
 
+    const activateWindow = useCallback(() => {
+        onActivate?.(geometryWindow.id)
+    }, [geometryWindow.id, onActivate])
+
+    const handleWindowPointerDown = useCallback((event) => {
+        event.stopPropagation()
+        activateWindow()
+    }, [activateWindow])
+
     const {
-        windowPosition,
-        handleWindowPointerDown,
-        handleDragHandlePointerDown,
-        handleDragHandlePointerMove,
-        handleDragHandlePointerUp,
+        dragPosition,
+        handleHeaderPointerDown,
+        handleHeaderPointerMove,
+        handleHeaderPointerUp,
     } = useTrackManagementWindowDrag({
-        trackManagementWindow: geometryWindow,
-        trackManagementWindowSize: geometryWindowSize,
         mapContainerRef,
         onMoveComplete,
+        onActivate: activateWindow,
+        windowId: geometryWindow.id,
+        trackManagementWindowSize: geometryWindowSize,
     })
 
-    const resolvedPosition = geometryWindow.positionAnchor
-        ? getTrackManagementWindowPosition(geometryWindow, geometryWindowSize, mapContainerRef)
-        : getLegacyMapClickWindowPosition(geometryWindow, geometryWindowSize, mapContainerRef)
+    useLayoutEffect(() => {
+        if (geometryWindow.positionAnchor) {
+            return
+        }
 
-    const handlePointerDown = useCallback((event) => {
-        onActivate?.()
-        handleWindowPointerDown(event)
-    }, [handleWindowPointerDown, onActivate])
+        if (!geometryWindowSize.width || !geometryWindowSize.height) {
+            return
+        }
 
-    const handleDragPointerDown = useCallback((event) => {
-        onActivate?.()
-        handleDragHandlePointerDown(event)
-    }, [handleDragHandlePointerDown, onActivate])
+        const legacyPosition = getLegacyMapClickWindowPosition(
+            geometryWindow,
+            geometryWindowSize,
+            mapContainerRef,
+        )
+        const containerSize = {
+            width: mapContainerRef.current?.clientWidth ?? window.innerWidth,
+            height: mapContainerRef.current?.clientHeight ?? window.innerHeight,
+        }
+
+        onMoveComplete?.(
+            geometryWindow.id,
+            absoluteToEdgeAnchor(
+                legacyPosition.left,
+                legacyPosition.top,
+                containerSize,
+                {
+                    width: geometryWindowSize.width,
+                    height: geometryWindowSize.height,
+                },
+            ),
+        )
+    }, [
+        geometryWindow.id,
+        geometryWindow.positionAnchor,
+        geometryWindow.x,
+        geometryWindow.y,
+        geometryWindowSize,
+        mapContainerRef,
+        onMoveComplete,
+    ])
+
+    const windowPosition = dragPosition
+        ? {left: dragPosition.x, top: dragPosition.y}
+        : getTrackManagementWindowPosition(geometryWindow, geometryWindowSize, mapContainerRef)
 
     if (!shape) {
         return null
@@ -79,10 +120,10 @@ export default function GeometryWindow({
             data-geometry-window
             elevation={8}
             onClick={(event) => event.stopPropagation()}
-            onPointerDown={handlePointerDown}
+            onPointerDown={handleWindowPointerDown}
             sx={{
                 position: 'absolute',
-                ...(windowPosition ?? resolvedPosition),
+                ...windowPosition,
                 zIndex,
                 width: GEOMETRY_WINDOW_WIDTH,
                 maxHeight: viewportMaxWindowHeight,
@@ -112,10 +153,10 @@ export default function GeometryWindow({
                         cursor: 'grab',
                         touchAction: 'none',
                     }}
-                    onPointerDown={handleDragPointerDown}
-                    onPointerMove={handleDragHandlePointerMove}
-                    onPointerUp={handleDragHandlePointerUp}
-                    onPointerCancel={handleDragHandlePointerUp}
+                    onPointerDown={handleHeaderPointerDown}
+                    onPointerMove={handleHeaderPointerMove}
+                    onPointerUp={handleHeaderPointerUp}
+                    onPointerCancel={handleHeaderPointerUp}
                 >
                     <DragIndicatorIcon fontSize='small' sx={{opacity: 0.85}}/>
                     <Typography

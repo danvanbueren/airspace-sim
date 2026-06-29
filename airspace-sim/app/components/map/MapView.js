@@ -659,10 +659,8 @@ export default function MapView({
                     mapContainerRef={mapContainerRef}
                     zIndex={getGeometryWindowZIndex(geometryWindow.id)}
                     onClose={() => closeGeometryWindow(geometryWindow.id)}
-                    onMoveComplete={(positionAnchor) => (
-                        setGeometryWindowPositionAnchor(geometryWindow.id, positionAnchor)
-                    )}
-                    onActivate={() => bringGeometryWindowToFront(geometryWindow.id)}
+                    onMoveComplete={setGeometryWindowPositionAnchor}
+                    onActivate={bringGeometryWindowToFront}
                 />
             ))}
 

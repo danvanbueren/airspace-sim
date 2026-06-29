@@ -37,23 +37,29 @@ export function DrawGeometryProvider({children}) {
         geometryWindowOpenerRef.current = opener
     }, [])
 
+    const syncShapesRef = useCallback((nextShapes) => {
+        shapesRef.current = nextShapes
+
+        return nextShapes
+    }, [])
+
     const upsertShape = useCallback((nextShape) => {
         setShapes((currentShapes) => {
             const existingIndex = currentShapes.findIndex((shape) => shape.id === nextShape.id)
 
             if (existingIndex === -1) {
-                return [...currentShapes, nextShape]
+                return syncShapesRef([...currentShapes, nextShape])
             }
 
             const updatedShapes = [...currentShapes]
             updatedShapes[existingIndex] = nextShape
 
-            return updatedShapes
+            return syncShapesRef(updatedShapes)
         })
-    }, [])
+    }, [syncShapesRef])
 
     const updateShape = useCallback((shapeId, updates) => {
-        setShapes((currentShapes) => currentShapes.map((shape) => {
+        setShapes((currentShapes) => syncShapesRef(currentShapes.map((shape) => {
             if (shape.id !== shapeId) {
                 return shape
             }
@@ -73,11 +79,13 @@ export function DrawGeometryProvider({children}) {
             }
 
             return nextShape
-        }))
-    }, [])
+        })))
+    }, [syncShapesRef])
 
     const deleteShape = useCallback((shapeId) => {
-        setShapes((currentShapes) => currentShapes.filter((shape) => shape.id !== shapeId))
+        setShapes((currentShapes) => syncShapesRef(
+            currentShapes.filter((shape) => shape.id !== shapeId),
+        ))
 
         setActiveShapeId((currentShapeId) => (
             currentShapeId === shapeId ? null : currentShapeId
@@ -114,6 +122,7 @@ export function DrawGeometryProvider({children}) {
 
         const shape = createGeometryShape(geometryType)
 
+        shapesRef.current = [...shapesRef.current.filter((entry) => entry.id !== shape.id), shape]
         upsertShape(shape)
         setActiveDrawToolItemId(drawToolItemId)
         setActiveShapeId(shape.id)
@@ -129,16 +138,16 @@ export function DrawGeometryProvider({children}) {
             return
         }
 
-        setShapes((currentShapes) => currentShapes.map((shape) => {
+        setShapes((currentShapes) => syncShapesRef(currentShapes.map((shape) => {
             if (shape.id !== shapeId) {
                 return shape
             }
 
             return convertGeometryShapeType(shape, nextType)
-        }))
+        })))
 
         setActiveDrawToolItemId(nextDrawToolItemId)
-    }, [])
+    }, [syncShapesRef])
 
     const getShapeById = useCallback((shapeId) => (
         shapesRef.current.find((shape) => shape.id === shapeId) ?? null

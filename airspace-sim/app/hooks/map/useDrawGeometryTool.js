@@ -186,11 +186,16 @@ export function useDrawGeometryTool(
         ensurePreviewOverlay()
     }, [ensurePreviewOverlay, flushShapesToMapLayer, mapRef])
 
-    const resetDrawingPhase = useCallback(() => {
+    const resetDrawingInteraction = useCallback(() => {
         drawingPhaseRef.current = 0
+        polygonPreviewLngLatRef.current = null
         setIsDrawingGeometry(false)
         mapCursorRef.current?.clearCursorRequest(MAP_CURSOR_REQUESTS.DRAW_GEOMETRY)
     }, [])
+
+    const resetDrawingPhase = useCallback(() => {
+        resetDrawingInteraction()
+    }, [resetDrawingInteraction])
 
     const applyShapeUpdate = useCallback((shapeId, paramsUpdate, extraUpdates = {}) => {
         updateShape(shapeId, {
@@ -255,8 +260,14 @@ export function useDrawGeometryTool(
         }
 
         const point = normalizeLngLat(lngLat)
+
+        if (!point) {
+            return
+        }
+
         const map = mapRef.current
         const mapPoint = map?.project([point.lng, point.lat])
+        const params = getShapeById(shape.id)?.params ?? shape.params
 
         setIsDrawingGeometry(true)
         mapCursorRef.current?.requestCursor(
@@ -277,7 +288,7 @@ export function useDrawGeometryTool(
                     return
                 }
 
-                const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(shape.params.center, point)
+                const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(params.center, point)
 
                 applyShapeUpdate(shape.id, {halfWidthNm, halfHeightNm})
                 finalizeShapeIfComplete(shape.id)
@@ -293,7 +304,7 @@ export function useDrawGeometryTool(
                     return
                 }
 
-                const halfSizeNm = deriveSquareHalfSizeNm(shape.params.center, point)
+                const halfSizeNm = deriveSquareHalfSizeNm(params.center, point)
 
                 applyShapeUpdate(shape.id, {halfSizeNm})
                 finalizeShapeIfComplete(shape.id)
@@ -309,7 +320,7 @@ export function useDrawGeometryTool(
                     return
                 }
 
-                const radiusNm = deriveCircleRadiusNm(shape.params.center, point)
+                const radiusNm = deriveCircleRadiusNm(params.center, point)
 
                 applyShapeUpdate(shape.id, {radiusNm})
                 finalizeShapeIfComplete(shape.id)
@@ -326,7 +337,7 @@ export function useDrawGeometryTool(
                     return
                 }
 
-                const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(shape.params.center, point)
+                const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(params.center, point)
 
                 applyShapeUpdate(shape.id, {halfWidthNm, halfHeightNm})
                 finalizeShapeIfComplete(shape.id)
@@ -352,13 +363,19 @@ export function useDrawGeometryTool(
                     return
                 }
 
-                const radiusNm = Math.min(
-                    deriveRacetrackRadiusNm(shape.params.center1, shape.params.center2, point),
-                    getRacetrackMaxRadiusNm(shape.params.center1, shape.params.center2),
-                )
+                if (drawingPhaseRef.current === 2) {
+                    if (!params.center1 || !params.center2) {
+                        return
+                    }
 
-                applyShapeUpdate(shape.id, {radiusNm})
-                finalizeShapeIfComplete(shape.id)
+                    const radiusNm = Math.min(
+                        deriveRacetrackRadiusNm(params.center1, params.center2, point),
+                        getRacetrackMaxRadiusNm(params.center1, params.center2),
+                    )
+
+                    applyShapeUpdate(shape.id, {radiusNm})
+                    finalizeShapeIfComplete(shape.id)
+                }
                 return
             }
             case GEOMETRY_SHAPE_TYPES.POLYGON:
@@ -387,43 +404,49 @@ export function useDrawGeometryTool(
 
         const point = normalizeLngLat(lngLat)
 
+        if (!point) {
+            return
+        }
+
+        const params = getShapeById(shape.id)?.params ?? shape.params
+
         switch (shape.type) {
             case GEOMETRY_SHAPE_TYPES.RECTANGLE:
-                if (shape.params.center && drawingPhaseRef.current >= 1) {
-                    const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(shape.params.center, point)
+                if (params.center && drawingPhaseRef.current >= 1) {
+                    const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(params.center, point)
 
                     applyShapeUpdate(shape.id, {halfWidthNm, halfHeightNm})
                 }
                 break
             case GEOMETRY_SHAPE_TYPES.SQUARE:
-                if (shape.params.center && drawingPhaseRef.current >= 1) {
+                if (params.center && drawingPhaseRef.current >= 1) {
                     applyShapeUpdate(shape.id, {
-                        halfSizeNm: deriveSquareHalfSizeNm(shape.params.center, point),
+                        halfSizeNm: deriveSquareHalfSizeNm(params.center, point),
                     })
                 }
                 break
             case GEOMETRY_SHAPE_TYPES.CIRCLE:
-                if (shape.params.center && drawingPhaseRef.current >= 1) {
+                if (params.center && drawingPhaseRef.current >= 1) {
                     applyShapeUpdate(shape.id, {
-                        radiusNm: deriveCircleRadiusNm(shape.params.center, point),
+                        radiusNm: deriveCircleRadiusNm(params.center, point),
                     })
                 }
                 break
             case GEOMETRY_SHAPE_TYPES.OVAL:
-                if (shape.params.center && drawingPhaseRef.current >= 1) {
-                    const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(shape.params.center, point)
+                if (params.center && drawingPhaseRef.current >= 1) {
+                    const {halfWidthNm, halfHeightNm} = deriveAxisAlignedHalfExtentsNm(params.center, point)
 
                     applyShapeUpdate(shape.id, {halfWidthNm, halfHeightNm})
                 }
                 break
             case GEOMETRY_SHAPE_TYPES.RACETRACK:
-                if (drawingPhaseRef.current === 1 && shape.params.center1) {
+                if (drawingPhaseRef.current === 1 && params.center1) {
                     applyShapeUpdate(shape.id, {center2: point, radiusNm: 0})
-                } else if (drawingPhaseRef.current === 2 && shape.params.center1 && shape.params.center2) {
+                } else if (drawingPhaseRef.current === 2 && params.center1 && params.center2) {
                     applyShapeUpdate(shape.id, {
                         radiusNm: Math.min(
-                            deriveRacetrackRadiusNm(shape.params.center1, shape.params.center2, point),
-                            getRacetrackMaxRadiusNm(shape.params.center1, shape.params.center2),
+                            deriveRacetrackRadiusNm(params.center1, params.center2, point),
+                            getRacetrackMaxRadiusNm(params.center1, params.center2),
                         ),
                     })
                 }
@@ -464,7 +487,11 @@ export function useDrawGeometryTool(
             finalized: true,
         })
         finalizeShapeIfComplete(shape.id)
-    }, [applyShapeUpdate, finalizeShapeIfComplete, getShapeById, redrawPreview])
+    }, [applyShapeUpdate, finalizeShapeIfComplete, getShapeById])
+
+    useEffect(() => {
+        resetDrawingInteraction()
+    }, [activeShapeId, resetDrawingInteraction])
 
     useEffect(() => {
         if (!enabled || !activeDrawToolItemId) {

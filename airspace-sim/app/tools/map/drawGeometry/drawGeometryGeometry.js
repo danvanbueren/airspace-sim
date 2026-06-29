@@ -6,6 +6,10 @@ const ELLIPSE_SEGMENTS = 72
 const RACETRACK_ARC_SEGMENTS = 24
 
 export function deriveAxisAlignedHalfExtentsNm(center, vertex) {
+    if (!center || !vertex) {
+        return {halfWidthNm: 0, halfHeightNm: 0}
+    }
+
     const halfHeightNm = haversineDistanceNm(center.lat, center.lng, vertex.lat, center.lng)
     const halfWidthNm = haversineDistanceNm(center.lat, center.lng, center.lat, vertex.lng)
 
@@ -22,10 +26,18 @@ export function deriveSquareHalfSizeNm(center, vertex) {
 }
 
 export function deriveCircleRadiusNm(center, edgePoint) {
+    if (!center || !edgePoint) {
+        return 0
+    }
+
     return haversineDistanceNm(center.lat, center.lng, edgePoint.lat, edgePoint.lng)
 }
 
 export function deriveRacetrackRadiusNm(center1, center2, radiusPoint) {
+    if (!center1 || !center2 || !radiusPoint) {
+        return 0
+    }
+
     const nearestPoint = getNearestPointOnCenterLine(center1, center2, radiusPoint)
 
     return haversineDistanceNm(
