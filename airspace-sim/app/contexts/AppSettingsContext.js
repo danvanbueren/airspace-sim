@@ -17,6 +17,7 @@ import {
 import {
     ALERT_SIGNAL_IDS,
     ATTENTION_SIGNAL_IDS,
+    MISC_SIGNAL_ID,
 } from '@/app/simulation/signalDefinitions'
 import {
     DEFAULT_BEARING_RANGE_BEHAVIOR,
@@ -58,6 +59,11 @@ function clampNumber(value, min, max, fallback) {
     return Math.min(max, Math.max(min, number))
 }
 
+const LEGACY_ALERT_SIGNAL_ID_MIGRATIONS = {
+    UI_HOME: MISC_SIGNAL_ID,
+    UI_CENTER_E3: MISC_SIGNAL_ID,
+}
+
 function normalizeInhibitedSignalIds(values, allowedIds) {
     if (!Array.isArray(values)) {
         return []
@@ -65,7 +71,10 @@ function normalizeInhibitedSignalIds(values, allowedIds) {
 
     const allowed = new Set(allowedIds)
 
-    return [...new Set(values.filter((value) => typeof value === 'string' && allowed.has(value)))]
+    return [...new Set(values
+        .filter((value) => typeof value === 'string')
+        .map((value) => LEGACY_ALERT_SIGNAL_ID_MIGRATIONS[value] ?? value)
+        .filter((value) => allowed.has(value)))]
 }
 
 function normalizeSettings(settings) {

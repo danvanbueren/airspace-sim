@@ -149,20 +149,6 @@ export const SIGNAL_DEFINITIONS = {
         description: 'React component render or lifecycle failures.',
         priority: 40,
     },
-    UI_HOME: {
-        id: 'UI_HOME',
-        kind: SIGNAL_KIND.ALERT,
-        label: 'Home Action',
-        description: 'Fixed function panel HOME button placeholder alert.',
-        priority: 50,
-    },
-    UI_CENTER_E3: {
-        id: 'UI_CENTER_E3',
-        kind: SIGNAL_KIND.ALERT,
-        label: 'Center E-3 Action',
-        description: 'Fixed function panel CENTER ON E-3 button placeholder alert.',
-        priority: 60,
-    },
     SYSTEM_NOTICE: {
         id: 'SYSTEM_NOTICE',
         kind: SIGNAL_KIND.ALERT,
