@@ -57,7 +57,7 @@ export function createReferencePointTrack({
     timestamp = Date.now(),
     trackId = `RP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
     callsign,
-    identity = TRACK_IDENTITIES.NEUTRAL,
+    identity = TRACK_IDENTITIES.PENDING,
     infoFields = false,
 }) {
     const resolvedCallsign = callsign ?? allocateNextReferencePointLabel(existingTracks)

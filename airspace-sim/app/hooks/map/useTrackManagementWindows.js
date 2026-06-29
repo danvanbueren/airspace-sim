@@ -67,7 +67,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             lngLat: elementContainer.lngLat,
             line: elementContainer.line,
             domain: TRACK_DOMAINS.ACTIVITY,
-            identity: TRACK_IDENTITIES.NEUTRAL,
+            identity: TRACK_IDENTITIES.PENDING,
             type: REFERENCE_POINT_SYMBOL_CODE,
             specificType: '',
             callsign: allocateNextReferencePointLabel(existingTracks),

@@ -60,7 +60,7 @@ describe('trackFromReferencePoint', () => {
         assert.equal(track.type, REFERENCE_POINT_SYMBOL_CODE)
         assert.equal(track.symbolCode, REFERENCE_POINT_SYMBOL_CODE)
         assert.equal(track.useFamiliarIcon, false)
-        assert.equal(track.identity, TRACK_IDENTITIES.NEUTRAL)
+        assert.equal(track.identity, TRACK_IDENTITIES.PENDING)
         assert.equal(track.infoFields, false)
         assert.equal(track.lastSensorUpdateAt, 5000)
     })
