@@ -4,6 +4,7 @@ import {
     buildSeedAlarmKey,
     SEED_ALARM_ALERTS,
 } from '../../app/data/seedAlarmAlerts.js'
+import {EXTERNAL_LINKS, githubBlobUrl} from '../../app/content/externalLinks.js'
 
 test('seed alarm alerts define stable dedup keys', () => {
     const keys = SEED_ALARM_ALERTS.map((seedAlert) => buildSeedAlarmKey(seedAlert))
@@ -22,7 +23,7 @@ test('bearing range seed alert includes warning icon and rewrite plan link', () 
     assert.match(bearingRangeAlert.message, /bearing range line system/i)
     assert.equal(
         bearingRangeAlert.linkUrl,
-        'https://github.com/danvanbueren/airspace-sim/blob/main/docs/bearing-range-tool-rewrite-plan.md',
+        githubBlobUrl(EXTERNAL_LINKS.docs.bearingRangeRewritePlan),
     )
     assert.equal(bearingRangeAlert.linkLabel, 'View bearing range rewrite plan')
 })

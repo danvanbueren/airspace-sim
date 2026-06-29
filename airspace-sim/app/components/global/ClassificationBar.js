@@ -18,7 +18,7 @@ export default function ClassificationBar({
 
     /*
      * Classification & Control Markings - Astro UXDS
-     * https://www.astrouxds.com/components/classification-markings/
+     * See EXTERNAL_LINKS.references.astrouxdsClassificationMarkings in app/content/externalLinks.js
      */
 
 
