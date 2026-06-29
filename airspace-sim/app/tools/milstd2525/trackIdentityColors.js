@@ -127,3 +127,7 @@ export function getTrackIdentityMapStyle(identity, mode = 'dark') {
         fill: withAlpha(stroke, 0.22),
     }
 }
+
+export function getTrackMilStdIdentityColor(identity, mode = 'dark') {
+    return getTrackIdentityMapStyle(identity, mode).stroke
+}

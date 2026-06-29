@@ -4,6 +4,7 @@ import {TRACK_IDENTITIES} from '../../app/tools/milstd2525/trackSymbolCodes.js'
 import {
     getTrackIdentityChromeColors,
     getTrackIdentityMapStyle,
+    getTrackMilStdIdentityColor,
 } from '../../app/tools/milstd2525/trackIdentityColors.js'
 
 describe('trackIdentityColors', () => {
@@ -24,5 +25,15 @@ describe('trackIdentityColors', () => {
         assert.equal(neutral.stroke, '#61d36b')
         assert.equal(friendly.stroke, '#2ea7ff')
         assert.match(pending.fill, /^rgba\(/)
+    })
+
+    it('uses chrome colors for MIL-STD symbol identity overrides', () => {
+        assert.equal(getTrackMilStdIdentityColor(TRACK_IDENTITIES.PENDING, 'dark'), '#f5f5f5')
+        assert.equal(
+            getTrackMilStdIdentityColor(TRACK_IDENTITIES.ASSUMED_FRIENDLY, 'dark'),
+            '#61d36b',
+        )
+        assert.equal(getTrackMilStdIdentityColor(TRACK_IDENTITIES.SUSPECT, 'dark'), '#ff9a3d')
+        assert.equal(getTrackMilStdIdentityColor(TRACK_IDENTITIES.HOSTILE, 'dark'), '#ff5252')
     })
 })

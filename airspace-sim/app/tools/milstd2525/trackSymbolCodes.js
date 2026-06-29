@@ -31,7 +31,7 @@ export const TRACK_IDENTITIES = {
 export const TRACK_IDENTITY_OPTIONS = [
     {value: TRACK_IDENTITIES.PENDING, label: 'Pending'},
     {value: TRACK_IDENTITIES.UNKNOWN, label: 'Unknown'},
-    {value: TRACK_IDENTITIES.ASSUMED_FRIENDLY, label: 'Assumed Friendly'},
+    {value: TRACK_IDENTITIES.ASSUMED_FRIENDLY, label: 'Assumed Friend'},
     {value: TRACK_IDENTITIES.FRIENDLY, label: 'Friendly'},
     {value: TRACK_IDENTITIES.NEUTRAL, label: 'Neutral'},
     {value: TRACK_IDENTITIES.SUSPECT, label: 'Suspect'},
