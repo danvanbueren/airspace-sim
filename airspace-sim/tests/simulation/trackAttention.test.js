@@ -10,7 +10,7 @@ import {
     deriveAttentionFlagsFromTrackState,
     resolveTrackAttentionFlags,
 } from '../../app/simulation/trackAttentionFlags.js'
-import {formatAttentionDisplayEntries, formatAttentionDisplayLines} from '../../app/tools/map/trackAttentionDisplay.js'
+import {formatAttentionDisplayEntries, formatAttentionDisplayLines, getAttentionMapLabelStyles} from '../../app/tools/map/trackAttentionDisplay.js'
 import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
 import {TRACK_KINDS} from '../../app/simulation/trackKinds.js'
 import {TRACK_IDENTITIES} from '../../app/tools/milstd2525/trackSymbolCodes.js'
@@ -123,6 +123,20 @@ describe('trackAttentionFlags', () => {
 })
 
 describe('trackAttentionDisplay', () => {
+    it('uses darker yellow with a black outline for light-mode map labels', () => {
+        const styles = getAttentionMapLabelStyles('light')
+
+        assert.equal(styles.color, '#C9A000')
+        assert.match(styles.textShadow, /#000/)
+    })
+
+    it('keeps the amber glow styling for dark-mode map labels', () => {
+        const styles = getAttentionMapLabelStyles('dark')
+
+        assert.equal(styles.color, '#FFBF00')
+        assert.match(styles.textShadow, /rgba\(0, 0, 0, 0\.85\)/)
+    })
+
     it('shows up to five labels when within the display limit', () => {
         const lines = formatAttentionDisplayLines(['STALE', 'HOLD'])
 

@@ -1,13 +1,10 @@
 'use client'
 
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
-import {Box} from '@mui/material'
+import {Box, useTheme} from '@mui/material'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {getVisibleTrackAttentionFlags} from '@/app/simulation/trackAttentionFlags'
-import {
-    ATTENTION_AMBER,
-    formatAttentionDisplayEntries,
-} from '@/app/tools/map/trackAttentionDisplay'
+import {formatAttentionDisplayEntries, getAttentionMapLabelStyles} from '@/app/tools/map/trackAttentionDisplay'
 import {useAttentionFlashVisible} from '@/app/hooks/map/useAttentionFlashVisible'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
 
@@ -57,8 +54,13 @@ export default function TrackAttentionOverlay({
     iffRefreshMs = 1000,
 }) {
     const {appSettings} = useAppSettings()
+    const theme = useTheme()
     const flashVisible = useAttentionFlashVisible(true)
     const [positionsByTrackId, setPositionsByTrackId] = useState({})
+    const attentionMapLabelStyles = useMemo(
+        () => getAttentionMapLabelStyles(theme.palette.mode),
+        [theme.palette.mode],
+    )
 
     const inhibitedAttentionIds = appSettings.inhibitedAttentions ?? EMPTY_INHIBITED_ATTENTIONS
     const resolvedIffRefreshMs = iffRefreshMs ?? appSettings.iffRefreshMs ?? 1000
@@ -199,13 +201,12 @@ export default function TrackAttentionOverlay({
                             <Box
                                 key={`${trackId}-${entry.key}`}
                                 sx={{
-                                    color: ATTENTION_AMBER,
+                                    ...attentionMapLabelStyles,
                                     fontFamily: 'monospace',
                                     fontWeight: 'bold',
                                     fontSize: '0.72rem',
                                     lineHeight: 1.25,
                                     whiteSpace: 'nowrap',
-                                    textShadow: '0 0 4px rgba(0, 0, 0, 0.85)',
                                 }}
                             >
                                 {entry.label}

@@ -4,6 +4,37 @@ export const ATTENTION_DISPLAY_MAX_LINES = 5
 export const ATTENTION_FLASH_INTERVAL_MS = 500
 
 const ATTENTION_AMBER = '#FFBF00'
+const ATTENTION_AMBER_LIGHT_MODE = '#C9A000'
+
+const ATTENTION_MAP_GLOW_SHADOW = '0 0 4px rgba(0, 0, 0, 0.85)'
+const ATTENTION_MAP_TEXT_OUTLINE_SHADOW = [
+    '-1px -1px 0 #000',
+    '1px -1px 0 #000',
+    '-1px 1px 0 #000',
+    '1px 1px 0 #000',
+    '0 -1px 0 #000',
+    '0 1px 0 #000',
+    '-1px 0 0 #000',
+    '1px 0 0 #000',
+].join(', ')
+
+/**
+ * @param {'light'|'dark'} paletteMode
+ * @returns {{color: string, textShadow: string}}
+ */
+export function getAttentionMapLabelStyles(paletteMode) {
+    if (paletteMode === 'light') {
+        return {
+            color: ATTENTION_AMBER_LIGHT_MODE,
+            textShadow: ATTENTION_MAP_TEXT_OUTLINE_SHADOW,
+        }
+    }
+
+    return {
+        color: ATTENTION_AMBER,
+        textShadow: ATTENTION_MAP_GLOW_SHADOW,
+    }
+}
 
 /**
  * @param {string[]} flagIds Priority-sorted attention flag IDs
