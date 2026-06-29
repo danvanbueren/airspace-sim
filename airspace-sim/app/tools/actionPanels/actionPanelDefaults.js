@@ -14,7 +14,7 @@ export const DEFAULT_ACTION_PANEL_IDS = new Set([
 
 export const DEFAULT_ACTION_PANEL_WIDTH_PX = 400
 
-export const MAX_ACTION_PANEL_COUNT = 9
+export const MAX_ACTION_PANEL_COUNT = 10
 
 export const DEFAULT_ACTION_PANELS_STATE = {
     panels: [
