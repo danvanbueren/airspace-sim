@@ -73,7 +73,7 @@ Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Co
 
 ## Flight world
 
-- **Data** — `../../airspace-sim/app/data/airports.json` (major airports and regional strips) and `../../airspace-sim/app/data/airRoutes.json` (origin/destination pairs with traffic `weight`).
+- **Data** — `../../airspace-sim/app/data/airports.json` (~29k worldwide airports, airstrips, and military airfields with runways from [OurAirports](https://ourairports.com/data/)) and `../../airspace-sim/app/data/airRoutes.json` (trunk origin/destination pairs with traffic `weight`, `trafficKind`, `profile`, and `nationality`). Regional strip-to-strip hops are generated procedurally at runtime when the simulator picks routes.
 - **Fleet size** — Controlled by **Max active flights (global)** in Settings → Simulation Engine (`maxActiveFlights`). Quality presets cap the target count (`low` 400, `balanced` 800, `high` 1000, `global_dense` / Ultra 1500). Under adaptive performance, the engine may **lower tick rate** but does **not** delete flights to match the viewport.
 - **Traffic distribution** — New flights pick routes by weight, not by where the map is centered, so empty regions do not accumulate spurious traffic.
 - **General aviation** — A small slice of the fleet (~4%, capped at 40) flies slow, low-altitude local orbits near airports (`generalAviationTraffic.js`). GA aircraft squawk VFR Mode 3 codes (`1200` in North America, `7000` elsewhere).

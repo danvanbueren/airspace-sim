@@ -1,6 +1,7 @@
 import {formatMode3Code} from './iffMode3.js'
 import {TRACK_TYPES} from '../tools/milstd2525/trackSymbolCodes.js'
 import {resolveAutoTrackNationalityFromAircraft} from '../tools/milstd2525/airportIcaoNationality.js'
+import {normalizeNationality} from '../tools/milstd2525/trackNationalities.js'
 
 export const TRACK_CORRELATION_MODES = {
     ACTIVE: 'active',
@@ -33,7 +34,8 @@ export function trackFromInitiation({plotId, sensorType, longitude, latitude, ti
         identity: 'pending',
         type: TRACK_TYPES.AIR_UNSPECIFIED,
         specificType: '',
-        nationality: resolveAutoTrackNationalityFromAircraft(nearest),
+        nationality: normalizeNationality(nearest?.nationality)
+            || resolveAutoTrackNationalityFromAircraft(nearest),
         callsign: nearest?.id ?? id,
         source: 'auto',
         initiatedBy: sensorType,

@@ -26,6 +26,7 @@ function routesToFeatureCollection(routes, airportByIcao) {
                 origin: route.origin,
                 destination: route.destination,
                 weight: route.weight ?? 1,
+                trafficKind: route.trafficKind ?? 'commercial',
             },
         }
     }).filter(Boolean)
@@ -47,7 +48,12 @@ function addAirRouteSourceAndLayer(map) {
             type: 'line',
             source: AIR_ROUTE_SOURCE_ID,
             paint: {
-                'line-color': '#64b5f6',
+                'line-color': [
+                    'case',
+                    ['==', ['get', 'trafficKind'], 'military'],
+                    '#ef5350',
+                    '#64b5f6',
+                ],
                 'line-width': 1.2,
                 'line-opacity': 0.45,
             },

@@ -26,7 +26,7 @@ export class FlightWorldSimulator {
         this.routes = loadAirRouteCatalog()
         this.airportByIcao = buildAirportIndex(this.airports)
         this.generalAviationAirports = getGeneralAviationAirports(this.airports)
-        this.pickRoute = buildWeightedRoutePicker(this.routes, this.airportByIcao)
+        this.pickRoute = buildWeightedRoutePicker(this.routes, this.airportByIcao, this.airports)
         this.aircraft = new Map()
         this.nextFlightIndex = 0
         this.nextGeneralAviationIndex = 0
