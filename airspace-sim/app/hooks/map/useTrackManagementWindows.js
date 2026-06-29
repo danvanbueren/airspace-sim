@@ -2,6 +2,7 @@
 
 import {useCallback, useState} from 'react'
 import {
+    REFERENCE_POINT_SYMBOL_CODE,
     TRACK_DOMAINS,
     TRACK_IDENTITIES,
     getUnspecifiedTrackTypeForDomain,
@@ -10,6 +11,9 @@ import {getDefaultSpecificTypeForTrackType} from '../../tools/milstd2525/trackSp
 import {parseTrackKinematicFields} from '../../tools/formatting/trackFieldFormatting'
 import {syncTrackManagementWindowsFromTracks} from '../../tools/map/trackManagementTrack'
 import {edgeAnchorsEqual} from '../../tools/map/edgeAnchoredPosition'
+import {allocateNextReferencePointLabel} from '../../simulation/trackFromReferencePoint'
+import {TRACK_KINDS} from '../../simulation/trackKinds'
+import {TRACK_CORRELATION_MODES} from '../../simulation/trackFromDetection'
 
 export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTrackUpdated}) {
     const [trackManagementWindows, setTrackManagementWindows] = useState([])
@@ -37,6 +41,41 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
             altitude: '',
             infoFields: false,
             correlationMode: 'active',
+            source: 'manual',
+            dismissOnMapClick: true,
+        }
+
+        setTrackManagementWindows((currentWindows) => [
+            ...currentWindows,
+            trackManagementWindow,
+        ])
+
+        onTrackCreated?.(trackManagementWindow)
+        onInitiateTrack?.()
+    }, [onInitiateTrack, onTrackCreated])
+
+    const initiateReferencePoint = useCallback((elementContainer, existingTracks = []) => {
+        const windowId = crypto.randomUUID()
+        const trackId = `RP-${windowId.slice(0, 8).toUpperCase()}`
+
+        const trackManagementWindow = {
+            id: windowId,
+            trackId,
+            trackKind: TRACK_KINDS.REFERENCE_POINT,
+            x: elementContainer.x,
+            y: elementContainer.y,
+            lngLat: elementContainer.lngLat,
+            line: elementContainer.line,
+            domain: TRACK_DOMAINS.ACTIVITY,
+            identity: TRACK_IDENTITIES.PENDING,
+            type: REFERENCE_POINT_SYMBOL_CODE,
+            specificType: '',
+            callsign: allocateNextReferencePointLabel(existingTracks),
+            heading: 0,
+            speed: '',
+            altitude: '',
+            infoFields: false,
+            correlationMode: TRACK_CORRELATION_MODES.SUSPEND,
             source: 'manual',
             dismissOnMapClick: true,
         }
@@ -125,6 +164,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
                     infoFields: Boolean(track.infoFields),
                     correlationMode: track.correlationMode ?? 'active',
                     source: track.source ?? 'auto',
+                    trackKind: track.trackKind ?? TRACK_KINDS.TRACK,
                     dismissOnMapClick: false,
                 },
             ]
@@ -201,6 +241,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
     return {
         trackManagementWindows,
         initiateTrack,
+        initiateReferencePoint,
         openTrackManagementWindow,
         updateTrackManagementWindow,
         setTrackManagementWindowPositionAnchor,

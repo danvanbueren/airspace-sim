@@ -15,6 +15,11 @@ import {
     normalizeSpecificType,
 } from '../milstd2525/trackSpecificTypes.js'
 import {applyUserKinematicEditHold, getAuthoritativeManagementEditFields, isCorrelationHoldActive, resolveExpiredCorrelationHold} from '../../simulation/correlationHold.js'
+import {TRACK_KINDS} from '../../simulation/trackKinds.js'
+
+export function isReferencePointManagementWindow(trackManagementWindow) {
+    return trackManagementWindow?.trackKind === TRACK_KINDS.REFERENCE_POINT
+}
 
 const KINEMATIC_FIELDS = new Set(['heading', 'speed', 'altitude'])
 
@@ -198,6 +203,36 @@ export function mergeLiveTracksForManagementWindowSync(
     return Array.from(tracksById.values())
 }
 
+export function collectLiveTrackIds(tracks) {
+    const liveTrackIds = new Set()
+
+    for (const track of tracks ?? []) {
+        const trackId = track.trackId ?? track.id
+
+        if (trackId) {
+            liveTrackIds.add(trackId)
+        }
+    }
+
+    return liveTrackIds
+}
+
+export function getTrackIdsRemovedFromLiveSet(previousLiveTrackIds, currentLiveTracks) {
+    const currentLiveTrackIds = collectLiveTrackIds(currentLiveTracks)
+    const removedTrackIds = []
+
+    for (const trackId of previousLiveTrackIds) {
+        if (!currentLiveTrackIds.has(trackId)) {
+            removedTrackIds.push(trackId)
+        }
+    }
+
+    return {
+        currentLiveTrackIds,
+        removedTrackIds,
+    }
+}
+
 function getChangedFieldSet(changedFields) {
     if (!changedFields) {
         return null
@@ -329,6 +364,10 @@ export function syncTrackManagementWindowsFromTracks(
     let hasChanges = false
 
     const nextWindows = trackManagementWindows.map((trackManagementWindow) => {
+        if (isReferencePointManagementWindow(trackManagementWindow)) {
+            return trackManagementWindow
+        }
+
         const liveTrack = tracksById.get(trackManagementWindow.trackId)
 
         if (!liveTrack) {
@@ -416,11 +455,18 @@ export function createTrackUpdateFromManagementWindow(
         trackManagementWindow.specificType,
     )
 
+    const changedFieldSet = getChangedFieldSet(changedFields)
+    const useWindowPosition = !existingTrack || changedFieldSet?.has('lngLat')
+
     const update = {
         id: trackManagementWindow.trackId,
         trackId: trackManagementWindow.trackId,
-        longitude: existingTrack?.longitude ?? trackManagementWindow.lngLat.lng,
-        latitude: existingTrack?.latitude ?? trackManagementWindow.lngLat.lat,
+        longitude: useWindowPosition
+            ? trackManagementWindow.lngLat.lng
+            : (existingTrack?.longitude ?? trackManagementWindow.lngLat.lng),
+        latitude: useWindowPosition
+            ? trackManagementWindow.lngLat.lat
+            : (existingTrack?.latitude ?? trackManagementWindow.lngLat.lat),
         domain,
         identity: trackManagementWindow.identity,
         type,

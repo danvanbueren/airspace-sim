@@ -5,21 +5,46 @@ import {
     Box,
     Button,
     Divider,
-    FormControl,
-    Grid,
-    MenuItem,
     Paper,
-    Select,
     Stack,
-    Typography
+    Typography,
 } from '@mui/material'
-import {useAppSettings, GRID_REFERENCE_SYSTEMS} from '@/app/contexts/AppSettingsContext'
-import {
-    formatCoordinatePairForGridReferenceSystem,
-    getGridReferenceSystemDisplayName,
-} from '@/app/tools/formatting/GridReferenceFormatting'
+import PositionReferenceEditor from '@/app/components/floating/windows/PositionReferenceEditor'
 import {shouldShowDropAttention} from '@/app/simulation/trackAutoDrop'
+import {isReferencePoint} from '@/app/simulation/trackKinds'
 import {UI_Z_INDEX} from '@/app/constants/uiZIndex'
+
+const CONTEXT_MENU_WIDTH_PX = 236
+
+const CONTEXT_MENU_SECTION_HEADING_SX = {
+    fontWeight: 'bold',
+    fontSize: '0.9rem',
+}
+
+const CONTEXT_MENU_BUTTON_SX = {
+    justifyContent: 'flex-start',
+    py: 0.875,
+    minHeight: 36,
+}
+
+const CONTEXT_MENU_MONOSPACE_SX = {
+    fontFamily: 'monospace',
+    '& .MuiTypography-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiInputBase-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiInputLabel-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiFormHelperText-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiSelect-select': {
+        fontFamily: 'monospace',
+    },
+}
 
 function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef) {
     const edgePadding = 8
@@ -31,11 +56,13 @@ function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerR
     let left = elementContainer.x
     let top = elementContainer.y
 
-    if (menuWidth && left + menuWidth > containerWidth - edgePadding)
+    if (menuWidth && left + menuWidth > containerWidth - edgePadding) {
         left = elementContainer.x - menuWidth
+    }
 
-    if (menuHeight && top + menuHeight > containerHeight - edgePadding)
+    if (menuHeight && top + menuHeight > containerHeight - edgePadding) {
         top = elementContainer.y - menuHeight
+    }
 
     return {
         left: Math.max(edgePadding, left),
@@ -43,32 +70,44 @@ function getContextMenuPosition(elementContainer, contextMenuSize, mapContainerR
     }
 }
 
-const MapContextMenu = forwardRef(function MapContextMenu({
-                                                                  elementContainer,
-                                                                  contextMenuSize,
-                                                                  mapContainerRef,
-                                                                  onInitiateTrack,
-                                                                  onDropTrack,
-                                                                  onRecoverTrack,
-                                                                  onToggleDropProtect,
-                                                                  onRemoveBearingRangeLine,
-                                                                  onClearBearingRangeLines,
-                                                                  lines,
-                                                              }, ref) {
-    const {appSettings, setGridReferenceSystem} = useAppSettings()
+function getDynamicActionsSectionTitle(track) {
+    if (isReferencePoint(track)) {
+        return 'Reference Point Actions'
+    }
 
-    if (!elementContainer) return null
+    if (track) {
+        return 'Track Actions'
+    }
+
+    return 'Dynamic Actions'
+}
+
+const MapContextMenu = forwardRef(function MapContextMenu({
+    elementContainer,
+    contextMenuSize,
+    mapContainerRef,
+    onInitiateTrack,
+    onCreateReferencePoint,
+    onDropTrack,
+    onRecoverTrack,
+    onToggleDropProtect,
+    onRemoveBearingRangeLine,
+    onClearBearingRangeLines,
+    lines,
+}, ref) {
+    if (!elementContainer) {
+        return null
+    }
 
     const hasBearingRangeLine = Boolean(elementContainer.line)
+    const showBearingRangeSection = lines.length >= 1 || hasBearingRangeLine
     const track = elementContainer.track ?? null
     const hasTrack = Boolean(track)
+    const isReferencePointTrack = isReferencePoint(track)
     const showRecoverTrack = hasTrack && shouldShowDropAttention(track)
-    const dropProtectEnabled = Boolean(track?.dropProtect)
-    const formattedCoordinates = formatCoordinatePairForGridReferenceSystem(
-        elementContainer.lngLat.lat,
-        elementContainer.lngLat.lng,
-        appSettings.gridReferenceSystem,
-    )
+    const dropProtectEnabled = Boolean(track?.dropProtect) && !isReferencePointTrack
+    const hasDynamicActions = hasTrack
+    const dynamicActionsSectionTitle = getDynamicActionsSectionTitle(track)
 
     return (
         <Paper
@@ -79,96 +118,30 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                 position: 'absolute',
                 ...getContextMenuPosition(elementContainer, contextMenuSize, mapContainerRef),
                 zIndex: UI_Z_INDEX.CONTEXT_MENU,
-                width: 220,
+                width: CONTEXT_MENU_WIDTH_PX,
                 pointerEvents: 'auto',
                 userSelect: 'none',
                 overflow: 'hidden',
+                ...CONTEXT_MENU_MONOSPACE_SX,
             }}
         >
-
             <Box sx={{bgcolor: 'primary.main', p: 2}}>
-                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace', color: 'primary.contrastText', fontSize: '0.9rem'}}>
+                <Typography sx={{fontWeight: 'bold', color: 'primary.contrastText', fontSize: '0.9rem'}}>
                     Dynamic Context Menu
                 </Typography>
             </Box>
 
-            <Stack spacing={1} sx={{p: 2}}>
-                <Grid container spacing={1} sx={{display: 'flex', alignItems: 'center'}}>
-                    <Grid size='auto'>
-                        <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
-                            Position
-                        </Typography>
-                    </Grid>
-                    <Grid size='grow' sx={{display: 'flex', justifyContent: 'flex-end'}}>
-                        <FormControl
-                            variant="filled"
-                            size="small"
-                            sx={{
-                                minWidth: '3rem',
-                                m: 0,
-                            }}
-                        >
-                            <Select
-                                value={appSettings.gridReferenceSystem}
-                                onChange={(event) => setGridReferenceSystem(event.target.value)}
-                                variant='outlined'
-                                size='small'
-                                sx={{
-                                    fontFamily: 'monospace',
-                                    fontSize: '0.75rem',
-                                    '& .MuiSelect-select.MuiInputBase-input.MuiOutlinedInput-input': {
-                                        py: 0.5,
-                                        pl: 1,
-                                        paddingRight: '8px !important',
-                                    },
-                                    '& .MuiSelect-icon': {
-                                        display: 'none',
-                                    },
-                                }}
-                                MenuProps={{
-                                    disablePortal: true,
-                                    slotProps: {
-                                        paper: {
-                                            sx: {
-                                                '& .MuiMenuItem-root': {
-                                                    fontFamily: 'monospace',
-                                                    fontSize: '0.75rem',
-                                                    minHeight: 28,
-                                                    py: 0.25,
-                                                },
-                                            },
-                                        },
-                                    },
-                                }}
-                            >
-                                {Object.values(GRID_REFERENCE_SYSTEMS).map((gridReferenceSystem) => (
-                                    <MenuItem
-                                        key={gridReferenceSystem.value}
-                                        value={gridReferenceSystem.value}
-                                    >
-                                        {getGridReferenceSystemDisplayName(gridReferenceSystem.value)}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                </Grid>
+            <Stack spacing={1.5} sx={{p: 2}}>
+                <PositionReferenceEditor
+                    lat={elementContainer.lngLat.lat}
+                    lng={elementContainer.lngLat.lng}
+                    zIndex={UI_Z_INDEX.CONTEXT_MENU}
+                    readOnly
+                    compact
+                />
 
-                <Box>
-                    {formattedCoordinates.map((coordinateLine) => (
-                        <Typography
-                            key={coordinateLine}
-                            sx={{fontFamily: 'monospace', whiteSpace: 'pre', fontSize: '0.8rem'}}
-                        >
-                            {coordinateLine}
-                        </Typography>
-                    ))}
-                </Box>
-
-                <Divider sx={{py: 0.5}}/>
-
-                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
-                    Actions
+                <Typography sx={CONTEXT_MENU_SECTION_HEADING_SX}>
+                    Scope Actions
                 </Typography>
 
                 <Button
@@ -176,7 +149,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     size='small'
                     variant='outlined'
                     onClick={() => {}}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    sx={CONTEXT_MENU_BUTTON_SX}
                     fullWidth
                     disabled
                 >
@@ -188,82 +161,123 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                     size='small'
                     variant='outlined'
                     onClick={() => onInitiateTrack(elementContainer)}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    sx={CONTEXT_MENU_BUTTON_SX}
                     fullWidth
                 >
                     Initiate Track
                 </Button>
 
-                {showRecoverTrack && (
-                    <Button
-                        color='warning'
-                        size='small'
-                        variant='outlined'
-                        onClick={() => onRecoverTrack(track)}
-                        sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
-                        fullWidth
-                    >
-                        Recover Track
-                    </Button>
-                )}
-
-                {hasTrack && (
-                    <Button
-                        color='warning'
-                        size='small'
-                        variant='outlined'
-                        onClick={() => onDropTrack(track)}
-                        sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
-                        fullWidth
-                        disabled={dropProtectEnabled}
-                    >
-                        Drop
-                    </Button>
-                )}
-
-                {hasTrack && (
-                    <Button
-                        color='primary'
-                        size='small'
-                        variant='outlined'
-                        onClick={() => onToggleDropProtect(track)}
-                        sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
-                        fullWidth
-                    >
-                        {dropProtectEnabled ? 'Disable Drop Protect' : 'Enable Drop Protect'}
-                    </Button>
-                )}
-
-                <Divider sx={{py: 0.5}}/>
-
-                <Typography sx={{fontWeight: 'bold', fontFamily: 'monospace'}}>
-                    Bearing/Range Lines
-                </Typography>
-
-                {hasBearingRangeLine && (<Button
+                <Button
                     color='primary'
                     size='small'
                     variant='outlined'
-                    onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
+                    onClick={() => onCreateReferencePoint(elementContainer)}
+                    sx={CONTEXT_MENU_BUTTON_SX}
                     fullWidth
                 >
-                    Clear line
-                </Button>)}
+                    Initiate Reference Point
+                </Button>
 
-                {!(hasBearingRangeLine && lines.length === 1) && (<Button
-                    color='warning'
-                    size='small'
-                    variant='outlined'
-                    onClick={onClearBearingRangeLines}
-                    sx={{justifyContent: 'flex-start', fontFamily: 'monospace'}}
-                    disabled={lines.length < 1}
-                    fullWidth
-                >
-                    Clear all lines
-                </Button>)}
+                {hasDynamicActions ? (
+                    <>
+                        <Divider sx={{py: 0.5}}/>
+
+                        <Typography sx={CONTEXT_MENU_SECTION_HEADING_SX}>
+                            {dynamicActionsSectionTitle}
+                        </Typography>
+
+                        {showRecoverTrack ? (
+                            <Button
+                                color='warning'
+                                size='small'
+                                variant='outlined'
+                                onClick={() => onRecoverTrack(track)}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                            >
+                                Recover Track
+                            </Button>
+                        ) : null}
+
+                        {isReferencePointTrack ? (
+                            <Button
+                                color='primary'
+                                size='small'
+                                variant='outlined'
+                                onClick={() => {}}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                                disabled
+                            >
+                                Set Bullseye
+                            </Button>
+                        ) : null}
+
+                        <Button
+                            color='warning'
+                            size='small'
+                            variant='outlined'
+                            onClick={() => onDropTrack(track)}
+                            sx={CONTEXT_MENU_BUTTON_SX}
+                            fullWidth
+                            disabled={dropProtectEnabled}
+                        >
+                            Drop
+                        </Button>
+
+                        {!isReferencePointTrack ? (
+                            <Button
+                                color='primary'
+                                size='small'
+                                variant='outlined'
+                                onClick={() => onToggleDropProtect(track)}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                            >
+                                {dropProtectEnabled ? 'Disable Drop Protect' : 'Enable Drop Protect'}
+                            </Button>
+                        ) : null}
+                    </>
+                ) : null}
+
+                {showBearingRangeSection ? (
+                    <>
+                        <Divider sx={{py: 0.5}}/>
+
+                        <Typography sx={CONTEXT_MENU_SECTION_HEADING_SX}>
+                            Bearing/Range Lines
+                        </Typography>
+
+                        {hasBearingRangeLine ? (
+                            <Button
+                                color='primary'
+                                size='small'
+                                variant='outlined'
+                                onClick={() => onRemoveBearingRangeLine(elementContainer.line.id)}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                            >
+                                Clear line
+                            </Button>
+                        ) : null}
+
+                        {!(hasBearingRangeLine && lines.length === 1) ? (
+                            <Button
+                                color='warning'
+                                size='small'
+                                variant='outlined'
+                                onClick={onClearBearingRangeLines}
+                                sx={CONTEXT_MENU_BUTTON_SX}
+                                fullWidth
+                            >
+                                Clear all lines
+                            </Button>
+                        ) : null}
+                    </>
+                ) : null}
             </Stack>
-        </Paper>)
+        </Paper>
+    )
 })
 
 export default MapContextMenu

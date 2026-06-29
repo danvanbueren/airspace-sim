@@ -9,10 +9,11 @@ import {
 import {usePerformanceInstrumentation} from '@/app/contexts/PerformanceMonitorContext'
 import {addMilStd2525IconToMap} from '../../tools/milstd2525/createMilStd2525Icon'
 import {
-    getTrackSymbolCode,
     getTrackSymbolOptions,
+    resolveTrackSymbolCode,
 } from '../../tools/milstd2525/trackSymbolCodes'
 import {tracksToVectorFeatureCollection} from '../../simulation/trackVectorFeatures'
+import {isReferencePoint} from '../../simulation/trackKinds'
 import {
     MAP_CURSOR_PRIORITIES,
     MAP_CURSOR_REQUESTS,
@@ -112,7 +113,11 @@ function hashString(value) {
     return Math.abs(hash).toString(36)
 }
 
-function getTrackIconRenderOptions(track, defaultIconSize) {
+function getMapColorMode(styleKey) {
+    return isDarkMapStyle(styleKey) ? 'dark' : 'light'
+}
+
+function getTrackIconRenderOptions(track, defaultIconSize, mapColorMode = 'dark') {
     const symbolOptions = {
         ...getTrackSymbolOptions(track),
         ...track.symbolOptions,
@@ -134,11 +139,12 @@ function getTrackIconRenderOptions(track, defaultIconSize) {
         infoFields: track.infoFields ?? false,
         civilianColor: symbolOptions.civilianColor,
         symbolOptions,
+        mapColorMode,
     }
 }
 
-function getTrackIconId(track, symbolCode, defaultIconSize) {
-    const renderOptions = getTrackIconRenderOptions(track, defaultIconSize)
+function getTrackIconId(track, symbolCode, defaultIconSize, mapColorMode = 'dark') {
+    const renderOptions = getTrackIconRenderOptions(track, defaultIconSize, mapColorMode)
     const iconCacheOptions = getTrackIconCacheOptions(renderOptions)
     const renderOptionsHash = hashString(stableSerialize(iconCacheOptions))
 
@@ -171,13 +177,14 @@ function getTrackIconCacheOptions(renderOptions) {
             identity: renderOptions.identity,
             type: renderOptions.type,
             useFamiliarIcon: renderOptions.useFamiliarIcon,
+            mapColorMode: renderOptions.mapColorMode,
         }
     }
 
     return renderOptions
 }
 
-function trackToFeature(track, defaultIconSize) {
+function trackToFeature(track, defaultIconSize, mapColorMode = 'dark') {
     const coordinates = normalizeTrackCoordinates(track)
 
     if (!coordinates) {
@@ -190,8 +197,8 @@ function trackToFeature(track, defaultIconSize) {
         return null
     }
 
-    const symbolCode = track.symbolCode ?? getTrackSymbolCode(track)
-    const iconId = track.iconId ?? getTrackIconId(track, symbolCode, defaultIconSize)
+    const symbolCode = resolveTrackSymbolCode(track)
+    const iconId = track.iconId ?? getTrackIconId(track, symbolCode, defaultIconSize, mapColorMode)
 
     const displayHeading = toFiniteNumber(track.heading, 0)
 
@@ -214,18 +221,18 @@ function trackToFeature(track, defaultIconSize) {
             trackType: track.type ?? null,
             speed: track.speed ?? null,
             altitude: track.altitude ?? null,
-            stale: Boolean(track.stale),
+            stale: isReferencePoint(track) ? false : Boolean(track.stale),
             selected: Boolean(track.selected),
             correlated: Boolean(track.correlated),
         },
     }
 }
 
-function createFeatureCollection(tracks, defaultIconSize) {
+function createFeatureCollection(tracks, defaultIconSize, mapColorMode = 'dark') {
     const features = []
 
     tracks.forEach((track) => {
-        const feature = trackToFeature(track, defaultIconSize)
+        const feature = trackToFeature(track, defaultIconSize, mapColorMode)
 
         if (feature) {
             features.push(feature)
@@ -390,7 +397,8 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         }
 
         const tracks = Array.from(tracksRef.current.values())
-        const featureCollection = createFeatureCollection(tracks, iconSize)
+        const mapColorMode = getMapColorMode(styleKey)
+        const featureCollection = createFeatureCollection(tracks, iconSize, mapColorMode)
         const vectorFeatureCollection = tracksToVectorFeatureCollection(tracks, map)
 
         const trackSymbolsStart = performance.now()
@@ -407,7 +415,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
             trackFeatures: featureCollection.features.length,
             vectorFeatures: vectorFeatureCollection.features.length,
         })
-    }, [iconSize, performanceInstrumentation])
+    }, [iconSize, performanceInstrumentation, styleKey])
 
     const scheduleSetData = useCallback(() => {
         if (frameRef.current) {
@@ -434,8 +442,9 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
             return
         }
 
-        const symbolCode = track.symbolCode ?? getTrackSymbolCode(track)
-        const iconId = track.iconId ?? getTrackIconId(track, symbolCode, iconSize)
+        const mapColorMode = getMapColorMode(styleKey)
+        const symbolCode = resolveTrackSymbolCode(track)
+        const iconId = track.iconId ?? getTrackIconId(track, symbolCode, iconSize, mapColorMode)
 
         if (registeredIconIdsRef.current.has(iconId)) {
             return
@@ -457,7 +466,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
                 map,
                 iconId,
                 symbolCode,
-                getTrackIconRenderOptions(track, iconSize),
+                getTrackIconRenderOptions(track, iconSize, mapColorMode),
             )
 
             if (addedIcon) {
@@ -467,7 +476,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         } finally {
             pendingIconIdsRef.current.delete(iconId)
         }
-    }, [iconSize, mapRef, scheduleSetData])
+    }, [iconSize, mapRef, scheduleSetData, styleKey])
 
     const ensureTrackIconById = useCallback(async (iconId) => {
         const map = mapRef.current
@@ -492,14 +501,15 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         }
 
         let matchingTrack = null
+        const mapColorMode = getMapColorMode(styleKey)
 
         tracksRef.current.forEach((track) => {
             if (matchingTrack) {
                 return
             }
 
-            const trackSymbolCode = track.symbolCode ?? getTrackSymbolCode(track)
-            const trackIconId = track.iconId ?? getTrackIconId(track, trackSymbolCode, iconSize)
+            const trackSymbolCode = resolveTrackSymbolCode(track)
+            const trackIconId = track.iconId ?? getTrackIconId(track, trackSymbolCode, iconSize, mapColorMode)
 
             if (trackIconId === iconId) {
                 matchingTrack = {
@@ -512,8 +522,8 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
         const symbolCode = matchingTrack?.symbolCode ?? parsedIcon.symbolCode
         const renderOptions = matchingTrack
-            ? getTrackIconRenderOptions(matchingTrack, iconSize)
-            : {size: iconSize}
+            ? getTrackIconRenderOptions(matchingTrack, iconSize, mapColorMode)
+            : {size: iconSize, mapColorMode}
 
         pendingIconIdsRef.current.add(iconId)
 
@@ -532,7 +542,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         } finally {
             pendingIconIdsRef.current.delete(iconId)
         }
-    }, [iconSize, mapRef, scheduleSetData])
+    }, [iconSize, mapRef, scheduleSetData, styleKey])
 
     const ensureTrackLayer = useCallback(() => {
         const map = mapRef.current

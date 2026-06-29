@@ -1,5 +1,6 @@
 import {isCorrelationHoldActive} from './correlationHold.js'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
+import {isReferencePoint} from './trackKinds.js'
 
 /**
  * @param {Object} [settings]
@@ -59,6 +60,14 @@ export function refreshTrackStaleAndDecorrelation(trackStore, timestamp, setting
         const trackId = track.trackId ?? track.id
 
         if (!trackId) {
+            return
+        }
+
+        if (isReferencePoint(track)) {
+            if (track.stale) {
+                trackStore.updateTrack(trackId, {stale: false})
+            }
+
             return
         }
 

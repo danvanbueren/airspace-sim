@@ -76,6 +76,27 @@ export default function SettingsModalAdvancedPage() {
 
             <Box>
                 <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
+                    Interface
+                </Typography>
+                <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
+                    Operator-facing display options for track and reference point windows.
+                </Typography>
+
+                <FormControlLabel
+                    control={(
+                        <Switch
+                            checked={Boolean(appSettings.verboseMode)}
+                            onChange={(event) => updateAppSettings({
+                                verboseMode: event.target.checked,
+                            })}
+                        />
+                    )}
+                    label='Verbose mode'
+                />
+            </Box>
+
+            <Box>
+                <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
                     Diagnostics
                 </Typography>
                 <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
@@ -102,6 +123,7 @@ export default function SettingsModalAdvancedPage() {
                     updateAppSettings((currentSettings) => ({
                         ...currentSettings,
                         showPerformanceOverlay: DEFAULT_APP_SETTINGS.showPerformanceOverlay,
+                        verboseMode: DEFAULT_APP_SETTINGS.verboseMode,
                     }))
                     updateControlBindings((currentBindings) => ({
                         ...currentBindings,

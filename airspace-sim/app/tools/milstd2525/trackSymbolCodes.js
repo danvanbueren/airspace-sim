@@ -31,12 +31,17 @@ export const TRACK_IDENTITIES = {
 export const TRACK_IDENTITY_OPTIONS = [
     {value: TRACK_IDENTITIES.PENDING, label: 'Pending'},
     {value: TRACK_IDENTITIES.UNKNOWN, label: 'Unknown'},
-    {value: TRACK_IDENTITIES.ASSUMED_FRIENDLY, label: 'Assumed Friendly'},
+    {value: TRACK_IDENTITIES.ASSUMED_FRIENDLY, label: 'Assumed Friend'},
     {value: TRACK_IDENTITIES.FRIENDLY, label: 'Friendly'},
     {value: TRACK_IDENTITIES.NEUTRAL, label: 'Neutral'},
     {value: TRACK_IDENTITIES.SUSPECT, label: 'Suspect'},
     {value: TRACK_IDENTITIES.HOSTILE, label: 'Hostile'},
 ]
+
+/** MIL-STD-2525D control measure: Reference Point (identity applied at render). */
+export const REFERENCE_POINT_SYMBOL_CODE = '10042500002136000000'
+
+const SIDC_STANDARD_IDENTITY_INDEX = 3
 
 export const TRACK_TYPES = {
     AIR_UNSPECIFIED: '01:000000',
@@ -321,15 +326,36 @@ export function resolveTrackTypeForDomain(type, domain) {
     return getTrackTypeOption(type, domain)?.value ?? getUnspecifiedTrackTypeForDomain(domain)
 }
 
+export function applyIdentityToSymbolCode(symbolCode, identity) {
+    if (!SIDC_2525D_PATTERN.test(symbolCode ?? '')) {
+        return symbolCode
+    }
+
+    const affiliation = TRACK_IDENTITY_AFFILIATION_CODES[identity]
+        ?? TRACK_IDENTITY_AFFILIATION_CODES[TRACK_IDENTITIES.UNKNOWN]
+
+    if (symbolCode[SIDC_STANDARD_IDENTITY_INDEX] === affiliation) {
+        return symbolCode
+    }
+
+    return `${symbolCode.slice(0, SIDC_STANDARD_IDENTITY_INDEX)}${affiliation}${symbolCode.slice(SIDC_STANDARD_IDENTITY_INDEX + 1)}`
+}
+
+export function resolveTrackSymbolCode(track = {}) {
+    const baseCode = track.symbolCode ?? getTrackSymbolCode(track)
+
+    return applyIdentityToSymbolCode(baseCode, track.identity)
+}
+
 export function getTrackSymbolCode({domain, identity, type} = {}) {
     if (SIDC_2525D_PATTERN.test(type ?? '')) {
-        return type
+        return applyIdentityToSymbolCode(type, identity)
     }
 
     const option = getTrackTypeOption(type, domain)
 
     if (!option) {
-        return FALLBACK_SYMBOL_CODE
+        return applyIdentityToSymbolCode(FALLBACK_SYMBOL_CODE, identity)
     }
 
     const affiliation = TRACK_IDENTITY_AFFILIATION_CODES[identity]

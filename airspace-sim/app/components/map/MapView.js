@@ -32,9 +32,15 @@ import {SENSOR_DISPLAY_TOGGLES} from '../../simulation/constants'
 import {
     createTrackFromManagementWindow,
     createTrackUpdateFromManagementWindow,
+    isReferencePointManagementWindow,
+    getTrackIdsRemovedFromLiveSet,
     mergeLiveTracksForManagementWindowSync,
     TRACK_MANAGEMENT_WINDOW_LIVE_SYNC_INTERVAL_MS,
 } from '../../tools/map/trackManagementTrack'
+import {
+    createReferencePointUpdateFromManagementWindow,
+    createTrackFromReferencePointManagementWindow,
+} from '../../simulation/trackFromReferencePoint'
 import MapContextMenu from './MapContextMenu'
 import TrackManagementWindow from '../floating/windows/TrackManagementWindow'
 import CursorCoordinateOverlay from './CursorCoordinateOverlay'
@@ -74,6 +80,7 @@ export default function MapView({
     const trackManagementWindowsRef = useRef([])
     const trackMapLayerGetTrackRef = useRef(null)
     const syncTrackManagementWindowsFromLiveTracksRef = useRef(null)
+    const previousLiveTrackIdsRef = useRef(new Set())
     const mapStyle = MAP_STYLES[colorMode]
 
     const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
@@ -167,22 +174,34 @@ export default function MapView({
     }, [clearBearingRangeLines, closeContextMenu])
 
     const handleTrackCreated = useCallback((trackManagementWindow) => {
-        const track = createTrackFromManagementWindow(trackManagementWindow)
+        const track = isReferencePointManagementWindow(trackManagementWindow)
+            ? createTrackFromReferencePointManagementWindow(
+                trackManagementWindow,
+                getSimulationTimestamp(),
+            )
+            : createTrackFromManagementWindow(trackManagementWindow)
 
         trackMapLayer.upsertTrack(track)
         upsertManualTrack(track)
-    }, [trackMapLayer, upsertManualTrack])
+    }, [getSimulationTimestamp, trackMapLayer, upsertManualTrack])
 
     const handleTrackUpdated = useCallback((trackManagementWindow, changedFields) => {
         const trackId = trackManagementWindow.trackId
         const existingTrack = getTrack(trackId) ?? trackMapLayer.getTrack(trackId)
 
-        const track = createTrackUpdateFromManagementWindow(
-            trackManagementWindow,
-            existingTrack,
-            changedFields,
-            getSimulationTimestamp(),
-        )
+        const track = isReferencePointManagementWindow(trackManagementWindow)
+            ? createReferencePointUpdateFromManagementWindow(
+                trackManagementWindow,
+                existingTrack,
+                changedFields,
+                getSimulationTimestamp(),
+            )
+            : createTrackUpdateFromManagementWindow(
+                trackManagementWindow,
+                existingTrack,
+                changedFields,
+                getSimulationTimestamp(),
+            )
 
         upsertManualTrack(track)
         trackMapLayer.upsertTrack(track)
@@ -191,6 +210,7 @@ export default function MapView({
     const {
         trackManagementWindows,
         initiateTrack,
+        initiateReferencePoint,
         openTrackManagementWindow,
         updateTrackManagementWindow,
         setTrackManagementWindowPositionAnchor,
@@ -204,6 +224,10 @@ export default function MapView({
         onTrackCreated: handleTrackCreated,
         onTrackUpdated: handleTrackUpdated,
     })
+
+    const handleCreateReferencePoint = useCallback((elementContainer) => {
+        initiateReferencePoint(elementContainer, simulationTracks)
+    }, [initiateReferencePoint, simulationTracks])
 
     const {
         sortedTrackManagementWindows,
@@ -236,6 +260,16 @@ export default function MapView({
         keyboardCameraControlsEnabled,
     )
 
+    const dismissManagementWindowsForDroppedTrack = useCallback((trackId) => {
+        blurTrackWindowsForTrack(trackId)
+        clearKeyboardCustodyForTrack(trackId)
+        closeTrackManagementWindowsForTrack(trackId)
+    }, [
+        blurTrackWindowsForTrack,
+        clearKeyboardCustodyForTrack,
+        closeTrackManagementWindowsForTrack,
+    ])
+
     const handleDropTrack = useCallback((track) => {
         const trackId = track.trackId ?? track.id
 
@@ -243,19 +277,14 @@ export default function MapView({
             return
         }
 
-        blurTrackWindowsForTrack(trackId)
-        clearKeyboardCustodyForTrack(trackId)
-
         trackMapLayer.removeTrack(trackId)
         dropTrack(trackId)
-        closeTrackManagementWindowsForTrack(trackId)
+        dismissManagementWindowsForDroppedTrack(trackId)
         closeContextMenu()
     }, [
-        blurTrackWindowsForTrack,
-        clearKeyboardCustodyForTrack,
         trackMapLayer,
         dropTrack,
-        closeTrackManagementWindowsForTrack,
+        dismissManagementWindowsForDroppedTrack,
         closeContextMenu,
     ])
 
@@ -375,6 +404,31 @@ export default function MapView({
     useEffect(() => {
         syncTrackManagementWindowsFromLiveTracksRef.current = syncTrackManagementWindowsFromLiveTracks
     }, [syncTrackManagementWindowsFromLiveTracks])
+
+    useEffect(() => {
+        const {currentLiveTrackIds, removedTrackIds} = getTrackIdsRemovedFromLiveSet(
+            previousLiveTrackIdsRef.current,
+            simulationSnapshot?.tracks ?? EMPTY_TRACKS,
+        )
+
+        previousLiveTrackIdsRef.current = currentLiveTrackIds
+
+        if (removedTrackIds.length === 0 || trackManagementWindows.length === 0) {
+            return
+        }
+
+        const openTrackIds = new Set(trackManagementWindows.map((window) => window.trackId))
+
+        for (const trackId of removedTrackIds) {
+            if (openTrackIds.has(trackId)) {
+                dismissManagementWindowsForDroppedTrack(trackId)
+            }
+        }
+    }, [
+        dismissManagementWindowsForDroppedTrack,
+        simulationSnapshot?.tracks,
+        trackManagementWindows,
+    ])
 
     useEffect(() => {
         if (trackManagementWindows.length === 0) {
@@ -512,6 +566,7 @@ export default function MapView({
                 contextMenuSize={contextMenuSize}
                 mapContainerRef={mapContainerRef}
                 onInitiateTrack={initiateTrack}
+                onCreateReferencePoint={handleCreateReferencePoint}
                 onDropTrack={handleDropTrack}
                 onRecoverTrack={handleRecoverTrack}
                 onToggleDropProtect={handleToggleDropProtect}

@@ -2,8 +2,23 @@
 
 import ms from 'milsymbol'
 import {createFamiliarTrackIconCanvas} from './createFamiliarTrackIcon'
+import {getTrackMilStdIdentityColor} from './trackIdentityColors'
+import {TRACK_IDENTITIES} from './trackSymbolCodes'
 
 const FALLBACK_SYMBOL_CODE = '10011000000000000000'
+
+function getMilStdIdentityColorOptions(options = {}) {
+    if (options.useFamiliarIcon !== false) {
+        return {}
+    }
+
+    return {
+        monoColor: getTrackMilStdIdentityColor(
+            options.identity ?? TRACK_IDENTITIES.UNKNOWN,
+            options.mapColorMode,
+        ),
+    }
+}
 
 function isRenderableSymbol(symbol) {
     const validation = symbol.isValid(true)
@@ -23,6 +38,7 @@ function createSymbol(symbolCode, options) {
         infoFields: options.infoFields ?? false,
         standard: '2525',
         ...options.symbolOptions,
+        ...getMilStdIdentityColorOptions(options),
     }
     const symbol = new ms.Symbol(symbolCode, symbolOptions)
 

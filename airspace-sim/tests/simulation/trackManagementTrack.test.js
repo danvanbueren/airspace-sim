@@ -5,6 +5,7 @@ import {
     createTrackUpdateFromManagementWindow,
     expandSkipFieldsWithCommittedManagementEdits,
     expandTrackManagementWindowSkipLiveFields,
+    getTrackIdsRemovedFromLiveSet,
     getTrackManagementWindowLiveUpdatesFromTrack,
     mergeLiveTracksForManagementWindowSync,
     mergeUserDirectedLayerTrackOverSimulation,
@@ -539,6 +540,22 @@ describe('track management window live sync', () => {
         )
     })
 
+    it('applies management window position updates when lngLat changes', () => {
+        const updated = createTrackUpdateFromManagementWindow(
+            managementWindow({
+                lngLat: {lng: -75, lat: 40},
+            }),
+            existingTrack({
+                longitude: -77.03,
+                latitude: 38.89,
+            }),
+            ['lngLat'],
+        )
+
+        assert.equal(updated.longitude, -75)
+        assert.equal(updated.latitude, 40)
+    })
+
     it('normalizes stale cross-domain type and specific type values on track updates', () => {
         const updated = createTrackUpdateFromManagementWindow(
             managementWindow({
@@ -755,5 +772,16 @@ describe('track management window live sync', () => {
             mergedTrack.lastManagementEditFields.sort(),
             ['callsign', 'heading'],
         )
+    })
+
+    it('detects track ids removed from the live simulation set', () => {
+        const previousLiveTrackIds = new Set(['TRK-1', 'TRK-2', 'RP-1'])
+        const {currentLiveTrackIds, removedTrackIds} = getTrackIdsRemovedFromLiveSet(
+            previousLiveTrackIds,
+            [existingTrack({trackId: 'TRK-2', id: 'TRK-2'})],
+        )
+
+        assert.deepEqual([...currentLiveTrackIds], ['TRK-2'])
+        assert.deepEqual(removedTrackIds, ['TRK-1', 'RP-1'])
     })
 })

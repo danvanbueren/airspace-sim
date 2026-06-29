@@ -12,6 +12,7 @@ import {
 } from '../../app/simulation/trackAttentionFlags.js'
 import {formatAttentionDisplayEntries, formatAttentionDisplayLines} from '../../app/tools/map/trackAttentionDisplay.js'
 import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
+import {TRACK_KINDS} from '../../app/simulation/trackKinds.js'
 import {TRACK_IDENTITIES} from '../../app/tools/milstd2525/trackSymbolCodes.js'
 
 describe('signalDefinitions', () => {
@@ -73,6 +74,19 @@ describe('trackAttentionFlags', () => {
 
         assert.ok(flags.includes('PROT'))
         assert.ok(!flags.includes('DROP'))
+    })
+
+    it('does not derive SUSPENDED, PROT, or STALE for reference points', () => {
+        const flags = deriveAttentionFlagsFromTrackState({
+            trackKind: TRACK_KINDS.REFERENCE_POINT,
+            dropProtect: true,
+            stale: true,
+            correlationMode: TRACK_CORRELATION_MODES.SUSPEND,
+        })
+
+        assert.ok(!flags.includes('SUSPENDED'))
+        assert.ok(!flags.includes('PROT'))
+        assert.ok(!flags.includes('STALE'))
     })
 
     it('derives stale, suspended, extrapolated, and hold flags from track state', () => {

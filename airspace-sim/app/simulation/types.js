@@ -52,6 +52,7 @@
  * @property {string} identity
  * @property {string} type
  * @property {string} callsign
+ * @property {'track'|'referencePoint'} [trackKind]
  * @property {'auto'|'manual'} [source]
  * @property {import('./constants').SENSOR_TYPES[keyof import('./constants').SENSOR_TYPES]} [initiatedBy]
  * @property {TrackCorrelationMode} [correlationMode]

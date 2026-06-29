@@ -1,5 +1,6 @@
 import {offsetLngLat} from './geo'
 import {getTrackIconScaleForZoom} from './mapViewportUtils'
+import {isReferencePoint} from './trackKinds.js'
 
 /** Screen-space offset from track center to clear familiar icon symbology. */
 const BASE_START_OFFSET_PIXELS = 16
@@ -117,7 +118,7 @@ export function trackToVectorFeature(track, map) {
         },
         properties: {
             trackId: id,
-            stale: Boolean(track.stale),
+            stale: isReferencePoint(track) ? false : Boolean(track.stale),
         },
     }
 }
