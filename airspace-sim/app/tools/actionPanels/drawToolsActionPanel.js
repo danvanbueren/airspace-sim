@@ -10,7 +10,7 @@ import {absoluteToEdgeAnchor, clampAbsolutePosition} from '../map/edgeAnchoredPo
 
 export const DRAW_TOOLS_PANEL_TITLE = 'Draw Tools'
 
-export const DRAW_TOOLS_COMPACT_COLUMN_COUNT = 2
+export const DRAW_TOOLS_COMPACT_COLUMN_COUNT = 1
 
 /** Header row, divider, and card top padding (excluding body grid). */
 const DRAW_TOOLS_HEADER_CHROME_PX = 84
@@ -32,31 +32,15 @@ const DRAW_TOOLS_HEADER_DRAG_ICON_PX = 20
 const DRAW_TOOLS_HEADER_CLOSE_BUTTON_PX = 34
 const DRAW_TOOLS_HEADER_GAP_PX = 12
 const DRAW_TOOLS_TITLE_CHAR_WIDTH_PX = 8.5
-const DRAW_TOOLS_BUTTON_ICON_WIDTH_PX = 18
-const DRAW_TOOLS_BUTTON_ICON_GAP_PX = 8
-const DRAW_TOOLS_BUTTON_HORIZONTAL_PADDING_PX = 32
-const DRAW_TOOLS_LONGEST_LABEL = 'Racetrack'
-
-const DRAW_TOOLS_COMPACT_COLUMN_MIN_WIDTH_PX = Math.ceil(
-    DRAW_TOOLS_BUTTON_ICON_WIDTH_PX
-    + DRAW_TOOLS_BUTTON_ICON_GAP_PX
-    + (DRAW_TOOLS_LONGEST_LABEL.length * DRAW_TOOLS_TITLE_CHAR_WIDTH_PX)
-    + DRAW_TOOLS_BUTTON_HORIZONTAL_PADDING_PX,
-)
 
 export function estimateDrawToolsPanelWidth() {
-    const innerButtonWidth = (DRAW_TOOLS_COMPACT_COLUMN_COUNT * DRAW_TOOLS_COMPACT_COLUMN_MIN_WIDTH_PX)
-        + ((DRAW_TOOLS_COMPACT_COLUMN_COUNT - 1) * ACTION_PANEL_GRID_GAP_COMPACT_PX)
-    const buttonDrivenWidth = innerButtonWidth + ACTION_PANEL_BODY_PADDING_PX
-
     const titleWidth = DRAW_TOOLS_PANEL_TITLE.length * DRAW_TOOLS_TITLE_CHAR_WIDTH_PX
     const headerContentWidth = DRAW_TOOLS_HEADER_DRAG_ICON_PX
         + DRAW_TOOLS_HEADER_GAP_PX
         + titleWidth
         + DRAW_TOOLS_HEADER_CLOSE_BUTTON_PX
-    const headerDrivenWidth = headerContentWidth + ACTION_PANEL_BODY_PADDING_PX
 
-    return Math.ceil(Math.max(buttonDrivenWidth, headerDrivenWidth))
+    return Math.ceil(headerContentWidth + ACTION_PANEL_BODY_PADDING_PX)
 }
 
 export function estimateDrawToolsPanelHeight(panelWidthPx = estimateDrawToolsPanelWidth()) {

@@ -18,18 +18,18 @@ import {
 import {normalizeActionPanelsState} from '../../app/tools/actionPanels/normalizeActionPanels.js'
 
 describe('draw tools panel sizing', () => {
-    it('sizes the panel to fit the heading and a two-column tool grid', () => {
+    it('sizes the panel to fit the heading and a single-column tool grid', () => {
         const {width, height} = estimateDrawToolsPanelSize()
 
         assert.equal(width, estimateDrawToolsPanelWidth())
-        assert.ok(width < 320)
+        assert.equal(DRAW_TOOLS_COMPACT_COLUMN_COUNT, 1)
         assert.equal(
             height,
             estimateDrawToolsPanelHeight(width),
         )
         assert.equal(
             Math.ceil(DRAW_TOOLS_DEFAULT_ITEM_IDS.length / DRAW_TOOLS_COMPACT_COLUMN_COUNT),
-            3,
+            DRAW_TOOLS_DEFAULT_ITEM_IDS.length,
         )
     })
 })
