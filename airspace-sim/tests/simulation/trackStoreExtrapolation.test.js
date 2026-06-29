@@ -26,10 +26,11 @@ function movingTrack(overrides = {}) {
 }
 
 describe('TrackStore extrapolation', () => {
-    it('does not advance position while a correlation hold is active', () => {
+    it('continues extrapolating during a correlation hold using committed kinematics', () => {
         const editAt = 10_000
         const trackStore = new TrackStore()
         trackStore.addTrack(movingTrack({
+            heading: 180,
             lastUserKinematicEditAt: editAt,
             lastUserKinematicEditFields: ['heading'],
         }))
@@ -39,10 +40,30 @@ describe('TrackStore extrapolation', () => {
         const track = trackStore.getTrack('TRK-1')
 
         assert.equal(track.longitude, -75)
-        assert.equal(track.latitude, 40)
+        assert.notEqual(track.latitude, 40)
     })
 
-    it('resumes position extrapolation after the correlation hold expires', () => {
+    it('continues extrapolating while decorrelated and under a kinematic hold', () => {
+        const editAt = 10_000
+        const trackStore = new TrackStore()
+        trackStore.addTrack(movingTrack({
+            heading: 180,
+            correlated: false,
+            stale: true,
+            lastUserKinematicEditAt: editAt,
+            lastUserKinematicEditFields: ['heading'],
+        }))
+
+        trackStore.extrapolate(editAt + 5_000, 1, settings)
+
+        const track = trackStore.getTrack('TRK-1')
+
+        assert.equal(track.longitude, -75)
+        assert.notEqual(track.latitude, 40)
+        assert.equal(track.correlated, false)
+    })
+
+    it('keeps extrapolating after the correlation hold expires', () => {
         const editAt = 10_000
         const trackStore = new TrackStore()
         trackStore.addTrack(movingTrack({
