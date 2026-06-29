@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {TrackStore} from '../../app/simulation/TrackStore.js'
 import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
+import {TRACK_KINDS} from '../../app/simulation/trackKinds.js'
 import {
     AUTO_DROP_REMOVE_DELAY_MS,
     AUTO_DROP_RISK_DELAY_MS,
@@ -80,6 +81,48 @@ describe('trackDecorrelation', () => {
         assert.equal(track.stale, false)
         assert.equal(track.correlated, true)
         assert.equal(track.iffMode3Code, '4231')
+    })
+
+    it('does not mark reference points stale when sensor updates age out', () => {
+        const trackStore = new TrackStore()
+        trackStore.upsertManualTrack({
+            id: 'RP-test',
+            trackId: 'RP-test',
+            trackKind: TRACK_KINDS.REFERENCE_POINT,
+            longitude: -77.5,
+            latitude: 39.2,
+            heading: 0,
+            speed: 0,
+            lastSensorUpdateAt: 0,
+            correlationMode: TRACK_CORRELATION_MODES.SUSPEND,
+            stale: false,
+        })
+
+        refreshTrackStaleAndDecorrelation(trackStore, 9000, settings)
+
+        const track = trackStore.getTrack('RP-test')
+
+        assert.equal(track.stale, false)
+    })
+
+    it('clears stale state on reference points that were previously marked stale', () => {
+        const trackStore = new TrackStore()
+        trackStore.upsertManualTrack({
+            id: 'RP-stale',
+            trackId: 'RP-stale',
+            trackKind: TRACK_KINDS.REFERENCE_POINT,
+            longitude: -77.5,
+            latitude: 39.2,
+            heading: 0,
+            speed: 0,
+            lastSensorUpdateAt: 0,
+            correlationMode: TRACK_CORRELATION_MODES.SUSPEND,
+            stale: true,
+        })
+
+        refreshTrackStaleAndDecorrelation(trackStore, 9000, settings)
+
+        assert.equal(trackStore.getTrack('RP-stale').stale, false)
     })
 
     it('force-decorrelates all active correlated tracks', () => {

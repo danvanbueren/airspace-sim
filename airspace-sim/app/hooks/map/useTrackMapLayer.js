@@ -13,6 +13,7 @@ import {
     getTrackSymbolOptions,
 } from '../../tools/milstd2525/trackSymbolCodes'
 import {tracksToVectorFeatureCollection} from '../../simulation/trackVectorFeatures'
+import {isReferencePoint} from '../../simulation/trackKinds'
 import {
     MAP_CURSOR_PRIORITIES,
     MAP_CURSOR_REQUESTS,
@@ -214,7 +215,7 @@ function trackToFeature(track, defaultIconSize) {
             trackType: track.type ?? null,
             speed: track.speed ?? null,
             altitude: track.altitude ?? null,
-            stale: Boolean(track.stale),
+            stale: isReferencePoint(track) ? false : Boolean(track.stale),
             selected: Boolean(track.selected),
             correlated: Boolean(track.correlated),
         },
