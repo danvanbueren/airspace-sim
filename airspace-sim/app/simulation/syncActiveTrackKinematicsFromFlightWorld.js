@@ -2,6 +2,7 @@ import {formatMode3Code} from './iffMode3.js'
 import {bearingDegrees, haversineDistanceNm} from './geo.js'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 import {isCorrelationHoldActive} from './correlationHold.js'
+import {findTruthAircraftForTrack, getCorrelationThresholdNm} from './trackTruthProximity.js'
 
 const LIVE_KINEMATIC_FIELDS = ['heading', 'speed', 'altitude']
 const MIN_POSITION_DELTA_NM = 0.01
@@ -28,14 +29,35 @@ export function findCorrelatedAircraftForTrack(flightWorld, track, context = {})
         return null
     }
 
+    const correlationThresholdNm = context.correlationThresholdNm
+        ?? getCorrelationThresholdNm(context.settings)
     const longitude = context.longitude ?? track.longitude
     const latitude = context.latitude ?? track.latitude
+    const truthAircraft = findTruthAircraftForTrack(flightWorld, {
+        ...track,
+        longitude,
+        latitude,
+    }, correlationThresholdNm)
+
+    if (truthAircraft) {
+        const distanceNm = haversineDistanceNm(
+            latitude,
+            longitude,
+            truthAircraft.latitude,
+            truthAircraft.longitude,
+        )
+
+        if (distanceNm <= correlationThresholdNm) {
+            return truthAircraft
+        }
+    }
+
     const mode3Code = formatMode3Code(context.mode3Code ?? track.iffMode3Code)
 
     if (mode3Code && typeof flightWorld.findAircraftByMode3Code === 'function') {
         const aircraftByCode = flightWorld.findAircraftByMode3Code(
             mode3Code,
-            15,
+            correlationThresholdNm,
             longitude,
             latitude,
         )
@@ -45,7 +67,11 @@ export function findCorrelatedAircraftForTrack(flightWorld, track, context = {})
         }
     }
 
-    return flightWorld.findNearestAircraft?.(longitude, latitude) ?? null
+    return flightWorld.findNearestAircraft?.(
+        longitude,
+        latitude,
+        correlationThresholdNm,
+    ) ?? null
 }
 
 export function buildKinematicUpdatesFromAircraft(track, nearestAircraft) {

@@ -19,6 +19,7 @@ import {
 } from './generalAviationTraffic'
 import {maintainFleetEmergencySquawks, formatMode3Code} from './iffMode3'
 import {updateAircraftKinematics} from './flightWorldKinematics'
+import {maintainViewportTraffic} from './viewportTrafficMaintenance.js'
 
 export class FlightWorldSimulator {
     constructor() {
@@ -32,6 +33,30 @@ export class FlightWorldSimulator {
         this.nextGeneralAviationIndex = 0
         this.initialized = false
         this.maxActiveFlights = 0
+        this.viewportBounds = null
+        this.viewportTargetInViewCount = 0
+        this.lastReassignedAircraft = []
+    }
+
+    setViewportMaintenance(bounds, targetInViewCount) {
+        this.viewportBounds = bounds ?? null
+        this.viewportTargetInViewCount = Math.max(0, Math.round(targetInViewCount ?? 0))
+    }
+
+    captureViewportTarget(bounds) {
+        if (!bounds) {
+            return 0
+        }
+
+        const inViewCount = this.getAircraftInBounds(bounds).length
+
+        if (inViewCount > this.viewportTargetInViewCount) {
+            this.viewportTargetInViewCount = inViewCount
+        }
+
+        this.viewportBounds = bounds
+
+        return inViewCount
     }
 
     getCommercialFleetTarget(maxActiveFlights) {
@@ -122,6 +147,7 @@ export class FlightWorldSimulator {
         }
 
         const random = createBootstrapRandom('advance', Math.floor(Date.now() / 1000))
+        const repositionedIds = []
 
         this.aircraft.forEach((aircraft, id) => {
             if (aircraft.trafficKind === 'generalAviation') {
@@ -144,6 +170,7 @@ export class FlightWorldSimulator {
             if (progressNm >= current.totalRouteNm) {
                 current = assignNewRoute(current, this.pickRoute, this.airportByIcao, random)
                 progressNm = Math.min(distanceNm, current.totalRouteNm * 0.05)
+                repositionedIds.push(id)
             }
 
             const position = positionAlongRoute(
@@ -173,6 +200,26 @@ export class FlightWorldSimulator {
                 ...nextKinematics,
             })
         })
+
+        this.lastReassignedAircraft = [
+            ...repositionedIds.map((aircraftId) => {
+                const aircraft = this.aircraft.get(aircraftId)
+
+                return {
+                    id: aircraft.id,
+                    longitude: aircraft.longitude,
+                    latitude: aircraft.latitude,
+                    heading: aircraft.heading,
+                    speed: aircraft.speed,
+                    altitude: aircraft.altitude,
+                }
+            }),
+            ...maintainViewportTraffic(this, random),
+        ]
+    }
+
+    getAircraftById(aircraftId) {
+        return this.aircraft.get(aircraftId) ?? null
     }
 
     getAircraftInBounds(bounds) {

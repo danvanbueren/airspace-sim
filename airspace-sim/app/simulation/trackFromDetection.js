@@ -1,3 +1,4 @@
+import {haversineDistanceNm} from './geo.js'
 import {formatMode3Code} from './iffMode3.js'
 import {TRACK_TYPES} from '../tools/milstd2525/trackSymbolCodes.js'
 import {resolveAutoTrackNationalityFromAircraft} from '../tools/milstd2525/airportIcaoNationality.js'
@@ -9,14 +10,34 @@ export const TRACK_CORRELATION_MODES = {
     SUSPEND: 'suspend',
 }
 
-export function trackFromInitiation({plotId, sensorType, longitude, latitude, timestamp, flightWorld, mode3Code}) {
+export function trackFromInitiation({
+    plotId,
+    sensorType,
+    longitude,
+    latitude,
+    timestamp,
+    flightWorld,
+    mode3Code,
+    correlationThresholdNm = 5,
+}) {
     const normalizedMode3Code = mode3Code ? formatMode3Code(mode3Code) : null
     const nearest = normalizedMode3Code
         ? (
-            flightWorld?.findAircraftByMode3Code?.(normalizedMode3Code, 15, longitude, latitude)
-            ?? flightWorld?.findNearestAircraft?.(longitude, latitude)
+            flightWorld?.findAircraftByMode3Code?.(
+                normalizedMode3Code,
+                correlationThresholdNm,
+                longitude,
+                latitude,
+            )
+            ?? flightWorld?.findNearestAircraft?.(longitude, latitude, correlationThresholdNm)
         )
-        : flightWorld?.findNearestAircraft?.(longitude, latitude)
+        : flightWorld?.findNearestAircraft?.(longitude, latitude, correlationThresholdNm)
+    const nearestDistanceNm = nearest
+        ? haversineDistanceNm(latitude, longitude, nearest.latitude, nearest.longitude)
+        : Infinity
+    const hasConfidentTruthMatch = Boolean(
+        nearest?.id && nearestDistanceNm <= correlationThresholdNm,
+    )
     const id = `TRK-${sensorType}-${plotId}`
 
     return {
@@ -37,10 +58,11 @@ export function trackFromInitiation({plotId, sensorType, longitude, latitude, ti
         nationality: normalizeNationality(nearest?.nationality)
             || resolveAutoTrackNationalityFromAircraft(nearest),
         callsign: nearest?.id ?? id,
+        truthAircraftId: nearest?.id ?? null,
         source: 'auto',
         initiatedBy: sensorType,
         correlationMode: TRACK_CORRELATION_MODES.ACTIVE,
-        correlated: false,
+        correlated: hasConfidentTruthMatch,
         userDirected: false,
         identityPendingSinceAt: timestamp,
         plotId,

@@ -1,5 +1,12 @@
 import {expandBounds, isPointInBounds} from './geo.js'
 
+const DEFAULT_TRACK_SENSOR_PADDING_NM = 15
+const NM_PER_LATITUDE_DEGREE = 60
+
+export function getDisplayBounds(map, paddingDegrees = 0.5) {
+    return getExpandedMapBounds(map, paddingDegrees)
+}
+
 export function getExpandedMapBounds(map, paddingDegrees = 0.5) {
     if (!map?.getBounds) {
         return null
@@ -15,14 +22,113 @@ export function getExpandedMapBounds(map, paddingDegrees = 0.5) {
     }, paddingDegrees)
 }
 
-export function getSensorScanAircraft(flightWorld, displayBounds, viewportBasedTrackDroppingEnabled = false) {
+/**
+ * @param {Array<import('./types.js').TrackState>} tracks
+ * @param {number} [paddingNm]
+ * @returns {{west: number, south: number, east: number, north: number}|null}
+ */
+export function boundingBoxOfTracks(tracks, paddingNm = DEFAULT_TRACK_SENSOR_PADDING_NM) {
+    if (!tracks?.length) {
+        return null
+    }
+
+    let west = Infinity
+    let east = -Infinity
+    let south = Infinity
+    let north = -Infinity
+    let centerLat = 0
+    let count = 0
+
+    tracks.forEach((track) => {
+        const lng = track.longitude ?? track.coordinates?.[0]
+        const lat = track.latitude ?? track.coordinates?.[1]
+
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+            return
+        }
+
+        west = Math.min(west, lng)
+        east = Math.max(east, lng)
+        south = Math.min(south, lat)
+        north = Math.max(north, lat)
+        centerLat += lat
+        count += 1
+    })
+
+    if (!count) {
+        return null
+    }
+
+    centerLat /= count
+
+    const latPadding = paddingNm / NM_PER_LATITUDE_DEGREE
+    const lngPadding = paddingNm / (
+        NM_PER_LATITUDE_DEGREE * Math.max(Math.cos(centerLat * (Math.PI / 180)), 0.1)
+    )
+
+    return {
+        west: west - lngPadding,
+        south: south - latPadding,
+        east: east + lngPadding,
+        north: north + latPadding,
+    }
+}
+
+/**
+ * @param {{west: number, south: number, east: number, north: number}|null} left
+ * @param {{west: number, south: number, east: number, north: number}|null} right
+ * @returns {{west: number, south: number, east: number, north: number}|null}
+ */
+export function unionBounds(left, right) {
+    if (!left) {
+        return right
+    }
+
+    if (!right) {
+        return left
+    }
+
+    return {
+        west: Math.min(left.west, right.west),
+        south: Math.min(left.south, right.south),
+        east: Math.max(left.east, right.east),
+        north: Math.max(left.north, right.north),
+    }
+}
+
+/**
+ * Sensor coverage is the union of the visible map area and a padded envelope around firm tracks.
+ *
+ * @param {{west: number, south: number, east: number, north: number}|null} displayBounds
+ * @param {Array<import('./types.js').TrackState>} tracks
+ * @param {number} [trackSensorPaddingNm]
+ * @returns {{west: number, south: number, east: number, north: number}|null}
+ */
+export function computeSensorScanBounds(
+    displayBounds,
+    tracks,
+    trackSensorPaddingNm = DEFAULT_TRACK_SENSOR_PADDING_NM,
+) {
+    return unionBounds(
+        displayBounds,
+        boundingBoxOfTracks(tracks, trackSensorPaddingNm),
+    )
+}
+
+export function getSensorScanAircraft(
+    flightWorld,
+    sensorScanBounds,
+    viewportBasedTrackDroppingEnabled = false,
+) {
     if (!flightWorld) {
         return []
     }
 
-    return viewportBasedTrackDroppingEnabled === true
-        ? flightWorld.getAircraftInBounds(displayBounds)
-        : flightWorld.getAllAircraft()
+    if (viewportBasedTrackDroppingEnabled !== true) {
+        return flightWorld.getAllAircraft()
+    }
+
+    return flightWorld.getAircraftInBounds(sensorScanBounds)
 }
 
 export function filterDetectionsByBounds(detections, bounds) {

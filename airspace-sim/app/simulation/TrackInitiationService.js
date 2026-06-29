@@ -1,8 +1,8 @@
 import {SENSOR_TYPES} from './constants'
 import {formatMode3Code, isEmergencyMode3Code} from './iffMode3'
 import {PlotAssociationStore} from './PlotAssociationStore'
-import {trackFromInitiation} from './trackFromDetection'
-import {findNearestActiveTrack} from './trackMerge'
+import {trackFromInitiation, TRACK_CORRELATION_MODES} from './trackFromDetection'
+import {findNearestCorrelatedActiveTrack} from './trackMerge'
 
 export class TrackInitiationService {
     constructor(options = {}) {
@@ -28,39 +28,57 @@ export class TrackInitiationService {
         }
 
         const activeTracks = trackStore.getAllTracks()
+        const shouldIgnoreDetection = (detection) => {
+            if (isEmergencyMode3Code(detection.mode3Code)) {
+                return false
+            }
+
+            const nearestTrack = findNearestCorrelatedActiveTrack(
+                activeTracks,
+                detection.latitude,
+                detection.longitude,
+                proximityNm,
+            )
+
+            if (!nearestTrack?.truthAircraftId || !this.flightWorld) {
+                return false
+            }
+
+            const nearestAircraft = this.flightWorld.findNearestAircraft?.(
+                detection.longitude,
+                detection.latitude,
+                proximityNm,
+            )
+
+            return Boolean(
+                nearestAircraft
+                && nearestTrack.truthAircraftId === nearestAircraft.id,
+            )
+        }
 
         const promotions = plotStore.associateDetections(
             detections,
             this.plotAssociationThresholdNm,
             timestamp,
             this.initiationHitCount,
-            {
-                shouldIgnoreDetection: (detection) => {
-                    if (isEmergencyMode3Code(detection.mode3Code)) {
-                        return false
-                    }
-
-                    return Boolean(
-                        findNearestActiveTrack(
-                            activeTracks,
-                            detection.latitude,
-                            detection.longitude,
-                            proximityNm,
-                        ),
-                    )
-                },
-            },
+            {shouldIgnoreDetection},
         )
 
         const createdTracks = []
 
         promotions.forEach((promotion) => {
-            const existingTrack = findNearestActiveTrack(
-                trackStore.getAllTracks(),
-                promotion.latitude,
+            const nearestAircraft = this.flightWorld?.findNearestAircraft?.(
                 promotion.longitude,
+                promotion.latitude,
                 proximityNm,
             )
+            const existingTrack = nearestAircraft
+                ? trackStore.getAllTracks().find((track) => (
+                    track.correlated === true
+                    && track.correlationMode === TRACK_CORRELATION_MODES.ACTIVE
+                    && track.truthAircraftId === nearestAircraft.id
+                ))
+                : null
 
             if (existingTrack) {
                 plotStore.absorbPlotsNearPosition(
@@ -81,6 +99,7 @@ export class TrackInitiationService {
                 ...promotion,
                 mode3Code: promotion.mode3Code ? formatMode3Code(promotion.mode3Code) : null,
                 flightWorld: this.flightWorld,
+                correlationThresholdNm: options.correlationThresholdNm ?? 5,
             })
 
             trackStore.addTrack(track)

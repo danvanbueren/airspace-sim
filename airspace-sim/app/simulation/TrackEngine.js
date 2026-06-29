@@ -2,8 +2,12 @@ import {SENSOR_TYPES} from './constants'
 import {SensorHistoryBuffer} from './SensorHistoryBuffer'
 import {HistoryPlaybackController} from './HistoryPlaybackController'
 import {PerfBudgetController} from './PerfBudgetController'
-import {expandBounds} from './geo'
-import {filterDetectionsByBounds, getSensorScanAircraft} from './mapViewportUtils'
+import {
+    computeSensorScanBounds,
+    filterDetectionsByBounds,
+    getDisplayBounds,
+    getSensorScanAircraft,
+} from './mapViewportUtils'
 import {FlightWorldSimulator} from './FlightWorldSimulator'
 import {SensorSimulator, createSensorSimulator} from './SensorSimulator'
 import {TrackInitiationService} from './TrackInitiationService'
@@ -24,6 +28,7 @@ import {
     refreshTrackStaleAndDecorrelation,
 } from './trackDecorrelation'
 import {processTrackIdentityPromotion} from './trackIdentityPromotion.js'
+import {syncReassignedAircraftTracks} from './syncReassignedAircraftTracks.js'
 
 export class TrackEngine {
     constructor(options = {}) {
@@ -147,13 +152,13 @@ export class TrackEngine {
         this.notifyListeners()
     }
 
-    forceSensorScans(timestamp, bounds) {
-        if (!bounds) {
+    forceSensorScans(timestamp, displayBounds, sensorScanBounds = displayBounds) {
+        if (!displayBounds) {
             return
         }
 
-        this.runSensorScan(SENSOR_TYPES.RADAR, timestamp, bounds)
-        this.runSensorScan(SENSOR_TYPES.IFF, timestamp, bounds)
+        this.runSensorScan(SENSOR_TYPES.RADAR, timestamp, displayBounds, sensorScanBounds)
+        this.runSensorScan(SENSOR_TYPES.IFF, timestamp, displayBounds, sensorScanBounds)
         this.lastRadarScanAt = timestamp
         this.lastIffScanAt = timestamp
         this.notifyListeners()
@@ -264,7 +269,7 @@ export class TrackEngine {
         }
     }
 
-    runSensorScan(sensorType, timestamp, displayBounds) {
+    runSensorScan(sensorType, timestamp, displayBounds, sensorScanBounds = displayBounds) {
         this.trackInitiation.plotAssociationThresholdNm = (
             this.settings.plotAssociationThresholdNm ?? 3
         )
@@ -274,7 +279,7 @@ export class TrackEngine {
         )
         const aircraftInBounds = getSensorScanAircraft(
             this.flightWorld,
-            displayBounds,
+            sensorScanBounds,
             viewportTrackDroppingEnabled,
         )
         const rawDetections = this.sensorSimulator.scan({
@@ -318,7 +323,10 @@ export class TrackEngine {
             initiationDetections,
             timestamp,
             this.trackStore,
-            {proximityNm},
+            {
+                proximityNm,
+                correlationThresholdNm: correlationNm,
+            },
         )
 
         this.historyBuffers[sensorType].push({
@@ -340,17 +348,25 @@ export class TrackEngine {
     }
 
     runMaintenanceTick(timestamp = Date.now()) {
-        refreshTrackStaleAndDecorrelation(this.trackStore, timestamp, this.settings)
+        refreshTrackStaleAndDecorrelation(
+            this.trackStore,
+            timestamp,
+            this.settings,
+            this.flightWorld,
+        )
         processTrackIdentityPromotion(this.trackStore, timestamp)
-        processAutoDropTracks(this.trackStore, timestamp)
+        processAutoDropTracks(this.trackStore, timestamp, this.settings, this.flightWorld)
         this.lastTrackTickAt = timestamp
     }
 
     tick({map, timestamp = Date.now()}) {
-        const bounds = expandBounds(
-            this.getMapBounds(map),
+        const displayBounds = getDisplayBounds(
+            map,
             this.settings.viewportPaddingDegrees ?? 0.5,
         )
+        const sensorScanBounds = displayBounds
+            ? computeSensorScanBounds(displayBounds, this.trackStore.getAllTracks())
+            : null
         const simulationEnabled = this.settings.simulationEnabled !== false
         const hasTracks = this.hasTracks()
 
@@ -365,7 +381,7 @@ export class TrackEngine {
             return this.getSnapshot()
         }
 
-        if (!bounds) {
+        if (!displayBounds) {
             return this.getSnapshot()
         }
 
@@ -377,10 +393,20 @@ export class TrackEngine {
             this.flightWorld.setMaxActiveFlights(maxFlights)
         }
 
+        this.flightWorld.setViewportMaintenance(
+            displayBounds,
+            this.flightWorld.viewportTargetInViewCount,
+        )
+
         const deltaSeconds = getBoundedTrackDeltaSeconds(timestamp, this.lastTrackTickAt)
 
         if (deltaSeconds > 0 && !this.perf.shouldSkipSimulationStep()) {
             this.flightWorld.advance(deltaSeconds)
+            syncReassignedAircraftTracks(
+                this.trackStore,
+                this.flightWorld.lastReassignedAircraft,
+                timestamp,
+            )
             this.trackStore.extrapolate(timestamp, deltaSeconds, this.settings)
             syncActiveTrackKinematicsFromFlightWorld(this.flightWorld, this.trackStore, timestamp)
         }
@@ -389,7 +415,10 @@ export class TrackEngine {
 
         if (!this.hasRunInitialScans) {
             this.hasRunInitialScans = true
-            this.forceSensorScans(timestamp, bounds)
+            this.flightWorld.captureViewportTarget(displayBounds)
+            this.forceSensorScans(timestamp, displayBounds, sensorScanBounds)
+        } else {
+            this.flightWorld.captureViewportTarget(displayBounds)
         }
 
         const radarInterval = this.settings.radarRefreshMs ?? 4000
@@ -397,17 +426,22 @@ export class TrackEngine {
 
         if (timestamp - this.lastRadarScanAt >= radarInterval) {
             this.lastRadarScanAt = timestamp
-            this.runSensorScan(SENSOR_TYPES.RADAR, timestamp, bounds)
+            this.runSensorScan(SENSOR_TYPES.RADAR, timestamp, displayBounds, sensorScanBounds)
         }
 
         if (timestamp - this.lastIffScanAt >= iffInterval) {
             this.lastIffScanAt = timestamp
-            this.runSensorScan(SENSOR_TYPES.IFF, timestamp, bounds)
+            this.runSensorScan(SENSOR_TYPES.IFF, timestamp, displayBounds, sensorScanBounds)
         }
 
-        refreshTrackStaleAndDecorrelation(this.trackStore, timestamp, this.settings)
+        refreshTrackStaleAndDecorrelation(
+            this.trackStore,
+            timestamp,
+            this.settings,
+            this.flightWorld,
+        )
         processTrackIdentityPromotion(this.trackStore, timestamp)
-        processAutoDropTracks(this.trackStore, timestamp)
+        processAutoDropTracks(this.trackStore, timestamp, this.settings, this.flightWorld)
 
         this.notifyListeners()
 

@@ -1,3 +1,5 @@
+import {isTruthAircraftNearTrack} from './trackTruthProximity.js'
+
 export const AUTO_DROP_RISK_DELAY_MS = 5000
 export const AUTO_DROP_REMOVE_DELAY_MS = 10000
 
@@ -90,13 +92,21 @@ export function shouldAutoDropTrack(track, timestamp) {
  * @param {number} timestamp
  * @returns {string[]} Track IDs removed by auto-drop
  */
-export function processAutoDropTracks(trackStore, timestamp) {
+export function processAutoDropTracks(trackStore, timestamp, settings = {}, flightWorld = null) {
     const removedTrackIds = []
 
     for (const track of trackStore.getAllTracks()) {
         const trackId = track.trackId ?? track.id
 
         if (!trackId) {
+            continue
+        }
+
+        if (flightWorld && isTruthAircraftNearTrack(flightWorld, track, settings)) {
+            if (track.dropRiskAt || track.dropAt) {
+                trackStore.updateTrack(trackId, getAutoDropStateClearUpdates())
+            }
+
             continue
         }
 

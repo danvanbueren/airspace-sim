@@ -1,6 +1,7 @@
 import {isCorrelationHoldActive} from './correlationHold.js'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
 import {isReferencePoint} from './trackKinds.js'
+import {isTruthAircraftNearTrack} from './trackTruthProximity.js'
 
 /**
  * @param {Object} [settings]
@@ -52,7 +53,7 @@ export function shouldDecorrelateTrack(track, timestamp) {
  * @param {import('./types.js').TrackState} [settings]
  * @returns {string[]} Track IDs decorrelated
  */
-export function refreshTrackStaleAndDecorrelation(trackStore, timestamp, settings = {}) {
+export function refreshTrackStaleAndDecorrelation(trackStore, timestamp, settings = {}, flightWorld = null) {
     const staleThresholdMs = getTrackStaleThresholdMs(settings)
     const decorrelatedTrackIds = []
 
@@ -66,6 +67,20 @@ export function refreshTrackStaleAndDecorrelation(trackStore, timestamp, setting
         if (isReferencePoint(track)) {
             if (track.stale) {
                 trackStore.updateTrack(trackId, {stale: false})
+            }
+
+            return
+        }
+
+        if (flightWorld && isTruthAircraftNearTrack(flightWorld, track, settings)) {
+            const sustainUpdates = {
+                stale: false,
+                lastSensorUpdateAt: timestamp,
+                correlated: true,
+            }
+
+            if (sustainUpdates.stale !== track.stale || track.correlated !== true) {
+                trackStore.updateTrack(trackId, sustainUpdates)
             }
 
             return
