@@ -17,8 +17,24 @@ function clampLatitude(lat) {
     return Math.max(-90, Math.min(90, lat))
 }
 
+function formatDegrees(value) {
+    return String(value).padStart(4, ' ')
+}
+
+function formatMinutes(value) {
+    return String(value).padStart(2, '0')
+}
+
+function formatDecimalMinutes(value) {
+    return value.toFixed(4).padStart(7, '0')
+}
+
+function formatSeconds(value) {
+    return value.toFixed(2).padStart(5, '0')
+}
+
 function formatDdCoordinate(value) {
-    return `${value.toFixed(5)}°`
+    return `${value.toFixed(5).padStart(10, ' ')}°`
 }
 
 function formatDdmCoordinate(value) {
@@ -26,7 +42,7 @@ function formatDdmCoordinate(value) {
     const degrees = Math.trunc(value)
     const minutes = (absoluteValue - Math.floor(absoluteValue)) * 60
 
-    return `${degrees}° ${minutes.toFixed(3)}'`
+    return `${formatDegrees(degrees)}° ${formatDecimalMinutes(minutes)}'`
 }
 
 function formatDmsCoordinate(value, positiveSuffix, negativeSuffix) {
@@ -37,7 +53,7 @@ function formatDmsCoordinate(value, positiveSuffix, negativeSuffix) {
     const seconds = (minutesFloat - minutes) * 60
     const suffix = value >= 0 ? positiveSuffix : negativeSuffix
 
-    return `${degrees}° ${minutes}' ${seconds.toFixed(1)}" ${suffix}`
+    return `${formatDegrees(degrees)}° ${formatMinutes(minutes)}' ${formatSeconds(seconds)}" ${suffix}`
 }
 
 function getGarsLetterPair(latitudeBand) {

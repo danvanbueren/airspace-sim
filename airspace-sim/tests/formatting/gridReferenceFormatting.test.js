@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {describe, it} from 'node:test'
 import {
+    formatCoordinatePairForGridReferenceSystem,
     formatPositionTextForGridReferenceSystem,
     parsePositionTextForGridReferenceSystem,
 } from '../../app/tools/formatting/GridReferenceFormatting.js'
@@ -65,5 +66,30 @@ describe('GridReferenceFormatting position parsing', () => {
         const parsed = parsePositionTextForGridReferenceSystem('LAT: abc', GRID_SYSTEMS.dd)
 
         assert.ok(parsed.error)
+    })
+
+    it('formats DD, DDM, and DMS with fixed-width numeric fields', () => {
+        const [ddLat, ddLng] = formatCoordinatePairForGridReferenceSystem(
+            EXAMPLE_LAT,
+            EXAMPLE_LNG,
+            GRID_SYSTEMS.dd,
+        )
+        const [ddmLat, ddmLng] = formatCoordinatePairForGridReferenceSystem(
+            EXAMPLE_LAT,
+            EXAMPLE_LNG,
+            GRID_SYSTEMS.ddm,
+        )
+        const [dmsLat, dmsLng] = formatCoordinatePairForGridReferenceSystem(
+            EXAMPLE_LAT,
+            EXAMPLE_LNG,
+            GRID_SYSTEMS.dms,
+        )
+
+        assert.equal(ddLat, '  38.89770°')
+        assert.equal(ddLng, ' -77.03650°')
+        assert.equal(ddmLat, '  38° 53.8620\'')
+        assert.equal(ddmLng, ' -77° 02.1900\'')
+        assert.equal(dmsLat, '  38° 53\' 51.72" N')
+        assert.equal(dmsLng, '  77° 02\' 11.40" W')
     })
 })
