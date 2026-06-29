@@ -4,6 +4,7 @@ import {useCallback, useEffect, useRef, useState} from 'react'
 import {Box, FormHelperText, IconButton, InputAdornment, TextField} from '@mui/material'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
 import GridReferenceSystemSelect from '@/app/components/map/GridReferenceSystemSelect'
 import {
     formatPositionTextForGridReferenceSystem,
@@ -29,6 +30,7 @@ export default function PositionReferenceEditor({
     const [draft, setDraft] = useState(null)
     const [error, setError] = useState(null)
     const isFocusedRef = useRef(false)
+    const positionFieldRef = useRef(null)
     const gridReferenceSystem = appSettings.gridReferenceSystem
 
     const committedText = formatPositionTextForGridReferenceSystem(lat, lng, gridReferenceSystem)
@@ -38,6 +40,10 @@ export default function PositionReferenceEditor({
         lng,
         gridReferenceSystem,
     ).split('\n').length
+    const positionFieldSize = useMeasuredElementSize(
+        positionFieldRef,
+        [displayText, positionRowCount, error, disabled],
+    )
 
     useEffect(() => {
         if (!isFocusedRef.current && draft === null) {
@@ -100,55 +106,55 @@ export default function PositionReferenceEditor({
 
     return (
         <Box>
-            <Box sx={{display: 'flex', gap: 1, alignItems: 'stretch'}}>
-                <TextField
-                    label='Position'
-                    size='small'
-                    multiline
-                    minRows={positionRowCount}
-                    maxRows={4}
-                    value={displayText}
-                    onFocus={handleFocus}
-                    onChange={(event) => setDraft(event.target.value)}
-                    onBlur={handleBlur}
-                    error={Boolean(error)}
-                    disabled={disabled}
-                    fullWidth
-                    slotProps={{
-                        inputLabel: {
-                            shrink: true,
-                        },
-                        htmlInput: TEXT_INPUT_ENTER_BLUR_SLOT_PROPS.htmlInput,
-                        input: {
-                            endAdornment: (
-                                <InputAdornment
-                                    position='end'
-                                    sx={{alignSelf: 'center'}}
-                                >
-                                    <IconButton
-                                        aria-label='Copy position'
-                                        edge='end'
-                                        size='small'
-                                        onMouseDown={(event) => event.preventDefault()}
-                                        onClick={handleCopy}
-                                        disabled={disabled || !displayText}
+            <Box sx={{display: 'flex', gap: 1, alignItems: 'flex-start'}}>
+                <Box ref={positionFieldRef} sx={{flex: 1, minWidth: 0}}>
+                    <TextField
+                        label='Position'
+                        size='small'
+                        multiline
+                        minRows={positionRowCount}
+                        maxRows={4}
+                        value={displayText}
+                        onFocus={handleFocus}
+                        onChange={(event) => setDraft(event.target.value)}
+                        onBlur={handleBlur}
+                        error={Boolean(error)}
+                        disabled={disabled}
+                        fullWidth
+                        slotProps={{
+                            inputLabel: {
+                                shrink: true,
+                            },
+                            htmlInput: TEXT_INPUT_ENTER_BLUR_SLOT_PROPS.htmlInput,
+                            input: {
+                                endAdornment: (
+                                    <InputAdornment
+                                        position='end'
+                                        sx={{alignSelf: 'center'}}
                                     >
-                                        <ContentCopyIcon fontSize='inherit'/>
-                                    </IconButton>
-                                </InputAdornment>
-                            ),
-                        },
-                    }}
-                    sx={{
-                        flex: 1,
-                        minWidth: 0,
-                        '& .MuiInputBase-input': {
-                            fontFamily: 'monospace',
-                            fontSize: '0.8rem',
-                            whiteSpace: 'pre',
-                        },
-                    }}
-                />
+                                        <IconButton
+                                            aria-label='Copy position'
+                                            edge='end'
+                                            size='small'
+                                            onMouseDown={(event) => event.preventDefault()}
+                                            onClick={handleCopy}
+                                            disabled={disabled || !displayText}
+                                        >
+                                            <ContentCopyIcon fontSize='inherit'/>
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            },
+                        }}
+                        sx={{
+                            '& .MuiInputBase-input': {
+                                fontFamily: 'monospace',
+                                fontSize: '0.8rem',
+                                whiteSpace: 'pre',
+                            },
+                        }}
+                    />
+                </Box>
                 <GridReferenceSystemSelect
                     value={gridReferenceSystem}
                     onChange={handleGridReferenceSystemChange}
@@ -157,6 +163,7 @@ export default function PositionReferenceEditor({
                     matchInputHeight
                     alignWithLabeledInput
                     alignLabel='Position'
+                    matchedHeight={positionFieldSize.height > 0 ? positionFieldSize.height : undefined}
                     sx={{flexShrink: 0}}
                 />
             </Box>

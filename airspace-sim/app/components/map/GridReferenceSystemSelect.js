@@ -33,12 +33,14 @@ export default function GridReferenceSystemSelect({
     matchInputHeight = false,
     alignWithLabeledInput = false,
     alignLabel = 'Position',
+    matchedHeight,
     sx,
 }) {
     const {appSettings} = useAppSettings()
     const selectedValue = value ?? appSettings.gridReferenceSystem
     const labelId = useId()
     const usesAlignedLabel = alignWithLabeledInput && alignLabel
+    const shouldStretchInput = matchInputHeight || matchedHeight != null
 
     return (
         <FormControl
@@ -48,11 +50,13 @@ export default function GridReferenceSystemSelect({
             sx={{
                 minWidth: '3rem',
                 m: 0,
-                ...(matchInputHeight ? {
-                    height: '100%',
+                ...(shouldStretchInput ? {
                     display: 'flex',
+                    flexDirection: 'column',
+                    ...(matchedHeight != null ? {height: matchedHeight} : {height: '100%'}),
                     '& .MuiInputBase-root': {
-                        height: '100%',
+                        flex: 1,
+                        minHeight: 0,
                         boxSizing: 'border-box',
                     },
                 } : {}),
@@ -77,16 +81,17 @@ export default function GridReferenceSystemSelect({
                 sx={{
                     fontFamily: 'monospace',
                     fontSize: '0.75rem',
-                    ...(matchInputHeight ? {
-                        height: '100%',
+                    ...(shouldStretchInput ? {
+                        flex: 1,
+                        minHeight: 0,
                         display: 'flex',
-                        alignItems: 'center',
+                        alignItems: 'stretch',
                     } : {}),
                     '& .MuiSelect-select.MuiInputBase-input.MuiOutlinedInput-input': {
                         py: 0.5,
                         pl: 1,
                         paddingRight: '8px !important',
-                        ...(matchInputHeight ? {
+                        ...(shouldStretchInput ? {
                             display: 'flex',
                             alignItems: 'center',
                             height: '100%',
