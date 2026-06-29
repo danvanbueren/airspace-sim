@@ -7,8 +7,13 @@ import {
 } from './iffCorrelation.js'
 import {isCorrelationHoldActive} from './correlationHold.js'
 import {TRACK_CORRELATION_MODES} from './trackFromDetection.js'
+import {buildCorrelatedTrackKinematicUpdates} from './syncActiveTrackKinematicsFromFlightWorld.js'
 
 export class CorrelationService {
+    constructor({flightWorld = null} = {}) {
+        this.flightWorld = flightWorld
+    }
+
     apply(detections, trackStore, thresholdNm, timestamp, sensorType) {
         const correlationTargets = trackStore
             .getAllTracks()
@@ -26,6 +31,20 @@ export class CorrelationService {
             const existing = trackStore.getTrack(detection.correlatedTrackId)
 
             if (existing && !isCorrelationHoldActive(existing, timestamp)) {
+                const positionContext = {
+                    longitude: detection.longitude,
+                    latitude: detection.latitude,
+                    mode3Code: detection.mode3Code,
+                }
+                const kinematicUpdates = this.flightWorld
+                    ? buildCorrelatedTrackKinematicUpdates(
+                        this.flightWorld,
+                        existing,
+                        positionContext,
+                        timestamp,
+                    )
+                    : null
+
                 trackStore.updateTrack(detection.correlatedTrackId, {
                     longitude: detection.longitude,
                     latitude: detection.latitude,
@@ -33,6 +52,7 @@ export class CorrelationService {
                     lastExtrapolationAt: timestamp,
                     stale: false,
                     correlated: true,
+                    ...(kinematicUpdates ?? {}),
                 })
             } else if (existing) {
                 trackStore.updateTrack(detection.correlatedTrackId, {
@@ -53,6 +73,6 @@ export class CorrelationService {
     }
 }
 
-export function createCorrelationService() {
-    return new CorrelationService()
+export function createCorrelationService(options = {}) {
+    return new CorrelationService(options)
 }

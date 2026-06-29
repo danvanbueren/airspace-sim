@@ -13,7 +13,6 @@ import {trackFromManualInput} from './trackFromDetection'
 import {mergeTracksFromCorrelatedDetections} from './trackMerge'
 import {getBoundedTrackDeltaSeconds} from './trackTiming'
 import {syncActiveTrackKinematicsFromFlightWorld} from './syncActiveTrackKinematicsFromFlightWorld'
-import {isCorrelationHoldActive} from './correlationHold'
 import {enrichTracksWithAttentionFlags} from './trackAttentionFlags'
 import {
     getAutoDropStateClearUpdates,
@@ -33,7 +32,7 @@ export class TrackEngine {
         this.trackInitiation = options.trackInitiation ?? new TrackInitiationService({
             flightWorld: this.flightWorld,
         })
-        this.correlation = options.correlation ?? createCorrelationService()
+        this.correlation = options.correlation ?? createCorrelationService({flightWorld: this.flightWorld})
         this.trackStore = options.trackStore ?? new TrackStore()
         this.settings = options.settings ?? {}
         this.historyBuffers = {
@@ -265,42 +264,6 @@ export class TrackEngine {
         }
     }
 
-    applyCorrelatedKinematics(correlatedDetections, timestamp = Date.now()) {
-        correlatedDetections.forEach((detection) => {
-            if (!detection.correlated || !detection.correlatedTrackId) {
-                return
-            }
-
-            const existing = this.trackStore.getTrack(detection.correlatedTrackId)
-
-            if (isCorrelationHoldActive(existing, timestamp)) {
-                this.trackStore.updateTrack(detection.correlatedTrackId, {
-                    correlated: true,
-                })
-                return
-            }
-
-            const nearest = this.flightWorld.findNearestAircraft(
-                detection.longitude,
-                detection.latitude,
-            )
-
-            const updates = {
-                correlated: true,
-            }
-
-            if (nearest) {
-                updates.heading = Math.round(nearest.heading ?? 0)
-                updates.speed = Math.round(nearest.speed ?? 0)
-                updates.altitude = Math.round(nearest.altitude ?? 0)
-                updates.trafficKind = nearest.trafficKind ?? existing?.trafficKind
-                updates.profile = nearest.profile ?? existing?.profile
-            }
-
-            this.trackStore.updateTrack(detection.correlatedTrackId, updates)
-        })
-    }
-
     runSensorScan(sensorType, timestamp, displayBounds) {
         this.trackInitiation.plotAssociationThresholdNm = (
             this.settings.plotAssociationThresholdNm ?? 3
@@ -330,8 +293,6 @@ export class TrackEngine {
             timestamp,
             sensorType,
         )
-
-        this.applyCorrelatedKinematics(correlatedDetections, timestamp)
 
         mergeTracksFromCorrelatedDetections(
             this.trackStore,

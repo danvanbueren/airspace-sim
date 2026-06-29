@@ -35,7 +35,7 @@ Supporting pieces include `TrackStore.js` (firm track state, callsign validation
 On each simulation step, `TrackEngine.tick()` runs this sequence:
 
 1. **`flightWorld.advance(delta)`** — Move all active flights along their route polylines (great-circle segments). Each aircraft climbs after departure at reduced speed, cruises with altitude-dependent speed plus continuous heading/speed jitter, and descends before arrival. On route completion, assign a new weighted route; aircraft IDs stay stable (`FLT-{n}`).
-2. **`trackStore.extrapolate(delta)`** — Advance firm track positions according to each track’s correlation mode. Expired operator kinematic holds are cleared here.
+2. **`trackStore.extrapolate(delta)`** — Advance firm track positions according to each track’s correlation mode and committed kinematics, including while an operator kinematic hold is active (hold blocks sensor/truth overwrites, not dead reckoning). Expired operator kinematic holds are cleared here.
 3. **`syncActiveTrackKinematicsFromFlightWorld()`** — Refresh active track heading, speed, and altitude from the nearest truth aircraft each tick, except while an operator kinematic hold is active or a field was committed in the Track Management window.
 4. **Sensor scans (on interval)** — When radar or IFF refresh elapses, run the [per-sensor scan pipeline](#per-sensor-scan-pipeline) below.
 5. **`getSnapshot()`** — Expose tracks, sensor cycles, airports/routes, and overlay visibility to the map hooks.
@@ -65,7 +65,7 @@ flowchart TB
 Each call to `TrackEngine.runSensorScan()` (radar or IFF) follows this order. Correlation always runs **before** initiation so existing active tracks can claim returns first.
 
 1. **`sensorSimulator.scan`** — Raw detections for aircraft inside expanded map bounds.
-2. **`correlation.apply`** — Nearest available **active** track within **Correlation threshold (NM)** (default 5 NM) receives the return; a track can claim at most one return per scan, and position updates from sensor.
+2. **`correlation.apply`** — Nearest available **active** track within **Correlation threshold (NM)** (default 5 NM) receives the return; a track can claim at most one return per scan. Position and heading/speed/altitude update together from the correlated truth aircraft (IFF Mode 3 match preferred, nearest-aircraft fallback, then motion-derived fallback when truth is unavailable). Operator kinematic holds still block both position and kinematic overwrites.
 3. **`mergeTracksFromCorrelatedDetections`** — Active tracks that lost correlation to a nearby winner on the same identity merge into the survivor (see [Track merge](#track-merge-and-deduplication)).
 4. **`absorbPlotsNearCorrelatedDetections`** — Plot trails near correlated returns are closed so parallel radar/IFF plots do not spawn duplicate tracks.
 5. **`trackInitiation.ingest` (uncorrelated only)** — Update plots and promote after 3 hits; skip returns near existing active tracks within the plot association threshold.
