@@ -1,13 +1,19 @@
 import {
-    ACTION_PANEL_DISPLAY_STYLES,
     ACTION_PANEL_ITEM_IDS,
 } from './actionPanelRegistry.js'
-import {estimateActionPanelAutoHeight} from './actionPanelSizeEstimate.js'
+import {
+    ACTION_PANEL_BODY_PADDING_PX,
+    ACTION_PANEL_GRID_GAP_COMPACT_PX,
+    COMPACT_BUTTON_MIN_HEIGHT_PX,
+} from './actionPanelGridLayout.js'
 import {absoluteToEdgeAnchor, clampAbsolutePosition} from '../map/edgeAnchoredPosition.js'
 
 export const DRAW_TOOLS_PANEL_TITLE = 'Draw Tools'
 
-export const DRAW_TOOLS_PANEL_WIDTH_PX = 280
+export const DRAW_TOOLS_COMPACT_COLUMN_COUNT = 2
+
+/** Header row, divider, and card top padding (excluding body grid). */
+const DRAW_TOOLS_HEADER_CHROME_PX = 84
 
 export const DRAW_TOOLS_DEFAULT_ITEM_IDS = [
     ACTION_PANEL_ITEM_IDS.DRAW_RECTANGLE,
@@ -22,6 +28,55 @@ export const DRAW_TOOL_ITEM_ID_SET = new Set(DRAW_TOOLS_DEFAULT_ITEM_IDS)
 
 const DRAW_TOOLS_PANEL_EDGE_PADDING_PX = 8
 
+const DRAW_TOOLS_HEADER_DRAG_ICON_PX = 20
+const DRAW_TOOLS_HEADER_CLOSE_BUTTON_PX = 34
+const DRAW_TOOLS_HEADER_GAP_PX = 12
+const DRAW_TOOLS_TITLE_CHAR_WIDTH_PX = 8.5
+const DRAW_TOOLS_BUTTON_ICON_WIDTH_PX = 18
+const DRAW_TOOLS_BUTTON_ICON_GAP_PX = 8
+const DRAW_TOOLS_BUTTON_HORIZONTAL_PADDING_PX = 32
+const DRAW_TOOLS_LONGEST_LABEL = 'Racetrack'
+
+const DRAW_TOOLS_COMPACT_COLUMN_MIN_WIDTH_PX = Math.ceil(
+    DRAW_TOOLS_BUTTON_ICON_WIDTH_PX
+    + DRAW_TOOLS_BUTTON_ICON_GAP_PX
+    + (DRAW_TOOLS_LONGEST_LABEL.length * DRAW_TOOLS_TITLE_CHAR_WIDTH_PX)
+    + DRAW_TOOLS_BUTTON_HORIZONTAL_PADDING_PX,
+)
+
+export function estimateDrawToolsPanelWidth() {
+    const innerButtonWidth = (DRAW_TOOLS_COMPACT_COLUMN_COUNT * DRAW_TOOLS_COMPACT_COLUMN_MIN_WIDTH_PX)
+        + ((DRAW_TOOLS_COMPACT_COLUMN_COUNT - 1) * ACTION_PANEL_GRID_GAP_COMPACT_PX)
+    const buttonDrivenWidth = innerButtonWidth + ACTION_PANEL_BODY_PADDING_PX
+
+    const titleWidth = DRAW_TOOLS_PANEL_TITLE.length * DRAW_TOOLS_TITLE_CHAR_WIDTH_PX
+    const headerContentWidth = DRAW_TOOLS_HEADER_DRAG_ICON_PX
+        + DRAW_TOOLS_HEADER_GAP_PX
+        + titleWidth
+        + DRAW_TOOLS_HEADER_CLOSE_BUTTON_PX
+    const headerDrivenWidth = headerContentWidth + ACTION_PANEL_BODY_PADDING_PX
+
+    return Math.ceil(Math.max(buttonDrivenWidth, headerDrivenWidth))
+}
+
+export function estimateDrawToolsPanelHeight(panelWidthPx = estimateDrawToolsPanelWidth()) {
+    const itemCount = DRAW_TOOLS_DEFAULT_ITEM_IDS.length
+    const rowCount = Math.ceil(itemCount / DRAW_TOOLS_COMPACT_COLUMN_COUNT)
+
+    return DRAW_TOOLS_HEADER_CHROME_PX
+        + (rowCount * COMPACT_BUTTON_MIN_HEIGHT_PX)
+        + (Math.max(0, rowCount - 1) * ACTION_PANEL_GRID_GAP_COMPACT_PX)
+}
+
+export function estimateDrawToolsPanelSize() {
+    const width = estimateDrawToolsPanelWidth()
+
+    return {
+        width,
+        height: estimateDrawToolsPanelHeight(width),
+    }
+}
+
 function getMapContainerSize(mapContainerRef) {
     return {
         width: mapContainerRef.current?.clientWidth ?? window.innerWidth,
@@ -29,18 +84,9 @@ function getMapContainerSize(mapContainerRef) {
     }
 }
 
-export function estimateDrawToolsPanelHeight() {
-    return estimateActionPanelAutoHeight({
-        itemIds: DRAW_TOOLS_DEFAULT_ITEM_IDS,
-        displayStyle: ACTION_PANEL_DISPLAY_STYLES.COMPACT,
-        panelWidthPx: DRAW_TOOLS_PANEL_WIDTH_PX,
-    })
-}
-
 export function computeDrawToolsPanelPosition(elementContainer, mapContainerRef) {
     const containerSize = getMapContainerSize(mapContainerRef)
-    const panelWidth = DRAW_TOOLS_PANEL_WIDTH_PX
-    const panelHeight = estimateDrawToolsPanelHeight()
+    const {width: panelWidth, height: panelHeight} = estimateDrawToolsPanelSize()
     const panelSize = {width: panelWidth, height: panelHeight}
     const bounds = {
         minLeft: DRAW_TOOLS_PANEL_EDGE_PADDING_PX,
@@ -64,7 +110,7 @@ export function computeDrawToolsPanelPosition(elementContainer, mapContainerRef)
     return {
         anchor: absoluteToEdgeAnchor(left, top, containerSize, panelSize),
         width: panelWidth,
-        height: null,
+        height: panelHeight,
     }
 }
 

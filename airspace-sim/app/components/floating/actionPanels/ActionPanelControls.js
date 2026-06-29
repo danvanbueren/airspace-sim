@@ -24,7 +24,6 @@ import {
     getCompactGridColumnCount,
     getLargeGridColumnCount,
 } from '@/app/tools/actionPanels/actionPanelGridLayout'
-import {ACTION_PANEL_BODY_BOTTOM_PADDING_PX} from '@/app/tools/actionPanels/actionPanelSizeEstimate'
 import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import {MISC_SIGNAL_ID} from '@/app/simulation/signalDefinitions'
@@ -177,7 +176,6 @@ function ResponsiveGrid({columnCount, gapPx, children}) {
                 gap: `${gapPx}px`,
                 gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
                 alignItems: 'stretch',
-                pb: `${ACTION_PANEL_BODY_BOTTOM_PADDING_PX}px`,
             }}
         >
             {children}
@@ -245,12 +243,14 @@ function UnifiedLargeControls({
 function UnifiedCompactControls({
     itemIds,
     panelWidthPx,
+    compactColumnCount,
     isToggleActive,
     handleToggleChange,
     runButtonAction,
 }) {
     const renderableItemIds = filterRenderableItemIds(itemIds)
-    const columnCount = getCompactGridColumnCount(panelWidthPx, renderableItemIds.length)
+    const columnCount = compactColumnCount
+        ?? getCompactGridColumnCount(panelWidthPx, renderableItemIds.length)
 
     if (renderableItemIds.length === 0) {
         return null
@@ -320,7 +320,12 @@ function UnifiedCompactControls({
     )
 }
 
-export default function ActionPanelControls({itemIds, displayStyle, panelWidthPx}) {
+export default function ActionPanelControls({
+    itemIds,
+    displayStyle,
+    panelWidthPx,
+    compactColumnCount,
+}) {
     const {
         isToggleActive,
         handleToggleChange,
@@ -330,10 +335,11 @@ export default function ActionPanelControls({itemIds, displayStyle, panelWidthPx
     const controlsProps = useMemo(() => ({
         itemIds,
         panelWidthPx,
+        compactColumnCount,
         isToggleActive,
         handleToggleChange,
         runButtonAction,
-    }), [handleToggleChange, isToggleActive, itemIds, panelWidthPx, runButtonAction])
+    }), [compactColumnCount, handleToggleChange, isToggleActive, itemIds, panelWidthPx, runButtonAction])
 
     if (displayStyle === ACTION_PANEL_DISPLAY_STYLES.COMPACT) {
         return <UnifiedCompactControls {...controlsProps} />

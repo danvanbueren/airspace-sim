@@ -6,13 +6,33 @@ import {
     getAvailableAssignableItems,
 } from '../../app/tools/actionPanels/actionPanelRegistry.js'
 import {
+    DRAW_TOOLS_COMPACT_COLUMN_COUNT,
     DRAW_TOOLS_DEFAULT_ITEM_IDS,
-    DRAW_TOOLS_PANEL_WIDTH_PX,
     computeDrawToolsPanelPosition,
+    estimateDrawToolsPanelHeight,
+    estimateDrawToolsPanelSize,
+    estimateDrawToolsPanelWidth,
     isPersistedDrawToolsPanel,
     stripDrawToolItemIds,
 } from '../../app/tools/actionPanels/drawToolsActionPanel.js'
 import {normalizeActionPanelsState} from '../../app/tools/actionPanels/normalizeActionPanels.js'
+
+describe('draw tools panel sizing', () => {
+    it('sizes the panel to fit the heading and a two-column tool grid', () => {
+        const {width, height} = estimateDrawToolsPanelSize()
+
+        assert.equal(width, estimateDrawToolsPanelWidth())
+        assert.ok(width < 320)
+        assert.equal(
+            height,
+            estimateDrawToolsPanelHeight(width),
+        )
+        assert.equal(
+            Math.ceil(DRAW_TOOLS_DEFAULT_ITEM_IDS.length / DRAW_TOOLS_COMPACT_COLUMN_COUNT),
+            3,
+        )
+    })
+})
 
 describe('draw tools panel positioning', () => {
     it('clamps draw tools panel position within map container bounds', () => {
@@ -25,7 +45,8 @@ describe('draw tools panel positioning', () => {
 
         const layout = computeDrawToolsPanelPosition({x: 760, y: 560}, mapContainerRef)
 
-        assert.equal(layout.width, DRAW_TOOLS_PANEL_WIDTH_PX)
+        assert.equal(layout.width, estimateDrawToolsPanelWidth())
+        assert.equal(layout.height, estimateDrawToolsPanelHeight(layout.width))
         assert.equal(layout.anchor.horizontal.edge, 'right')
         assert.equal(layout.anchor.vertical.edge, 'bottom')
         assert.ok(layout.anchor.horizontal.offset >= 8)

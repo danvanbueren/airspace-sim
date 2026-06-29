@@ -10,6 +10,7 @@ import {
     ACTION_PANEL_DISPLAY_STYLES,
 } from '@/app/tools/actionPanels/actionPanelRegistry'
 import {
+    DRAW_TOOLS_COMPACT_COLUMN_COUNT,
     DRAW_TOOLS_DEFAULT_ITEM_IDS,
     DRAW_TOOLS_PANEL_TITLE,
 } from '@/app/tools/actionPanels/drawToolsActionPanel'
@@ -185,6 +186,7 @@ export default function DrawToolsPanel({interactionsEnabled = true}) {
                     itemIds={DRAW_TOOLS_DEFAULT_ITEM_IDS}
                     displayStyle={ACTION_PANEL_DISPLAY_STYLES.COMPACT}
                     panelWidthPx={width}
+                    compactColumnCount={DRAW_TOOLS_COMPACT_COLUMN_COUNT}
                 />
             </FloatingPanel>
 
