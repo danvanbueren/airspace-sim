@@ -33,4 +33,27 @@ describe('trackFromInitiation', () => {
         assert.equal(track.nationality, '')
         assert.equal(track.identityPendingSinceAt, 1000)
     })
+
+    it('assigns nationality from the nearest aircraft route origin or destination', () => {
+        const track = trackFromInitiation({
+            plotId: 'plot-2',
+            sensorType: 'radar',
+            longitude: -75,
+            latitude: 40,
+            timestamp: 1000,
+            flightWorld: {
+                findNearestAircraft: () => ({
+                    domain: 'air',
+                    heading: 180,
+                    speed: 450,
+                    altitude: 35_000,
+                    id: 'UAL123',
+                    origin: 'KJFK',
+                    destination: 'EGLL',
+                }),
+            },
+        })
+
+        assert.ok(['US', 'GB'].includes(track.nationality))
+    })
 })
