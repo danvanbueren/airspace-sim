@@ -63,6 +63,8 @@ export default `Planned work for ${PROJECT_NAME}, grouped chronologically. Compl
 - ✅ Track management UI overhaul — ${commit('67464d8')}
 - ✅ Track Management window viewport scrolling on short map viewports — ${commit('ef2bae0')}
 - ✅ Reference point creation from the map context menu — ${commit('16e3321')}
+- ✅ WebGL-based track attention rendering optimization
+
 
 ## Future
 
