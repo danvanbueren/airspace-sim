@@ -188,11 +188,9 @@ export function DrawGeometryProvider({children}) {
             const existingDrawToolItemId = GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM[existingPending.type]
 
             if (existingDrawToolItemId === drawToolItemId) {
-                setActiveDrawToolItemId(drawToolItemId)
-                setActiveShapeId(existingPending.id)
-                geometryWindowOpenerRef.current?.(existingPending)
+                cancelPendingShape()
 
-                return existingPending
+                return null
             }
 
             changeShapeType(existingPending.id, drawToolItemId)
@@ -211,7 +209,7 @@ export function DrawGeometryProvider({children}) {
         geometryWindowOpenerRef.current?.(shape)
 
         return shape
-    }, [changeShapeType, getShapeById, upsertShape])
+    }, [cancelPendingShape, changeShapeType, getShapeById, upsertShape])
 
     const getStrokeColor = useCallback((mode) => (
         getStrokeColorForMode(strokeColorsByMode, mode)

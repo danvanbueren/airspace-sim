@@ -12,9 +12,11 @@ import {
     Typography,
     useTheme,
 } from '@mui/material'
+import FloatingWindowVerticalResizeHandle from '@/app/components/floating/shared/FloatingWindowVerticalResizeHandle'
 import GeometryWindowBody from '@/app/components/floating/windows/GeometryWindowBody'
 import {useDrawGeometry} from '@/app/contexts/DrawGeometryContext'
 import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
+import {useFloatingWindowVerticalResize} from '@/app/hooks/map/useFloatingWindowVerticalResize'
 import {useMapContainerSize} from '@/app/hooks/map/useMapContainerSize'
 import {geometryWindowShouldShowPendingPill} from '@/app/hooks/map/useGeometryWindows'
 import {
@@ -24,6 +26,7 @@ import {
     useTrackManagementWindowDrag,
 } from '@/app/hooks/map/useTrackManagementWindowDrag'
 import {absoluteToEdgeAnchor} from '@/app/tools/map/edgeAnchoredPosition'
+import {getGeometryDisplayTitle} from '@/app/tools/map/drawGeometry/drawGeometryGeometry'
 import {getMapFloatingWindowMaxHeight} from '@/app/tools/map/mapFloatingWindowLayout'
 import {TRACK_IDENTITIES} from '@/app/tools/milstd2525/trackSymbolCodes'
 import {getTrackIdentityChromeColors} from '@/app/tools/milstd2525/trackIdentityColors'
@@ -51,8 +54,8 @@ const GEOMETRY_WINDOW_MONOSPACE_SX = {
 
 function getGeometryWindowChromeColors(shape, theme) {
     const identity = geometryWindowShouldShowPendingPill(shape)
-        ? TRACK_IDENTITIES.PENDING
-        : TRACK_IDENTITIES.UNKNOWN
+        ? TRACK_IDENTITIES.UNKNOWN
+        : TRACK_IDENTITIES.FRIENDLY
 
     return getTrackIdentityChromeColors(identity, theme)
 }
@@ -63,10 +66,12 @@ export default function GeometryWindow({
     zIndex,
     onClose,
     onMoveComplete,
+    onHeightCommit,
     onActivate,
     onClaimKeyboardCustody,
     hasKeyboardCustody = false,
     registerWindowElement,
+    interactionsEnabled = true,
 }) {
     const theme = useTheme()
     const geometryWindowRef = useRef(null)
@@ -107,6 +112,24 @@ export default function GeometryWindow({
         windowId: geometryWindow.id,
         trackManagementWindowSize: geometryWindowSize,
         windowElementSelector: '[data-geometry-window]',
+    })
+
+    const handleHeightCommit = useCallback((height) => {
+        onHeightCommit?.(geometryWindow.id, height)
+    }, [geometryWindow.id, onHeightCommit])
+
+    const {
+        height: resizedHeight,
+        handleResizeHandlePointerDown,
+        handleResizeHandlePointerMove,
+        handleResizeHandlePointerUp,
+    } = useFloatingWindowVerticalResize({
+        windowRef: geometryWindowRef,
+        mapContainerRef,
+        interactionsEnabled,
+        storedHeight: geometryWindow.height,
+        maxHeight: viewportMaxWindowHeight,
+        onHeightCommit: handleHeightCommit,
     })
 
     useLayoutEffect(() => {
@@ -166,8 +189,9 @@ export default function GeometryWindow({
     }
 
     const windowChrome = getGeometryWindowChromeColors(shape, theme)
-    const windowTitle = shape.name?.trim() || 'Geometry'
+    const windowTitle = getGeometryDisplayTitle(shape)
     const showPending = geometryWindowShouldShowPendingPill(shape)
+    const hasExplicitHeight = typeof resizedHeight === 'number'
 
     const handleClose = () => {
         onClose?.()
@@ -185,6 +209,7 @@ export default function GeometryWindow({
                 ...windowPosition,
                 zIndex,
                 width: GEOMETRY_WINDOW_WIDTH,
+                height: hasExplicitHeight ? resizedHeight : undefined,
                 maxHeight: viewportMaxWindowHeight,
                 display: 'flex',
                 flexDirection: 'column',
@@ -287,6 +312,13 @@ export default function GeometryWindow({
                     <GeometryWindowBody shape={shape}/>
                 </Stack>
             </Box>
+
+            <FloatingWindowVerticalResizeHandle
+                interactionsEnabled={interactionsEnabled}
+                onPointerDown={handleResizeHandlePointerDown}
+                onPointerMove={handleResizeHandlePointerMove}
+                onPointerUp={handleResizeHandlePointerUp}
+            />
         </Paper>
     )
 }

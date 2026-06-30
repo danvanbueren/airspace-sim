@@ -22,6 +22,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
+import {useFloatingWindowVerticalResize} from '@/app/hooks/map/useFloatingWindowVerticalResize'
 import {useMapContainerSize} from '@/app/hooks/map/useMapContainerSize'
 import {getMapFloatingWindowMaxHeight} from '@/app/tools/map/mapFloatingWindowLayout'
 import PositionReferenceEditor from '@/app/components/floating/windows/PositionReferenceEditor'
@@ -57,6 +58,7 @@ import {TRACK_CORRELATION_MODES} from '@/app/simulation/trackFromDetection'
 import {TRACK_KINDS} from '@/app/simulation/trackKinds'
 import {expandTrackManagementWindowSkipLiveFields} from '@/app/tools/map/trackManagementTrack'
 import AttentionFlagPills from '@/app/components/floating/windows/AttentionFlagPills'
+import FloatingWindowVerticalResizeHandle from '@/app/components/floating/shared/FloatingWindowVerticalResizeHandle'
 import {getVisibleTrackAttentionFlags} from '@/app/simulation/trackAttentionFlags'
 import {
     getMode3DisplayLabel,
@@ -303,12 +305,14 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                                                                             evaluationTime = Date.now(),
                                                                             onChange,
                                                                             onMoveComplete,
+                                                                            onHeightCommit,
                                                                             onActivate,
                                                                             onClaimKeyboardCustody,
                                                                             onClose,
                                                                             onSkipLiveFieldsChange,
                                                                             hasKeyboardCustody = false,
                                                                             zIndex,
+                                                                            interactionsEnabled = true,
                                                                         }, ref) {
     const {appSettings} = useAppSettings()
     const theme = useTheme()
@@ -658,6 +662,24 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
         trackManagementWindowSize,
     })
 
+    const handleHeightCommit = useCallback((height) => {
+        onHeightCommit?.(trackManagementWindow.id, height)
+    }, [onHeightCommit, trackManagementWindow.id])
+
+    const {
+        height: resizedHeight,
+        handleResizeHandlePointerDown,
+        handleResizeHandlePointerMove,
+        handleResizeHandlePointerUp,
+    } = useFloatingWindowVerticalResize({
+        windowRef: trackManagementWindowRef,
+        mapContainerRef,
+        interactionsEnabled,
+        storedHeight: trackManagementWindow.height,
+        maxHeight: viewportMaxWindowHeight,
+        onHeightCommit: handleHeightCommit,
+    })
+
     useLayoutEffect(() => {
         if (trackManagementWindow.positionAnchor) {
             return
@@ -706,6 +728,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
             trackManagementWindowSize,
             mapContainerRef,
         )
+    const hasExplicitHeight = typeof resizedHeight === 'number'
 
     const renderKinematicField = (field, label) => (
         <TextField
@@ -741,6 +764,7 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 ...windowPosition,
                 zIndex,
                 width: 300,
+                height: hasExplicitHeight ? resizedHeight : undefined,
                 maxHeight: viewportMaxWindowHeight,
                 display: 'flex',
                 flexDirection: 'column',
@@ -1072,6 +1096,13 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 />
             </Stack>
             </Box>
+
+            <FloatingWindowVerticalResizeHandle
+                interactionsEnabled={interactionsEnabled}
+                onPointerDown={handleResizeHandlePointerDown}
+                onPointerMove={handleResizeHandlePointerMove}
+                onPointerUp={handleResizeHandlePointerUp}
+            />
         </Paper>
     )
 })

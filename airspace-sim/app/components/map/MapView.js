@@ -87,6 +87,7 @@ export default function MapView({
     const cursorBoxRef = useRef(null)
     const contextMenuRef = useRef(null)
     const openTrackManagementWindowRef = useRef(null)
+    const cancelDrawingRef = useRef(null)
     const closeMapDismissibleTrackManagementWindowsRef = useRef(null)
     const skipLiveFieldsByWindowIdRef = useRef({})
     const liveTracksRef = useRef([])
@@ -169,6 +170,7 @@ export default function MapView({
         openGeometryWindowForShape,
         closeGeometryWindow,
         setGeometryWindowPositionAnchor,
+        setGeometryWindowHeight,
         closeGeometryWindowsForShape,
     } = useGeometryWindows()
 
@@ -196,6 +198,8 @@ export default function MapView({
     )
 
     const handleMapContextMenu = useCallback(({point, mapPoint, lngLat, line}) => {
+        cancelDrawingRef.current?.()
+
         const layerTrack = mapPoint ? trackMapLayer.getTrackAtMapPoint(mapPoint) : null
         const trackId = layerTrack?.trackId ?? layerTrack?.id
         const track = trackId ? (getTrack(trackId) ?? layerTrack) : null
@@ -307,6 +311,7 @@ export default function MapView({
     const {
         removeGeometryShape,
         isDrawingGeometry,
+        cancelDrawing,
     } = useDrawGeometryTool(mapRef, mapReady && mapInteractionsEnabled, {
         mapCursor,
         themeMode: colorMode,
@@ -314,9 +319,28 @@ export default function MapView({
         isKeyboardCustodyActive: isGeometryKeyboardCustodyActive,
     })
 
+    useEffect(() => {
+        cancelDrawingRef.current = cancelDrawing
+    }, [cancelDrawing])
+
     const handleCloseGeometryWindow = useCallback((windowId) => {
+        const geometryWindow = geometryWindows.find((window) => window.id === windowId)
+        const shape = geometryWindow
+            ? shapes.find((entry) => entry.id === geometryWindow.shapeId)
+            : null
+
+        if (shape?.status === GEOMETRY_STATUS.PENDING) {
+            cancelDrawing()
+        }
+
         closeGeometryWindowWithBlur(windowId, closeGeometryWindow)
-    }, [closeGeometryWindow, closeGeometryWindowWithBlur])
+    }, [
+        cancelDrawing,
+        closeGeometryWindow,
+        closeGeometryWindowWithBlur,
+        geometryWindows,
+        shapes,
+    ])
 
     const handleDeleteGeometry = useCallback((geometry) => {
         removeGeometryShape(geometry.id)
@@ -376,6 +400,7 @@ export default function MapView({
         openTrackManagementWindow,
         updateTrackManagementWindow,
         setTrackManagementWindowPositionAnchor,
+        setTrackManagementWindowHeight,
         markTrackManagementWindowPersistent,
         closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,
@@ -732,6 +757,7 @@ export default function MapView({
                     tracksForCallsignValidation={tracksForCallsignValidation}
                     onChange={updateTrackManagementWindow}
                     onMoveComplete={setTrackManagementWindowPositionAnchor}
+                    onHeightCommit={setTrackManagementWindowHeight}
                     onActivate={markTrackManagementWindowPersistent}
                     onClaimKeyboardCustody={claimTrackManagementKeyboardCustody}
                     onClose={handleCloseTrackManagementWindow}
@@ -750,6 +776,7 @@ export default function MapView({
                     zIndex={getGeometryWindowZIndex(geometryWindow.id)}
                     onClose={() => handleCloseGeometryWindow(geometryWindow.id)}
                     onMoveComplete={setGeometryWindowPositionAnchor}
+                    onHeightCommit={setGeometryWindowHeight}
                     onActivate={bringGeometryWindowToFront}
                     onClaimKeyboardCustody={claimGeometryKeyboardCustody}
                     hasKeyboardCustody={geometryKeyboardCustodyWindowId === geometryWindow.id}

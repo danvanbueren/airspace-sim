@@ -39,6 +39,7 @@ import {
     setDrawGeometryShapes,
 } from '@/app/tools/map/drawGeometry/drawGeometryMapLayer'
 import {getDrawGeometryCursor} from '@/app/tools/map/drawGeometry/drawGeometryCursor'
+import {roundDrawGeometryParams} from '@/app/tools/map/drawGeometry/drawGeometryRounding'
 
 function getDistancePixels(firstPoint, secondPoint) {
     const deltaX = firstPoint.x - secondPoint.x
@@ -274,7 +275,7 @@ export function useDrawGeometryTool(
     const applyShapeUpdate = useCallback((shapeId, paramsUpdate, extraUpdates = {}) => {
         updateShape(shapeId, {
             ...extraUpdates,
-            params: paramsUpdate,
+            params: roundDrawGeometryParams(paramsUpdate),
         })
         syncMapAndPreview()
     }, [syncMapAndPreview, updateShape])

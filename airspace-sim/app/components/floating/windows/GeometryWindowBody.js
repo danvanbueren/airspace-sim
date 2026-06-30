@@ -19,6 +19,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import DeferredTextField from '@/app/components/global/DeferredTextField'
 import PositionReferenceEditor from '@/app/components/floating/windows/PositionReferenceEditor'
 import {getDrawShapeIconComponent} from '@/app/components/floating/actionPanels/DrawShapeIcons'
+import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {useDrawGeometry} from '@/app/contexts/DrawGeometryContext'
 import {createDeferredNumericFieldConfig} from '@/app/tools/ui/deferredNumericField'
 import {
@@ -27,6 +28,7 @@ import {
     GEOMETRY_SHAPE_TYPE_LABELS,
     GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM,
 } from '@/app/tools/map/drawGeometry/drawGeometryTypes'
+import {roundManualGeometryParams} from '@/app/tools/map/drawGeometry/drawGeometryRounding'
 
 const NM_FIELD_CONFIG = createDeferredNumericFieldConfig({min: 0})
 
@@ -263,6 +265,7 @@ function GeometryCoordinateFields({shape, onUpdateParams}) {
 }
 
 export default function GeometryWindowBody({shape}) {
+    const {appSettings} = useAppSettings()
     const {
         updateShape,
         changeShapeType,
@@ -278,11 +281,21 @@ export default function GeometryWindowBody({shape}) {
     }, [changeShapeType, shape.id])
 
     const handleParamsUpdate = useCallback((paramsUpdate) => {
-        updateShape(shape.id, {params: paramsUpdate})
+        updateShape(shape.id, {params: roundManualGeometryParams(paramsUpdate)})
     }, [shape.id, updateShape])
 
     return (
         <Stack spacing={1.5}>
+            {appSettings.verboseMode ? (
+                <Typography
+                    variant='caption'
+                    color='text.secondary'
+                    sx={{fontSize: '0.7rem', lineHeight: 1.2}}
+                >
+                    System ID: {shape.id}
+                </Typography>
+            ) : null}
+
             <DeferredTextField
                 label='Name (optional)'
                 committedValue={shape.name ?? ''}

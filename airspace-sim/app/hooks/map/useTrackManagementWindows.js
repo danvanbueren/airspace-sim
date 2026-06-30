@@ -194,6 +194,25 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         ))
     }, [])
 
+    const setTrackManagementWindowHeight = useCallback((windowId, height) => {
+        setTrackManagementWindows((currentWindows) => (
+            currentWindows.map((trackManagementWindow) => {
+                if (trackManagementWindow.id !== windowId) {
+                    return trackManagementWindow
+                }
+
+                if (trackManagementWindow.height === height) {
+                    return trackManagementWindow
+                }
+
+                return {
+                    ...trackManagementWindow,
+                    height,
+                }
+            })
+        ))
+    }, [])
+
     const markTrackManagementWindowPersistent = useCallback((windowId) => {
         setTrackManagementWindows((currentWindows) => (
             currentWindows.map((trackManagementWindow) => {
@@ -249,6 +268,7 @@ export function useTrackManagementWindows({onInitiateTrack, onTrackCreated, onTr
         openTrackManagementWindow,
         updateTrackManagementWindow,
         setTrackManagementWindowPositionAnchor,
+        setTrackManagementWindowHeight,
         markTrackManagementWindowPersistent,
         closeMapDismissibleTrackManagementWindows,
         closeTrackManagementWindow,

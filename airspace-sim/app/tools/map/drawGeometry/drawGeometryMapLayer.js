@@ -48,7 +48,7 @@ function getLabelLayout() {
         'text-field': ['get', 'name'],
         'text-font': ['Roboto Regular'],
         'text-size': 12,
-        'text-offset': [0, -1.2],
+        'text-offset': [0, -1.6],
         'text-anchor': 'bottom',
         'text-allow-overlap': true,
     }

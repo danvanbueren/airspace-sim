@@ -95,6 +95,23 @@ export function useGeometryWindows({onOpenGeometryWindow} = {}) {
         }))
     }, [])
 
+    const setGeometryWindowHeight = useCallback((windowId, height) => {
+        setGeometryWindows((currentWindows) => currentWindows.map((geometryWindow) => {
+            if (geometryWindow.id !== windowId) {
+                return geometryWindow
+            }
+
+            if (geometryWindow.height === height) {
+                return geometryWindow
+            }
+
+            return {
+                ...geometryWindow,
+                height,
+            }
+        }))
+    }, [])
+
     const openGeometryWindowForShape = useCallback((shape, elementContainer) => {
         const drawToolItemId = GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM[shape.type]
 
@@ -121,6 +138,7 @@ export function useGeometryWindows({onOpenGeometryWindow} = {}) {
         closeGeometryWindowsForShape,
         updateGeometryWindow,
         setGeometryWindowPositionAnchor,
+        setGeometryWindowHeight,
         syncGeometryWindowsAfterShapeDelete,
         getGeometryWindowForShape,
         geometryWindowWidth: DEFAULT_GEOMETRY_WINDOW_WIDTH,

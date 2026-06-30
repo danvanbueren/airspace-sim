@@ -1,6 +1,6 @@
 import {haversineDistanceNm, offsetLngLat} from '../../../simulation/geo.js'
 import {buildCircleRingCoordinates} from '../scopeCircleGeometry.js'
-import {GEOMETRY_SHAPE_TYPES} from './drawGeometryTypes.js'
+import {GEOMETRY_SHAPE_TYPES, GEOMETRY_SHAPE_TYPE_LABELS} from './drawGeometryTypes.js'
 
 const ELLIPSE_SEGMENTS = 72
 const RACETRACK_ARC_SEGMENTS = 24
@@ -179,33 +179,64 @@ function buildPolygonCoordinates(vertices, closed) {
     return coordinates
 }
 
+function getNorthEdgePoint(center, northOffsetNm) {
+    if (!center) {
+        return null
+    }
+
+    if (!(northOffsetNm > 0)) {
+        return center
+    }
+
+    return offsetLngLat(center.lng, center.lat, 0, northOffsetNm)
+}
+
+export function getGeometryDisplayTitle(shape) {
+    const trimmedName = shape?.name?.trim()
+
+    if (trimmedName) {
+        return trimmedName
+    }
+
+    return GEOMETRY_SHAPE_TYPE_LABELS[shape?.type] ?? 'Geometry'
+}
+
 export function getGeometryLabelPoint(shape) {
     const {type, params} = shape
 
     switch (type) {
         case GEOMETRY_SHAPE_TYPES.RECTANGLE:
-        case GEOMETRY_SHAPE_TYPES.SQUARE:
-        case GEOMETRY_SHAPE_TYPES.CIRCLE:
         case GEOMETRY_SHAPE_TYPES.OVAL:
-            return params.center
-        case GEOMETRY_SHAPE_TYPES.RACETRACK:
-            if (!params.center1 || !params.center2) {
-                return params.center1 ?? params.center2
+            return getNorthEdgePoint(params.center, params.halfHeightNm)
+        case GEOMETRY_SHAPE_TYPES.SQUARE:
+            return getNorthEdgePoint(params.center, params.halfSizeNm)
+        case GEOMETRY_SHAPE_TYPES.CIRCLE:
+            return getNorthEdgePoint(params.center, params.radiusNm)
+        case GEOMETRY_SHAPE_TYPES.RACETRACK: {
+            const centers = [params.center1, params.center2].filter(Boolean)
+
+            if (!centers.length) {
+                return null
             }
 
-            return {
-                lat: (params.center1.lat + params.center2.lat) / 2,
-                lng: (params.center1.lng + params.center2.lng) / 2,
-            }
+            const northernCenter = centers.reduce((current, center) => (
+                center.lat > current.lat ? center : current
+            ), centers[0])
+            const centerLng = centers.reduce((sum, center) => sum + center.lng, 0) / centers.length
+
+            return getNorthEdgePoint(
+                {lat: northernCenter.lat, lng: centerLng},
+                params.radiusNm,
+            )
+        }
         case GEOMETRY_SHAPE_TYPES.POLYGON:
             if (!params.vertices?.length) {
                 return null
             }
 
-            return {
-                lat: params.vertices.reduce((sum, vertex) => sum + vertex.lat, 0) / params.vertices.length,
-                lng: params.vertices.reduce((sum, vertex) => sum + vertex.lng, 0) / params.vertices.length,
-            }
+            return params.vertices.reduce((northernVertex, vertex) => (
+                vertex.lat > northernVertex.lat ? vertex : northernVertex
+            ), params.vertices[0])
         default:
             return null
     }
@@ -234,8 +265,9 @@ export function buildGeometryFeature(shape) {
 
 export function buildGeometryLabelFeature(shape) {
     const labelPoint = getGeometryLabelPoint(shape)
+    const labelText = getGeometryDisplayTitle(shape)
 
-    if (!shape.name?.trim() || !labelPoint) {
+    if (!labelPoint || !labelText) {
         return null
     }
 
@@ -248,7 +280,7 @@ export function buildGeometryLabelFeature(shape) {
         properties: {
             id: `${shape.id}-label`,
             shapeId: shape.id,
-            name: shape.name.trim(),
+            name: labelText,
         },
     }
 }
