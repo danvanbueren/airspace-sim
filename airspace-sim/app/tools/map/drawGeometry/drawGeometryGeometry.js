@@ -168,25 +168,27 @@ function buildOvalRing(center, halfWidthNm, halfHeightNm, segments = ELLIPSE_SEG
     return ring.map((point) => [point.lng, point.lat])
 }
 
-function appendRacetrackCapArc(ring, center, otherCenter, fromBearing, radiusNm, segments, includeStart) {
+function appendRacetrackCapArc(ring, center, otherCenter, fromPoint, toPoint, radiusNm, segments, includeStart) {
+    const fromBearing = bearingDegrees(center.lat, center.lng, fromPoint.lat, fromPoint.lng)
     const outwardBearing = getOutwardCapBearingDegrees(center, otherCenter)
     const sweep = getRacetrackCapArcSweepDegrees(fromBearing, outwardBearing)
     const startIndex = includeStart ? 0 : 1
 
-    for (let index = startIndex; index <= segments; index += 1) {
+    for (let index = startIndex; index < segments; index += 1) {
         const bearing = normalizeBearingDegrees(fromBearing + ((index / segments) * sweep))
         const point = offsetLngLat(center.lng, center.lat, bearing, radiusNm)
 
         ring.push([point.lng, point.lat])
     }
+
+    ring.push([toPoint.lng, toPoint.lat])
 }
 
 function buildRacetrackRing(center1, center2, radiusNm) {
     const {
-        sideABearing,
-        sideBBearing,
         tangent1A,
         tangent2A,
+        tangent2B,
         tangent1B,
     } = getRacetrackTangentPoints(center1, center2, radiusNm)
 
@@ -195,10 +197,10 @@ function buildRacetrackRing(center1, center2, radiusNm) {
         [tangent2A.lng, tangent2A.lat],
     ]
 
-    appendRacetrackCapArc(ring, center2, center1, sideABearing, radiusNm, RACETRACK_ARC_SEGMENTS, false)
+    appendRacetrackCapArc(ring, center2, center1, tangent2A, tangent2B, radiusNm, RACETRACK_ARC_SEGMENTS, false)
     ring.push([tangent1B.lng, tangent1B.lat])
-    appendRacetrackCapArc(ring, center1, center2, sideBBearing, radiusNm, RACETRACK_ARC_SEGMENTS, false)
-    ring.push(ring[0])
+    appendRacetrackCapArc(ring, center1, center2, tangent1B, tangent1A, radiusNm, RACETRACK_ARC_SEGMENTS, false)
+    ring.push([tangent1A.lng, tangent1A.lat])
 
     return ring
 }

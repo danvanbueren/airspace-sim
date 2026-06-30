@@ -202,6 +202,28 @@ describe('draw geometry builders', () => {
         assert.equal(isGeometryShapeComplete(shape), true)
     })
 
+    it('joins racetrack cap arcs at exact tangent points', () => {
+        const center1 = {lat: -65, lng: 10}
+        const center2 = {lat: -64, lng: 25}
+        const radiusNm = 6
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.RACETRACK)
+        shape.params = {center1, center2, radiusNm}
+        shape.status = GEOMETRY_STATUS.COMMITTED
+
+        const geometry = buildGeometryGeoJson(shape)
+        const tangents = getRacetrackTangentPoints(center1, center2, radiusNm)
+        const ring = geometry.coordinates[0]
+
+        const ringContainsPoint = (point) => ring.some(([lng, lat]) => (
+            Math.abs(lng - point.lng) < 1e-8 && Math.abs(lat - point.lat) < 1e-8
+        ))
+
+        assert.ok(ringContainsPoint(tangents.tangent1A))
+        assert.ok(ringContainsPoint(tangents.tangent2A))
+        assert.ok(ringContainsPoint(tangents.tangent2B))
+        assert.ok(ringContainsPoint(tangents.tangent1B))
+    })
+
     it('bulges high-latitude racetrack caps away from the opposite origin', () => {
         const center1 = {lat: 75, lng: -30}
         const center2 = {lat: 75, lng: -15}

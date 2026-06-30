@@ -49,17 +49,24 @@ export function removeDrawGeometryPreviewOverlay(overlay) {
 }
 
 function projectRing(map, coordinates) {
-    return coordinates
-        .map((coordinate) => {
-            const point = map.project(coordinate)
+    return coordinates.map((coordinate) => {
+        const point = map.project(coordinate)
 
-            if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
-                return null
-            }
+        if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+            return null
+        }
 
-            return {x: point.x, y: point.y}
-        })
-        .filter(Boolean)
+        return {x: point.x, y: point.y}
+    })
+}
+
+function withViewportClip(context, callback) {
+    context.save()
+    context.beginPath()
+    context.rect(0, 0, context.canvas.width, context.canvas.height)
+    context.clip()
+    callback()
+    context.restore()
 }
 
 function strokeRing(context, ring, scaleX, scaleY) {
@@ -67,44 +74,73 @@ function strokeRing(context, ring, scaleX, scaleY) {
         return
     }
 
-    context.beginPath()
+    withViewportClip(context, () => {
+        let pathOpen = false
 
-    ring.forEach((point, index) => {
-        const x = point.x * scaleX
-        const y = point.y * scaleY
+        for (const point of ring) {
+            if (!point) {
+                if (pathOpen) {
+                    context.stroke()
+                    pathOpen = false
+                    context.beginPath()
+                }
 
-        if (index === 0) {
-            context.moveTo(x, y)
-            return
+                continue
+            }
+
+            const x = point.x * scaleX
+            const y = point.y * scaleY
+
+            if (!pathOpen) {
+                context.beginPath()
+                context.moveTo(x, y)
+                pathOpen = true
+                continue
+            }
+
+            context.lineTo(x, y)
         }
 
-        context.lineTo(x, y)
+        if (pathOpen) {
+            context.stroke()
+        }
     })
-
-    context.stroke()
 }
 
 function fillRing(context, ring, scaleX, scaleY) {
-    if (ring.length < 3) {
+    if (ring.filter(Boolean).length < 3) {
         return
     }
 
-    context.beginPath()
+    withViewportClip(context, () => {
+        context.beginPath()
 
-    ring.forEach((point, index) => {
-        const x = point.x * scaleX
-        const y = point.y * scaleY
+        let hasStarted = false
 
-        if (index === 0) {
-            context.moveTo(x, y)
+        for (const point of ring) {
+            if (!point) {
+                continue
+            }
+
+            const x = point.x * scaleX
+            const y = point.y * scaleY
+
+            if (!hasStarted) {
+                context.moveTo(x, y)
+                hasStarted = true
+                continue
+            }
+
+            context.lineTo(x, y)
+        }
+
+        if (!hasStarted) {
             return
         }
 
-        context.lineTo(x, y)
+        context.closePath()
+        context.fill()
     })
-
-    context.closePath()
-    context.fill()
 }
 
 function strokeProjectedLine(context, map, from, to, strokeColor, scaleX, scaleY, opacity) {
