@@ -5,9 +5,11 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import GpsFixedIcon from '@mui/icons-material/GpsFixed'
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import {
     alertHasLink,
     alertHasTrackFocus,
+    alertIsError,
     getAlertInhibitAriaLabel,
     getAlertLinkAriaLabel,
 } from '@/app/tools/alerts/alarmAlertUi'
@@ -21,9 +23,25 @@ export default function AlarmAlertActionButtons({
 }) {
     const showTrackFocus = alertHasTrackFocus(alert)
     const showLink = alertHasLink(alert)
+    const isError = alertIsError(alert)
+
+    const handleCopyError = () => {
+        if (alert?.message) {
+            navigator.clipboard.writeText(alert.message)
+        }
+    }
 
     return (
         <Stack direction='column' spacing={0} sx={{alignItems: 'center'}}>
+            {isError ? (
+                <IconButton
+                    size='small'
+                    aria-label='copy entire error'
+                    onClick={handleCopyError}
+                >
+                    <ContentCopyIcon fontSize='small'/>
+                </IconButton>
+            ) : null}
             {showTrackFocus ? (
                 <IconButton
                     size='small'
@@ -59,3 +77,4 @@ export default function AlarmAlertActionButtons({
         </Stack>
     )
 }
+
