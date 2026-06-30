@@ -115,9 +115,35 @@ export function buildLineFeature(line) {
 }
 
 export function buildFeatureCollection(lines) {
+    const features = []
+
+    lines.forEach((line) => {
+        features.push(buildLineFeature(line))
+
+        const formatted = formatBearingRange(line)
+        const labelCoords = line.isPreview
+            ? [line.end.lng, line.end.lat]
+            : [line.midpoint.lng, line.midpoint.lat]
+
+        features.push({
+            type: 'Feature',
+            id: `${line.id}-label`,
+            properties: {
+                id: line.id,
+                label: formatted,
+                isLabel: true,
+                opacity: 1,
+            },
+            geometry: {
+                type: 'Point',
+                coordinates: labelCoords,
+            },
+        })
+    })
+
     return {
         type: 'FeatureCollection',
-        features: lines.map(buildLineFeature),
+        features,
     }
 }
 

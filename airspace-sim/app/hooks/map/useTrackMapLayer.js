@@ -19,12 +19,18 @@ import {
     MAP_CURSOR_REQUESTS,
 } from './useMapCursorState'
 import {isDarkMapStyle} from '../../tools/map/mapWaterLabelPaint'
+import {getVisibleTrackAttentionFlags} from '../../simulation/trackAttentionFlags'
+import {
+    ATTENTION_AMBER,
+    formatAttentionDisplayLines,
+} from '../../tools/map/trackAttentionDisplay'
 
 const TRACK_SOURCE_ID = 'tracks'
 const TRACK_VECTOR_SOURCE_ID = 'tracks-vectors'
 const TRACK_VECTOR_LAYER_ID = 'tracks-vectors-lines'
 const TRACK_LAYER_ID = 'tracks-symbols'
 const TRACK_LABEL_LAYER_ID = 'tracks-labels'
+const TRACK_ATTENTION_LAYER_ID = 'tracks-attentions'
 const TRACK_HIT_TEST_PADDING = 6
 
 function getTrackLabelPaint(styleKey) {
@@ -53,6 +59,26 @@ function applyTrackLabelPaint(map, styleKey) {
     map.setPaintProperty(TRACK_LABEL_LAYER_ID, 'text-color', paint['text-color'])
     map.setPaintProperty(TRACK_LABEL_LAYER_ID, 'text-halo-color', paint['text-halo-color'])
     map.setPaintProperty(TRACK_LABEL_LAYER_ID, 'text-halo-width', paint['text-halo-width'])
+}
+
+function getTrackAttentionPaint(styleKey) {
+    return {
+        'text-color': ATTENTION_AMBER,
+        'text-halo-color': '#000000',
+        'text-halo-width': isDarkMapStyle(styleKey) ? 2 : 1.5,
+    }
+}
+
+function applyTrackAttentionPaint(map, styleKey) {
+    if (!map.getLayer(TRACK_ATTENTION_LAYER_ID)) {
+        return
+    }
+
+    const paint = getTrackAttentionPaint(styleKey)
+
+    map.setPaintProperty(TRACK_ATTENTION_LAYER_ID, 'text-color', paint['text-color'])
+    map.setPaintProperty(TRACK_ATTENTION_LAYER_ID, 'text-halo-color', paint['text-halo-color'])
+    map.setPaintProperty(TRACK_ATTENTION_LAYER_ID, 'text-halo-width', paint['text-halo-width'])
 }
 
 function normalizeTrackCoordinates(track) {
@@ -184,7 +210,14 @@ function getTrackIconCacheOptions(renderOptions) {
     return renderOptions
 }
 
-function trackToFeature(track, defaultIconSize, mapColorMode = 'dark') {
+function trackToFeature(
+    track,
+    defaultIconSize,
+    mapColorMode = 'dark',
+    evaluationTime = 0,
+    inhibitedAttentionIds = [],
+    iffRefreshMs = 1000,
+) {
     const coordinates = normalizeTrackCoordinates(track)
 
     if (!coordinates) {
@@ -201,6 +234,14 @@ function trackToFeature(track, defaultIconSize, mapColorMode = 'dark') {
     const iconId = track.iconId ?? getTrackIconId(track, symbolCode, defaultIconSize, mapColorMode)
 
     const displayHeading = toFiniteNumber(track.heading, 0)
+
+    const flagIds = getVisibleTrackAttentionFlags(
+        track,
+        evaluationTime,
+        inhibitedAttentionIds,
+        iffRefreshMs,
+    )
+    const attentions = formatAttentionDisplayLines(flagIds).join('\n')
 
     return {
         type: 'Feature',
@@ -224,15 +265,30 @@ function trackToFeature(track, defaultIconSize, mapColorMode = 'dark') {
             stale: isReferencePoint(track) ? false : Boolean(track.stale),
             selected: Boolean(track.selected),
             correlated: Boolean(track.correlated),
+            attentions: attentions || '',
         },
     }
 }
 
-function createFeatureCollection(tracks, defaultIconSize, mapColorMode = 'dark') {
+function createFeatureCollection(
+    tracks,
+    defaultIconSize,
+    mapColorMode = 'dark',
+    evaluationTime = 0,
+    inhibitedAttentionIds = [],
+    iffRefreshMs = 1000,
+) {
     const features = []
 
     tracks.forEach((track) => {
-        const feature = trackToFeature(track, defaultIconSize, mapColorMode)
+        const feature = trackToFeature(
+            track,
+            defaultIconSize,
+            mapColorMode,
+            evaluationTime,
+            inhibitedAttentionIds,
+            iffRefreshMs,
+        )
 
         if (feature) {
             features.push(feature)
@@ -277,7 +333,7 @@ function addTrackVectorSource(map) {
     })
 }
 
-function addTrackLayers(map) {
+function addTrackLayers(map, styleKey) {
     if (!map.getLayer(TRACK_VECTOR_LAYER_ID)) {
         const vectorLayerBeforeId = map.getLayer(TRACK_LAYER_ID) ? TRACK_LAYER_ID : undefined
 
@@ -347,6 +403,7 @@ function addTrackLayers(map) {
             source: TRACK_SOURCE_ID,
             layout: {
                 'text-field': ['get', 'label'],
+                'text-font': ['monospace'],
                 'text-size': 12,
                 'text-offset': [0, 1.8],
                 'text-anchor': 'top',
@@ -361,6 +418,29 @@ function addTrackLayers(map) {
                     0.45,
                     1,
                 ],
+            },
+        })
+    }
+
+    if (!map.getLayer(TRACK_ATTENTION_LAYER_ID)) {
+        map.addLayer({
+            id: TRACK_ATTENTION_LAYER_ID,
+            type: 'symbol',
+            source: TRACK_SOURCE_ID,
+            layout: {
+                'text-field': ['get', 'attentions'],
+                'text-font': ['monospace'],
+                'text-size': 10.5,
+                'text-offset': [2.4, -0.6],
+                'text-anchor': 'left',
+                'text-justify': 'left',
+                'text-allow-overlap': true,
+                'text-ignore-placement': true,
+            },
+            paint: {
+                ...getTrackAttentionPaint(styleKey),
+                'text-opacity': 1,
+                'text-opacity-transition': {duration: 0, delay: 0},
             },
         })
     }
@@ -383,9 +463,19 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         styleKey,
         onTrackClick,
         mapCursor,
+        evaluationTime = 0,
+        inhibitedAttentionIds = [],
+        iffRefreshMs = 1000,
     } = options
 
     const onTrackClickRef = useRef(onTrackClick)
+    const evaluationTimeRef = useRef(evaluationTime)
+    const inhibitedAttentionIdsRef = useRef(inhibitedAttentionIds)
+    const iffRefreshMsRef = useRef(iffRefreshMs)
+
+    evaluationTimeRef.current = evaluationTime
+    inhibitedAttentionIdsRef.current = inhibitedAttentionIds
+    iffRefreshMsRef.current = iffRefreshMs
 
     useEffect(() => {
         onTrackClickRef.current = onTrackClick
@@ -398,7 +488,14 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
         const tracks = Array.from(tracksRef.current.values())
         const mapColorMode = getMapColorMode(styleKey)
-        const featureCollection = createFeatureCollection(tracks, iconSize, mapColorMode)
+        const featureCollection = createFeatureCollection(
+            tracks,
+            iconSize,
+            mapColorMode,
+            evaluationTimeRef.current,
+            inhibitedAttentionIdsRef.current,
+            iffRefreshMsRef.current,
+        )
         const vectorFeatureCollection = tracksToVectorFeatureCollection(tracks, map)
 
         // Cleanup unused icons from MapLibre memory to prevent memory leaks
@@ -574,8 +671,9 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
 
         addTrackSource(map)
         addTrackVectorSource(map)
-        addTrackLayers(map)
+        addTrackLayers(map, styleKey)
         applyTrackLabelPaint(map, styleKey)
+        applyTrackAttentionPaint(map, styleKey)
 
         if (!showLabels && map.getLayer(TRACK_LABEL_LAYER_ID)) {
             map.setLayoutProperty(TRACK_LABEL_LAYER_ID, 'visibility', 'none')
@@ -788,6 +886,10 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
     }, [ensureTrackIconById, ensureTrackLayer, mapReady, mapRef, styleKey])
 
     useEffect(() => {
+        scheduleSetData()
+    }, [inhibitedAttentionIds, iffRefreshMs, scheduleSetData])
+
+    useEffect(() => {
         if (!mapReady || !mapRef.current) {
             return
         }
@@ -960,6 +1062,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         vectorLayerId: TRACK_VECTOR_LAYER_ID,
         layerId: TRACK_LAYER_ID,
         labelLayerId: TRACK_LABEL_LAYER_ID,
+        attentionLayerId: TRACK_ATTENTION_LAYER_ID,
         upsertTrack,
         upsertTracks,
         removeTrack,

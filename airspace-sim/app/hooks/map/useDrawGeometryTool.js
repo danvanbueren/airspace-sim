@@ -169,7 +169,7 @@ export function useDrawGeometryTool(
         previewOverlayRef.current = null
     }, [])
 
-    const redrawPreview = useCallback(() => {
+    const redrawPreview = useCallback((shouldResize = false) => {
         const map = mapRef.current
         const overlay = previewOverlayRef.current
 
@@ -177,13 +177,27 @@ export function useDrawGeometryTool(
             return
         }
 
-        resizeDrawGeometryPreviewOverlay(map, overlay)
+        const previewShapes = getPreviewShapes()
+        const constructionPreview = getRacetrackConstructionPreview()
+
+        if (previewShapes.length === 0 && !constructionPreview) {
+            const context = overlay.getContext('2d')
+            if (context) {
+                context.clearRect(0, 0, overlay.width, overlay.height)
+            }
+            return
+        }
+
+        if (shouldResize) {
+            resizeDrawGeometryPreviewOverlay(map, overlay)
+        }
+
         drawGeometryPreviewOnOverlay(
             map,
             overlay,
-            getPreviewShapes(),
+            previewShapes,
             getStrokeColor(themeModeRef.current),
-            getRacetrackConstructionPreview(),
+            constructionPreview,
         )
     }, [getPreviewShapes, getRacetrackConstructionPreview, getStrokeColor, mapRef])
 
@@ -219,7 +233,7 @@ export function useDrawGeometryTool(
             previewOverlayRef.current = createDrawGeometryPreviewOverlay(map)
         }
 
-        redrawPreview()
+        redrawPreview(true)
     }, [mapRef, redrawPreview])
 
     const syncMapAndPreview = useCallback(() => {
@@ -683,12 +697,16 @@ export function useDrawGeometryTool(
             ensurePreviewOverlay()
         }
 
+        const handleResize = () => {
+            redrawPreview(true)
+        }
+
         const handleViewChange = () => {
-            redrawPreview()
+            redrawPreview(false)
         }
 
         map.on('style.load', handleStyleLoad)
-        map.on('resize', handleViewChange)
+        map.on('resize', handleResize)
         map.on('move', handleViewChange)
         map.on('zoom', handleViewChange)
 
@@ -696,7 +714,7 @@ export function useDrawGeometryTool(
 
         return () => {
             map.off('style.load', handleStyleLoad)
-            map.off('resize', handleViewChange)
+            map.off('resize', handleResize)
             map.off('move', handleViewChange)
             map.off('zoom', handleViewChange)
         }

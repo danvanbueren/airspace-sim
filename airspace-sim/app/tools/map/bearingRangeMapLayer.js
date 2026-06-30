@@ -4,6 +4,7 @@ import {
 
 export const BEARING_RANGE_SOURCE_ID = 'bearing-range-lines-source'
 export const BEARING_RANGE_LAYER_ID = 'bearing-range-lines-layer'
+export const BEARING_RANGE_LABEL_LAYER_ID = 'bearing-range-labels-layer'
 
 const EMPTY_FEATURE_COLLECTION = {type: 'FeatureCollection', features: []}
 
@@ -25,6 +26,9 @@ function getLineLayout() {
 function moveLayerToTop(map) {
     if (map.getLayer(BEARING_RANGE_LAYER_ID)) {
         map.moveLayer(BEARING_RANGE_LAYER_ID)
+    }
+    if (map.getLayer(BEARING_RANGE_LABEL_LAYER_ID)) {
+        map.moveLayer(BEARING_RANGE_LABEL_LAYER_ID)
     }
 }
 
@@ -58,24 +62,56 @@ export function ensureBearingRangeLayer(map, lineColor, appliedLineColorRef) {
             id: BEARING_RANGE_LAYER_ID,
             type: 'line',
             source: BEARING_RANGE_SOURCE_ID,
+            filter: ['!=', ['get', 'isLabel'], true],
             paint: getLinePaint(lineColor),
             layout: getLineLayout(),
         })
         moveLayerToTop(map)
     }
 
+    if (!map.getLayer(BEARING_RANGE_LABEL_LAYER_ID)) {
+        map.addLayer({
+            id: BEARING_RANGE_LABEL_LAYER_ID,
+            type: 'symbol',
+            source: BEARING_RANGE_SOURCE_ID,
+            filter: ['==', ['get', 'isLabel'], true],
+            layout: {
+                'text-field': ['get', 'label'],
+                'text-font': ['monospace'],
+                'text-size': 11,
+                'text-offset': [0, -0.8],
+                'text-anchor': 'bottom',
+                'text-allow-overlap': true,
+                'text-ignore-placement': true,
+            },
+            paint: {
+                'text-color': lineColor,
+                'text-halo-color': '#000000',
+                'text-halo-width': 2,
+                'text-opacity': ['get', 'opacity'],
+            },
+        })
+        moveLayerToTop(map)
+    }
+
     if (appliedLineColorRef.current !== lineColor) {
-        map.setPaintProperty(BEARING_RANGE_LAYER_ID, 'line-color', lineColor)
+        if (map.getLayer(BEARING_RANGE_LAYER_ID)) {
+            map.setPaintProperty(BEARING_RANGE_LAYER_ID, 'line-color', lineColor)
+        }
+        if (map.getLayer(BEARING_RANGE_LABEL_LAYER_ID)) {
+            map.setPaintProperty(BEARING_RANGE_LABEL_LAYER_ID, 'text-color', lineColor)
+        }
         appliedLineColorRef.current = lineColor
     }
 }
 
-export function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef) {
+export function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef, {previewLine = null} = {}) {
     if (!map) {
         return false
     }
 
-    const featureCollection = buildFeatureCollection(lines)
+    const linesToRender = previewLine ? [...lines, previewLine] : lines
+    const featureCollection = buildFeatureCollection(linesToRender)
     const existingSource = map.getSource(BEARING_RANGE_SOURCE_ID)
 
     if (existingSource) {
@@ -83,6 +119,9 @@ export function setBearingRangeLines(map, lines, lineColor, appliedLineColorRef)
 
         if (appliedLineColorRef.current !== lineColor && map.getLayer(BEARING_RANGE_LAYER_ID)) {
             map.setPaintProperty(BEARING_RANGE_LAYER_ID, 'line-color', lineColor)
+            if (map.getLayer(BEARING_RANGE_LABEL_LAYER_ID)) {
+                map.setPaintProperty(BEARING_RANGE_LABEL_LAYER_ID, 'text-color', lineColor)
+            }
             appliedLineColorRef.current = lineColor
         }
 

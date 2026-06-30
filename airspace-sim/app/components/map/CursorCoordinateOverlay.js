@@ -21,10 +21,15 @@ export default function CursorCoordinateOverlay({
         appSettings.gridReferenceSystem,
     )
 
+    const pos = getCursorBoxPosition(cursorBoxSize, cursorInfo, mapContainerRef)
+
     return (<Box
         ref={cursorBoxRef}
         style={{
-            position: 'absolute', ...getCursorBoxPosition(cursorBoxSize, cursorInfo, mapContainerRef),
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            transform: `translate3d(${pos.left ?? 0}px, ${pos.top ?? 0}px, 0)`,
             zIndex: UI_Z_INDEX.MAP_OVERLAY,
             padding: '6px 8px',
             borderRadius: 4,

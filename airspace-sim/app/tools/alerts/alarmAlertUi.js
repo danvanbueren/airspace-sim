@@ -70,3 +70,13 @@ export function scrollAlertIntoCenter(scrollContainer, alertElement) {
 
     scrollContainer.scrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop))
 }
+
+/**
+ * @param {{ signalId?: string }} alert
+ * @returns {boolean}
+ */
+export function alertIsError(alert) {
+    const errorSignalIds = ['MAP_ERROR', 'BROWSER_ERROR', 'UNHANDLED_REJECTION', 'REACT_ERROR']
+    return errorSignalIds.includes(alert?.signalId)
+}
+

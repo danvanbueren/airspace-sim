@@ -422,8 +422,24 @@ export function createFlightAircraft(id, route, airportByIcao, random) {
     }
 }
 
-export function assignNewRoute(aircraft, pickRoute, airportByIcao, random) {
-    const route = pickRoute(random)
+export function assignNewRoute(aircraft, pickRoute, airportByIcao, random, activeAircraftList = []) {
+    let route = null
+    let attempts = 0
+    const MIN_START_SPACING_NM = 40
+
+    while (attempts < 10) {
+        route = pickRoute(random)
+        const isCongested = activeAircraftList.some((other) => {
+            return other.id !== aircraft.id
+                && other.routeId === route.id
+                && (other.progressNm ?? 0) < MIN_START_SPACING_NM
+        })
+        if (!isCongested) {
+            break
+        }
+        attempts++
+    }
+
     const next = createFlightAircraft(aircraft.id, route, airportByIcao, random)
 
     return {
@@ -435,8 +451,8 @@ export function assignNewRoute(aircraft, pickRoute, airportByIcao, random) {
         segmentLengths: next.segmentLengths,
         totalRouteNm: next.totalRouteNm,
         progressNm: 0,
-        longitude: next.longitude,
-        latitude: next.latitude,
+        longitude: next.polyline[0].lng,
+        latitude: next.polyline[0].lat,
         heading: next.heading,
         speed: next.speed,
         baseSpeed: next.baseSpeed,

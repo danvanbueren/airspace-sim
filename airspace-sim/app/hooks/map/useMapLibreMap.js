@@ -55,6 +55,7 @@ export function useMapLibreMap({mapContainerRef, initialStyle, colorMode = 'dark
             center: [0, 0],
             zoom: 1,
             attributionControl: false,
+            pixelRatio: typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1,
         })
 
         mapRef.current.addControl(

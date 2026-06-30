@@ -6,7 +6,7 @@ function isMapChromePointerTarget(target) {
     return target instanceof Element && Boolean(target.closest('.maplibregl-ctrl'))
 }
 
-export function useCursorHooks(mapRef, enabled, mapContainerRef) {
+export function useCursorHooks(mapRef, enabled, mapContainerRef, cursorBoxRef) {
     const [cursorInfo, setCursorInfo] = useState(null)
     const animationFrameRef = useRef(null)
     const latestPointerRef = useRef(null)
@@ -35,6 +35,16 @@ export function useCursorHooks(mapRef, enabled, mapContainerRef) {
 
             const {x, y} = latestPointerRef.current
             const lngLat = map.unproject([x, y])
+
+            // Perform direct DOM transform update for ultra-smooth positioning
+            if (cursorBoxRef?.current) {
+                const boxSize = {
+                    width: cursorBoxRef.current.offsetWidth,
+                    height: cursorBoxRef.current.offsetHeight,
+                }
+                const pos = getCursorBoxPosition(boxSize, {x, y}, mapContainerRef)
+                cursorBoxRef.current.style.transform = `translate3d(${pos.left}px, ${pos.top}px, 0)`
+            }
 
             setCursorInfo({
                 x,
@@ -106,7 +116,7 @@ export function useCursorHooks(mapRef, enabled, mapContainerRef) {
                 animationFrameRef.current = null
             }
         }
-    }, [mapRef, enabled, mapContainerRef])
+    }, [mapRef, enabled, mapContainerRef, cursorBoxRef])
 
     return cursorInfo
 }
