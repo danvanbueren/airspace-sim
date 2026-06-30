@@ -10,7 +10,14 @@ import {
     deriveAttentionFlagsFromTrackState,
     resolveTrackAttentionFlags,
 } from '../../app/simulation/trackAttentionFlags.js'
-import {formatAttentionDisplayEntries, formatAttentionDisplayLines, getAttentionMapLabelStyles} from '../../app/tools/map/trackAttentionDisplay.js'
+import {
+    formatAttentionDisplayEntries,
+    formatAttentionDisplayLines,
+    getAttentionMapLabelStyles,
+    getTrackAttentionInstanceKey,
+    projectTrackAttentionCopies,
+    trackAttentionInstancesAreEqual,
+} from '../../app/tools/map/trackAttentionDisplay.js'
 import {TRACK_CORRELATION_MODES} from '../../app/simulation/trackFromDetection.js'
 import {TRACK_KINDS} from '../../app/simulation/trackKinds.js'
 import {TRACK_IDENTITIES} from '../../app/tools/milstd2525/trackSymbolCodes.js'
@@ -166,4 +173,51 @@ describe('trackAttentionDisplay', () => {
             {key: 'HOLD', label: 'HOLD'},
         ])
     })
+
+    it('projects attention labels for every visible world copy of a track', () => {
+        const map = {
+            project([lng, lat]) {
+                return {x: lng * 2, y: lat * 2}
+            },
+        }
+
+        const instances = projectTrackAttentionCopies(
+            map,
+            'TRK-1',
+            [0, 10],
+            -200,
+            200,
+        )
+
+        assert.ok(instances.length >= 3)
+        assert.ok(instances.some((instance) => instance.instanceKey === getTrackAttentionInstanceKey('TRK-1', 0)))
+        assert.ok(instances.some((instance) => instance.instanceKey === getTrackAttentionInstanceKey('TRK-1', 360)))
+        assert.ok(instances.some((instance) => instance.instanceKey === getTrackAttentionInstanceKey('TRK-1', -360)))
+        instances.forEach((instance) => {
+            assert.equal(instance.trackId, 'TRK-1')
+            assert.equal(instance.left, (Number(instance.instanceKey.split(':')[1]) * 2) + 28)
+            assert.equal(instance.top, 12)
+        })
+    })
+
+    it('detects when projected attention instances changed', () => {
+        const previous = {
+            'TRK-1:0': {trackId: 'TRK-1', left: 10, top: 20},
+        }
+        const unchanged = {
+            'TRK-1:0': {trackId: 'TRK-1', left: 10, top: 20},
+        }
+        const moved = {
+            'TRK-1:0': {trackId: 'TRK-1', left: 11, top: 20},
+        }
+        const duplicated = {
+            'TRK-1:0': {trackId: 'TRK-1', left: 10, top: 20},
+            'TRK-1:360': {trackId: 'TRK-1', left: 730, top: 20},
+        }
+
+        assert.equal(trackAttentionInstancesAreEqual(previous, unchanged), true)
+        assert.equal(trackAttentionInstancesAreEqual(previous, moved), false)
+        assert.equal(trackAttentionInstancesAreEqual(previous, duplicated), false)
+    })
 })
+
