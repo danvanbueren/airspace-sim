@@ -77,14 +77,26 @@ export function useCursorHooks(mapRef, enabled, mapContainerRef) {
             clearCursorInfo()
         }
 
+        const handleMapMove = () => {
+            if (!latestPointerRef.current)
+                return
+
+            if (animationFrameRef.current)
+                return
+
+            animationFrameRef.current = requestAnimationFrame(updateCursorInfo)
+        }
+
         container.addEventListener('pointermove', scheduleCursorUpdate)
         container.addEventListener('pointerdown', scheduleCursorUpdate)
         container.addEventListener('pointerleave', handlePointerLeave)
+        map.on('move', handleMapMove)
 
         return () => {
             container.removeEventListener('pointermove', scheduleCursorUpdate)
             container.removeEventListener('pointerdown', scheduleCursorUpdate)
             container.removeEventListener('pointerleave', handlePointerLeave)
+            map.off('move', handleMapMove)
 
             latestPointerRef.current = null
             setCursorInfo(null)
