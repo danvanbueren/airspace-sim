@@ -415,6 +415,16 @@ export default function MapView({
         && geometryKeyboardCustodyWindowId === null
     )
 
+    const geometryDrawMapInteractionsBlocked = useMemo(() => {
+        if (!activeShapeId) {
+            return false
+        }
+
+        const activeShape = shapes.find((shape) => shape.id === activeShapeId)
+
+        return activeShape?.status === GEOMETRY_STATUS.PENDING
+    }, [activeShapeId, shapes])
+
     const interactionsEnabled = useMapViewInteractions(
         mapRef,
         mapReady,
@@ -423,6 +433,7 @@ export default function MapView({
         mapCreationStyle,
         mapCursor,
         keyboardCameraControlsEnabled,
+        geometryDrawMapInteractionsBlocked,
     )
 
     const dismissManagementWindowsForDroppedTrack = useCallback((trackId) => {

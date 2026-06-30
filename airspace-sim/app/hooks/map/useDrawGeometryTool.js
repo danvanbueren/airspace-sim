@@ -325,7 +325,7 @@ export function useDrawGeometryTool(
         return true
     }, [applyShapeUpdate, finalizeShapeIfComplete, mapRef])
 
-    const handleMapDrawClick = useCallback((lngLat) => {
+    const handleMapDrawClick = useCallback((lngLat, mapPointFromEvent = null) => {
         const shapeId = activeShapeIdRef.current
         const shape = shapeId ? getShapeById(shapeId) : null
 
@@ -340,7 +340,7 @@ export function useDrawGeometryTool(
         }
 
         const map = mapRef.current
-        const mapPoint = map?.project([point.lng, point.lat])
+        const mapPoint = mapPointFromEvent ?? map?.project([point.lng, point.lat])
         const params = getShapeById(shape.id)?.params ?? shape.params
 
         setIsDrawingGeometry(true)
@@ -654,8 +654,23 @@ export function useDrawGeometryTool(
             }
         }
 
-        const handleClick = (event) => {
-            if (event.defaultPrevented) {
+        const getLngLatFromMouseEvent = (event) => {
+            const bounds = canvas.getBoundingClientRect()
+            const x = event.clientX - bounds.left
+            const y = event.clientY - bounds.top
+            const lngLat = map.unproject([x, y])
+
+            return {
+                lngLat: {
+                    lat: lngLat.lat,
+                    lng: lngLat.lng,
+                },
+                mapPoint: {x, y},
+            }
+        }
+
+        const handleDrawMouseDown = (event) => {
+            if (event.defaultPrevented || event.button !== 0) {
                 return
             }
 
@@ -666,7 +681,11 @@ export function useDrawGeometryTool(
             }
 
             event.preventDefault()
-            handleMapDrawClick(event.lngLat)
+            event.stopPropagation()
+
+            const {lngLat, mapPoint} = getLngLatFromMouseEvent(event)
+
+            handleMapDrawClick(lngLat, mapPoint)
         }
 
         const handleMouseMove = (event) => {
@@ -713,16 +732,16 @@ export function useDrawGeometryTool(
             }
         }
 
-        map.on('click', handleClick)
         map.on('click', handlePrimarySelect)
         map.on('mousemove', handleMouseMove)
         map.on('mouseleave', handleMouseLeave)
+        canvas.addEventListener('mousedown', handleDrawMouseDown, true)
 
         return () => {
-            map.off('click', handleClick)
             map.off('click', handlePrimarySelect)
             map.off('mousemove', handleMouseMove)
             map.off('mouseleave', handleMouseLeave)
+            canvas.removeEventListener('mousedown', handleDrawMouseDown, true)
             clearDrawGeometryCursor()
             clearGeometryHoverCursor()
         }

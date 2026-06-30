@@ -16,13 +16,15 @@ export function useMapViewInteractions(
     mapCreationStyle,
     mapCursor,
     keyboardCameraControlsEnabled = true,
+    mapPanBlocked = false,
 ) {
     const interactionsEnabled = mapReady && mapInteractionsEnabled
-    const keyboardControlsEnabled = interactionsEnabled && keyboardCameraControlsEnabled
+    const mapPanEnabled = interactionsEnabled && !mapPanBlocked
+    const keyboardControlsEnabled = interactionsEnabled && keyboardCameraControlsEnabled && !mapPanBlocked
 
     useMapStyle(mapRef, mapStyle, mapCreationStyle, mapReady)
     useKeyboardCameraControls(mapRef, keyboardControlsEnabled)
-    useRemappableMapDragPan(mapRef, interactionsEnabled, mapCursor)
+    useRemappableMapDragPan(mapRef, mapPanEnabled, mapCursor)
     useMapCenterOnClick(mapRef, interactionsEnabled, keyboardControlsEnabled)
     useMapCursor(mapRef, interactionsEnabled, mapCursor)
     useMapInteractionGuards(mapRef, interactionsEnabled)
