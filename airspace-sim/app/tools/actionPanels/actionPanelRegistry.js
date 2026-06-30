@@ -115,7 +115,6 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         label: 'Rectangle',
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_RECTANGLE,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_RECTANGLE,
-        disabled: true,
         assignable: false,
     },
     {
@@ -124,7 +123,6 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         label: 'Square',
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_SQUARE,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_SQUARE,
-        disabled: true,
         assignable: false,
     },
     {
@@ -133,7 +131,6 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         label: 'Circle',
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_CIRCLE,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_CIRCLE,
-        disabled: true,
         assignable: false,
     },
     {
@@ -142,7 +139,6 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         label: 'Oval',
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_OVAL,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_OVAL,
-        disabled: true,
         assignable: false,
     },
     {
@@ -151,7 +147,6 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         label: 'Racetrack',
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_RACETRACK,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_RACETRACK,
-        disabled: true,
         assignable: false,
     },
     {
@@ -160,7 +155,6 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         label: 'Polygon',
         actionKey: ACTION_PANEL_ITEM_IDS.DRAW_POLYGON,
         iconKey: ACTION_PANEL_ITEM_IDS.DRAW_POLYGON,
-        disabled: true,
         assignable: false,
     },
 ]

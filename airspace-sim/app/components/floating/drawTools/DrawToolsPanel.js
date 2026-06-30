@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useRef} from 'react'
+import {useCallback, useMemo, useRef} from 'react'
 import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import {Box, Divider, IconButton, Typography} from '@mui/material'
@@ -17,6 +17,10 @@ import {
 import {MAP_FLOATING_INSET_PX} from '@/app/constants/mapUiLayout'
 import {FLOATING_DRAGGABLE_IDS} from '@/app/constants/floatingDraggableIds'
 import {useDrawTools} from '@/app/contexts/DrawToolsContext'
+import {useDrawGeometry} from '@/app/contexts/DrawGeometryContext'
+import {DRAW_TOOL_ITEM_ID_SET} from '@/app/tools/actionPanels/drawToolsActionPanel'
+import {GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
+import {isGeometryShapeInPendingDrawStatus} from '@/app/tools/map/drawGeometry/drawGeometryModels'
 import {useFloatingActionPanelLayout} from '@/app/hooks/map/useFloatingActionPanelLayout'
 import {useFloatingDraggableRegistration} from '@/app/hooks/ui/useFloatingDraggableRegistration'
 
@@ -40,6 +44,20 @@ function ResizeIndicator() {
 export default function DrawToolsPanel({interactionsEnabled = true}) {
     const panelRef = useRef(null)
     const {drawToolsState, closeDrawTools, updateDrawToolsLayout} = useDrawTools()
+    const {shapes, activeShapeId, startDrawTool} = useDrawGeometry()
+    const highlightedDrawToolItemId = useMemo(() => {
+        if (!activeShapeId) {
+            return null
+        }
+
+        const activeShape = shapes.find((shape) => shape.id === activeShapeId)
+
+        if (!isGeometryShapeInPendingDrawStatus(activeShape)) {
+            return null
+        }
+
+        return GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM[activeShape.type] ?? null
+    }, [activeShapeId, shapes])
     const draggableId = FLOATING_DRAGGABLE_IDS.drawTools
     const {zIndex, bringToFront} = useFloatingDraggableRegistration(
         drawToolsState.isOpen ? draggableId : null,
@@ -90,6 +108,14 @@ export default function DrawToolsPanel({interactionsEnabled = true}) {
         event.stopPropagation()
         closeDrawTools()
     }, [closeDrawTools])
+
+    const handleDrawToolSelect = useCallback((actionKey) => {
+        if (!DRAW_TOOL_ITEM_ID_SET.has(actionKey)) {
+            return
+        }
+
+        startDrawTool(actionKey)
+    }, [startDrawTool])
 
     if (!drawToolsState.isOpen || !drawToolsState.layout) {
         return null
@@ -187,6 +213,8 @@ export default function DrawToolsPanel({interactionsEnabled = true}) {
                     displayStyle={ACTION_PANEL_DISPLAY_STYLES.COMPACT}
                     panelWidthPx={width}
                     compactColumnCount={DRAW_TOOLS_COMPACT_COLUMN_COUNT}
+                    runButtonActionOverride={handleDrawToolSelect}
+                    activeButtonActionKey={highlightedDrawToolItemId}
                 />
             </FloatingPanel>
 

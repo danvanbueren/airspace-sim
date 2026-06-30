@@ -33,6 +33,10 @@ export const DEFAULT_CONTROL_BINDINGS = {
     scopeTool: {
         toggleGroupCriteriaCircle: ['capslock'],
     },
+    drawGeometryTool: {
+        cancelButton: ['escape'],
+        completePolygonButton: ['enter'],
+    },
 }
 
 const KEYBOARD_BINDING_KEYS = [
@@ -64,6 +68,11 @@ const SCOPE_TOOL_KEYBOARD_BINDING_KEYS = [
     'toggleGroupCriteriaCircle',
 ]
 
+const DRAW_GEOMETRY_KEYBOARD_BINDING_KEYS = [
+    'cancelButton',
+    'completePolygonButton',
+]
+
 function clearBindingSection(bindings, bindingKeys) {
     return bindingKeys.reduce((clearedBindings, bindingKey) => ({
         ...clearedBindings,
@@ -90,6 +99,7 @@ export const UNBOUND_CONTROL_BINDINGS = {
     }), {...DEFAULT_CONTROL_BINDINGS.mapCursor}),
     bearingRangeTool: clearBearingRangeToolBindings(DEFAULT_CONTROL_BINDINGS.bearingRangeTool),
     scopeTool: clearBindingSection(DEFAULT_CONTROL_BINDINGS.scopeTool, SCOPE_TOOL_KEYBOARD_BINDING_KEYS),
+    drawGeometryTool: clearBindingSection(DEFAULT_CONTROL_BINDINGS.drawGeometryTool, DRAW_GEOMETRY_KEYBOARD_BINDING_KEYS),
 }
 
 export function buildClearedControlBindings(currentBindings) {
@@ -102,6 +112,7 @@ export function buildClearedControlBindings(currentBindings) {
         }), {...currentBindings.mapCursor}),
         bearingRangeTool: clearBearingRangeToolBindings(currentBindings.bearingRangeTool),
         scopeTool: clearBindingSection(currentBindings.scopeTool, SCOPE_TOOL_KEYBOARD_BINDING_KEYS),
+        drawGeometryTool: clearBindingSection(currentBindings.drawGeometryTool, DRAW_GEOMETRY_KEYBOARD_BINDING_KEYS),
     }
 }
 
@@ -111,4 +122,5 @@ export const CONTROL_BINDING_KEY_GROUPS = {
     bearingRangeMouse: BEARING_RANGE_BINDING_KEYS,
     bearingRangeKeyboard: BEARING_RANGE_KEYBOARD_BINDING_KEYS,
     scopeToolKeyboard: SCOPE_TOOL_KEYBOARD_BINDING_KEYS,
+    drawGeometryKeyboard: DRAW_GEOMETRY_KEYBOARD_BINDING_KEYS,
 }

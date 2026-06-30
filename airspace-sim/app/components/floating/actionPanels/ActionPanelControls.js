@@ -247,6 +247,7 @@ function UnifiedCompactControls({
     isToggleActive,
     handleToggleChange,
     runButtonAction,
+    activeButtonActionKey,
 }) {
     const renderableItemIds = filterRenderableItemIds(itemIds)
     const columnCount = compactColumnCount
@@ -288,6 +289,8 @@ function UnifiedCompactControls({
                     )
                 }
 
+                const isActiveButton = activeButtonActionKey === definition.actionKey
+
                 return (
                     <Box
                         key={`action-panel-compact-button-${itemId}`}
@@ -297,8 +300,8 @@ function UnifiedCompactControls({
                         }}
                     >
                         <Button
-                            variant='outlined'
-                            color='inherit'
+                            variant={isActiveButton ? 'contained' : 'outlined'}
+                            color={isActiveButton ? 'primary' : 'inherit'}
                             size='small'
                             fullWidth
                             disabled={definition.disabled}
@@ -325,12 +328,16 @@ export default function ActionPanelControls({
     displayStyle,
     panelWidthPx,
     compactColumnCount,
+    runButtonActionOverride,
+    activeButtonActionKey,
 }) {
     const {
         isToggleActive,
         handleToggleChange,
-        runButtonAction,
+        runButtonAction: defaultRunButtonAction,
     } = useActionPanelItemActions()
+
+    const runButtonAction = runButtonActionOverride ?? defaultRunButtonAction
 
     const controlsProps = useMemo(() => ({
         itemIds,
@@ -339,7 +346,16 @@ export default function ActionPanelControls({
         isToggleActive,
         handleToggleChange,
         runButtonAction,
-    }), [compactColumnCount, handleToggleChange, isToggleActive, itemIds, panelWidthPx, runButtonAction])
+        activeButtonActionKey,
+    }), [
+        activeButtonActionKey,
+        compactColumnCount,
+        handleToggleChange,
+        isToggleActive,
+        itemIds,
+        panelWidthPx,
+        runButtonAction,
+    ])
 
     if (displayStyle === ACTION_PANEL_DISPLAY_STYLES.COMPACT) {
         return <UnifiedCompactControls {...controlsProps} />

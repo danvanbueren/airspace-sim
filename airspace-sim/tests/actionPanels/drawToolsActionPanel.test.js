@@ -27,6 +27,8 @@ describe('draw tools panel sizing', () => {
             height,
             estimateDrawToolsPanelHeight(width),
         )
+        assert.equal(width, 220)
+        assert.ok(height >= 374)
         assert.equal(
             Math.ceil(DRAW_TOOLS_DEFAULT_ITEM_IDS.length / DRAW_TOOLS_COMPACT_COLUMN_COUNT),
             DRAW_TOOLS_DEFAULT_ITEM_IDS.length,
@@ -55,12 +57,12 @@ describe('draw tools panel positioning', () => {
 })
 
 describe('draw tool registry items', () => {
-    it('registers disabled draw shape buttons with icons', () => {
+    it('registers enabled draw shape buttons with icons', () => {
         for (const itemId of DRAW_TOOLS_DEFAULT_ITEM_IDS) {
             const definition = getActionPanelItemDefinition(itemId)
 
             assert.ok(definition, `missing definition for ${itemId}`)
-            assert.equal(definition.disabled, true)
+            assert.notEqual(definition.disabled, true)
             assert.equal(definition.iconKey, itemId)
             assert.equal(definition.assignable, false)
         }

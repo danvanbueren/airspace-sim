@@ -28,28 +28,21 @@ export const DRAW_TOOL_ITEM_ID_SET = new Set(DRAW_TOOLS_DEFAULT_ITEM_IDS)
 
 const DRAW_TOOLS_PANEL_EDGE_PADDING_PX = 8
 
-const DRAW_TOOLS_HEADER_DRAG_ICON_PX = 20
-const DRAW_TOOLS_HEADER_CLOSE_BUTTON_PX = 34
-const DRAW_TOOLS_HEADER_GAP_PX = 12
-const DRAW_TOOLS_TITLE_CHAR_WIDTH_PX = 8.5
+const DRAW_TOOLS_PANEL_DEFAULT_WIDTH_PX = 220
+const DRAW_TOOLS_PANEL_HEIGHT_SCALE = 1.1
 
 export function estimateDrawToolsPanelWidth() {
-    const titleWidth = DRAW_TOOLS_PANEL_TITLE.length * DRAW_TOOLS_TITLE_CHAR_WIDTH_PX
-    const headerContentWidth = DRAW_TOOLS_HEADER_DRAG_ICON_PX
-        + DRAW_TOOLS_HEADER_GAP_PX
-        + titleWidth
-        + DRAW_TOOLS_HEADER_CLOSE_BUTTON_PX
-
-    return Math.ceil(headerContentWidth + ACTION_PANEL_BODY_PADDING_PX)
+    return DRAW_TOOLS_PANEL_DEFAULT_WIDTH_PX
 }
 
 export function estimateDrawToolsPanelHeight(panelWidthPx = estimateDrawToolsPanelWidth()) {
     const itemCount = DRAW_TOOLS_DEFAULT_ITEM_IDS.length
     const rowCount = Math.ceil(itemCount / DRAW_TOOLS_COMPACT_COLUMN_COUNT)
-
-    return DRAW_TOOLS_HEADER_CHROME_PX
+    const baseHeight = DRAW_TOOLS_HEADER_CHROME_PX
         + (rowCount * COMPACT_BUTTON_MIN_HEIGHT_PX)
         + (Math.max(0, rowCount - 1) * ACTION_PANEL_GRID_GAP_COMPACT_PX)
+
+    return Math.ceil(baseHeight * DRAW_TOOLS_PANEL_HEIGHT_SCALE)
 }
 
 export function estimateDrawToolsPanelSize() {
