@@ -107,6 +107,46 @@ function fillRing(context, ring, scaleX, scaleY) {
     context.fill()
 }
 
+function strokeProjectedLine(context, map, from, to, strokeColor, scaleX, scaleY, opacity) {
+    const fromPoint = map.project([from.lng, from.lat])
+    const toPoint = map.project([to.lng, to.lat])
+
+    if (
+        !Number.isFinite(fromPoint.x) || !Number.isFinite(fromPoint.y)
+        || !Number.isFinite(toPoint.x) || !Number.isFinite(toPoint.y)
+    ) {
+        return
+    }
+
+    context.save()
+    context.strokeStyle = strokeColor
+    context.globalAlpha = opacity
+    context.lineWidth = 2 * scaleX
+    context.lineCap = 'round'
+    context.beginPath()
+    context.moveTo(fromPoint.x * scaleX, fromPoint.y * scaleY)
+    context.lineTo(toPoint.x * scaleX, toPoint.y * scaleY)
+    context.stroke()
+    context.restore()
+}
+
+function drawConstructionPreview(context, map, constructionPreview, strokeColor, scaleX, scaleY) {
+    if (!constructionPreview?.axisLine) {
+        return
+    }
+
+    strokeProjectedLine(
+        context,
+        map,
+        constructionPreview.axisLine.from,
+        constructionPreview.axisLine.to,
+        strokeColor,
+        scaleX,
+        scaleY,
+        GEOMETRY_PENDING_OPACITY,
+    )
+}
+
 function drawGeometryOnOverlay(context, map, shape, strokeColor, scaleX, scaleY) {
     const geometry = buildGeometryGeoJson(shape)
 
@@ -149,7 +189,7 @@ function drawGeometryOnOverlay(context, map, shape, strokeColor, scaleX, scaleY)
     context.restore()
 }
 
-export function drawGeometryPreviewOnOverlay(map, overlay, shapes, strokeColor) {
+export function drawGeometryPreviewOnOverlay(map, overlay, shapes, strokeColor, constructionPreview = null) {
     const context = overlay?.getContext('2d')
 
     if (!context || !Array.isArray(shapes)) {
@@ -164,4 +204,6 @@ export function drawGeometryPreviewOnOverlay(map, overlay, shapes, strokeColor) 
     for (const shape of shapes) {
         drawGeometryOnOverlay(context, map, shape, strokeColor, scaleX, scaleY)
     }
+
+    drawConstructionPreview(context, map, constructionPreview, strokeColor, scaleX, scaleY)
 }

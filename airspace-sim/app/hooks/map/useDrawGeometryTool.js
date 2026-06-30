@@ -40,6 +40,7 @@ import {
 } from '@/app/tools/map/drawGeometry/drawGeometryMapLayer'
 import {getDrawGeometryCursor} from '@/app/tools/map/drawGeometry/drawGeometryCursor'
 import {roundDrawGeometryParams} from '@/app/tools/map/drawGeometry/drawGeometryRounding'
+import {getRacetrackAxisLinePreview} from '@/app/tools/map/drawGeometry/drawGeometryRacetrackPreview'
 
 function getDistancePixels(firstPoint, secondPoint) {
     const deltaX = firstPoint.x - secondPoint.x
@@ -106,6 +107,7 @@ export function useDrawGeometryTool(
     const activeShapeIdRef = useRef(activeShapeId)
     const drawingPhaseRef = useRef(0)
     const polygonPreviewLngLatRef = useRef(null)
+    const racetrackPreviewLngLatRef = useRef(null)
     const previewOverlayRef = useRef(null)
     const appliedColorsRef = useRef(null)
     const bindingsRef = useRef(controlBindings.drawGeometryTool)
@@ -144,6 +146,22 @@ export function useDrawGeometryTool(
         return shapesList
     }, [])
 
+    const getRacetrackConstructionPreview = useCallback(() => {
+        const shapeId = activeShapeIdRef.current
+        const shape = shapeId ? getShapeById(shapeId) : null
+        const axisLine = getRacetrackAxisLinePreview({
+            shape,
+            phase: drawingPhaseRef.current,
+            cursorPoint: racetrackPreviewLngLatRef.current,
+        })
+
+        if (!axisLine) {
+            return null
+        }
+
+        return {axisLine}
+    }, [getShapeById])
+
     const clearPreview = useCallback(() => {
         removeDrawGeometryPreviewOverlay(previewOverlayRef.current)
         previewOverlayRef.current = null
@@ -163,8 +181,9 @@ export function useDrawGeometryTool(
             overlay,
             getPreviewShapes(),
             getStrokeColor(themeModeRef.current),
+            getRacetrackConstructionPreview(),
         )
-    }, [getPreviewShapes, getStrokeColor, mapRef])
+    }, [getPreviewShapes, getRacetrackConstructionPreview, getStrokeColor, mapRef])
 
     const flushShapesToMapLayer = useCallback(() => {
         const map = mapRef.current
@@ -220,6 +239,7 @@ export function useDrawGeometryTool(
     const resetDrawingInteraction = useCallback(() => {
         drawingPhaseRef.current = 0
         polygonPreviewLngLatRef.current = null
+        racetrackPreviewLngLatRef.current = null
         setIsDrawingGeometry(false)
     }, [])
 
@@ -459,6 +479,7 @@ export function useDrawGeometryTool(
                         center2: point,
                         radiusNm: 0,
                     })
+                    racetrackPreviewLngLatRef.current = null
                     drawingPhaseRef.current = 2
                     return
                 }
@@ -541,7 +562,8 @@ export function useDrawGeometryTool(
                 break
             case GEOMETRY_SHAPE_TYPES.RACETRACK:
                 if (drawingPhaseRef.current === 1 && params.center1) {
-                    applyShapeUpdate(shape.id, {center2: point, radiusNm: 0})
+                    racetrackPreviewLngLatRef.current = point
+                    redrawPreview()
                 } else if (drawingPhaseRef.current === 2 && params.center1 && params.center2) {
                     applyShapeUpdate(shape.id, {
                         radiusNm: Math.min(
@@ -558,7 +580,7 @@ export function useDrawGeometryTool(
             default:
                 break
         }
-    }, [applyShapeUpdate, getShapeById])
+    }, [applyShapeUpdate, getShapeById, redrawPreview])
 
     const cancelDrawing = useCallback(() => {
         cancelPendingShape()
@@ -599,6 +621,7 @@ export function useDrawGeometryTool(
 
         drawingPhaseRef.current = deriveDrawingPhaseForShape(shape)
         polygonPreviewLngLatRef.current = null
+        racetrackPreviewLngLatRef.current = null
         setIsDrawingGeometry(false)
     }, [activeShapeId, getShapeById, resetDrawingInteraction])
 
