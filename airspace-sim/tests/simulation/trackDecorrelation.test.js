@@ -70,7 +70,7 @@ describe('trackDecorrelation', () => {
         assert.equal(track.iffMode3UpdatedAt, null)
     })
 
-    it('does not decorrelate stale active tracks while linked truth aircraft remain nearby', () => {
+    it('does not decorrelate stale active tracks while linked truth aircraft remain nearby and dropping is disabled', () => {
         const trackStore = new TrackStore()
         trackStore.addTrack(createTrack({
             truthAircraftId: 'FLT-1',

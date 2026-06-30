@@ -210,7 +210,7 @@ Sensor and overlay visibility are display-only toggles:
 
 | Setting | Role |
 |---------|------|
-| Enable simulation engine | Pauses or resumes flight-world motion, extrapolation, and sensor scans |
+| Enable simulation engine | Pauses or resumes flight-world motion, extrapolation, and sensor scans without mass decorrelation |
 | Radar / IFF refresh (ms) | Sensor scan cadence |
 | Correlation threshold (NM) | Max distance to link a return to an active track |
 | Plot association threshold (NM) | Plot trail association, initiation blocking near active tracks, and merge proximity to a correlated return (default 3 NM) |
@@ -218,7 +218,7 @@ Sensor and overlay visibility are display-only toggles:
 | Max active flights (global) | Target fleet size |
 | Quality preset | Applies preset Hz and fleet caps |
 | Adaptive performance balancing | Reduces tick rate under frame pressure; does not cull the fleet by viewport |
-| Viewport-based track dropping | When enabled, limits sensor scans to the visible map area so off-viewport tracks may go stale and auto-drop; when disabled, scans the full global fleet to maintain all firm tracks |
+| Viewport-based track dropping | When enabled, removes firm tracks outside the visible map area while the global truth fleet and sensor scans continue; when disabled, all firm tracks are maintained regardless of viewport |
 
 ## Look & Feel
 

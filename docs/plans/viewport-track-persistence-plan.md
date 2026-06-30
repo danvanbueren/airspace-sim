@@ -15,7 +15,7 @@ User-facing behavior is summarized in the [repository root README](../../README.
 |-----------|-----------|
 | Initial plan document on `main` | [PR #88](https://github.com/danvanbueren/airspace-sim/pull/88) — superseded by `docs/plans/` layout in [PR #89](https://github.com/danvanbueren/airspace-sim/pull/89) |
 | Docs restructure and plan move to `docs/plans/` | [PR #89](https://github.com/danvanbueren/airspace-sim/pull/89) |
-| Phases 0–7 (implementation) | Not started |
+| Phases 0–7 (implementation) | In progress — viewport traffic maintenance removed; global sensor scans restored; firm-track viewport dropping corrected in cursor/fix-track-viewport-semantics-6d65 |
 
 When a phase ships, add a row here with the commit SHA or PR link before checking items in the status table below.
 
@@ -27,14 +27,16 @@ When a phase ships, add a row here with the commit SHA or PR link before checkin
 |------|--------|-------|
 | Root cause analysis | ✅ Complete | Display culling vs simulation viewport coupling |
 | Product decisions | ✅ Locked | Maintain existing tracks only; fixed NM sensor padding |
-| Failing integration tests | ❌ Not started | Phase 0 acceptance criteria |
-| Sensor scan bounds split | ❌ Not started | Display bounds ≠ sensor scan bounds |
-| Track-aware sensor coverage | ❌ Not started | Union of viewport + firm track envelope |
-| Initiation limited to display bounds | ❌ Not started | New tracks only when in view |
-| Lifecycle guards (defense in depth) | ❌ Not started | Optional safety nets |
-| Sensor tick display culling | ❌ Not started | Render only viewport ticks if scan area grows |
+| Failing integration tests | ✅ Complete | `viewportTrackPersistence.test.js`, `trackViewportLifecycle.test.js` |
+| Sensor scan bounds split | ✅ Complete | Display bounds ≠ sensor scan bounds |
+| Track-aware sensor coverage | ✅ Complete | Union of viewport + firm track envelope |
+| Initiation limited to display bounds | ✅ Complete | Always gated to display bounds |
+| Lifecycle guards (defense in depth) | ✅ Complete | Truth proximity sustain when viewport dropping is off |
+| Viewport traffic maintenance removal | ✅ Complete | No zoom-driven aircraft teleportation |
+| Firm-track viewport dropping | ✅ Complete | Drop off-viewport firm tracks; keep global sensor data |
+| Sensor tick display culling | ✅ Complete | Filter detections to display bounds in `detectionFeatures.js` |
 | Performance validation | ❌ Not started | Existing scripts under `airspace-sim/scripts/` |
-| Architecture docs update | ❌ Not started | Clarify bounds split in [Simulation Architecture](../architecture/simulation-architecture.md) after implementation |
+| Architecture docs update | ✅ Complete | [Simulation Architecture](../architecture/simulation-architecture.md) |
 
 ---
 
@@ -324,11 +326,12 @@ After shipping:
 
 ## Acceptance criteria
 
-- [ ] Auto track panning off-screen does not decorrelate or auto-drop within default timelines (~23 s) while truth aircraft remain within sensor coverage.
-- [ ] Panning back shows the **same** track ID and preserved operator metadata.
-- [ ] No duplicate `TRK-*` initiation for the same contact after pan-away / pan-back.
-- [ ] New automatic tracks still require 3-hit plot promotion and only initiate for detections inside **display** bounds.
-- [ ] Map rendering still culls off-screen tracks and (after Phase 5) off-screen sensor ticks.
+- [x] Auto track panning off-screen does not decorrelate or auto-drop within default timelines (~23 s) while truth aircraft remain within sensor coverage (when viewport dropping is off).
+- [x] Panning back shows the **same** track ID and preserved operator metadata (when viewport dropping is off).
+- [x] No duplicate `TRK-*` initiation for the same contact after pan-away / pan-back (when viewport dropping is off).
+- [x] New automatic tracks still require 3-hit plot promotion and only initiate for detections inside **display** bounds.
+- [x] Map rendering still culls off-screen tracks and off-screen sensor ticks.
+- [x] Zooming in does not teleport truth aircraft or spawn additional fleet members to fill the viewport.
 - [ ] Performance scripts show acceptable scan cost vs baseline for typical operator workloads.
 
 ---

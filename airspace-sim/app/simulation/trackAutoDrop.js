@@ -102,7 +102,11 @@ export function processAutoDropTracks(trackStore, timestamp, settings = {}, flig
             continue
         }
 
-        if (flightWorld && isTruthAircraftNearTrack(flightWorld, track, settings)) {
+        if (
+            flightWorld
+            && settings.viewportBasedTrackDroppingEnabled !== true
+            && isTruthAircraftNearTrack(flightWorld, track, settings)
+        ) {
             if (track.dropRiskAt || track.dropAt) {
                 trackStore.updateTrack(trackId, getAutoDropStateClearUpdates())
             }
