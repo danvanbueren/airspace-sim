@@ -69,6 +69,7 @@ const MAP_STYLES = {
 }
 
 const EMPTY_TRACKS = []
+const EMPTY_INHIBITED_ATTENTIONS = []
 
 export default function MapView({
     mapInteractionsEnabled = true,
@@ -114,17 +115,20 @@ export default function MapView({
         openTrackManagementWindowRef.current?.(track, event)
     }, [])
 
+    const simulationSnapshot = useSimulationLoop(mapRef, mapReady)
+
     const trackMapLayer = useTrackMapLayer(mapRef, mapReady, {
         iconSize: 40,
         showLabels: true,
         styleKey: mapStyle,
         onTrackClick: handleMapTrackClick,
         mapCursor,
+        evaluationTime: simulationSnapshot?.evaluationTime ?? 0,
+        inhibitedAttentionIds: appSettings.inhibitedAttentions ?? EMPTY_INHIBITED_ATTENTIONS,
+        iffRefreshMs: appSettings.iffRefreshMs,
     })
 
     useRegisteredMap(mapRef, mapReady, registerMap)
-
-    const simulationSnapshot = useSimulationLoop(mapRef, mapReady)
     const [mapVisibleTracks, setMapVisibleTracks] = useState([])
     const simulationTracks = simulationSnapshot?.tracks ?? EMPTY_TRACKS
     const simulationEvaluationTime = simulationSnapshot?.evaluationTime ?? 0
@@ -773,15 +777,15 @@ export default function MapView({
         }
     }, [mapReady, mapRef, trackMapLayer.layerId, trackMapLayer.labelLayerId, releaseGeometryKeyboardCustody, releaseTrackManagementKeyboardCustody])
 
-    const cursorInfo = useCursorHooks(mapRef, interactionsEnabled, mapContainerRef)
+    const cursorInfo = useCursorHooks(mapRef, interactionsEnabled, mapContainerRef, cursorBoxRef)
     const visibleCursorInfo = isDrawingBearingRangeLine || isDrawingGeometry ? null : cursorInfo
 
     useGroupCriteriaCircleTool(mapRef, interactionsEnabled, {
         strokeColor: scopeCircleStrokeColor,
         cursorInfo: visibleCursorInfo,
     })
-    const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [visibleCursorInfo])
-    const contextMenuSize = useMeasuredElementSize(contextMenuRef, [currentContextMenuElement])
+    const cursorBoxSize = useMeasuredElementSize(cursorBoxRef, [visibleCursorInfo !== null])
+    const contextMenuSize = useMeasuredElementSize(contextMenuRef, [currentContextMenuElement !== null])
 
     const mapOverlays = (
         <>
