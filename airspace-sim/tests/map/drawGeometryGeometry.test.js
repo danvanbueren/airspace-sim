@@ -5,7 +5,9 @@ import {
     convertGeometryShapeType,
 } from '../../app/tools/map/drawGeometry/drawGeometryConversion.js'
 import {
+    buildGeometryFeature,
     buildGeometryGeoJson,
+    buildGeometryLabelFeature,
     deriveAxisAlignedHalfExtentsNm,
     deriveCircleRadiusNm,
     deriveSquareHalfSizeNm,
@@ -59,6 +61,42 @@ describe('draw geometry builders', () => {
         const edge = {lat: 41, lng: -75}
 
         assert.ok(deriveCircleRadiusNm(center, edge) > 0)
+    })
+
+    it('builds a stadium-shaped horizontal racetrack with straight sides', () => {
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.RACETRACK)
+        shape.params = {
+            center1: {lat: 40, lng: -80},
+            center2: {lat: 40, lng: -70},
+            radiusNm: 5,
+        }
+        shape.status = GEOMETRY_STATUS.COMMITTED
+
+        const geometry = buildGeometryGeoJson(shape)
+        const ring = geometry.coordinates[0]
+
+        assert.equal(geometry.type, 'Polygon')
+        assert.ok(ring.length > 40)
+        assert.equal(ring[0][0], ring[ring.length - 1][0])
+        assert.equal(ring[0][1], ring[ring.length - 1][1])
+    })
+
+    it('keeps shape labels off polygon features', () => {
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.RECTANGLE)
+        shape.name = 'ahh!'
+        shape.params = {
+            center: {lat: 40, lng: -75},
+            halfWidthNm: 10,
+            halfHeightNm: 5,
+        }
+        shape.status = GEOMETRY_STATUS.COMMITTED
+
+        const feature = buildGeometryFeature(shape)
+        const labelFeature = buildGeometryLabelFeature(shape)
+
+        assert.equal(feature.properties.name, undefined)
+        assert.equal(labelFeature.properties.label, 'ahh!')
+        assert.equal(labelFeature.properties.name, undefined)
     })
 })
 

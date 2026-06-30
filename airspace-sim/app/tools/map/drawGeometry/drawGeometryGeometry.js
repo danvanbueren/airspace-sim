@@ -107,19 +107,26 @@ function buildHorizontalRacetrackRing(leftCenter, rightCenter, radiusNm) {
     const ring = []
 
     for (let index = 0; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
-        const bearing = 90 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
-        const point = offsetLngLat(leftCenter.lng, leftCenter.lat, bearing, radiusNm)
+        const bearing = 180 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
+        const point = offsetLngLat(leftCenter.lng, leftCenter.lat, bearing % 360, radiusNm)
 
         ring.push([point.lng, point.lat])
     }
 
-    for (let index = 0; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
-        const bearing = 270 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
+    const rightNorth = offsetLngLat(rightCenter.lng, rightCenter.lat, 0, radiusNm)
+
+    ring.push([rightNorth.lng, rightNorth.lat])
+
+    for (let index = 1; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
+        const bearing = (index / RACETRACK_ARC_SEGMENTS) * 180
         const point = offsetLngLat(rightCenter.lng, rightCenter.lat, bearing, radiusNm)
 
         ring.push([point.lng, point.lat])
     }
 
+    const leftSouth = offsetLngLat(leftCenter.lng, leftCenter.lat, 180, radiusNm)
+
+    ring.push([leftSouth.lng, leftSouth.lat])
     ring.push(ring[0])
 
     return ring
@@ -129,19 +136,26 @@ function buildVerticalRacetrackRing(bottomCenter, topCenter, radiusNm) {
     const ring = []
 
     for (let index = 0; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
-        const bearing = 0 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
-        const point = offsetLngLat(topCenter.lng, topCenter.lat, bearing, radiusNm)
-
-        ring.push([point.lng, point.lat])
-    }
-
-    for (let index = 0; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
-        const bearing = 180 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
+        const bearing = 90 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
         const point = offsetLngLat(bottomCenter.lng, bottomCenter.lat, bearing, radiusNm)
 
         ring.push([point.lng, point.lat])
     }
 
+    const topWest = offsetLngLat(topCenter.lng, topCenter.lat, 270, radiusNm)
+
+    ring.push([topWest.lng, topWest.lat])
+
+    for (let index = 1; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
+        const bearing = 270 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
+        const point = offsetLngLat(topCenter.lng, topCenter.lat, bearing % 360, radiusNm)
+
+        ring.push([point.lng, point.lat])
+    }
+
+    const bottomEast = offsetLngLat(bottomCenter.lng, bottomCenter.lat, 90, radiusNm)
+
+    ring.push([bottomEast.lng, bottomEast.lat])
     ring.push(ring[0])
 
     return ring
@@ -250,7 +264,6 @@ export function buildGeometryFeature(shape) {
             id: shape.id,
             shapeType: shape.type,
             status: shape.status,
-            name: shape.name ?? '',
             closed: Boolean(shape.params?.closed),
             opacity: shape.status === 'committed' ? 1 : 0.45,
         },
@@ -274,7 +287,7 @@ export function buildGeometryLabelFeature(shape) {
         properties: {
             id: `${shape.id}-label`,
             shapeId: shape.id,
-            name: labelText,
+            label: labelText,
         },
     }
 }

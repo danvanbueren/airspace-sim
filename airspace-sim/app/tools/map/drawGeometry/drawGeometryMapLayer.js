@@ -45,7 +45,7 @@ function getLabelPaint() {
 
 function getLabelLayout() {
     return {
-        'text-field': ['get', 'name'],
+        'text-field': ['get', 'label'],
         'text-font': ['Roboto Regular'],
         'text-size': 12,
         'text-offset': [0, -1.6],
@@ -115,7 +115,7 @@ export function ensureDrawGeometryLayers(
             id: DRAW_GEOMETRY_LABEL_LAYER_ID,
             type: 'symbol',
             source: DRAW_GEOMETRY_SOURCE_ID,
-            filter: ['has', 'name'],
+            filter: ['all', ['==', ['geometry-type'], 'Point'], ['has', 'label']],
             paint: getLabelPaint(),
             layout: getLabelLayout(),
         })
