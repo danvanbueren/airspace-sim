@@ -27,10 +27,13 @@ import {
 } from '@/app/hooks/map/useTrackManagementWindowDrag'
 import {absoluteToEdgeAnchor} from '@/app/tools/map/edgeAnchoredPosition'
 import {getMapFloatingWindowMaxHeight} from '@/app/tools/map/mapFloatingWindowLayout'
+import {
+    GEOMETRY_WINDOW_DEFAULT_WIDTH_PX,
+} from '@/app/constants/mapFloatingWindows'
 import {TRACK_IDENTITIES} from '@/app/tools/milstd2525/trackSymbolCodes'
 import {getTrackIdentityChromeColors} from '@/app/tools/milstd2525/trackIdentityColors'
 
-const GEOMETRY_WINDOW_WIDTH = 300
+const GEOMETRY_WINDOW_WIDTH = GEOMETRY_WINDOW_DEFAULT_WIDTH_PX
 
 const GEOMETRY_WINDOW_MONOSPACE_SX = {
     fontFamily: 'monospace',

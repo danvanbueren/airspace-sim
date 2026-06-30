@@ -6,9 +6,11 @@ import {
     DEFAULT_FLOATING_WINDOW_SPAWN_POSITION,
     getStaggeredFloatingWindowSpawnPosition,
 } from '@/app/tools/map/mapFloatingWindowLayout'
+import {
+    GEOMETRY_WINDOW_DEFAULT_HEIGHT_PX,
+    GEOMETRY_WINDOW_DEFAULT_WIDTH_PX,
+} from '@/app/constants/mapFloatingWindows'
 import {GEOMETRY_STATUS, GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
-
-const DEFAULT_GEOMETRY_WINDOW_WIDTH = 300
 
 export function useGeometryWindows({onOpenGeometryWindow} = {}) {
     const [geometryWindows, setGeometryWindows] = useState([])
@@ -39,6 +41,7 @@ export function useGeometryWindows({onOpenGeometryWindow} = {}) {
                 x: spawnPosition.x,
                 y: spawnPosition.y,
                 positionAnchor: position?.positionAnchor ?? null,
+                height: position?.height ?? GEOMETRY_WINDOW_DEFAULT_HEIGHT_PX,
             }
 
             openedWindow = geometryWindow
@@ -141,7 +144,7 @@ export function useGeometryWindows({onOpenGeometryWindow} = {}) {
         setGeometryWindowHeight,
         syncGeometryWindowsAfterShapeDelete,
         getGeometryWindowForShape,
-        geometryWindowWidth: DEFAULT_GEOMETRY_WINDOW_WIDTH,
+        geometryWindowWidth: GEOMETRY_WINDOW_DEFAULT_WIDTH_PX,
     }
 }
 
