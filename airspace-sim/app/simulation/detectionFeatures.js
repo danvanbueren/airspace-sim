@@ -1,6 +1,6 @@
 import {SENSOR_COLORS, SENSOR_TYPES} from './constants'
 import {offsetLngLat} from './geo'
-import {getTrackIconScaleForZoom} from './mapViewportUtils'
+import {filterDetectionsByBounds, getExpandedMapBounds, getTrackIconScaleForZoom} from './mapViewportUtils'
 
 /** Screen-space half-length at reference zoom (matches track icon baseline near z10). */
 const BASE_LINE_HALF_LENGTH_PIXELS = 14
@@ -95,7 +95,17 @@ export function detectionToLineFeature(detection, sensorType, layerKind, map) {
 }
 
 export function detectionsToFeatureCollection(detections, sensorType, layerKind, map) {
-    const features = detections.map((detection) => (
+    let visibleDetections = detections ?? []
+
+    if (map?.getBounds) {
+        const bounds = getExpandedMapBounds(map, 0.5)
+
+        if (bounds) {
+            visibleDetections = filterDetectionsByBounds(visibleDetections, bounds)
+        }
+    }
+
+    const features = visibleDetections.map((detection) => (
         detectionToLineFeature(detection, sensorType, layerKind, map)
     ))
 

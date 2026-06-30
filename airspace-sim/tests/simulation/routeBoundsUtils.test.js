@@ -12,7 +12,7 @@ const viewportBounds = {
     north: 45,
 }
 
-describe('viewportTrafficMaintenance', () => {
+describe('routeBoundsUtils', () => {
     it('detects when a route polyline intersects viewport bounds', () => {
         assert.equal(polylineIntersectsBounds(
             [

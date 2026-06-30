@@ -72,7 +72,11 @@ export function refreshTrackStaleAndDecorrelation(trackStore, timestamp, setting
             return
         }
 
-        if (flightWorld && isTruthAircraftNearTrack(flightWorld, track, settings)) {
+        if (
+            flightWorld
+            && settings.viewportBasedTrackDroppingEnabled !== true
+            && isTruthAircraftNearTrack(flightWorld, track, settings)
+        ) {
             const sustainUpdates = {
                 stale: false,
                 lastSensorUpdateAt: timestamp,

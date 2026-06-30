@@ -84,25 +84,7 @@ describe('wrapped map bounds', () => {
         )
     })
 
-    it('uses viewport aircraft when viewport-based track dropping is enabled', () => {
-        const displayBounds = {west: -85, south: 35, east: -75, north: 45}
-        const sensorScanBounds = {west: -90, south: 30, east: -70, north: 50}
-        const viewportAircraft = [{id: 'in-view'}]
-        const flightWorld = {
-            getAircraftInBounds: (bounds) => (
-                bounds === sensorScanBounds ? viewportAircraft : []
-            ),
-            getAllAircraft: () => [{id: 'global'}],
-        }
-
-        assert.deepEqual(
-            getSensorScanAircraft(flightWorld, sensorScanBounds, true),
-            viewportAircraft,
-        )
-    })
-
-    it('uses the global fleet when viewport-based track dropping is disabled', () => {
-        const sensorScanBounds = {west: -85, south: 35, east: -75, north: 45}
+    it('always scans the global fleet', () => {
         const globalAircraft = [{id: 'global'}]
         const flightWorld = {
             getAircraftInBounds: () => [],
@@ -110,7 +92,7 @@ describe('wrapped map bounds', () => {
         }
 
         assert.deepEqual(
-            getSensorScanAircraft(flightWorld, sensorScanBounds, false),
+            getSensorScanAircraft(flightWorld),
             globalAircraft,
         )
     })

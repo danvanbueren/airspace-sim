@@ -115,20 +115,12 @@ export function computeSensorScanBounds(
     )
 }
 
-export function getSensorScanAircraft(
-    flightWorld,
-    sensorScanBounds,
-    viewportBasedTrackDroppingEnabled = false,
-) {
+export function getSensorScanAircraft(flightWorld) {
     if (!flightWorld) {
         return []
     }
 
-    if (viewportBasedTrackDroppingEnabled !== true) {
-        return flightWorld.getAllAircraft()
-    }
-
-    return flightWorld.getAircraftInBounds(sensorScanBounds)
+    return flightWorld.getAllAircraft()
 }
 
 export function filterDetectionsByBounds(detections, bounds) {
