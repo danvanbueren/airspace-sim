@@ -19,7 +19,6 @@ import {
     createBearingRangeLine,
     getDistancePixels,
 } from '../../tools/map/bearingRangeGeometry.js'
-import {BearingRangeLabelManager} from '../../tools/map/bearingRangeLabels.js'
 import {
     getBearingRangeLineAtMapPoint,
     rehydrateBearingRangeLines,
@@ -44,7 +43,6 @@ export function useBearingRangeTool(mapRef, enabled, {
     const dragRef = useRef(null)
     const previewOverlayRef = useRef(null)
     const activePointerIdRef = useRef(null)
-    const labelManagerRef = useRef(new BearingRangeLabelManager())
     const appliedLineColorRef = useRef(null)
     const lineColorRef = useRef(lineColor)
 
@@ -64,18 +62,6 @@ export function useBearingRangeTool(mapRef, enabled, {
 
     const [lines, setLines] = useState([])
     const [isDrawingBearingRangeLine, setIsDrawingBearingRangeLine] = useState(false)
-    const [labelWorldVersion, setLabelWorldVersion] = useState(0)
-
-    const syncLabels = useCallback((previewLine = null) => {
-        const map = mapRef.current
-
-        if (!map) {
-            labelManagerRef.current.remove()
-            return
-        }
-
-        labelManagerRef.current.sync(map, linesRef.current, {previewLine})
-    }, [mapRef])
 
     const clearPreview = useCallback(() => {
         removePreviewOverlay(previewOverlayRef.current)
@@ -105,7 +91,7 @@ export function useBearingRangeTool(mapRef, enabled, {
         mapFlushListenerRef.current = null
     }, [mapRef])
 
-    const flushLinesToMapLayer = useCallback(() => {
+    const flushLinesToMapLayer = useCallback(({previewLine = null} = {}) => {
         const map = mapRef.current
 
         if (!map) {
@@ -117,10 +103,11 @@ export function useBearingRangeTool(mapRef, enabled, {
             linesRef.current,
             lineColorRef.current,
             appliedLineColorRef,
+            {previewLine},
         )
     }, [mapRef])
 
-    const scheduleMapFlush = useCallback(() => {
+    const scheduleMapFlush = useCallback(({previewLine = null} = {}) => {
         const map = mapRef.current
 
         if (!map || mapFlushListenerRef.current) {
@@ -130,11 +117,11 @@ export function useBearingRangeTool(mapRef, enabled, {
         const handleIdle = () => {
             mapFlushListenerRef.current = null
 
-            if (flushLinesToMapLayer()) {
+            if (flushLinesToMapLayer({previewLine})) {
                 return
             }
 
-            scheduleMapFlush()
+            scheduleMapFlush({previewLine})
         }
 
         mapFlushListenerRef.current = handleIdle
@@ -145,12 +132,10 @@ export function useBearingRangeTool(mapRef, enabled, {
         linesRef.current = nextLines
         setLines(nextLines)
 
-        if (!flushLinesToMapLayer()) {
-            scheduleMapFlush()
+        if (!flushLinesToMapLayer({previewLine})) {
+            scheduleMapFlush({previewLine})
         }
-
-        syncLabels(previewLine)
-    }, [flushLinesToMapLayer, scheduleMapFlush, syncLabels])
+    }, [flushLinesToMapLayer, scheduleMapFlush])
 
     const removeBearingRangeLine = useCallback((lineId) => {
         clearPreview()
@@ -174,38 +159,8 @@ export function useBearingRangeTool(mapRef, enabled, {
             linesRef.current,
             lineColorRef.current,
             appliedLineColorRef,
-        ).then(() => {
-            syncLabels()
-        })
-    }, [mapRef, syncLabels])
-
-    useEffect(() => {
-        if (!enabled || !mapRef.current) {
-            return
-        }
-
-        const map = mapRef.current
-
-        const refreshLabels = () => {
-            setLabelWorldVersion((version) => version + 1)
-        }
-
-        map.on('moveend', refreshLabels)
-        map.on('zoomend', refreshLabels)
-
-        return () => {
-            map.off('moveend', refreshLabels)
-            map.off('zoomend', refreshLabels)
-        }
-    }, [enabled, mapRef])
-
-    useEffect(() => {
-        if (!enabled || !mapRef.current || dragRef.current) {
-            return
-        }
-
-        syncLabels()
-    }, [enabled, lines, labelWorldVersion, mapRef, syncLabels])
+        )
+    }, [mapRef])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) {
@@ -223,7 +178,10 @@ export function useBearingRangeTool(mapRef, enabled, {
                 return
             }
 
-            const previewLine = createBearingRangeLine(dragRef.current.start, dragRef.current.current)
+            const previewLine = {
+                ...createBearingRangeLine(dragRef.current.start, dragRef.current.current),
+                isPreview: true,
+            }
             redrawPreview(previewLine, true)
         }
 
@@ -341,13 +299,17 @@ export function useBearingRangeTool(mapRef, enabled, {
                     lngLat: endPoint.lngLat,
                     line: getBearingRangeLineAtMapPoint(map, endPoint.mapPoint, linesRef.current),
                 })
-                syncLabels()
+                if (!flushLinesToMapLayer({previewLine: null})) {
+                    scheduleMapFlush({previewLine: null})
+                }
                 return
             }
 
             if (deltaPixels < bindings.minPersistedLinePixels) {
                 clearPreview()
-                syncLabels()
+                if (!flushLinesToMapLayer({previewLine: null})) {
+                    scheduleMapFlush({previewLine: null})
+                }
                 return
             }
 
@@ -360,7 +322,9 @@ export function useBearingRangeTool(mapRef, enabled, {
             clearPreview()
 
             if (!shouldPersistLine) {
-                syncLabels()
+                if (!flushLinesToMapLayer({previewLine: null})) {
+                    scheduleMapFlush({previewLine: null})
+                }
                 return
             }
 
@@ -424,7 +388,9 @@ export function useBearingRangeTool(mapRef, enabled, {
 
             if (deltaPixels < bindings.minPersistedLinePixels) {
                 clearPreview()
-                syncLabels()
+                if (!flushLinesToMapLayer({previewLine: null})) {
+                    scheduleMapFlush({previewLine: null})
+                }
                 return
             }
 
@@ -432,9 +398,14 @@ export function useBearingRangeTool(mapRef, enabled, {
                 previewOverlayRef.current = createPreviewOverlay(map)
             }
 
-            const previewLine = createBearingRangeLine(drag.start, currentPoint)
+            const previewLine = {
+                ...createBearingRangeLine(drag.start, currentPoint),
+                isPreview: true,
+            }
             redrawPreview(previewLine, true)
-            syncLabels(previewLine)
+            if (!flushLinesToMapLayer({previewLine})) {
+                scheduleMapFlush({previewLine})
+            }
         }
 
         const handlePointerUp = (event) => {
@@ -501,7 +472,9 @@ export function useBearingRangeTool(mapRef, enabled, {
             releasePointerCapture()
             setIsDrawingBearingRangeLine(false)
             clearPreview()
-            syncLabels()
+            if (!flushLinesToMapLayer({previewLine: null})) {
+                scheduleMapFlush({previewLine: null})
+            }
             mapCursorRef.current.clearCursorRequests([
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
@@ -542,13 +515,12 @@ export function useBearingRangeTool(mapRef, enabled, {
             window.removeEventListener('blur', cancelDrag)
             releasePointerCapture()
             clearPreview()
-            labelManagerRef.current.remove()
             mapCursorRef.current.clearCursorRequests([
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_DRAW,
                 MAP_CURSOR_REQUESTS.BEARING_RANGE_HOVER,
             ])
         }
-    }, [enabled, mapRef, clearPreview, writeLinesToMap, redrawPreview, syncLabels, cancelScheduledMapFlush])
+    }, [enabled, mapRef, clearPreview, writeLinesToMap, redrawPreview, cancelScheduledMapFlush])
 
     return {
         lines,

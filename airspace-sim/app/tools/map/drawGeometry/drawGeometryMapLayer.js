@@ -46,7 +46,7 @@ function getLabelPaint() {
 function getLabelLayout() {
     return {
         'text-field': ['get', 'label'],
-        'text-font': ['Roboto Regular'],
+        'text-font': ['monospace'],
         'text-size': 12,
         'text-offset': [0, -1.6],
         'text-anchor': 'bottom',
