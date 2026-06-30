@@ -8,8 +8,8 @@ import {
     getStrokeColorForMode,
 } from '@/app/tools/map/drawGeometry/drawGeometryColor'
 import {convertGeometryShapeType} from '@/app/tools/map/drawGeometry/drawGeometryConversion'
+import {clampGeometryParamsToMapBounds} from '@/app/tools/map/drawGeometry/drawGeometryGeometry'
 import {
-    clampGeometryParamsToMapBounds,
     cloneGeometryShape,
     createDefaultParamsForType,
     createGeometryShape,
