@@ -19,6 +19,7 @@ import {
 } from '@/app/tools/map/drawGeometry/drawGeometryGeometry'
 import {
     isGeometryShapeComplete,
+    isGeometryShapePending,
     normalizeLngLat,
 } from '@/app/tools/map/drawGeometry/drawGeometryModels'
 import {
@@ -55,6 +56,7 @@ export function useDrawGeometryTool(
         onShapePrimaryClick,
         onShapeCommitted,
         onDrawingCancelled,
+        isKeyboardCustodyActive,
     } = {},
 ) {
     const {controlBindings} = useControlBindings()
@@ -80,6 +82,7 @@ export function useDrawGeometryTool(
     const bindingsRef = useRef(controlBindings.drawGeometryTool)
     const mapCursorRef = useRef(mapCursor)
     const themeModeRef = useRef(themeMode)
+    const isKeyboardCustodyActiveRef = useRef(isKeyboardCustodyActive)
 
     shapesRef.current = shapes
     activeShapeIdRef.current = activeShapeId
@@ -87,6 +90,7 @@ export function useDrawGeometryTool(
     bindingsRef.current = controlBindings.drawGeometryTool
     mapCursorRef.current = mapCursor
     themeModeRef.current = themeMode
+    isKeyboardCustodyActiveRef.current = isKeyboardCustodyActive
 
     const [isDrawingGeometry, setIsDrawingGeometry] = useState(false)
 
@@ -195,6 +199,26 @@ export function useDrawGeometryTool(
         mapCursorRef.current?.clearCursorRequest(MAP_CURSOR_REQUESTS.DRAW_GEOMETRY)
     }, [])
 
+    const clearGeometryHoverCursor = useCallback(() => {
+        mapCursorRef.current?.clearCursorRequest(MAP_CURSOR_REQUESTS.GEOMETRY_HOVER)
+    }, [])
+
+    const isPendingDrawMode = useCallback(() => {
+        if (!activeDrawToolRef.current) {
+            return false
+        }
+
+        const shapeId = activeShapeIdRef.current
+
+        if (!shapeId) {
+            return false
+        }
+
+        const shape = getShapeById(shapeId)
+
+        return Boolean(shape && isGeometryShapePending(shape))
+    }, [getShapeById])
+
     const applyDrawGeometryCursor = useCallback(() => {
         mapCursorRef.current?.requestCursor(
             MAP_CURSOR_REQUESTS.DRAW_GEOMETRY,
@@ -203,10 +227,56 @@ export function useDrawGeometryTool(
         )
     }, [])
 
+    const applyGeometryHoverCursor = useCallback(() => {
+        mapCursorRef.current?.requestCursor(
+            MAP_CURSOR_REQUESTS.GEOMETRY_HOVER,
+            'pointer',
+            MAP_CURSOR_PRIORITIES.HOVER,
+        )
+    }, [])
+
+    const updateMapCursorForPointer = useCallback((mapPoint) => {
+        const map = mapRef.current
+
+        if (!map) {
+            return
+        }
+
+        if (isPendingDrawMode()) {
+            clearGeometryHoverCursor()
+            applyDrawGeometryCursor()
+            return
+        }
+
+        clearDrawGeometryCursor()
+
+        const hoveredShape = getDrawGeometryShapeAtMapPoint(
+            map,
+            mapPoint,
+            shapesRef.current,
+            GEOMETRY_HIT_TEST_PIXEL_RADIUS,
+        )
+
+        if (hoveredShape) {
+            applyGeometryHoverCursor()
+            return
+        }
+
+        clearGeometryHoverCursor()
+    }, [
+        applyDrawGeometryCursor,
+        applyGeometryHoverCursor,
+        clearDrawGeometryCursor,
+        clearGeometryHoverCursor,
+        isPendingDrawMode,
+        mapRef,
+    ])
+
     const resetDrawingPhase = useCallback(() => {
         resetDrawingInteraction()
         clearDrawGeometryCursor()
-    }, [clearDrawGeometryCursor, resetDrawingInteraction])
+        clearGeometryHoverCursor()
+    }, [clearDrawGeometryCursor, clearGeometryHoverCursor, resetDrawingInteraction])
 
     const applyShapeUpdate = useCallback((shapeId, paramsUpdate, extraUpdates = {}) => {
         updateShape(shapeId, {
@@ -501,18 +571,15 @@ export function useDrawGeometryTool(
 
     useEffect(() => {
         if (!enabled || !activeDrawToolItemId) {
-            clearDrawGeometryCursor()
-            return
-        }
-
-        applyDrawGeometryCursor()
-    }, [activeDrawToolItemId, applyDrawGeometryCursor, clearDrawGeometryCursor, enabled, themeMode])
-
-    useEffect(() => {
-        if (!enabled || !activeDrawToolItemId) {
             resetDrawingPhase()
         }
     }, [activeDrawToolItemId, enabled, resetDrawingPhase])
+
+    useEffect(() => {
+        if (!isPendingDrawMode()) {
+            clearDrawGeometryCursor()
+        }
+    }, [clearDrawGeometryCursor, isPendingDrawMode, shapes, activeShapeId, activeDrawToolItemId])
 
     useEffect(() => {
         if (!enabled) {
@@ -610,11 +677,23 @@ export function useDrawGeometryTool(
         }
 
         const handleMouseMove = (event) => {
+            const mapPoint = {
+                x: event.point.x,
+                y: event.point.y,
+            }
+
+            updateMapCursorForPointer(mapPoint)
+
             if (!activeDrawToolItemId) {
                 return
             }
 
             handlePointerMovePreview(event.lngLat)
+        }
+
+        const handleMouseLeave = () => {
+            clearDrawGeometryCursor()
+            clearGeometryHoverCursor()
         }
 
         const handlePrimarySelect = (event) => {
@@ -642,20 +721,27 @@ export function useDrawGeometryTool(
         map.on('click', handleClick)
         map.on('click', handlePrimarySelect)
         map.on('mousemove', handleMouseMove)
+        map.on('mouseleave', handleMouseLeave)
 
         return () => {
             map.off('click', handleClick)
             map.off('click', handlePrimarySelect)
             map.off('mousemove', handleMouseMove)
+            map.off('mouseleave', handleMouseLeave)
+            clearDrawGeometryCursor()
+            clearGeometryHoverCursor()
         }
     }, [
         activeDrawToolItemId,
+        clearDrawGeometryCursor,
+        clearGeometryHoverCursor,
         enabled,
         getShapeById,
         handleMapDrawClick,
         handlePointerMovePreview,
         mapRef,
         onShapePrimaryClick,
+        updateMapCursorForPointer,
     ])
 
     useEffect(() => {
@@ -664,6 +750,9 @@ export function useDrawGeometryTool(
         }
 
         const handleKeyDown = (event) => {
+            if (isKeyboardCustodyActiveRef.current?.()) {
+                return
+            }
             const bindings = bindingsRef.current
 
             if (keyMatchesBinding(event.key, bindings.cancelButton)) {

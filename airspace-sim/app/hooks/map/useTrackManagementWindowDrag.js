@@ -37,7 +37,7 @@ function getTrackManagementWindowBounds(trackManagementWindowSize, mapContainerR
     }
 }
 
-function getBoundedTrackManagementWindowPosition(left, top, trackManagementWindowSize, mapContainerRef) {
+export function getBoundedTrackManagementWindowPosition(left, top, trackManagementWindowSize, mapContainerRef) {
     const containerSize = getContainerSize(mapContainerRef)
     const windowSize = getWindowSize(trackManagementWindowSize)
     const bounds = getTrackManagementWindowBounds(trackManagementWindowSize, mapContainerRef)
@@ -98,6 +98,7 @@ export function useTrackManagementWindowDrag({
     onClaimKeyboardCustody,
     windowId,
     trackManagementWindowSize,
+    windowElementSelector = '[data-track-management-window]',
 }) {
     const dragStateRef = useRef(null)
     const [dragPosition, setDragPosition] = useState(null)
@@ -112,7 +113,7 @@ export function useTrackManagementWindowDrag({
         onActivate?.()
         onClaimKeyboardCustody?.(windowId)
 
-        const trackManagementWindowElement = event.currentTarget.closest('[data-track-management-window]')
+        const trackManagementWindowElement = event.currentTarget.closest(windowElementSelector)
         const mapContainerElement = mapContainerRef.current
 
         if (!trackManagementWindowElement || !mapContainerElement) {
@@ -131,7 +132,7 @@ export function useTrackManagementWindowDrag({
         }
 
         event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [mapContainerRef, onActivate, onClaimKeyboardCustody, windowId])
+    }, [mapContainerRef, onActivate, onClaimKeyboardCustody, windowElementSelector, windowId])
 
     const handleHeaderPointerMove = useCallback((event) => {
         const dragState = dragStateRef.current

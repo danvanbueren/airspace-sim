@@ -54,6 +54,7 @@ import {useOpenDrawToolsPanel} from '@/app/hooks/map/useOpenDrawToolsPanel'
 import {useDrawGeometry} from '@/app/contexts/DrawGeometryContext'
 import {useDrawGeometryTool} from '@/app/hooks/map/useDrawGeometryTool'
 import {useGeometryWindows} from '@/app/hooks/map/useGeometryWindows'
+import {useGeometryWindowKeyboardCustody} from '@/app/hooks/map/useGeometryWindowKeyboardCustody'
 import GeometryWindow from '@/app/components/floating/windows/GeometryWindow'
 import {getDrawGeometryShapeAtMapPoint} from '@/app/tools/map/drawGeometry/drawGeometryMapLayer'
 import {GEOMETRY_HIT_TEST_PIXEL_RADIUS} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
@@ -172,6 +173,23 @@ export default function MapView({
         getWindowZIndex: getGeometryWindowZIndex,
     } = useTrackManagementWindowFocusOrder(geometryWindows)
 
+    const {
+        geometryKeyboardCustodyWindowId,
+        registerGeometryWindowElement,
+        releaseGeometryKeyboardCustody,
+        claimGeometryKeyboardCustody,
+        closeGeometryWindowWithBlur,
+        clearKeyboardCustodyForShape,
+    } = useGeometryWindowKeyboardCustody({
+        geometryWindows,
+        bringGeometryWindowToFront,
+    })
+
+    const isGeometryKeyboardCustodyActive = useCallback(
+        () => geometryKeyboardCustodyWindowId !== null,
+        [geometryKeyboardCustodyWindowId],
+    )
+
     const handleMapContextMenu = useCallback(({point, mapPoint, lngLat, line}) => {
         const layerTrack = mapPoint ? trackMapLayer.getTrackAtMapPoint(mapPoint) : null
         const trackId = layerTrack?.trackId ?? layerTrack?.id
@@ -247,13 +265,24 @@ export default function MapView({
         mapCursor,
         themeMode: colorMode,
         onShapePrimaryClick: handleShapePrimaryClick,
+        isKeyboardCustodyActive: isGeometryKeyboardCustodyActive,
     })
+
+    const handleCloseGeometryWindow = useCallback((windowId) => {
+        closeGeometryWindowWithBlur(windowId, closeGeometryWindow)
+    }, [closeGeometryWindow, closeGeometryWindowWithBlur])
 
     const handleDeleteGeometry = useCallback((geometry) => {
         removeGeometryShape(geometry.id)
         closeGeometryWindowsForShape(geometry.id)
+        clearKeyboardCustodyForShape(geometry.id)
         closeContextMenu()
-    }, [closeContextMenu, closeGeometryWindowsForShape, removeGeometryShape])
+    }, [
+        clearKeyboardCustodyForShape,
+        closeContextMenu,
+        closeGeometryWindowsForShape,
+        removeGeometryShape,
+    ])
 
     const handleOpenGeometryFromContextMenu = useCallback((geometry, elementContainer) => {
         handleOpenGeometryWindow(geometry, elementContainer)
@@ -335,7 +364,10 @@ export default function MapView({
         bringTrackManagementWindowToFront,
     })
 
-    const keyboardCameraControlsEnabled = trackManagementKeyboardCustodyWindowId === null
+    const keyboardCameraControlsEnabled = (
+        trackManagementKeyboardCustodyWindowId === null
+        && geometryKeyboardCustodyWindowId === null
+    )
 
     const interactionsEnabled = useMapViewInteractions(
         mapRef,
@@ -596,6 +628,7 @@ export default function MapView({
             }
 
             releaseTrackManagementKeyboardCustody()
+            releaseGeometryKeyboardCustody()
 
             const trackLayers = [
                 trackMapLayer.layerId,
@@ -619,7 +652,7 @@ export default function MapView({
         return () => {
             map.off('click', handleMapClick)
         }
-    }, [mapReady, mapRef, trackMapLayer.layerId, trackMapLayer.labelLayerId, releaseTrackManagementKeyboardCustody])
+    }, [mapReady, mapRef, trackMapLayer.layerId, trackMapLayer.labelLayerId, releaseGeometryKeyboardCustody, releaseTrackManagementKeyboardCustody])
 
     const cursorInfo = useCursorHooks(mapRef, interactionsEnabled, mapContainerRef)
     const visibleCursorInfo = isDrawingBearingRangeLine || isDrawingGeometry ? null : cursorInfo
@@ -658,9 +691,12 @@ export default function MapView({
                     geometryWindow={geometryWindow}
                     mapContainerRef={mapContainerRef}
                     zIndex={getGeometryWindowZIndex(geometryWindow.id)}
-                    onClose={() => closeGeometryWindow(geometryWindow.id)}
+                    onClose={() => handleCloseGeometryWindow(geometryWindow.id)}
                     onMoveComplete={setGeometryWindowPositionAnchor}
                     onActivate={bringGeometryWindowToFront}
+                    onClaimKeyboardCustody={claimGeometryKeyboardCustody}
+                    hasKeyboardCustody={geometryKeyboardCustodyWindowId === geometryWindow.id}
+                    registerWindowElement={registerGeometryWindowElement}
                 />
             ))}
 

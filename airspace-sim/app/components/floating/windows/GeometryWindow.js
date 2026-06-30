@@ -12,8 +12,10 @@ import {
 } from '@mui/material'
 import GeometryWindowBody from '@/app/components/floating/windows/GeometryWindowBody'
 import {useDrawGeometry} from '@/app/contexts/DrawGeometryContext'
+import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
 import {useMapContainerSize} from '@/app/hooks/map/useMapContainerSize'
 import {
+    getBoundedTrackManagementWindowPosition,
     getLegacyMapClickWindowPosition,
     getTrackManagementWindowPosition,
     useTrackManagementWindowDrag,
@@ -22,7 +24,6 @@ import {absoluteToEdgeAnchor} from '@/app/tools/map/edgeAnchoredPosition'
 import {getMapFloatingWindowMaxHeight} from '@/app/tools/map/mapFloatingWindowLayout'
 
 const GEOMETRY_WINDOW_WIDTH = 300
-const GEOMETRY_WINDOW_HEIGHT = 420
 
 export default function GeometryWindow({
     geometryWindow,
@@ -31,17 +32,24 @@ export default function GeometryWindow({
     onClose,
     onMoveComplete,
     onActivate,
+    onClaimKeyboardCustody,
+    hasKeyboardCustody = false,
+    registerWindowElement,
 }) {
-    const windowRef = useRef(null)
+    const geometryWindowRef = useRef(null)
     const {getShapeById} = useDrawGeometry()
     const shape = getShapeById(geometryWindow.shapeId)
     const mapContainerSize = useMapContainerSize(mapContainerRef)
     const viewportMaxWindowHeight = getMapFloatingWindowMaxHeight(mapContainerSize.height)
+    const geometryWindowSize = useMeasuredElementSize(
+        geometryWindowRef,
+        [geometryWindow, shape, viewportMaxWindowHeight],
+    )
 
-    const geometryWindowSize = useRef({
-        width: GEOMETRY_WINDOW_WIDTH,
-        height: GEOMETRY_WINDOW_HEIGHT,
-    }).current
+    const setGeometryWindowRef = useCallback((element) => {
+        geometryWindowRef.current = element
+        registerWindowElement?.(geometryWindow.id, element)
+    }, [geometryWindow.id, registerWindowElement])
 
     const activateWindow = useCallback(() => {
         onActivate?.(geometryWindow.id)
@@ -50,7 +58,8 @@ export default function GeometryWindow({
     const handleWindowPointerDown = useCallback((event) => {
         event.stopPropagation()
         activateWindow()
-    }, [activateWindow])
+        onClaimKeyboardCustody?.(geometryWindow.id)
+    }, [activateWindow, geometryWindow.id, onClaimKeyboardCustody])
 
     const {
         dragPosition,
@@ -61,8 +70,10 @@ export default function GeometryWindow({
         mapContainerRef,
         onMoveComplete,
         onActivate: activateWindow,
+        onClaimKeyboardCustody,
         windowId: geometryWindow.id,
         trackManagementWindowSize: geometryWindowSize,
+        windowElementSelector: '[data-geometry-window]',
     })
 
     useLayoutEffect(() => {
@@ -79,6 +90,12 @@ export default function GeometryWindow({
             geometryWindowSize,
             mapContainerRef,
         )
+        const boundedPosition = getBoundedTrackManagementWindowPosition(
+            legacyPosition.left,
+            legacyPosition.top,
+            geometryWindowSize,
+            mapContainerRef,
+        )
         const containerSize = {
             width: mapContainerRef.current?.clientWidth ?? window.innerWidth,
             height: mapContainerRef.current?.clientHeight ?? window.innerHeight,
@@ -87,8 +104,8 @@ export default function GeometryWindow({
         onMoveComplete?.(
             geometryWindow.id,
             absoluteToEdgeAnchor(
-                legacyPosition.left,
-                legacyPosition.top,
+                boundedPosition.left,
+                boundedPosition.top,
                 containerSize,
                 {
                     width: geometryWindowSize.width,
@@ -97,6 +114,7 @@ export default function GeometryWindow({
             ),
         )
     }, [
+        geometryWindow,
         geometryWindow.id,
         geometryWindow.positionAnchor,
         geometryWindow.x,
@@ -116,12 +134,12 @@ export default function GeometryWindow({
 
     return (
         <Paper
-            ref={windowRef}
+            ref={setGeometryWindowRef}
             data-geometry-window
             elevation={8}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={handleWindowPointerDown}
-            sx={{
+            sx={(theme) => ({
                 position: 'absolute',
                 ...windowPosition,
                 zIndex,
@@ -130,9 +148,18 @@ export default function GeometryWindow({
                 display: 'flex',
                 flexDirection: 'column',
                 pointerEvents: 'auto',
-            }}
+                userSelect: 'none',
+                overflow: 'hidden',
+                ...(hasKeyboardCustody && {
+                    boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[8]}`,
+                }),
+            })}
         >
             <Box
+                onPointerDown={handleHeaderPointerDown}
+                onPointerMove={handleHeaderPointerMove}
+                onPointerUp={handleHeaderPointerUp}
+                onPointerCancel={handleHeaderPointerUp}
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -140,45 +167,45 @@ export default function GeometryWindow({
                     px: 1,
                     py: 0.5,
                     flexShrink: 0,
+                    cursor: 'move',
+                    touchAction: 'none',
                 }}
             >
-                <Box
-                    aria-label='Drag Geometry window'
+                <DragIndicatorIcon fontSize='small' sx={{opacity: 0.85, flexShrink: 0}}/>
+                <Typography
+                    variant='subtitle1'
+                    component='span'
                     sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
+                        fontFamily: 'monospace',
+                        fontWeight: 'bold',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                         flex: 1,
                         minWidth: 0,
-                        cursor: 'grab',
-                        touchAction: 'none',
                     }}
-                    onPointerDown={handleHeaderPointerDown}
-                    onPointerMove={handleHeaderPointerMove}
-                    onPointerUp={handleHeaderPointerUp}
-                    onPointerCancel={handleHeaderPointerUp}
                 >
-                    <DragIndicatorIcon fontSize='small' sx={{opacity: 0.85}}/>
-                    <Typography
-                        variant='subtitle1'
-                        component='span'
-                        sx={{
-                            fontFamily: 'monospace',
-                            fontWeight: 'bold',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        {shape.name?.trim() || 'Geometry'}
-                    </Typography>
-                </Box>
-                <IconButton size='small' aria-label='Close Geometry window' onClick={onClose}>
+                    {shape.name?.trim() || 'Geometry'}
+                </Typography>
+                <IconButton
+                    size='small'
+                    aria-label='Close Geometry window'
+                    sx={{flexShrink: 0}}
+                    onClick={onClose}
+                >
                     <CloseIcon fontSize='small'/>
                 </IconButton>
             </Box>
-            <Divider/>
-            <Box sx={{overflow: 'auto', p: 1.5, flex: 1}}>
+            <Divider sx={{flexShrink: 0}}/>
+            <Box
+                sx={{
+                    overflow: 'auto',
+                    p: 1.5,
+                    flex: 1,
+                    minHeight: 0,
+                    userSelect: 'text',
+                }}
+            >
                 <GeometryWindowBody shape={shape}/>
             </Box>
         </Paper>
