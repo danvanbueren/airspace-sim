@@ -67,8 +67,24 @@ export class FlightWorldSimulator {
         while (commercialCount < commercialTarget) {
             const id = `FLT-${this.nextFlightIndex}`
             this.nextFlightIndex += 1
-            const route = this.pickRoute(random)
-            const aircraft = createFlightAircraft(id, route, this.airportByIcao, random)
+            
+            let route = null
+            let aircraft = null
+            let attempts = 0
+            
+            while (attempts < 10) {
+                route = this.pickRoute(random)
+                aircraft = createFlightAircraft(id, route, this.airportByIcao, random)
+                
+                const isTooClose = Array.from(nextAircraft.values()).some((other) => {
+                    return other.routeId === route.id
+                        && Math.abs((other.progressNm ?? 0) - aircraft.progressNm) < 30
+                })
+                if (!isTooClose) {
+                    break
+                }
+                attempts++
+            }
 
             nextAircraft.set(id, aircraft)
             commercialCount += 1
@@ -126,7 +142,10 @@ export class FlightWorldSimulator {
             return
         }
 
-        const random = createBootstrapRandom('advance', Math.floor(Date.now() / 1000))
+        if (!this.runningRandom) {
+            this.runningRandom = createBootstrapRandom('flight-world-simulator-running-' + Math.random())
+        }
+        const random = this.runningRandom
         const repositionedIds = []
 
         this.aircraft.forEach((aircraft, id) => {
@@ -148,7 +167,7 @@ export class FlightWorldSimulator {
             let progressNm = (current.progressNm ?? 0) + distanceNm
 
             if (progressNm >= current.totalRouteNm) {
-                current = assignNewRoute(current, this.pickRoute, this.airportByIcao, random)
+                current = assignNewRoute(current, this.pickRoute, this.airportByIcao, random, Array.from(this.aircraft.values()))
                 progressNm = Math.min(distanceNm, current.totalRouteNm * 0.05)
                 repositionedIds.push(id)
             }
