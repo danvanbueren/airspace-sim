@@ -200,7 +200,9 @@ export function DrawGeometryProvider({children}) {
             return getShapeById(existingPending.id) ?? existingPending
         }
 
-        const shape = createGeometryShape(geometryType)
+        const shape = createGeometryShape(geometryType, {
+            existingShapes: shapesRef.current,
+        })
 
         shapesRef.current = [...shapesRef.current.filter((entry) => entry.id !== shape.id), shape]
         upsertShape(shape)

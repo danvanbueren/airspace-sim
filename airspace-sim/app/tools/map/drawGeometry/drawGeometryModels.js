@@ -28,9 +28,26 @@ export function createDefaultParamsForType(type) {
     }
 }
 
-export function createGeometryShape(type, {id = crypto.randomUUID()} = {}) {
+const GEOMETRY_SYSTEM_ID_PREFIX = 'GEO-'
+const GEOMETRY_SYSTEM_ID_PATTERN = /^GEO-(\d+)$/
+
+export function createGeometrySystemId(existingShapes = []) {
+    let maxNumber = 0
+
+    for (const shape of existingShapes) {
+        const match = GEOMETRY_SYSTEM_ID_PATTERN.exec(shape.id)
+
+        if (match) {
+            maxNumber = Math.max(maxNumber, Number.parseInt(match[1], 10))
+        }
+    }
+
+    return `${GEOMETRY_SYSTEM_ID_PREFIX}${maxNumber + 1}`
+}
+
+export function createGeometryShape(type, {id, existingShapes = []} = {}) {
     return {
-        id,
+        id: id ?? createGeometrySystemId(existingShapes),
         name: '',
         type,
         status: GEOMETRY_STATUS.PENDING,

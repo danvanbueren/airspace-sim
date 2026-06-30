@@ -1,6 +1,6 @@
 import {haversineDistanceNm, offsetLngLat} from '../../../simulation/geo.js'
 import {buildCircleRingCoordinates} from '../scopeCircleGeometry.js'
-import {GEOMETRY_SHAPE_TYPES, GEOMETRY_SHAPE_TYPE_LABELS} from './drawGeometryTypes.js'
+import {GEOMETRY_SHAPE_TYPES} from './drawGeometryTypes.js'
 
 const ELLIPSE_SEGMENTS = 72
 const RACETRACK_ARC_SEGMENTS = 24
@@ -192,13 +192,7 @@ function getNorthEdgePoint(center, northOffsetNm) {
 }
 
 export function getGeometryDisplayTitle(shape) {
-    const trimmedName = shape?.name?.trim()
-
-    if (trimmedName) {
-        return trimmedName
-    }
-
-    return GEOMETRY_SHAPE_TYPE_LABELS[shape?.type] ?? 'Geometry'
+    return shape?.name?.trim() ?? ''
 }
 
 export function getGeometryLabelPoint(shape) {

@@ -3,8 +3,12 @@ import {describe, it} from 'node:test'
 import {
     getGeometryDisplayTitle,
     getGeometryLabelPoint,
+    buildGeometryLabelFeature,
 } from '../../app/tools/map/drawGeometry/drawGeometryGeometry.js'
-import {createGeometryShape} from '../../app/tools/map/drawGeometry/drawGeometryModels.js'
+import {
+    createGeometryShape,
+    createGeometrySystemId,
+} from '../../app/tools/map/drawGeometry/drawGeometryModels.js'
 import {
     GEOMETRY_SHAPE_TYPES,
     GEOMETRY_STATUS,
@@ -28,6 +32,18 @@ describe('draw geometry rounding', () => {
     })
 })
 
+describe('createGeometrySystemId', () => {
+    it('assigns sequential GEO ids', () => {
+        assert.equal(createGeometrySystemId([]), 'GEO-1')
+        assert.equal(createGeometrySystemId([{id: 'GEO-1'}]), 'GEO-2')
+        assert.equal(createGeometrySystemId([
+            {id: 'GEO-3'},
+            {id: 'legacy-uuid'},
+            {id: 'GEO-1'},
+        ]), 'GEO-4')
+    })
+})
+
 describe('draw geometry labels', () => {
     it('anchors labels on the northern edge of the shape', () => {
         const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.RECTANGLE)
@@ -44,9 +60,20 @@ describe('draw geometry labels', () => {
         assert.equal(labelPoint.lng, shape.params.center.lng)
     })
 
-    it('falls back to the shape type label when name is empty', () => {
+    it('returns an empty title when name is unset', () => {
         const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.CIRCLE)
 
-        assert.equal(getGeometryDisplayTitle(shape), 'Circle')
+        assert.equal(getGeometryDisplayTitle(shape), '')
+    })
+
+    it('does not build a map label without a name', () => {
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.CIRCLE)
+        shape.params = {
+            center: {lat: 40, lng: -75},
+            radiusNm: 10,
+        }
+        shape.status = GEOMETRY_STATUS.COMMITTED
+
+        assert.equal(buildGeometryLabelFeature(shape), null)
     })
 })

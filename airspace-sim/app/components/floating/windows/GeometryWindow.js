@@ -306,7 +306,19 @@ export default function GeometryWindow({
                     minHeight: 0,
                 }}
             >
-                <Stack spacing={1.5} sx={{p: 2, userSelect: 'text'}}>
+                <Stack
+                    spacing={1.5}
+                    sx={{
+                        p: 2,
+                        userSelect: 'none',
+                        '& .MuiInputBase-input': {
+                            userSelect: 'text',
+                        },
+                        '& .MuiSelect-select': {
+                            userSelect: 'text',
+                        },
+                    }}
+                >
                     <GeometryWindowBody shape={shape}/>
                 </Stack>
             </Box>
