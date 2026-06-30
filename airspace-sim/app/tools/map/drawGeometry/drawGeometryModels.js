@@ -4,6 +4,7 @@ import {
     MIN_POLYGON_VERTICES,
 } from './drawGeometryTypes.js'
 import {getRacetrackMaxRadiusNm} from './drawGeometryGeometry.js'
+import {roundGeometryDrawOffsetNm} from './drawGeometryRounding.js'
 
 function createLngLat(lat = 0, lng = 0) {
     return {lat, lng}
@@ -118,8 +119,10 @@ export function isRacetrackRadiusValid(params) {
     }
 
     const maxRadius = getRacetrackMaxRadiusNm(params.center1, params.center2)
+    const radiusNm = roundGeometryDrawOffsetNm(params.radiusNm)
+    const maxRounded = roundGeometryDrawOffsetNm(maxRadius)
 
-    return params.radiusNm <= maxRadius
+    return radiusNm > 0 && radiusNm <= maxRounded
 }
 
 export {getRacetrackMaxRadiusNm}

@@ -11,13 +11,16 @@ import {
     deriveAxisAlignedHalfExtentsNm,
     deriveCircleRadiusNm,
     deriveRacetrackRadiusNm,
+    clampRacetrackRadiusNm,
     deriveSquareHalfSizeNm,
     getNearestPointOnCenterLine,
+    getOutwardCapBearingDegrees,
     getRacetrackAxisBearing,
+    getRacetrackMaxRadiusNm,
     getRacetrackTangentPoints,
     normalizeBearingDegrees,
 } from '../../app/tools/map/drawGeometry/drawGeometryGeometry.js'
-import {bearingDegrees} from '../../app/simulation/geo.js'
+import {bearingDegrees, haversineDistanceNm, offsetLngLat} from '../../app/simulation/geo.js'
 import {
     createGeometryShape,
     isGeometryShapeComplete,
@@ -179,6 +182,42 @@ describe('draw geometry builders', () => {
                 bearingDegrees(nearestPoint.lat, nearestPoint.lng, radiusPoint.lat, radiusPoint.lng),
             ) >= 89,
         )
+    })
+
+    it('clamps racetrack radius to the allowable maximum on oversized clicks', () => {
+        const center1 = {lat: 40, lng: -80}
+        const center2 = {lat: 40, lng: -70}
+        const maxRadius = getRacetrackMaxRadiusNm(center1, center2)
+        const farRadiusPoint = offsetLngLat(center1.lng, center1.lat, 0, maxRadius + 25)
+
+        const clampedRadius = clampRacetrackRadiusNm(center1, center2, farRadiusPoint)
+
+        assert.ok(clampedRadius > 0)
+        assert.ok(clampedRadius <= Math.ceil(maxRadius))
+
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.RACETRACK)
+        shape.params = {center1, center2, radiusNm: clampedRadius}
+        shape.status = GEOMETRY_STATUS.COMMITTED
+
+        assert.equal(isGeometryShapeComplete(shape), true)
+    })
+
+    it('bulges high-latitude racetrack caps away from the opposite origin', () => {
+        const center1 = {lat: 75, lng: -30}
+        const center2 = {lat: 75, lng: -15}
+        const radiusNm = 4
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.RACETRACK)
+        shape.params = {center1, center2, radiusNm}
+        shape.status = GEOMETRY_STATUS.COMMITTED
+
+        const geometry = buildGeometryGeoJson(shape)
+        const outwardBearing = getOutwardCapBearingDegrees(center1, center2)
+        const capPoint = offsetLngLat(center1.lng, center1.lat, outwardBearing, radiusNm)
+        const centerDistance = haversineDistanceNm(center1.lat, center1.lng, center2.lat, center2.lng)
+        const capDistance = haversineDistanceNm(capPoint.lat, capPoint.lng, center2.lat, center2.lng)
+
+        assert.equal(geometry.type, 'Polygon')
+        assert.ok(capDistance > centerDistance)
     })
 
     it('keeps shape labels off polygon features', () => {

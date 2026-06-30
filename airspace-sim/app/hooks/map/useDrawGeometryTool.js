@@ -14,8 +14,8 @@ import {
     deriveAxisAlignedHalfExtentsNm,
     deriveCircleRadiusNm,
     deriveRacetrackRadiusNm,
+    clampRacetrackRadiusNm,
     deriveSquareHalfSizeNm,
-    getRacetrackMaxRadiusNm,
 } from '@/app/tools/map/drawGeometry/drawGeometryGeometry'
 import {
     isGeometryShapeComplete,
@@ -489,10 +489,11 @@ export function useDrawGeometryTool(
                         return
                     }
 
-                    const radiusNm = Math.min(
-                        deriveRacetrackRadiusNm(params.center1, params.center2, point),
-                        getRacetrackMaxRadiusNm(params.center1, params.center2),
-                    )
+                    const radiusNm = clampRacetrackRadiusNm(params.center1, params.center2, point)
+
+                    if (!(radiusNm > 0)) {
+                        return
+                    }
 
                     applyShapeUpdate(shape.id, {radiusNm})
                     finalizeShapeIfComplete(shape.id)
@@ -566,10 +567,7 @@ export function useDrawGeometryTool(
                     redrawPreview()
                 } else if (drawingPhaseRef.current === 2 && params.center1 && params.center2) {
                     applyShapeUpdate(shape.id, {
-                        radiusNm: Math.min(
-                            deriveRacetrackRadiusNm(params.center1, params.center2, point),
-                            getRacetrackMaxRadiusNm(params.center1, params.center2),
-                        ),
+                        radiusNm: clampRacetrackRadiusNm(params.center1, params.center2, point),
                     })
                 }
                 break

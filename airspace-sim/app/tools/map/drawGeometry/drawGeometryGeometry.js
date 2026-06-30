@@ -1,6 +1,7 @@
 import {bearingDegrees, haversineDistanceNm, offsetLngLat} from '../../../simulation/geo.js'
 import {buildCircleRingCoordinates} from '../scopeCircleGeometry.js'
 import {GEOMETRY_SHAPE_TYPES} from './drawGeometryTypes.js'
+import {roundGeometryDrawOffsetNm} from './drawGeometryRounding.js'
 
 const ELLIPSE_SEGMENTS = 72
 const RACETRACK_ARC_SEGMENTS = 24
@@ -93,6 +94,48 @@ export function getRacetrackMaxRadiusNm(center1, center2) {
     return haversineDistanceNm(center1.lat, center1.lng, center2.lat, center2.lng) / 2
 }
 
+export function bearingDifferenceDegrees(leftBearing, rightBearing) {
+    const difference = Math.abs(
+        normalizeBearingDegrees(leftBearing) - normalizeBearingDegrees(rightBearing),
+    )
+
+    return Math.min(difference, 360 - difference)
+}
+
+export function getOutwardCapBearingDegrees(center, otherCenter) {
+    return bearingDegrees(otherCenter.lat, otherCenter.lng, center.lat, center.lng)
+}
+
+export function getRacetrackCapArcSweepDegrees(fromBearing, outwardBearing) {
+    const midPositive = normalizeBearingDegrees(fromBearing + 90)
+    const midNegative = normalizeBearingDegrees(fromBearing - 90)
+
+    if (bearingDifferenceDegrees(midPositive, outwardBearing) <= bearingDifferenceDegrees(midNegative, outwardBearing)) {
+        return 180
+    }
+
+    return -180
+}
+
+export function clampRacetrackRadiusNm(center1, center2, radiusPoint) {
+    const maxRadius = getRacetrackMaxRadiusNm(center1, center2)
+
+    if (!(maxRadius > 0)) {
+        return 0
+    }
+
+    const derived = deriveRacetrackRadiusNm(center1, center2, radiusPoint)
+    const clamped = Math.min(Math.max(derived, 0), maxRadius)
+    const rounded = roundGeometryDrawOffsetNm(clamped)
+    const maxRounded = roundGeometryDrawOffsetNm(maxRadius)
+
+    if (rounded <= 0) {
+        return 0
+    }
+
+    return Math.min(rounded, maxRounded)
+}
+
 function buildRectangleRing(center, halfWidthNm, halfHeightNm) {
     const north = offsetLngLat(center.lng, center.lat, 0, halfHeightNm)
     const south = offsetLngLat(center.lng, center.lat, 180, halfHeightNm)
@@ -125,11 +168,13 @@ function buildOvalRing(center, halfWidthNm, halfHeightNm, segments = ELLIPSE_SEG
     return ring.map((point) => [point.lng, point.lat])
 }
 
-function appendRacetrackArc(ring, center, fromBearing, radiusNm, segments, includeStart) {
+function appendRacetrackCapArc(ring, center, otherCenter, fromBearing, radiusNm, segments, includeStart) {
+    const outwardBearing = getOutwardCapBearingDegrees(center, otherCenter)
+    const sweep = getRacetrackCapArcSweepDegrees(fromBearing, outwardBearing)
     const startIndex = includeStart ? 0 : 1
 
     for (let index = startIndex; index <= segments; index += 1) {
-        const bearing = normalizeBearingDegrees(fromBearing + ((index / segments) * 180))
+        const bearing = normalizeBearingDegrees(fromBearing + ((index / segments) * sweep))
         const point = offsetLngLat(center.lng, center.lat, bearing, radiusNm)
 
         ring.push([point.lng, point.lat])
@@ -150,9 +195,9 @@ function buildRacetrackRing(center1, center2, radiusNm) {
         [tangent2A.lng, tangent2A.lat],
     ]
 
-    appendRacetrackArc(ring, center2, sideABearing, radiusNm, RACETRACK_ARC_SEGMENTS, false)
+    appendRacetrackCapArc(ring, center2, center1, sideABearing, radiusNm, RACETRACK_ARC_SEGMENTS, false)
     ring.push([tangent1B.lng, tangent1B.lat])
-    appendRacetrackArc(ring, center1, sideBBearing, radiusNm, RACETRACK_ARC_SEGMENTS, false)
+    appendRacetrackCapArc(ring, center1, center2, sideBBearing, radiusNm, RACETRACK_ARC_SEGMENTS, false)
     ring.push(ring[0])
 
     return ring
