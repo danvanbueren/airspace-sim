@@ -3,7 +3,7 @@
  * Add entries here to surface operator notices on startup.
  */
 
-import {EXTERNAL_LINKS, githubBlobUrl} from '../content/externalLinks.js'
+import {githubIssuesUrl} from '../content/externalLinks.js'
 
 /** @typedef {Object} SeedAlarmAlertDefinition
  * @property {string} seedKey Stable key used for deduplication within a page session
@@ -17,12 +17,12 @@ import {EXTERNAL_LINKS, githubBlobUrl} from '../content/externalLinks.js'
 /** @type {SeedAlarmAlertDefinition[]} */
 export const SEED_ALARM_ALERTS = [
     {
-        seedKey: 'bearing-range-rewrite',
+        seedKey: 'heavy-development',
         signalId: 'SYSTEM_NOTICE',
         messageIcon: '⚠️',
-        message: 'The bearing range line system is currently buggy and undergoing active fixes.',
-        linkUrl: githubBlobUrl(EXTERNAL_LINKS.docs.bearingRangeRewritePlan),
-        linkLabel: 'View bearing range rewrite plan',
+        message: 'This app is currently under heavy development. Please report bugs!',
+        linkUrl: githubIssuesUrl(),
+        linkLabel: 'Report bugs on GitHub',
     },
 ]
 

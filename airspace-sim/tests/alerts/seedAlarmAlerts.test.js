@@ -4,7 +4,7 @@ import {
     buildSeedAlarmKey,
     SEED_ALARM_ALERTS,
 } from '../../app/data/seedAlarmAlerts.js'
-import {EXTERNAL_LINKS, githubBlobUrl} from '../../app/content/externalLinks.js'
+import {githubIssuesUrl} from '../../app/content/externalLinks.js'
 
 test('seed alarm alerts define stable dedup keys', () => {
     const keys = SEED_ALARM_ALERTS.map((seedAlert) => buildSeedAlarmKey(seedAlert))
@@ -13,17 +13,15 @@ test('seed alarm alerts define stable dedup keys', () => {
     assert.equal(keys.length, uniqueKeys.size)
 })
 
-test('bearing range seed alert includes warning icon and rewrite plan link', () => {
-    const bearingRangeAlert = SEED_ALARM_ALERTS.find(
-        (seedAlert) => seedAlert.seedKey === 'bearing-range-rewrite',
+test('development notice seed alert includes warning icon and GitHub issues link', () => {
+    const developmentNotice = SEED_ALARM_ALERTS.find(
+        (seedAlert) => seedAlert.seedKey === 'heavy-development',
     )
 
-    assert.ok(bearingRangeAlert)
-    assert.equal(bearingRangeAlert.messageIcon, '⚠️')
-    assert.match(bearingRangeAlert.message, /bearing range line system/i)
-    assert.equal(
-        bearingRangeAlert.linkUrl,
-        githubBlobUrl(EXTERNAL_LINKS.docs.bearingRangeRewritePlan),
-    )
-    assert.equal(bearingRangeAlert.linkLabel, 'View bearing range rewrite plan')
+    assert.ok(developmentNotice)
+    assert.equal(developmentNotice.messageIcon, '⚠️')
+    assert.match(developmentNotice.message, /under heavy development/i)
+    assert.match(developmentNotice.message, /report bugs/i)
+    assert.equal(developmentNotice.linkUrl, githubIssuesUrl())
+    assert.equal(developmentNotice.linkLabel, 'Report bugs on GitHub')
 })
