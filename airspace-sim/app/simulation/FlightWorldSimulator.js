@@ -19,6 +19,7 @@ import {
 } from './generalAviationTraffic'
 import {maintainFleetEmergencySquawks, formatMode3Code} from './iffMode3'
 import {updateAircraftKinematics} from './flightWorldKinematics'
+import {UniformGridIndex} from './UniformGridIndex.js'
 
 export class FlightWorldSimulator {
     constructor() {
@@ -33,6 +34,8 @@ export class FlightWorldSimulator {
         this.initialized = false
         this.maxActiveFlights = 0
         this.lastReassignedAircraft = []
+        this.spatialIndex = null
+        this.spatialIndexBuilt = false
     }
 
     getCommercialFleetTarget(maxActiveFlights) {
@@ -88,6 +91,7 @@ export class FlightWorldSimulator {
 
         this.aircraft = nextAircraft
         maintainFleetEmergencySquawks(this.aircraft, random)
+        this.spatialIndexBuilt = false
     }
 
     initialize(maxActiveFlights) {
@@ -189,6 +193,7 @@ export class FlightWorldSimulator {
                 altitude: aircraft.altitude,
             }
         })
+        this.spatialIndexBuilt = false
     }
 
     getAircraftById(aircraftId) {
@@ -223,11 +228,27 @@ export class FlightWorldSimulator {
         return this.routes
     }
 
+    ensureSpatialIndex() {
+        if (this.spatialIndexBuilt && this.spatialIndex) {
+            return
+        }
+
+        const index = new UniformGridIndex(1.0)
+        index.insertAll(this.getAllAircraft())
+        this.spatialIndex = index
+        this.spatialIndexBuilt = true
+    }
+
     findNearestAircraft(longitude, latitude, maxDistanceNm = 15) {
+        this.ensureSpatialIndex()
+
         let best = null
         let bestDistance = Infinity
 
-        this.aircraft.forEach((aircraft) => {
+        const candidates = this.spatialIndex.query(longitude, latitude, maxDistanceNm)
+
+        for (let i = 0; i < candidates.length; i++) {
+            const aircraft = candidates[i]
             const distance = haversineDistanceNm(
                 latitude,
                 longitude,
@@ -239,7 +260,7 @@ export class FlightWorldSimulator {
                 bestDistance = distance
                 best = aircraft
             }
-        })
+        }
 
         return best
     }
@@ -251,12 +272,17 @@ export class FlightWorldSimulator {
             return null
         }
 
+        this.ensureSpatialIndex()
+
         let best = null
         let bestDistance = Infinity
 
-        this.aircraft.forEach((aircraft) => {
+        const candidates = this.spatialIndex.query(longitude, latitude, maxDistanceNm)
+
+        for (let i = 0; i < candidates.length; i++) {
+            const aircraft = candidates[i]
             if (formatMode3Code(aircraft.mode3Code) !== normalized) {
-                return
+                continue
             }
 
             const distance = haversineDistanceNm(
@@ -270,13 +296,15 @@ export class FlightWorldSimulator {
                 bestDistance = distance
                 best = aircraft
             }
-        })
+        }
 
         return best
     }
 
     dispose() {
         this.aircraft.clear()
+        this.spatialIndex?.clear()
+        this.spatialIndexBuilt = false
         this.initialized = false
     }
 }
