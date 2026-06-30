@@ -1,4 +1,4 @@
-import {haversineDistanceNm, offsetLngLat} from '../../../simulation/geo.js'
+import {bearingDegrees, haversineDistanceNm, offsetLngLat} from '../../../simulation/geo.js'
 import {buildCircleRingCoordinates} from '../scopeCircleGeometry.js'
 import {GEOMETRY_SHAPE_TYPES} from './drawGeometryTypes.js'
 
@@ -48,23 +48,45 @@ export function deriveRacetrackRadiusNm(center1, center2, radiusPoint) {
     )
 }
 
+export function normalizeBearingDegrees(bearing) {
+    return ((bearing % 360) + 360) % 360
+}
+
+export function getRacetrackAxisBearing(center1, center2) {
+    return bearingDegrees(center1.lat, center1.lng, center2.lat, center2.lng)
+}
+
+export function getRacetrackTangentPoints(center1, center2, radiusNm) {
+    const axisBearing = getRacetrackAxisBearing(center1, center2)
+    const sideABearing = normalizeBearingDegrees(axisBearing - 90)
+    const sideBBearing = normalizeBearingDegrees(axisBearing + 90)
+
+    return {
+        axisBearing,
+        sideABearing,
+        sideBBearing,
+        tangent1A: offsetLngLat(center1.lng, center1.lat, sideABearing, radiusNm),
+        tangent2A: offsetLngLat(center2.lng, center2.lat, sideABearing, radiusNm),
+        tangent2B: offsetLngLat(center2.lng, center2.lat, sideBBearing, radiusNm),
+        tangent1B: offsetLngLat(center1.lng, center1.lat, sideBBearing, radiusNm),
+    }
+}
+
 export function getNearestPointOnCenterLine(center1, center2, point) {
-    const latDelta = Math.abs(center1.lat - center2.lat)
-    const lngDelta = Math.abs(center1.lng - center2.lng)
+    const axisLength = haversineDistanceNm(center1.lat, center1.lng, center2.lat, center2.lng)
 
-    if (latDelta <= lngDelta) {
-        const minLng = Math.min(center1.lng, center2.lng)
-        const maxLng = Math.max(center1.lng, center2.lng)
-        const clampedLng = Math.max(minLng, Math.min(maxLng, point.lng))
-
-        return {lat: center1.lat, lng: clampedLng}
+    if (!(axisLength > 0)) {
+        return center1
     }
 
-    const minLat = Math.min(center1.lat, center2.lat)
-    const maxLat = Math.max(center1.lat, center2.lat)
-    const clampedLat = Math.max(minLat, Math.min(maxLat, point.lat))
+    const axisBearing = getRacetrackAxisBearing(center1, center2)
+    const pointBearing = bearingDegrees(center1.lat, center1.lng, point.lat, point.lng)
+    const pointDistance = haversineDistanceNm(center1.lat, center1.lng, point.lat, point.lng)
+    const bearingDifferenceRadians = ((pointBearing - axisBearing) * Math.PI) / 180
+    const alongTrackNm = pointDistance * Math.cos(bearingDifferenceRadians)
+    const clampedAlongTrackNm = Math.max(0, Math.min(axisLength, alongTrackNm))
 
-    return {lat: clampedLat, lng: center1.lng}
+    return offsetLngLat(center1.lng, center1.lat, axisBearing, clampedAlongTrackNm)
 }
 
 export function getRacetrackMaxRadiusNm(center1, center2) {
@@ -103,79 +125,37 @@ function buildOvalRing(center, halfWidthNm, halfHeightNm, segments = ELLIPSE_SEG
     return ring.map((point) => [point.lng, point.lat])
 }
 
-function buildHorizontalRacetrackRing(leftCenter, rightCenter, radiusNm) {
-    const ring = []
+function appendRacetrackArc(ring, center, fromBearing, radiusNm, segments, includeStart) {
+    const startIndex = includeStart ? 0 : 1
 
-    for (let index = 0; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
-        const bearing = 180 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
-        const point = offsetLngLat(leftCenter.lng, leftCenter.lat, bearing % 360, radiusNm)
-
-        ring.push([point.lng, point.lat])
-    }
-
-    const rightNorth = offsetLngLat(rightCenter.lng, rightCenter.lat, 0, radiusNm)
-
-    ring.push([rightNorth.lng, rightNorth.lat])
-
-    for (let index = 1; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
-        const bearing = (index / RACETRACK_ARC_SEGMENTS) * 180
-        const point = offsetLngLat(rightCenter.lng, rightCenter.lat, bearing, radiusNm)
+    for (let index = startIndex; index <= segments; index += 1) {
+        const bearing = normalizeBearingDegrees(fromBearing + ((index / segments) * 180))
+        const point = offsetLngLat(center.lng, center.lat, bearing, radiusNm)
 
         ring.push([point.lng, point.lat])
     }
-
-    const leftSouth = offsetLngLat(leftCenter.lng, leftCenter.lat, 180, radiusNm)
-
-    ring.push([leftSouth.lng, leftSouth.lat])
-    ring.push(ring[0])
-
-    return ring
-}
-
-function buildVerticalRacetrackRing(bottomCenter, topCenter, radiusNm) {
-    const ring = []
-
-    for (let index = 0; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
-        const bearing = 90 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
-        const point = offsetLngLat(bottomCenter.lng, bottomCenter.lat, bearing, radiusNm)
-
-        ring.push([point.lng, point.lat])
-    }
-
-    const topWest = offsetLngLat(topCenter.lng, topCenter.lat, 270, radiusNm)
-
-    ring.push([topWest.lng, topWest.lat])
-
-    for (let index = 1; index <= RACETRACK_ARC_SEGMENTS; index += 1) {
-        const bearing = 270 + ((index / RACETRACK_ARC_SEGMENTS) * 180)
-        const point = offsetLngLat(topCenter.lng, topCenter.lat, bearing % 360, radiusNm)
-
-        ring.push([point.lng, point.lat])
-    }
-
-    const bottomEast = offsetLngLat(bottomCenter.lng, bottomCenter.lat, 90, radiusNm)
-
-    ring.push([bottomEast.lng, bottomEast.lat])
-    ring.push(ring[0])
-
-    return ring
 }
 
 function buildRacetrackRing(center1, center2, radiusNm) {
-    const latDelta = Math.abs(center1.lat - center2.lat)
-    const lngDelta = Math.abs(center1.lng - center2.lng)
+    const {
+        sideABearing,
+        sideBBearing,
+        tangent1A,
+        tangent2A,
+        tangent1B,
+    } = getRacetrackTangentPoints(center1, center2, radiusNm)
 
-    if (latDelta <= lngDelta) {
-        const leftCenter = center1.lng <= center2.lng ? center1 : center2
-        const rightCenter = center1.lng <= center2.lng ? center2 : center1
+    const ring = [
+        [tangent1A.lng, tangent1A.lat],
+        [tangent2A.lng, tangent2A.lat],
+    ]
 
-        return buildHorizontalRacetrackRing(leftCenter, rightCenter, radiusNm)
-    }
+    appendRacetrackArc(ring, center2, sideABearing, radiusNm, RACETRACK_ARC_SEGMENTS, false)
+    ring.push([tangent1B.lng, tangent1B.lat])
+    appendRacetrackArc(ring, center1, sideBBearing, radiusNm, RACETRACK_ARC_SEGMENTS, false)
+    ring.push(ring[0])
 
-    const bottomCenter = center1.lat <= center2.lat ? center1 : center2
-    const topCenter = center1.lat <= center2.lat ? center2 : center1
-
-    return buildVerticalRacetrackRing(bottomCenter, topCenter, radiusNm)
+    return ring
 }
 
 function buildPolygonCoordinates(vertices, closed) {
@@ -221,21 +201,22 @@ export function getGeometryLabelPoint(shape) {
         case GEOMETRY_SHAPE_TYPES.CIRCLE:
             return getNorthEdgePoint(params.center, params.radiusNm)
         case GEOMETRY_SHAPE_TYPES.RACETRACK: {
-            const centers = [params.center1, params.center2].filter(Boolean)
-
-            if (!centers.length) {
+            if (!params.center1 || !params.center2 || !(params.radiusNm > 0)) {
                 return null
             }
 
-            const northernCenter = centers.reduce((current, center) => (
-                center.lat > current.lat ? center : current
-            ), centers[0])
-            const centerLng = centers.reduce((sum, center) => sum + center.lng, 0) / centers.length
-
-            return getNorthEdgePoint(
-                {lat: northernCenter.lat, lng: centerLng},
-                params.radiusNm,
+            const {
+                tangent1A,
+                tangent2A,
+                tangent1B,
+                tangent2B,
+            } = getRacetrackTangentPoints(params.center1, params.center2, params.radiusNm)
+            const northernTangent = [tangent1A, tangent2A, tangent1B, tangent2B].reduce(
+                (current, tangent) => (tangent.lat > current.lat ? tangent : current),
+                tangent1A,
             )
+
+            return getNorthEdgePoint(northernTangent, 0)
         }
         case GEOMETRY_SHAPE_TYPES.POLYGON:
             if (!params.vertices?.length) {

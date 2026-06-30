@@ -10,14 +10,33 @@ import {
     buildGeometryLabelFeature,
     deriveAxisAlignedHalfExtentsNm,
     deriveCircleRadiusNm,
+    deriveRacetrackRadiusNm,
     deriveSquareHalfSizeNm,
+    getNearestPointOnCenterLine,
+    getRacetrackAxisBearing,
+    getRacetrackTangentPoints,
+    normalizeBearingDegrees,
 } from '../../app/tools/map/drawGeometry/drawGeometryGeometry.js'
+import {bearingDegrees} from '../../app/simulation/geo.js'
 import {
     createGeometryShape,
     isGeometryShapeComplete,
     isGeometryShapeInPendingDrawStatus,
 } from '../../app/tools/map/drawGeometry/drawGeometryModels.js'
 import {GEOMETRY_SHAPE_TYPES, GEOMETRY_STATUS} from '../../app/tools/map/drawGeometry/drawGeometryTypes.js'
+
+function bearingDifferenceDegrees(leftBearing, rightBearing) {
+    const difference = Math.abs(normalizeBearingDegrees(leftBearing) - normalizeBearingDegrees(rightBearing))
+
+    return Math.min(difference, 360 - difference)
+}
+
+function assertBearingsApproximatelyEqual(actualBearing, expectedBearing, toleranceDegrees = 1) {
+    assert.ok(
+        bearingDifferenceDegrees(actualBearing, expectedBearing) <= toleranceDegrees,
+        `expected bearing ${expectedBearing}, received ${actualBearing}`,
+    )
+}
 
 describe('draw geometry builders', () => {
     it('derives axis-aligned rectangle extents from center and corner', () => {
@@ -74,11 +93,91 @@ describe('draw geometry builders', () => {
 
         const geometry = buildGeometryGeoJson(shape)
         const ring = geometry.coordinates[0]
+        const axisBearing = getRacetrackAxisBearing(shape.params.center1, shape.params.center2)
+        const tangents = getRacetrackTangentPoints(
+            shape.params.center1,
+            shape.params.center2,
+            shape.params.radiusNm,
+        )
 
         assert.equal(geometry.type, 'Polygon')
         assert.ok(ring.length > 40)
         assert.equal(ring[0][0], ring[ring.length - 1][0])
         assert.equal(ring[0][1], ring[ring.length - 1][1])
+        assertBearingsApproximatelyEqual(
+            bearingDegrees(
+                tangents.tangent1A.lat,
+                tangents.tangent1A.lng,
+                tangents.tangent2A.lat,
+                tangents.tangent2A.lng,
+            ),
+            axisBearing,
+        )
+        assertBearingsApproximatelyEqual(
+            bearingDegrees(
+                shape.params.center1.lat,
+                shape.params.center1.lng,
+                tangents.tangent1A.lat,
+                tangents.tangent1A.lng,
+            ),
+            normalizeBearingDegrees(axisBearing - 90),
+        )
+    })
+
+    it('builds a rotated racetrack with straights parallel to the center axis', () => {
+        const center1 = {lat: 40, lng: -80}
+        const center2 = {lat: 41, lng: -78}
+        const radiusNm = 5
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.RACETRACK)
+        shape.params = {center1, center2, radiusNm}
+        shape.status = GEOMETRY_STATUS.COMMITTED
+
+        const geometry = buildGeometryGeoJson(shape)
+        const axisBearing = getRacetrackAxisBearing(center1, center2)
+        const tangents = getRacetrackTangentPoints(center1, center2, radiusNm)
+
+        assert.equal(geometry.type, 'Polygon')
+        assertBearingsApproximatelyEqual(
+            bearingDegrees(
+                tangents.tangent1A.lat,
+                tangents.tangent1A.lng,
+                tangents.tangent2A.lat,
+                tangents.tangent2A.lng,
+            ),
+            axisBearing,
+        )
+        assertBearingsApproximatelyEqual(
+            bearingDegrees(
+                tangents.tangent1B.lat,
+                tangents.tangent1B.lng,
+                tangents.tangent2B.lat,
+                tangents.tangent2B.lng,
+            ),
+            axisBearing,
+        )
+        assertBearingsApproximatelyEqual(
+            bearingDegrees(center1.lat, center1.lng, tangents.tangent1A.lat, tangents.tangent1A.lng),
+            normalizeBearingDegrees(axisBearing - 90),
+        )
+        assertBearingsApproximatelyEqual(
+            bearingDegrees(center2.lat, center2.lng, tangents.tangent2B.lat, tangents.tangent2B.lng),
+            normalizeBearingDegrees(axisBearing + 90),
+        )
+    })
+
+    it('derives racetrack radius perpendicular to the center axis', () => {
+        const center1 = {lat: 40, lng: -80}
+        const center2 = {lat: 41, lng: -78}
+        const radiusPoint = getRacetrackTangentPoints(center1, center2, 7).tangent1A
+        const nearestPoint = getNearestPointOnCenterLine(center1, center2, radiusPoint)
+
+        assert.ok(deriveRacetrackRadiusNm(center1, center2, radiusPoint) > 6.5)
+        assert.ok(
+            bearingDifferenceDegrees(
+                getRacetrackAxisBearing(center1, center2),
+                bearingDegrees(nearestPoint.lat, nearestPoint.lng, radiusPoint.lat, radiusPoint.lng),
+            ) >= 89,
+        )
     })
 
     it('keeps shape labels off polygon features', () => {

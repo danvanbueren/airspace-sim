@@ -1,6 +1,6 @@
 import {GEOMETRY_SHAPE_TYPES} from './drawGeometryTypes.js'
 import {createDefaultParamsForType} from './drawGeometryModels.js'
-import {getRacetrackMaxRadiusNm} from './drawGeometryGeometry.js'
+import {getRacetrackMaxRadiusNm, getRacetrackTangentPoints} from './drawGeometryGeometry.js'
 
 function clampRacetrackRadius(center1, center2, radiusNm) {
     const maxRadius = getRacetrackMaxRadiusNm(center1, center2)
@@ -337,30 +337,14 @@ function buildOvalVertices(center, halfWidthNm, halfHeightNm, segments = 24) {
 }
 
 function buildRacetrackVertices(center1, center2, radiusNm) {
-    const latDelta = Math.abs(center1.lat - center2.lat)
-    const lngDelta = Math.abs(center1.lng - center2.lng)
+    const {
+        tangent1A,
+        tangent2A,
+        tangent2B,
+        tangent1B,
+    } = getRacetrackTangentPoints(center1, center2, radiusNm)
 
-    if (latDelta <= lngDelta) {
-        const leftCenter = center1.lng <= center2.lng ? center1 : center2
-        const rightCenter = center1.lng <= center2.lng ? center2 : center1
-
-        return [
-            offsetCenter(leftCenter, 0, radiusNm),
-            offsetCenter(rightCenter, 0, radiusNm),
-            offsetCenter(rightCenter, 0, -radiusNm),
-            offsetCenter(leftCenter, 0, -radiusNm),
-        ]
-    }
-
-    const bottomCenter = center1.lat <= center2.lat ? center1 : center2
-    const topCenter = center1.lat <= center2.lat ? center2 : center1
-
-    return [
-        offsetCenter(topCenter, -radiusNm, 0),
-        offsetCenter(topCenter, radiusNm, 0),
-        offsetCenter(bottomCenter, radiusNm, 0),
-        offsetCenter(bottomCenter, -radiusNm, 0),
-    ]
+    return [tangent1A, tangent2A, tangent2B, tangent1B]
 }
 
 export function convertGeometryShapeType(shape, nextType) {
