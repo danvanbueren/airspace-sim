@@ -26,7 +26,6 @@ import {
     useTrackManagementWindowDrag,
 } from '@/app/hooks/map/useTrackManagementWindowDrag'
 import {absoluteToEdgeAnchor} from '@/app/tools/map/edgeAnchoredPosition'
-import {getGeometryDisplayTitle} from '@/app/tools/map/drawGeometry/drawGeometryGeometry'
 import {getMapFloatingWindowMaxHeight} from '@/app/tools/map/mapFloatingWindowLayout'
 import {TRACK_IDENTITIES} from '@/app/tools/milstd2525/trackSymbolCodes'
 import {getTrackIdentityChromeColors} from '@/app/tools/milstd2525/trackIdentityColors'
@@ -189,7 +188,6 @@ export default function GeometryWindow({
     }
 
     const windowChrome = getGeometryWindowChromeColors(shape, theme)
-    const windowTitle = getGeometryDisplayTitle(shape)
     const showPending = geometryWindowShouldShowPendingPill(shape)
     const hasExplicitHeight = typeof resizedHeight === 'number'
 
@@ -266,7 +264,7 @@ export default function GeometryWindow({
                             whiteSpace: 'nowrap',
                         }}
                     >
-                        {windowTitle}
+                        Geometry
                     </Typography>
                     {showPending ? (
                         <Chip

@@ -3,6 +3,7 @@
 import {useCallback} from 'react'
 import {
     Box,
+    Divider,
     FormControl,
     IconButton,
     InputLabel,
@@ -29,8 +30,15 @@ import {
     GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM,
 } from '@/app/tools/map/drawGeometry/drawGeometryTypes'
 import {roundManualGeometryParams} from '@/app/tools/map/drawGeometry/drawGeometryRounding'
+import {geometryWindowShouldShowPendingPill} from '@/app/hooks/map/useGeometryWindows'
 
 const NM_FIELD_CONFIG = createDeferredNumericFieldConfig({min: 0})
+
+const GEOMETRY_SECTION_HEADING_SX = {
+    fontWeight: 'bold',
+    fontSize: '0.8rem',
+    lineHeight: 1.3,
+}
 
 function DeferredNmField({label, value, onCommit}) {
     return (
@@ -284,6 +292,8 @@ export default function GeometryWindowBody({shape}) {
         updateShape(shape.id, {params: roundManualGeometryParams(paramsUpdate)})
     }, [shape.id, updateShape])
 
+    const showPendingPenUsage = geometryWindowShouldShowPendingPill(shape)
+
     return (
         <Stack spacing={1.5}>
             {appSettings.verboseMode ? (
@@ -297,7 +307,7 @@ export default function GeometryWindowBody({shape}) {
             ) : null}
 
             <DeferredTextField
-                label='Name (optional)'
+                label='Name'
                 committedValue={shape.name ?? ''}
                 onCommit={handleNameCommit}
                 size='small'
@@ -330,8 +340,21 @@ export default function GeometryWindowBody({shape}) {
                 </Select>
             </FormControl>
 
-            <Typography variant='caption' color='text.secondary'>
-                {GEOMETRY_DRAWING_INSTRUCTIONS[shape.type]}
+            {showPendingPenUsage ? (
+                <>
+                    <Divider/>
+                    <Typography sx={GEOMETRY_SECTION_HEADING_SX}>
+                        On-Map Pen Usage
+                    </Typography>
+                    <Typography variant='caption' color='text.secondary'>
+                        {GEOMETRY_DRAWING_INSTRUCTIONS[shape.type]}
+                    </Typography>
+                    <Divider/>
+                </>
+            ) : null}
+
+            <Typography sx={GEOMETRY_SECTION_HEADING_SX}>
+                Properties
             </Typography>
 
             <GeometryCoordinateFields shape={shape} onUpdateParams={handleParamsUpdate}/>
