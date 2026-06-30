@@ -37,7 +37,7 @@ export function resizeDrawGeometryPreviewOverlay(map, overlay) {
     const mapCanvas = map.getCanvas()
     const width = mapCanvas.clientWidth
     const height = mapCanvas.clientHeight
-    const dpr = window.devicePixelRatio || 1
+    const dpr = (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1
 
     overlay.width = Math.max(1, Math.round(width * dpr))
     overlay.height = Math.max(1, Math.round(height * dpr))
@@ -251,8 +251,9 @@ export function drawGeometryPreviewOnOverlay(map, overlay, shapes, strokeColor, 
         return
     }
 
-    const scaleX = overlay.width / overlay.clientWidth
-    const scaleY = overlay.height / overlay.clientHeight
+    const dpr = (typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1
+    const scaleX = dpr
+    const scaleY = dpr
 
     context.clearRect(0, 0, overlay.width, overlay.height)
 
