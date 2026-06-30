@@ -1,4 +1,5 @@
-import {buildGeometryGeoJson} from './drawGeometryGeometry.js'
+import {buildDisplayGeometryGeoJson} from './drawGeometryGeometry.js'
+import {isMapLocationVisible} from './drawGeometryMapBounds.js'
 import {GEOMETRY_PENDING_OPACITY} from './drawGeometryTypes.js'
 
 export const DRAW_GEOMETRY_PREVIEW_OVERLAY_CLASS = 'draw-geometry-preview-overlay'
@@ -49,8 +50,12 @@ export function removeDrawGeometryPreviewOverlay(overlay) {
 }
 
 function projectRing(map, coordinates) {
-    return coordinates.map((coordinate) => {
-        const point = map.project(coordinate)
+    return coordinates.map(([lng, lat]) => {
+        if (!isMapLocationVisible(map, lng, lat)) {
+            return null
+        }
+
+        const point = map.project([lng, lat])
 
         if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
             return null
@@ -113,28 +118,33 @@ function fillRing(context, ring, scaleX, scaleY) {
     }
 
     withViewportClip(context, () => {
-        context.beginPath()
-
-        let hasStarted = false
+        let pathOpen = false
 
         for (const point of ring) {
             if (!point) {
+                if (pathOpen) {
+                    context.fill()
+                    pathOpen = false
+                    context.beginPath()
+                }
+
                 continue
             }
 
             const x = point.x * scaleX
             const y = point.y * scaleY
 
-            if (!hasStarted) {
+            if (!pathOpen) {
+                context.beginPath()
                 context.moveTo(x, y)
-                hasStarted = true
+                pathOpen = true
                 continue
             }
 
             context.lineTo(x, y)
         }
 
-        if (!hasStarted) {
+        if (!pathOpen) {
             return
         }
 
@@ -144,6 +154,13 @@ function fillRing(context, ring, scaleX, scaleY) {
 }
 
 function strokeProjectedLine(context, map, from, to, strokeColor, scaleX, scaleY, opacity) {
+    if (
+        !isMapLocationVisible(map, from.lng, from.lat)
+        || !isMapLocationVisible(map, to.lng, to.lat)
+    ) {
+        return
+    }
+
     const fromPoint = map.project([from.lng, from.lat])
     const toPoint = map.project([to.lng, to.lat])
 
@@ -159,10 +176,12 @@ function strokeProjectedLine(context, map, from, to, strokeColor, scaleX, scaleY
     context.globalAlpha = opacity
     context.lineWidth = 2 * scaleX
     context.lineCap = 'round'
-    context.beginPath()
-    context.moveTo(fromPoint.x * scaleX, fromPoint.y * scaleY)
-    context.lineTo(toPoint.x * scaleX, toPoint.y * scaleY)
-    context.stroke()
+    withViewportClip(context, () => {
+        context.beginPath()
+        context.moveTo(fromPoint.x * scaleX, fromPoint.y * scaleY)
+        context.lineTo(toPoint.x * scaleX, toPoint.y * scaleY)
+        context.stroke()
+    })
     context.restore()
 }
 
@@ -184,7 +203,7 @@ function drawConstructionPreview(context, map, constructionPreview, strokeColor,
 }
 
 function drawGeometryOnOverlay(context, map, shape, strokeColor, scaleX, scaleY) {
-    const geometry = buildGeometryGeoJson(shape)
+    const geometry = buildDisplayGeometryGeoJson(shape)
 
     if (!geometry) {
         return

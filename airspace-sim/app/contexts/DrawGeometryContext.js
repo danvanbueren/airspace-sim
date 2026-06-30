@@ -9,6 +9,7 @@ import {
 } from '@/app/tools/map/drawGeometry/drawGeometryColor'
 import {convertGeometryShapeType} from '@/app/tools/map/drawGeometry/drawGeometryConversion'
 import {
+    clampGeometryParamsToMapBounds,
     cloneGeometryShape,
     createDefaultParamsForType,
     createGeometryShape,
@@ -91,7 +92,10 @@ export function DrawGeometryProvider({children}) {
                 ...shape,
                 ...updates,
                 params: updates.params
-                    ? {...shape.params, ...updates.params}
+                    ? clampGeometryParamsToMapBounds(shape.type, {
+                        ...shape.params,
+                        ...updates.params,
+                    })
                     : shape.params,
             }
 

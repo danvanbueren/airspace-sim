@@ -15,6 +15,8 @@ import {
     deriveCircleRadiusNm,
     deriveRacetrackRadiusNm,
     clampRacetrackRadiusNm,
+    clampRacetrackRadiusToMapBounds,
+    clampGeometryParamsToMapBounds,
     deriveSquareHalfSizeNm,
 } from '@/app/tools/map/drawGeometry/drawGeometryGeometry'
 import {
@@ -143,7 +145,7 @@ export function useDrawGeometryTool(
             ]
         }
 
-        return shapesList
+        return shapesList.filter((shape) => shape.status === GEOMETRY_STATUS.PENDING)
     }, [])
 
     const getRacetrackConstructionPreview = useCallback(() => {
@@ -323,12 +325,18 @@ export function useDrawGeometryTool(
     }, [clearDrawGeometryCursor, clearGeometryHoverCursor, resetDrawingInteraction])
 
     const applyShapeUpdate = useCallback((shapeId, paramsUpdate, extraUpdates = {}) => {
+        const shape = getShapeById(shapeId)
+        const mergedParams = clampGeometryParamsToMapBounds(shape?.type, {
+            ...(shape?.params ?? {}),
+            ...paramsUpdate,
+        })
+
         updateShape(shapeId, {
             ...extraUpdates,
-            params: roundDrawGeometryParams(paramsUpdate),
+            params: roundDrawGeometryParams(mergedParams),
         })
         syncMapAndPreview()
-    }, [syncMapAndPreview, updateShape])
+    }, [getShapeById, syncMapAndPreview, updateShape])
 
     const finalizeShapeIfComplete = useCallback((shapeId) => {
         const shape = getShapeById(shapeId)
@@ -489,7 +497,11 @@ export function useDrawGeometryTool(
                         return
                     }
 
-                    const radiusNm = clampRacetrackRadiusNm(params.center1, params.center2, point)
+                    const radiusNm = clampRacetrackRadiusToMapBounds(
+                        params.center1,
+                        params.center2,
+                        clampRacetrackRadiusNm(params.center1, params.center2, point),
+                    )
 
                     if (!(radiusNm > 0)) {
                         return
@@ -567,7 +579,11 @@ export function useDrawGeometryTool(
                     redrawPreview()
                 } else if (drawingPhaseRef.current === 2 && params.center1 && params.center2) {
                     applyShapeUpdate(shape.id, {
-                        radiusNm: clampRacetrackRadiusNm(params.center1, params.center2, point),
+                        radiusNm: clampRacetrackRadiusToMapBounds(
+                            params.center1,
+                            params.center2,
+                            clampRacetrackRadiusNm(params.center1, params.center2, point),
+                        ),
                     })
                 }
                 break

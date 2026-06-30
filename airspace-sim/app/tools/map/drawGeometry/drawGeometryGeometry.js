@@ -1,5 +1,12 @@
 import {bearingDegrees, haversineDistanceNm, offsetLngLat} from '../../../simulation/geo.js'
 import {buildCircleRingCoordinates} from '../scopeCircleGeometry.js'
+import {
+    clampAxisAlignedExtentsToMapBounds,
+    clampCircleRadiusToMapBounds,
+    clampLngLatToMapDisplayBounds,
+    clipGeometryToMapDisplayBounds,
+    isCoordinateInsideMapDisplayBounds,
+} from './drawGeometryMapBounds.js'
 import {GEOMETRY_SHAPE_TYPES} from './drawGeometryTypes.js'
 import {roundGeometryDrawOffsetNm} from './drawGeometryRounding.js'
 
@@ -134,6 +141,50 @@ export function clampRacetrackRadiusNm(center1, center2, radiusPoint) {
     }
 
     return Math.min(rounded, maxRounded)
+}
+
+const RACETRACK_BOUNDS_SEARCH_TOLERANCE_NM = 0.5
+
+function arePointsInsideMapDisplayBounds(points) {
+    return points.every((point) => isCoordinateInsideMapDisplayBounds(point.lng, point.lat))
+}
+
+export function clampRacetrackRadiusToMapBounds(center1, center2, radiusNm) {
+    if (!Number.isFinite(radiusNm) || radiusNm <= 0) {
+        return 0
+    }
+
+    const tangents = getRacetrackTangentPoints(center1, center2, radiusNm)
+
+    if (arePointsInsideMapDisplayBounds([
+        tangents.tangent1A,
+        tangents.tangent2A,
+        tangents.tangent2B,
+        tangents.tangent1B,
+    ])) {
+        return radiusNm
+    }
+
+    let low = 0
+    let high = radiusNm
+
+    while (high - low > RACETRACK_BOUNDS_SEARCH_TOLERANCE_NM) {
+        const mid = (low + high) / 2
+        const candidate = getRacetrackTangentPoints(center1, center2, mid)
+
+        if (arePointsInsideMapDisplayBounds([
+            candidate.tangent1A,
+            candidate.tangent2A,
+            candidate.tangent2B,
+            candidate.tangent1B,
+        ])) {
+            low = mid
+        } else {
+            high = mid
+        }
+    }
+
+    return roundGeometryDrawOffsetNm(low)
 }
 
 function buildRectangleRing(center, halfWidthNm, halfHeightNm) {
@@ -278,48 +329,6 @@ export function getGeometryLabelPoint(shape) {
     }
 }
 
-export function buildGeometryFeature(shape) {
-    const geometry = buildGeometryGeoJson(shape)
-
-    if (!geometry) {
-        return null
-    }
-
-    return {
-        type: 'Feature',
-        geometry,
-        properties: {
-            id: shape.id,
-            shapeType: shape.type,
-            status: shape.status,
-            closed: Boolean(shape.params?.closed),
-            opacity: shape.status === 'committed' ? 1 : 0.45,
-        },
-    }
-}
-
-export function buildGeometryLabelFeature(shape) {
-    const labelPoint = getGeometryLabelPoint(shape)
-    const labelText = getGeometryDisplayTitle(shape)
-
-    if (!labelPoint || !labelText) {
-        return null
-    }
-
-    return {
-        type: 'Feature',
-        geometry: {
-            type: 'Point',
-            coordinates: [labelPoint.lng, labelPoint.lat],
-        },
-        properties: {
-            id: `${shape.id}-label`,
-            shapeId: shape.id,
-            label: labelText,
-        },
-    }
-}
-
 export function buildGeometryGeoJson(shape) {
     const {type, params} = shape
 
@@ -385,6 +394,58 @@ export function buildGeometryGeoJson(shape) {
     }
 }
 
+export function buildDisplayGeometryGeoJson(shape) {
+    return clipGeometryToMapDisplayBounds(buildGeometryGeoJson(shape))
+}
+
+export function buildGeometryFeature(shape) {
+    const geometry = buildDisplayGeometryGeoJson(shape)
+
+    if (!geometry) {
+        return null
+    }
+
+    return {
+        type: 'Feature',
+        geometry,
+        properties: {
+            id: shape.id,
+            shapeType: shape.type,
+            status: shape.status,
+            closed: Boolean(shape.params?.closed),
+            opacity: shape.status === 'committed' ? 1 : 0.45,
+        },
+    }
+}
+
+export function buildGeometryLabelFeature(shape) {
+    const labelPoint = getGeometryLabelPoint(shape)
+    const labelText = getGeometryDisplayTitle(shape)
+
+    if (!labelPoint || !labelText) {
+        return null
+    }
+
+    const geometry = clipGeometryToMapDisplayBounds({
+        type: 'Point',
+        coordinates: [labelPoint.lng, labelPoint.lat],
+    })
+
+    if (!geometry) {
+        return null
+    }
+
+    return {
+        type: 'Feature',
+        geometry,
+        properties: {
+            id: `${shape.id}-label`,
+            shapeId: shape.id,
+            label: labelText,
+        },
+    }
+}
+
 export function buildGeometryFeatureCollection(shapes) {
     const features = []
 
@@ -410,4 +471,86 @@ export function buildGeometryFeatureCollection(shapes) {
 
 export function canPreviewGeometry(shape) {
     return buildGeometryGeoJson(shape) !== null
+}
+
+export function clampGeometryParamsToMapBounds(type, params) {
+    if (!params) {
+        return params
+    }
+
+    const nextParams = {...params}
+
+    switch (type) {
+        case GEOMETRY_SHAPE_TYPES.RECTANGLE:
+        case GEOMETRY_SHAPE_TYPES.OVAL: {
+            if (nextParams.center) {
+                nextParams.center = clampLngLatToMapDisplayBounds(nextParams.center)
+            }
+
+            const extents = clampAxisAlignedExtentsToMapBounds(
+                nextParams.center,
+                nextParams.halfWidthNm,
+                nextParams.halfHeightNm,
+            )
+            nextParams.halfWidthNm = extents.halfWidthNm
+            nextParams.halfHeightNm = extents.halfHeightNm
+            break
+        }
+        case GEOMETRY_SHAPE_TYPES.SQUARE: {
+            if (nextParams.center) {
+                nextParams.center = clampLngLatToMapDisplayBounds(nextParams.center)
+            }
+
+            const extents = clampAxisAlignedExtentsToMapBounds(
+                nextParams.center,
+                nextParams.halfSizeNm,
+                nextParams.halfSizeNm,
+            )
+            nextParams.halfSizeNm = Math.min(extents.halfWidthNm, extents.halfHeightNm)
+            break
+        }
+        case GEOMETRY_SHAPE_TYPES.CIRCLE: {
+            if (nextParams.center) {
+                nextParams.center = clampLngLatToMapDisplayBounds(nextParams.center)
+            }
+
+            nextParams.radiusNm = clampCircleRadiusToMapBounds(
+                nextParams.center,
+                nextParams.radiusNm,
+            )
+            break
+        }
+        case GEOMETRY_SHAPE_TYPES.RACETRACK: {
+            if (nextParams.center1) {
+                nextParams.center1 = clampLngLatToMapDisplayBounds(nextParams.center1)
+            }
+
+            if (nextParams.center2) {
+                nextParams.center2 = clampLngLatToMapDisplayBounds(nextParams.center2)
+            }
+
+            if (nextParams.center1 && nextParams.center2 && nextParams.radiusNm > 0) {
+                nextParams.radiusNm = clampRacetrackRadiusToMapBounds(
+                    nextParams.center1,
+                    nextParams.center2,
+                    nextParams.radiusNm,
+                )
+            }
+
+            break
+        }
+        case GEOMETRY_SHAPE_TYPES.POLYGON: {
+            if (Array.isArray(nextParams.vertices)) {
+                nextParams.vertices = nextParams.vertices
+                    .map((vertex) => clampLngLatToMapDisplayBounds(vertex))
+                    .filter(Boolean)
+            }
+
+            break
+        }
+        default:
+            break
+    }
+
+    return nextParams
 }

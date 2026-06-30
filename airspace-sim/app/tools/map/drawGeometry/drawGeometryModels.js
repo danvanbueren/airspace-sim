@@ -4,6 +4,7 @@ import {
     MIN_POLYGON_VERTICES,
 } from './drawGeometryTypes.js'
 import {getRacetrackMaxRadiusNm} from './drawGeometryGeometry.js'
+import {clampLngLatToMapDisplayBounds} from './drawGeometryMapBounds.js'
 import {roundGeometryDrawOffsetNm} from './drawGeometryRounding.js'
 
 function createLngLat(lat = 0, lng = 0) {
@@ -132,7 +133,7 @@ export function normalizeLngLat(lngLat) {
         return null
     }
 
-    return createLngLat(lngLat.lat, lngLat.lng)
+    return clampLngLatToMapDisplayBounds(createLngLat(lngLat.lat, lngLat.lng))
 }
 
 export function cloneGeometryShape(shape) {
