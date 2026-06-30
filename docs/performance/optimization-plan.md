@@ -208,6 +208,6 @@ Update [README.md](README.md) in this folder when phases complete. Link PRs and 
 | Investigation | ✅ Documented |
 | Deep validation (2026-06-25) | ✅ [validation-results.md](validation-results.md) |
 | Live instrumentation overlay | ✅ See [instrumentation.md](instrumentation.md) |
-| Phase 1 (syncKinematics index + React decoupling) | ⬜ Planned — **start here** |
+| Phase 1 (syncKinematics index + React decoupling) | ✅ Shipped |
 | Phase 2 | ⬜ Planned |
 | Phase 3 | ⬜ Exploratory |

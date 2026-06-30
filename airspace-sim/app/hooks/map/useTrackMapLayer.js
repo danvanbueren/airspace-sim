@@ -123,6 +123,7 @@ function getTrackIconRenderOptions(track, defaultIconSize, mapColorMode = 'dark'
         ...track.symbolOptions,
     }
     const trackId = getTrackId(track)
+    const infoFields = track.infoFields ?? false
 
     return {
         size: track.iconSize ?? defaultIconSize,
@@ -130,13 +131,11 @@ function getTrackIconRenderOptions(track, defaultIconSize, mapColorMode = 'dark'
         identity: track.identity,
         type: track.type,
         useFamiliarIcon: track.useFamiliarIcon ?? symbolOptions.useFamiliarIcon ?? true,
-        label: track.iconLabel ?? (
-            track.infoFields ? track.callsign ?? track.name ?? trackId : undefined
-        ),
-        heading: toFiniteNumber(track.iconHeading ?? track.heading),
-        speed: track.iconSpeed ?? track.speed,
-        altitude: track.iconAltitude ?? track.altitude,
-        infoFields: track.infoFields ?? false,
+        label: infoFields ? (track.iconLabel ?? track.callsign ?? track.name ?? trackId) : undefined,
+        heading: infoFields ? toFiniteNumber(track.iconHeading ?? track.heading) : undefined,
+        speed: infoFields ? (track.iconSpeed ?? track.speed) : undefined,
+        altitude: infoFields ? (track.iconAltitude ?? track.altitude) : undefined,
+        infoFields,
         civilianColor: symbolOptions.civilianColor,
         symbolOptions,
         mapColorMode,
@@ -170,7 +169,7 @@ function parseMilStd2525IconId(iconId) {
 }
 
 function getTrackIconCacheOptions(renderOptions) {
-    if (renderOptions.useFamiliarIcon !== false && !renderOptions.infoFields) {
+    if (!renderOptions.infoFields) {
         return {
             size: renderOptions.size,
             domain: renderOptions.domain,
@@ -178,6 +177,7 @@ function getTrackIconCacheOptions(renderOptions) {
             type: renderOptions.type,
             useFamiliarIcon: renderOptions.useFamiliarIcon,
             mapColorMode: renderOptions.mapColorMode,
+            civilianColor: renderOptions.civilianColor,
         }
     }
 
@@ -401,6 +401,29 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         const featureCollection = createFeatureCollection(tracks, iconSize, mapColorMode)
         const vectorFeatureCollection = tracksToVectorFeatureCollection(tracks, map)
 
+        // Cleanup unused icons from MapLibre memory to prevent memory leaks
+        if (registeredIconIdsRef.current.size > 0) {
+            const activeIconIds = new Set()
+            tracks.forEach((track) => {
+                const symbolCode = resolveTrackSymbolCode(track)
+                const iconId = track.iconId ?? getTrackIconId(track, symbolCode, iconSize, mapColorMode)
+                activeIconIds.add(iconId)
+            })
+
+            const toDelete = []
+            for (const registeredId of registeredIconIdsRef.current) {
+                if (!activeIconIds.has(registeredId)) {
+                    toDelete.push(registeredId)
+                }
+            }
+            toDelete.forEach((id) => {
+                if (map.hasImage(id)) {
+                    map.removeImage(id)
+                }
+                registeredIconIdsRef.current.delete(id)
+            })
+        }
+
         const trackSymbolsStart = performance.now()
         getSource(map)?.setData(featureCollection)
         const trackSymbolsMs = performance.now() - trackSymbolsStart
@@ -619,7 +642,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
     }, [scheduleSetData])
 
     const replaceTracks = useCallback((tracks) => {
-        tracksRef.current.clear()
+        const incomingIds = new Set()
 
         tracks.forEach((track) => {
             const id = getTrackId(track)
@@ -628,15 +651,24 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
                 return
             }
 
-            tracksRef.current.set(id, {
+            incomingIds.add(id)
+
+            const existing = tracksRef.current.get(id)
+            const mergedTrack = {
+                ...existing,
                 ...track,
                 id,
-            })
+            }
+
+            tracksRef.current.set(id, mergedTrack)
+            ensureTrackIcon(mergedTrack)
         })
 
-        tracksRef.current.forEach((track) => {
-            ensureTrackIcon(track)
-        })
+        for (const existingId of Array.from(tracksRef.current.keys())) {
+            if (!incomingIds.has(existingId)) {
+                tracksRef.current.delete(existingId)
+            }
+        }
 
         scheduleSetData()
     }, [ensureTrackIcon, scheduleSetData])

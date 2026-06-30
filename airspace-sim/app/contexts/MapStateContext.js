@@ -119,22 +119,30 @@ export function MapStateProvider({children}) {
         const id = nextAlertIdRef.current
         nextAlertIdRef.current += 1
 
-        setAlarmAlertQueue((currentQueue) => [
-            ...currentQueue,
-            {
-                id,
-                timestamp: toAlertTimestamp(normalizedAlert.raisedAt),
-                signalId: normalizedAlert.signalId,
-                message: normalizedAlert.message,
-                messageIcon: normalizedAlert.messageIcon ?? null,
-                trackId: normalizedAlert.trackId ?? null,
-                longitude: normalizedAlert.longitude ?? null,
-                latitude: normalizedAlert.latitude ?? null,
-                alarmKey: normalizedAlert.alarmKey ?? null,
-                linkUrl: normalizedAlert.linkUrl ?? null,
-                linkLabel: normalizedAlert.linkLabel ?? null,
-            },
-        ])
+        setAlarmAlertQueue((currentQueue) => {
+            const nextQueue = [
+                ...currentQueue,
+                {
+                    id,
+                    timestamp: toAlertTimestamp(normalizedAlert.raisedAt),
+                    signalId: normalizedAlert.signalId,
+                    message: normalizedAlert.message,
+                    messageIcon: normalizedAlert.messageIcon ?? null,
+                    trackId: normalizedAlert.trackId ?? null,
+                    longitude: normalizedAlert.longitude ?? null,
+                    latitude: normalizedAlert.latitude ?? null,
+                    alarmKey: normalizedAlert.alarmKey ?? null,
+                    linkUrl: normalizedAlert.linkUrl ?? null,
+                    linkLabel: normalizedAlert.linkLabel ?? null,
+                },
+            ]
+
+            if (nextQueue.length > 100) {
+                return nextQueue.slice(nextQueue.length - 100)
+            }
+
+            return nextQueue
+        })
 
         return id
     }, [])

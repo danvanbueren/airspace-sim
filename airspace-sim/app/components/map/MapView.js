@@ -513,30 +513,38 @@ export default function MapView({
         closeContextMenu()
     }, [setDropProtect, closeContextMenu])
 
+    const simulationSnapshotRef = useRef(simulationSnapshot)
+    simulationSnapshotRef.current = simulationSnapshot
+
+    // Stable map event listeners that use ref to read current snapshot
     useEffect(() => {
         const map = mapRef.current
 
-        if (!mapReady || !map || !simulationSnapshot?.tracks) {
-            return
+        if (!mapReady || !map) {
+            return undefined
         }
 
         const padding = simulationSettings.viewportPaddingDegrees ?? 0.5
 
         const syncVisibleTracks = () => {
+            const currentSnapshot = simulationSnapshotRef.current
+            if (!currentSnapshot?.tracks) {
+                return
+            }
+
             const syncStart = performance.now()
             const bounds = getExpandedMapBounds(map, padding)
-            const visibleTracks = filterTracksByBounds(simulationSnapshot.tracks, bounds)
+            const visibleTracks = filterTracksByBounds(currentSnapshot.tracks, bounds)
 
             setMapVisibleTracks(visibleTracks)
             trackMapLayer.replaceTracks(visibleTracks)
             performanceInstrumentation.recordViewportSync(
                 visibleTracks.length,
-                simulationSnapshot.tracks.length,
+                currentSnapshot.tracks.length,
                 performance.now() - syncStart,
             )
         }
 
-        syncVisibleTracks()
         map.on('move', syncVisibleTracks)
         map.on('zoom', syncVisibleTracks)
 
@@ -547,7 +555,34 @@ export default function MapView({
     }, [
         mapReady,
         mapRef,
-        mapStyle,
+        simulationSettings.viewportPaddingDegrees,
+        trackMapLayer,
+        performanceInstrumentation,
+    ])
+
+    // Update visible tracks on every simulation snapshot tick
+    useEffect(() => {
+        const map = mapRef.current
+
+        if (!mapReady || !map || !simulationSnapshot?.tracks) {
+            return
+        }
+
+        const padding = simulationSettings.viewportPaddingDegrees ?? 0.5
+        const syncStart = performance.now()
+        const bounds = getExpandedMapBounds(map, padding)
+        const visibleTracks = filterTracksByBounds(simulationSnapshot.tracks, bounds)
+
+        setMapVisibleTracks(visibleTracks)
+        trackMapLayer.replaceTracks(visibleTracks)
+        performanceInstrumentation.recordViewportSync(
+            visibleTracks.length,
+            simulationSnapshot.tracks.length,
+            performance.now() - syncStart,
+        )
+    }, [
+        mapReady,
+        mapRef,
         simulationSnapshot,
         simulationSettings.viewportPaddingDegrees,
         trackMapLayer,
