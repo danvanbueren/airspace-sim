@@ -11,8 +11,8 @@ import {convertGeometryShapeType} from '@/app/tools/map/drawGeometry/drawGeometr
 import {
     cloneGeometryShape,
     createGeometryShape,
-    isGeometryShapeComplete,
     isGeometryShapeInPendingDrawStatus,
+    shouldAutoCommitPendingGeometryShape,
 } from '@/app/tools/map/drawGeometry/drawGeometryModels'
 import {
     DRAW_TOOL_ITEM_TO_GEOMETRY_TYPE,
@@ -32,6 +32,8 @@ export function DrawGeometryProvider({children}) {
 
     const shapesRef = useRef(shapes)
     shapesRef.current = shapes
+    const activeShapeIdRef = useRef(activeShapeId)
+    activeShapeIdRef.current = activeShapeId
     const geometryWindowOpenerRef = useRef(null)
 
     const registerGeometryWindowOpener = useCallback((opener) => {
@@ -92,7 +94,7 @@ export function DrawGeometryProvider({children}) {
                     : shape.params,
             }
 
-            if (isGeometryShapeComplete(nextShape) && nextShape.status === GEOMETRY_STATUS.PENDING) {
+            if (shouldAutoCommitPendingGeometryShape(nextShape, activeShapeIdRef.current)) {
                 if (nextShape.type !== GEOMETRY_SHAPE_TYPES.POLYGON || nextShape.params.finalized) {
                     nextShape.status = GEOMETRY_STATUS.COMMITTED
                 }

@@ -48,6 +48,36 @@ function getDistancePixels(firstPoint, secondPoint) {
     return Math.hypot(deltaX, deltaY)
 }
 
+function deriveDrawingPhaseForShape(shape) {
+    if (!shape || shape.status !== GEOMETRY_STATUS.PENDING) {
+        return 0
+    }
+
+    const {type, params} = shape
+
+    switch (type) {
+        case GEOMETRY_SHAPE_TYPES.RECTANGLE:
+        case GEOMETRY_SHAPE_TYPES.OVAL:
+        case GEOMETRY_SHAPE_TYPES.SQUARE:
+        case GEOMETRY_SHAPE_TYPES.CIRCLE:
+            return params.center ? 1 : 0
+        case GEOMETRY_SHAPE_TYPES.RACETRACK:
+            if (!params.center1) {
+                return 0
+            }
+
+            if (!params.center2) {
+                return 1
+            }
+
+            return 2
+        case GEOMETRY_SHAPE_TYPES.POLYGON:
+            return params.vertices?.length ?? 0
+        default:
+            return 0
+    }
+}
+
 export function useDrawGeometryTool(
     mapRef,
     enabled,
@@ -560,8 +590,17 @@ export function useDrawGeometryTool(
     }, [applyShapeUpdate, finalizeShapeIfComplete, getShapeById])
 
     useEffect(() => {
-        resetDrawingInteraction()
-    }, [activeShapeId, resetDrawingInteraction])
+        const shape = activeShapeId ? getShapeById(activeShapeId) : null
+
+        if (!shape || shape.status !== GEOMETRY_STATUS.PENDING) {
+            resetDrawingInteraction()
+            return
+        }
+
+        drawingPhaseRef.current = deriveDrawingPhaseForShape(shape)
+        polygonPreviewLngLatRef.current = null
+        setIsDrawingGeometry(false)
+    }, [activeShapeId, getShapeById, resetDrawingInteraction])
 
     useEffect(() => {
         if (!enabled || !activeShapeId) {

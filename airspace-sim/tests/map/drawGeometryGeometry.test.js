@@ -22,6 +22,7 @@ import {
     createGeometryShape,
     isGeometryShapeComplete,
     isGeometryShapeInPendingDrawStatus,
+    shouldAutoCommitPendingGeometryShape,
 } from '../../app/tools/map/drawGeometry/drawGeometryModels.js'
 import {GEOMETRY_SHAPE_TYPES, GEOMETRY_STATUS} from '../../app/tools/map/drawGeometry/drawGeometryTypes.js'
 
@@ -234,5 +235,21 @@ describe('draw geometry pending draw status', () => {
         pendingShape.status = GEOMETRY_STATUS.COMMITTED
 
         assert.equal(isGeometryShapeInPendingDrawStatus(pendingShape), false)
+    })
+
+    it('does not auto-commit the actively drawn pending shape while clicking', () => {
+        const pendingShape = createGeometryShape(GEOMETRY_SHAPE_TYPES.RECTANGLE)
+        pendingShape.params = {
+            center: {lat: 40, lng: -75},
+            halfWidthNm: 10,
+            halfHeightNm: 5,
+        }
+
+        assert.equal(shouldAutoCommitPendingGeometryShape(pendingShape, pendingShape.id), false)
+        assert.equal(shouldAutoCommitPendingGeometryShape(pendingShape, null), true)
+        assert.equal(
+            shouldAutoCommitPendingGeometryShape(pendingShape, 'GEO-99'),
+            true,
+        )
     })
 })

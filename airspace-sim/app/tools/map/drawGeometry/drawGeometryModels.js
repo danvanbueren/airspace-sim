@@ -104,6 +104,14 @@ export function isGeometryShapeComplete(shape) {
     }
 }
 
+export function shouldAutoCommitPendingGeometryShape(shape, activeShapeId) {
+    if (!shape || shape.status !== GEOMETRY_STATUS.PENDING || !isGeometryShapeComplete(shape)) {
+        return false
+    }
+
+    return shape.id !== activeShapeId
+}
+
 export function isRacetrackRadiusValid(params) {
     if (!params.center1 || !params.center2 || !(params.radiusNm > 0)) {
         return false
