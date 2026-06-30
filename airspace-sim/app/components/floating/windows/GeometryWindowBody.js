@@ -3,7 +3,6 @@
 import {useCallback} from 'react'
 import {
     Box,
-    Chip,
     FormControl,
     IconButton,
     InputLabel,
@@ -28,18 +27,8 @@ import {
     GEOMETRY_SHAPE_TYPE_LABELS,
     GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM,
 } from '@/app/tools/map/drawGeometry/drawGeometryTypes'
-import {geometryWindowShouldShowPendingPill} from '@/app/hooks/map/useGeometryWindows'
 
 const NM_FIELD_CONFIG = createDeferredNumericFieldConfig({min: 0})
-
-const GEOMETRY_WINDOW_MONOSPACE_SX = {
-    fontFamily: 'monospace',
-    '& .MuiTypography-root': {fontFamily: 'monospace'},
-    '& .MuiInputBase-root': {fontFamily: 'monospace'},
-    '& .MuiInputLabel-root': {fontFamily: 'monospace'},
-    '& .MuiFormHelperText-root': {fontFamily: 'monospace'},
-    '& .MuiSelect-select': {fontFamily: 'monospace'},
-}
 
 function DeferredNmField({label, value, onCommit}) {
     return (
@@ -292,25 +281,8 @@ export default function GeometryWindowBody({shape}) {
         updateShape(shape.id, {params: paramsUpdate})
     }, [shape.id, updateShape])
 
-    const showPending = geometryWindowShouldShowPendingPill(shape)
-
     return (
-        <Stack spacing={1.5} sx={GEOMETRY_WINDOW_MONOSPACE_SX}>
-            <Stack direction='row' spacing={1} sx={{alignItems: 'center'}}>
-                <Typography variant='subtitle2' sx={{fontWeight: 'bold', flex: 1}}>
-                    Geometry
-                </Typography>
-                {showPending ? (
-                    <Chip
-                        label='Pending'
-                        size='small'
-                        color='warning'
-                        variant='outlined'
-                        sx={{fontFamily: 'monospace'}}
-                    />
-                ) : null}
-            </Stack>
-
+        <Stack spacing={1.5}>
             <DeferredTextField
                 label='Name (optional)'
                 committedValue={shape.name ?? ''}

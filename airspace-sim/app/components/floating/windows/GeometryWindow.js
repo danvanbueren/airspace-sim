@@ -5,15 +5,18 @@ import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import {
     Box,
-    Divider,
+    Chip,
     IconButton,
     Paper,
+    Stack,
     Typography,
+    useTheme,
 } from '@mui/material'
 import GeometryWindowBody from '@/app/components/floating/windows/GeometryWindowBody'
 import {useDrawGeometry} from '@/app/contexts/DrawGeometryContext'
 import {useMeasuredElementSize} from '@/app/hooks/global/useMeasuredElementSize'
 import {useMapContainerSize} from '@/app/hooks/map/useMapContainerSize'
+import {geometryWindowShouldShowPendingPill} from '@/app/hooks/map/useGeometryWindows'
 import {
     getBoundedTrackManagementWindowPosition,
     getLegacyMapClickWindowPosition,
@@ -22,8 +25,37 @@ import {
 } from '@/app/hooks/map/useTrackManagementWindowDrag'
 import {absoluteToEdgeAnchor} from '@/app/tools/map/edgeAnchoredPosition'
 import {getMapFloatingWindowMaxHeight} from '@/app/tools/map/mapFloatingWindowLayout'
+import {TRACK_IDENTITIES} from '@/app/tools/milstd2525/trackSymbolCodes'
+import {getTrackIdentityChromeColors} from '@/app/tools/milstd2525/trackIdentityColors'
 
 const GEOMETRY_WINDOW_WIDTH = 300
+
+const GEOMETRY_WINDOW_MONOSPACE_SX = {
+    fontFamily: 'monospace',
+    '& .MuiTypography-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiInputBase-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiInputLabel-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiFormHelperText-root': {
+        fontFamily: 'monospace',
+    },
+    '& .MuiSelect-select': {
+        fontFamily: 'monospace',
+    },
+}
+
+function getGeometryWindowChromeColors(shape, theme) {
+    const identity = geometryWindowShouldShowPendingPill(shape)
+        ? TRACK_IDENTITIES.PENDING
+        : TRACK_IDENTITIES.UNKNOWN
+
+    return getTrackIdentityChromeColors(identity, theme)
+}
 
 export default function GeometryWindow({
     geometryWindow,
@@ -36,6 +68,7 @@ export default function GeometryWindow({
     hasKeyboardCustody = false,
     registerWindowElement,
 }) {
+    const theme = useTheme()
     const geometryWindowRef = useRef(null)
     const {getShapeById} = useDrawGeometry()
     const shape = getShapeById(geometryWindow.shapeId)
@@ -132,6 +165,14 @@ export default function GeometryWindow({
         return null
     }
 
+    const windowChrome = getGeometryWindowChromeColors(shape, theme)
+    const windowTitle = shape.name?.trim() || 'Geometry'
+    const showPending = geometryWindowShouldShowPendingPill(shape)
+
+    const handleClose = () => {
+        onClose?.()
+    }
+
     return (
         <Paper
             ref={setGeometryWindowRef}
@@ -139,7 +180,7 @@ export default function GeometryWindow({
             elevation={8}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={handleWindowPointerDown}
-            sx={(theme) => ({
+            sx={(muiTheme) => ({
                 position: 'absolute',
                 ...windowPosition,
                 zIndex,
@@ -150,63 +191,101 @@ export default function GeometryWindow({
                 pointerEvents: 'auto',
                 userSelect: 'none',
                 overflow: 'hidden',
+                ...GEOMETRY_WINDOW_MONOSPACE_SX,
                 ...(hasKeyboardCustody && {
-                    boxShadow: `inset 0 0 0 2px ${theme.palette.primary.main}, ${theme.shadows[8]}`,
+                    boxShadow: `inset 0 0 0 2px ${windowChrome.focusOutline}, ${muiTheme.shadows[8]}`,
                 }),
             })}
         >
             <Box
-                onPointerDown={handleHeaderPointerDown}
-                onPointerMove={handleHeaderPointerMove}
-                onPointerUp={handleHeaderPointerUp}
-                onPointerCancel={handleHeaderPointerUp}
                 sx={{
+                    bgcolor: windowChrome.headerBackground,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 0.5,
-                    px: 1,
-                    py: 0.5,
                     flexShrink: 0,
-                    cursor: 'move',
-                    touchAction: 'none',
                 }}
             >
-                <DragIndicatorIcon fontSize='small' sx={{opacity: 0.85, flexShrink: 0}}/>
-                <Typography
-                    variant='subtitle1'
-                    component='span'
+                <Box
+                    onPointerDown={handleHeaderPointerDown}
+                    onPointerMove={handleHeaderPointerMove}
+                    onPointerUp={handleHeaderPointerUp}
+                    onPointerCancel={handleHeaderPointerUp}
                     sx={{
-                        fontFamily: 'monospace',
-                        fontWeight: 'bold',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        px: 2,
+                        py: 1.25,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        cursor: 'move',
+                        touchAction: 'none',
                         flex: 1,
                         minWidth: 0,
                     }}
                 >
-                    {shape.name?.trim() || 'Geometry'}
-                </Typography>
+                    <DragIndicatorIcon
+                        sx={{
+                            color: windowChrome.headerText,
+                            fontSize: '1rem',
+                            flexShrink: 0,
+                        }}
+                    />
+                    <Typography
+                        sx={{
+                            fontWeight: 'bold',
+                            color: windowChrome.headerText,
+                            fontSize: '0.9rem',
+                            flexGrow: 1,
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {windowTitle}
+                    </Typography>
+                    {showPending ? (
+                        <Chip
+                            label='Pending'
+                            size='small'
+                            variant='outlined'
+                            sx={{
+                                flexShrink: 0,
+                                fontFamily: 'monospace',
+                                color: windowChrome.headerText,
+                                borderColor: windowChrome.headerText,
+                            }}
+                        />
+                    ) : null}
+                </Box>
                 <IconButton
+                    aria-label='Close geometry window'
                     size='small'
-                    aria-label='Close Geometry window'
-                    sx={{flexShrink: 0}}
-                    onClick={onClose}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                        event.stopPropagation()
+                        handleClose()
+                    }}
+                    sx={{
+                        color: windowChrome.headerText,
+                        p: 0.25,
+                        mr: 1,
+                        flexShrink: 0,
+                    }}
                 >
                     <CloseIcon fontSize='small'/>
                 </IconButton>
             </Box>
-            <Divider sx={{flexShrink: 0}}/>
+
             <Box
                 sx={{
-                    overflow: 'auto',
-                    p: 1.5,
-                    flex: 1,
+                    overflowY: 'auto',
+                    flex: '1 1 auto',
                     minHeight: 0,
-                    userSelect: 'text',
                 }}
             >
-                <GeometryWindowBody shape={shape}/>
+                <Stack spacing={1.5} sx={{p: 2, userSelect: 'text'}}>
+                    <GeometryWindowBody shape={shape}/>
+                </Stack>
             </Box>
         </Paper>
     )

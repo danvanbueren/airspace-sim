@@ -2,6 +2,10 @@
 
 import {useCallback, useState} from 'react'
 import {edgeAnchorsEqual} from '@/app/tools/map/edgeAnchoredPosition'
+import {
+    DEFAULT_FLOATING_WINDOW_SPAWN_POSITION,
+    getStaggeredFloatingWindowSpawnPosition,
+} from '@/app/tools/map/mapFloatingWindowLayout'
 import {GEOMETRY_STATUS, GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
 
 const DEFAULT_GEOMETRY_WINDOW_WIDTH = 300
@@ -24,11 +28,16 @@ export function useGeometryWindows({onOpenGeometryWindow} = {}) {
                 return currentWindows
             }
 
+            const spawnPosition = getStaggeredFloatingWindowSpawnPosition(currentWindows, {
+                x: position?.x ?? DEFAULT_FLOATING_WINDOW_SPAWN_POSITION.x,
+                y: position?.y ?? DEFAULT_FLOATING_WINDOW_SPAWN_POSITION.y,
+            })
+
             const geometryWindow = {
                 id: crypto.randomUUID(),
                 shapeId: shape.id,
-                x: position?.x ?? 120,
-                y: position?.y ?? 120,
+                x: spawnPosition.x,
+                y: spawnPosition.y,
                 positionAnchor: position?.positionAnchor ?? null,
             }
 
@@ -90,8 +99,8 @@ export function useGeometryWindows({onOpenGeometryWindow} = {}) {
         const drawToolItemId = GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM[shape.type]
 
         return openGeometryWindow(shape, {
-            x: elementContainer?.x ?? 120,
-            y: elementContainer?.y ?? 120,
+            x: elementContainer?.x ?? DEFAULT_FLOATING_WINDOW_SPAWN_POSITION.x,
+            y: elementContainer?.y ?? DEFAULT_FLOATING_WINDOW_SPAWN_POSITION.y,
             drawToolItemId,
         })
     }, [openGeometryWindow])
