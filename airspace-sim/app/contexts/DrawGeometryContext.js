@@ -10,6 +10,7 @@ import {
 import {convertGeometryShapeType} from '@/app/tools/map/drawGeometry/drawGeometryConversion'
 import {
     cloneGeometryShape,
+    createDefaultParamsForType,
     createGeometryShape,
     isGeometryShapeInPendingDrawStatus,
     shouldAutoCommitPendingGeometryShape,
@@ -166,7 +167,15 @@ export function DrawGeometryProvider({children}) {
                 return shape
             }
 
-            return convertGeometryShapeType(shape, nextType)
+            try {
+                return convertGeometryShapeType(shape, nextType)
+            } catch {
+                return {
+                    ...shape,
+                    type: nextType,
+                    params: createDefaultParamsForType(nextType),
+                }
+            }
         })))
 
         if (isPendingDrawShape) {

@@ -263,6 +263,61 @@ describe('draw geometry inscribed conversion', () => {
         assert.equal(converted.type, GEOMETRY_SHAPE_TYPES.CIRCLE)
         assert.equal(converted.params.radiusNm, 4)
     })
+
+    it('falls back to blank params when conversion throws', () => {
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.CIRCLE)
+        shape.params = {center: null, radiusNm: 5}
+
+        const converted = convertGeometryShapeType(shape, GEOMETRY_SHAPE_TYPES.RACETRACK)
+
+        assert.equal(converted.type, GEOMETRY_SHAPE_TYPES.RACETRACK)
+        assert.equal(converted.params.center1, null)
+        assert.equal(converted.params.center2, null)
+        assert.equal(converted.params.radiusNm, 0)
+    })
+
+    it('falls back to blank params for partial racetrack conversion', () => {
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.RACETRACK)
+        shape.params = {
+            center1: {lat: 40, lng: -75},
+            center2: null,
+            radiusNm: 3,
+        }
+
+        const converted = convertGeometryShapeType(shape, GEOMETRY_SHAPE_TYPES.RECTANGLE)
+
+        assert.equal(converted.type, GEOMETRY_SHAPE_TYPES.RECTANGLE)
+        assert.equal(converted.params.center, null)
+        assert.equal(converted.params.halfWidthNm, 0)
+        assert.equal(converted.params.halfHeightNm, 0)
+    })
+
+    it('falls back to blank params when conversion produces non-finite values', () => {
+        const converted = convertGeometryParamsInscribed(
+            GEOMETRY_SHAPE_TYPES.RACETRACK,
+            {
+                center1: {lat: Number.NaN, lng: 0},
+                center2: {lat: 0, lng: 0},
+                radiusNm: 5,
+            },
+            GEOMETRY_SHAPE_TYPES.CIRCLE,
+        )
+
+        assert.equal(converted.center, null)
+        assert.equal(converted.radiusNm, 0)
+    })
+
+    it('falls back to blank params when converting at the pole', () => {
+        const shape = createGeometryShape(GEOMETRY_SHAPE_TYPES.CIRCLE)
+        shape.params = {center: {lat: 90, lng: 0}, radiusNm: 10}
+
+        const converted = convertGeometryShapeType(shape, GEOMETRY_SHAPE_TYPES.RACETRACK)
+
+        assert.equal(converted.type, GEOMETRY_SHAPE_TYPES.RACETRACK)
+        assert.equal(converted.params.center1, null)
+        assert.equal(converted.params.center2, null)
+        assert.equal(converted.params.radiusNm, 0)
+    })
 })
 
 describe('draw geometry pending draw status', () => {

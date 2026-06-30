@@ -8,11 +8,117 @@ function clampRacetrackRadius(center1, center2, radiusNm) {
     return Math.min(Math.max(radiusNm, 0), maxRadius)
 }
 
-export function convertGeometryParamsInscribed(fromType, fromParams, toType) {
-    if (fromType === toType) {
-        return {...fromParams}
+function paramsContainNonFiniteValues(value) {
+    if (value === null || value === undefined) {
+        return false
     }
 
+    if (typeof value === 'number') {
+        return !Number.isFinite(value)
+    }
+
+    if (Array.isArray(value)) {
+        return value.some(paramsContainNonFiniteValues)
+    }
+
+    if (typeof value === 'object') {
+        return Object.values(value).some(paramsContainNonFiniteValues)
+    }
+
+    return false
+}
+
+function isValidLatLngPoint(point) {
+    if (!point || typeof point !== 'object') {
+        return true
+    }
+
+    const {lat, lng} = point
+
+    return Number.isFinite(lat)
+        && Number.isFinite(lng)
+        && lat >= -90
+        && lat <= 90
+        && lng >= -180
+        && lng <= 180
+}
+
+function paramsContainInvalidCoordinates(params) {
+    if (!params || typeof params !== 'object') {
+        return false
+    }
+
+    if (!isValidLatLngPoint(params.center)) {
+        return true
+    }
+
+    if (!isValidLatLngPoint(params.center1)) {
+        return true
+    }
+
+    if (!isValidLatLngPoint(params.center2)) {
+        return true
+    }
+
+    if (Array.isArray(params.vertices)) {
+        return params.vertices.some((vertex) => !isValidLatLngPoint(vertex))
+    }
+
+    return false
+}
+
+function normalizeGeometryParamsForType(type, params) {
+    const defaults = createDefaultParamsForType(type)
+
+    if (!params || typeof params !== 'object') {
+        return defaults
+    }
+
+    switch (type) {
+        case GEOMETRY_SHAPE_TYPES.RECTANGLE:
+            return {
+                center: params.center ?? defaults.center,
+                halfWidthNm: Number.isFinite(params.halfWidthNm) ? params.halfWidthNm : defaults.halfWidthNm,
+                halfHeightNm: Number.isFinite(params.halfHeightNm) ? params.halfHeightNm : defaults.halfHeightNm,
+            }
+        case GEOMETRY_SHAPE_TYPES.SQUARE:
+            return {
+                center: params.center ?? defaults.center,
+                halfSizeNm: Number.isFinite(params.halfSizeNm) ? params.halfSizeNm : defaults.halfSizeNm,
+            }
+        case GEOMETRY_SHAPE_TYPES.CIRCLE:
+            return {
+                center: params.center ?? defaults.center,
+                radiusNm: Number.isFinite(params.radiusNm) ? params.radiusNm : defaults.radiusNm,
+            }
+        case GEOMETRY_SHAPE_TYPES.OVAL:
+            return {
+                center: params.center ?? defaults.center,
+                halfWidthNm: Number.isFinite(params.halfWidthNm) ? params.halfWidthNm : defaults.halfWidthNm,
+                halfHeightNm: Number.isFinite(params.halfHeightNm) ? params.halfHeightNm : defaults.halfHeightNm,
+            }
+        case GEOMETRY_SHAPE_TYPES.RACETRACK:
+            return {
+                center1: params.center1 ?? defaults.center1,
+                center2: params.center2 ?? defaults.center2,
+                radiusNm: Number.isFinite(params.radiusNm) ? params.radiusNm : defaults.radiusNm,
+            }
+        case GEOMETRY_SHAPE_TYPES.POLYGON:
+            return {
+                vertices: Array.isArray(params.vertices) ? params.vertices : defaults.vertices,
+                closed: Boolean(params.closed),
+                finalized: Boolean(params.finalized),
+            }
+        default:
+            return defaults
+    }
+}
+
+function createBlankGeometryParams(type) {
+    return createDefaultParamsForType(type)
+}
+
+function convertGeometryParamsInscribedUnsafe(fromType, fromParams, toType) {
     switch (toType) {
         case GEOMETRY_SHAPE_TYPES.RECTANGLE:
             return convertToRectangle(fromType, fromParams)
@@ -27,7 +133,30 @@ export function convertGeometryParamsInscribed(fromType, fromParams, toType) {
         case GEOMETRY_SHAPE_TYPES.POLYGON:
             return convertToPolygon(fromType, fromParams)
         default:
-            return createDefaultParamsForType(toType)
+            return createBlankGeometryParams(toType)
+    }
+}
+
+export function convertGeometryParamsInscribed(fromType, fromParams, toType) {
+    if (fromType === toType) {
+        return normalizeGeometryParamsForType(toType, fromParams)
+    }
+
+    try {
+        const converted = convertGeometryParamsInscribedUnsafe(
+            fromType,
+            fromParams ?? {},
+            toType,
+        )
+        const normalized = normalizeGeometryParamsForType(toType, converted)
+
+        if (paramsContainNonFiniteValues(normalized) || paramsContainInvalidCoordinates(normalized)) {
+            return createBlankGeometryParams(toType)
+        }
+
+        return normalized
+    } catch {
+        return createBlankGeometryParams(toType)
     }
 }
 
@@ -198,9 +327,16 @@ function midpoint(first, second) {
 }
 
 function offsetCenter(center, eastNm, northNm) {
+    if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) {
+        throw new Error('Invalid geometry center for conversion')
+    }
+
+    const cosLat = Math.cos((center.lat * Math.PI) / 180)
+    const lngScale = Math.abs(cosLat) > 1e-6 ? cosLat : Math.sign(cosLat || 1) * 1e-6
+
     return {
         lat: center.lat + (northNm / 60),
-        lng: center.lng + (eastNm / (60 * Math.cos((center.lat * Math.PI) / 180))),
+        lng: center.lng + (eastNm / (60 * lngScale)),
     }
 }
 
@@ -348,10 +484,29 @@ function buildRacetrackVertices(center1, center2, radiusNm) {
 }
 
 export function convertGeometryShapeType(shape, nextType) {
+    if (!shape || !nextType) {
+        return shape
+    }
+
+    if (shape.type === nextType) {
+        return {
+            ...shape,
+            params: normalizeGeometryParamsForType(nextType, shape.params),
+        }
+    }
+
+    let params = createBlankGeometryParams(nextType)
+
+    try {
+        params = convertGeometryParamsInscribed(shape.type, shape.params, nextType)
+    } catch {
+        params = createBlankGeometryParams(nextType)
+    }
+
     return {
         ...shape,
         type: nextType,
         status: shape.status,
-        params: convertGeometryParamsInscribed(shape.type, shape.params, nextType),
+        params,
     }
 }
