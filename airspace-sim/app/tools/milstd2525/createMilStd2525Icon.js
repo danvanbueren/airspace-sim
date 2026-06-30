@@ -76,10 +76,17 @@ export async function addMilStd2525IconToMap(map, iconId, symbolCode, options = 
         return false
     }
 
-    const imageBitmap = await createMilStd2525ImageBitmap(symbolCode, options)
+    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1
+    const size = Math.round((options.size ?? 40) * dpr)
+    const highDpiOptions = {
+        ...options,
+        size,
+    }
+
+    const imageBitmap = await createMilStd2525ImageBitmap(symbolCode, highDpiOptions)
 
     if (!map.hasImage(iconId)) {
-        map.addImage(iconId, imageBitmap)
+        map.addImage(iconId, imageBitmap, {pixelRatio: dpr})
     }
 
     return true
