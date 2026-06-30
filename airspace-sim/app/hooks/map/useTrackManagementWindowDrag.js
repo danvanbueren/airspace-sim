@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {MAP_FLOATING_WINDOW_EDGE_PADDING} from '@/app/constants/mapFloatingWindows'
 import {
     absoluteToEdgeAnchor,
@@ -91,6 +91,16 @@ export function getTrackManagementWindowPosition(trackManagementWindow, trackMan
     )
 }
 
+function removeWindowPointerListeners(listeners) {
+    if (!listeners) {
+        return
+    }
+
+    window.removeEventListener('pointermove', listeners.move)
+    window.removeEventListener('pointerup', listeners.end)
+    window.removeEventListener('pointercancel', listeners.end)
+}
+
 export function useTrackManagementWindowDrag({
     mapContainerRef,
     onMoveComplete,
@@ -102,6 +112,77 @@ export function useTrackManagementWindowDrag({
 }) {
     const dragStateRef = useRef(null)
     const [dragPosition, setDragPosition] = useState(null)
+    const trackManagementWindowSizeRef = useRef(trackManagementWindowSize)
+    const onMoveCompleteRef = useRef(onMoveComplete)
+    const mapContainerRefRef = useRef(mapContainerRef)
+    const windowIdRef = useRef(windowId)
+
+    trackManagementWindowSizeRef.current = trackManagementWindowSize
+    onMoveCompleteRef.current = onMoveComplete
+    mapContainerRefRef.current = mapContainerRef
+    windowIdRef.current = windowId
+
+    const stopWindowPointerTracking = useCallback(() => {
+        removeWindowPointerListeners(dragStateRef.current?.windowListeners)
+    }, [])
+
+    const finishDrag = useCallback((event) => {
+        const dragState = dragStateRef.current
+
+        if (!dragState || dragState.pointerId !== event.pointerId) {
+            return
+        }
+
+        if (dragState.captureTarget?.hasPointerCapture?.(event.pointerId)) {
+            dragState.captureTarget.releasePointerCapture(event.pointerId)
+        }
+
+        stopWindowPointerTracking()
+        dragStateRef.current = null
+
+        setDragPosition((currentDragPosition) => {
+            if (currentDragPosition) {
+                const containerSize = getContainerSize(mapContainerRefRef.current)
+                const windowSize = getWindowSize(trackManagementWindowSizeRef.current)
+
+                onMoveCompleteRef.current?.(
+                    windowIdRef.current,
+                    absoluteToEdgeAnchor(
+                        currentDragPosition.x,
+                        currentDragPosition.y,
+                        containerSize,
+                        windowSize,
+                    ),
+                )
+            }
+
+            return null
+        })
+    }, [stopWindowPointerTracking])
+
+    const updateDragPosition = useCallback((event) => {
+        const dragState = dragStateRef.current
+
+        if (!dragState || dragState.pointerId !== event.pointerId) {
+            return
+        }
+
+        event.preventDefault()
+
+        const left = event.clientX - dragState.containerLeft - dragState.offsetX
+        const top = event.clientY - dragState.containerTop - dragState.offsetY
+        const boundedPosition = getBoundedTrackManagementWindowPosition(
+            left,
+            top,
+            trackManagementWindowSizeRef.current,
+            mapContainerRefRef.current,
+        )
+
+        setDragPosition({
+            x: boundedPosition.left,
+            y: boundedPosition.top,
+        })
+    }, [])
 
     const handleHeaderPointerDown = useCallback((event) => {
         if (event.button !== 0) {
@@ -122,6 +203,16 @@ export function useTrackManagementWindowDrag({
 
         const windowRect = trackManagementWindowElement.getBoundingClientRect()
         const containerRect = mapContainerElement.getBoundingClientRect()
+        const captureTarget = event.currentTarget
+
+        const windowListeners = {
+            move: (moveEvent) => {
+                updateDragPosition(moveEvent)
+            },
+            end: (endEvent) => {
+                finishDrag(endEvent)
+            },
+        }
 
         dragStateRef.current = {
             pointerId: event.pointerId,
@@ -129,70 +220,36 @@ export function useTrackManagementWindowDrag({
             offsetY: event.clientY - windowRect.top,
             containerLeft: containerRect.left,
             containerTop: containerRect.top,
+            captureTarget,
+            windowListeners,
         }
 
-        event.currentTarget.setPointerCapture?.(event.pointerId)
-    }, [mapContainerRef, onActivate, onClaimKeyboardCustody, windowElementSelector, windowId])
+        captureTarget.setPointerCapture?.(event.pointerId)
 
-    const handleHeaderPointerMove = useCallback((event) => {
-        const dragState = dragStateRef.current
+        window.addEventListener('pointermove', windowListeners.move)
+        window.addEventListener('pointerup', windowListeners.end)
+        window.addEventListener('pointercancel', windowListeners.end)
+    }, [
+        finishDrag,
+        mapContainerRef,
+        onActivate,
+        onClaimKeyboardCustody,
+        updateDragPosition,
+        windowElementSelector,
+        windowId,
+    ])
 
-        if (!dragState || dragState.pointerId !== event.pointerId) {
-            return
+    useEffect(() => {
+        return () => {
+            stopWindowPointerTracking()
+            dragStateRef.current = null
         }
-
-        event.preventDefault()
-
-        const left = event.clientX - dragState.containerLeft - dragState.offsetX
-        const top = event.clientY - dragState.containerTop - dragState.offsetY
-        const boundedPosition = getBoundedTrackManagementWindowPosition(
-            left,
-            top,
-            trackManagementWindowSize,
-            mapContainerRef,
-        )
-
-        setDragPosition({
-            x: boundedPosition.left,
-            y: boundedPosition.top,
-        })
-    }, [mapContainerRef, trackManagementWindowSize])
-
-    const handleHeaderPointerUp = useCallback((event) => {
-        if (dragStateRef.current?.pointerId !== event.pointerId) {
-            return
-        }
-
-        if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId)
-        }
-
-        dragStateRef.current = null
-
-        setDragPosition((currentDragPosition) => {
-            if (currentDragPosition) {
-                const containerSize = getContainerSize(mapContainerRef)
-                const windowSize = getWindowSize(trackManagementWindowSize)
-
-                onMoveComplete?.(
-                    windowId,
-                    absoluteToEdgeAnchor(
-                        currentDragPosition.x,
-                        currentDragPosition.y,
-                        containerSize,
-                        windowSize,
-                    ),
-                )
-            }
-
-            return null
-        })
-    }, [mapContainerRef, onMoveComplete, trackManagementWindowSize, windowId])
+    }, [stopWindowPointerTracking])
 
     return {
         dragPosition,
         handleHeaderPointerDown,
-        handleHeaderPointerMove,
-        handleHeaderPointerUp,
+        handleHeaderPointerMove: updateDragPosition,
+        handleHeaderPointerUp: finishDrag,
     }
 }
