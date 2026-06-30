@@ -48,6 +48,10 @@ export function isGeometryShapePending(shape) {
     return !isGeometryShapeComplete(shape)
 }
 
+export function isGeometryShapeInPendingDrawStatus(shape) {
+    return shape?.status === GEOMETRY_STATUS.PENDING
+}
+
 export function isGeometryShapeComplete(shape) {
     if (!shape) {
         return false

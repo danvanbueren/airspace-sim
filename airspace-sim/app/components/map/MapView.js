@@ -57,7 +57,11 @@ import {useGeometryWindows} from '@/app/hooks/map/useGeometryWindows'
 import {useGeometryWindowKeyboardCustody} from '@/app/hooks/map/useGeometryWindowKeyboardCustody'
 import GeometryWindow from '@/app/components/floating/windows/GeometryWindow'
 import {getDrawGeometryShapeAtMapPoint} from '@/app/tools/map/drawGeometry/drawGeometryMapLayer'
-import {GEOMETRY_HIT_TEST_PIXEL_RADIUS} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
+import {
+    GEOMETRY_HIT_TEST_PIXEL_RADIUS,
+    GEOMETRY_STATUS,
+    GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM,
+} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
 
 const MAP_STYLES = {
     light: 'map-styles/voyager-gl-style.json',
@@ -154,6 +158,7 @@ export default function MapView({
     const {openDrawToolsPanel} = useOpenDrawToolsPanel()
     const {
         shapes,
+        activeShapeId,
         registerGeometryWindowOpener,
         setActiveShapeId,
         setActiveDrawToolItemId,
@@ -253,10 +258,51 @@ export default function MapView({
     }, [handleOpenGeometryWindow, registerGeometryWindowOpener])
 
     const handleShapePrimaryClick = useCallback((shape, elementContainer) => {
-        setActiveShapeId(shape.id)
-        setActiveDrawToolItemId(null)
+        if (shape.status === GEOMETRY_STATUS.PENDING) {
+            setActiveShapeId(shape.id)
+
+            const drawToolItemId = GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM[shape.type]
+
+            if (drawToolItemId) {
+                setActiveDrawToolItemId(drawToolItemId)
+            }
+        }
+
         handleOpenGeometryWindow(shape, elementContainer)
     }, [handleOpenGeometryWindow, setActiveDrawToolItemId, setActiveShapeId])
+
+    useEffect(() => {
+        if (geometryWindows.length === 0) {
+            return
+        }
+
+        const shapeById = new Map(shapes.map((shape) => [shape.id, shape]))
+        const orphanShapeIds = new Set()
+
+        for (const geometryWindow of geometryWindows) {
+            const shape = shapeById.get(geometryWindow.shapeId)
+
+            if (!shape) {
+                orphanShapeIds.add(geometryWindow.shapeId)
+                continue
+            }
+
+            if (shape.status === GEOMETRY_STATUS.PENDING && shape.id !== activeShapeId) {
+                orphanShapeIds.add(geometryWindow.shapeId)
+            }
+        }
+
+        for (const shapeId of orphanShapeIds) {
+            closeGeometryWindowsForShape(shapeId)
+            clearKeyboardCustodyForShape(shapeId)
+        }
+    }, [
+        activeShapeId,
+        clearKeyboardCustodyForShape,
+        closeGeometryWindowsForShape,
+        geometryWindows,
+        shapes,
+    ])
 
     const {
         removeGeometryShape,

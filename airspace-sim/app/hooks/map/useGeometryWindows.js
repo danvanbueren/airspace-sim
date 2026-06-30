@@ -2,8 +2,7 @@
 
 import {useCallback, useState} from 'react'
 import {edgeAnchorsEqual} from '@/app/tools/map/edgeAnchoredPosition'
-import {GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
-import {isGeometryShapePending} from '@/app/tools/map/drawGeometry/drawGeometryModels'
+import {GEOMETRY_STATUS, GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM} from '@/app/tools/map/drawGeometry/drawGeometryTypes'
 
 const DEFAULT_GEOMETRY_WINDOW_WIDTH = 300
 
@@ -120,5 +119,5 @@ export function useGeometryWindows({onOpenGeometryWindow} = {}) {
 }
 
 export function geometryWindowShouldShowPendingPill(shape) {
-    return isGeometryShapePending(shape)
+    return shape?.status === GEOMETRY_STATUS.PENDING
 }

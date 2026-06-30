@@ -12,12 +12,13 @@ import {
     cloneGeometryShape,
     createGeometryShape,
     isGeometryShapeComplete,
-    isGeometryShapePending,
+    isGeometryShapeInPendingDrawStatus,
 } from '@/app/tools/map/drawGeometry/drawGeometryModels'
 import {
     DRAW_TOOL_ITEM_TO_GEOMETRY_TYPE,
     GEOMETRY_SHAPE_TYPES,
     GEOMETRY_STATUS,
+    GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM,
 } from '@/app/tools/map/drawGeometry/drawGeometryTypes'
 
 const DrawGeometryContext = createContext(null)
@@ -43,6 +44,22 @@ export function DrawGeometryProvider({children}) {
         return nextShapes
     }, [])
 
+    const clearDrawSession = useCallback(() => {
+        setActiveDrawToolItemId(null)
+        setActiveShapeId(null)
+    }, [])
+
+    const endDrawSessionForCommittedShape = useCallback((shapeId) => {
+        setActiveShapeId((currentShapeId) => {
+            if (currentShapeId === shapeId) {
+                setActiveDrawToolItemId(null)
+                return null
+            }
+
+            return currentShapeId
+        })
+    }, [])
+
     const upsertShape = useCallback((nextShape) => {
         setShapes((currentShapes) => {
             const existingIndex = currentShapes.findIndex((shape) => shape.id === nextShape.id)
@@ -59,6 +76,9 @@ export function DrawGeometryProvider({children}) {
     }, [syncShapesRef])
 
     const updateShape = useCallback((shapeId, updates) => {
+        const currentShape = shapesRef.current.find((shape) => shape.id === shapeId)
+        let didCommit = false
+
         setShapes((currentShapes) => syncShapesRef(currentShapes.map((shape) => {
             if (shape.id !== shapeId) {
                 return shape
@@ -78,34 +98,80 @@ export function DrawGeometryProvider({children}) {
                 }
             }
 
+            if (
+                currentShape?.status === GEOMETRY_STATUS.PENDING
+                && nextShape.status === GEOMETRY_STATUS.COMMITTED
+            ) {
+                didCommit = true
+            }
+
             return nextShape
         })))
-    }, [syncShapesRef])
+
+        if (didCommit) {
+            endDrawSessionForCommittedShape(shapeId)
+        }
+    }, [endDrawSessionForCommittedShape, syncShapesRef])
 
     const deleteShape = useCallback((shapeId) => {
         setShapes((currentShapes) => syncShapesRef(
             currentShapes.filter((shape) => shape.id !== shapeId),
         ))
 
-        setActiveShapeId((currentShapeId) => (
-            currentShapeId === shapeId ? null : currentShapeId
-        ))
-    }, [])
+        setActiveShapeId((currentShapeId) => {
+            if (currentShapeId === shapeId) {
+                setActiveDrawToolItemId(null)
+                return null
+            }
+
+            return currentShapeId
+        })
+    }, [syncShapesRef])
 
     const commitShape = useCallback((shapeId) => {
         updateShape(shapeId, {status: GEOMETRY_STATUS.COMMITTED})
     }, [updateShape])
 
     const cancelPendingShape = useCallback(() => {
-        const pendingShape = shapesRef.current.find((shape) => isGeometryShapePending(shape))
+        const pendingShape = shapesRef.current.find((shape) => (
+            isGeometryShapeInPendingDrawStatus(shape)
+        ))
 
         if (pendingShape) {
             deleteShape(pendingShape.id)
+            return
         }
 
-        setActiveDrawToolItemId(null)
-        setActiveShapeId(null)
-    }, [deleteShape])
+        clearDrawSession()
+    }, [clearDrawSession, deleteShape])
+
+    const getShapeById = useCallback((shapeId) => (
+        shapesRef.current.find((shape) => shape.id === shapeId) ?? null
+    ), [])
+
+    const changeShapeType = useCallback((shapeId, nextDrawToolItemId) => {
+        const nextType = DRAW_TOOL_ITEM_TO_GEOMETRY_TYPE[nextDrawToolItemId]
+
+        if (!nextType) {
+            return
+        }
+
+        const currentShape = shapesRef.current.find((shape) => shape.id === shapeId)
+        const isPendingDrawShape = isGeometryShapeInPendingDrawStatus(currentShape)
+
+        setShapes((currentShapes) => syncShapesRef(currentShapes.map((shape) => {
+            if (shape.id !== shapeId) {
+                return shape
+            }
+
+            return convertGeometryShapeType(shape, nextType)
+        })))
+
+        if (isPendingDrawShape) {
+            setActiveDrawToolItemId(nextDrawToolItemId)
+            setActiveShapeId(shapeId)
+        }
+    }, [syncShapesRef])
 
     const startDrawTool = useCallback((drawToolItemId) => {
         const geometryType = DRAW_TOOL_ITEM_TO_GEOMETRY_TYPE[drawToolItemId]
@@ -114,10 +180,26 @@ export function DrawGeometryProvider({children}) {
             return null
         }
 
-        const existingPending = shapesRef.current.find((shape) => isGeometryShapePending(shape))
+        const existingPending = shapesRef.current.find((shape) => (
+            isGeometryShapeInPendingDrawStatus(shape)
+        ))
 
         if (existingPending) {
-            deleteShape(existingPending.id)
+            const existingDrawToolItemId = GEOMETRY_TYPE_TO_DRAW_TOOL_ITEM[existingPending.type]
+
+            if (existingDrawToolItemId === drawToolItemId) {
+                setActiveDrawToolItemId(drawToolItemId)
+                setActiveShapeId(existingPending.id)
+                geometryWindowOpenerRef.current?.(existingPending)
+
+                return existingPending
+            }
+
+            changeShapeType(existingPending.id, drawToolItemId)
+            setActiveShapeId(existingPending.id)
+            geometryWindowOpenerRef.current?.(getShapeById(existingPending.id) ?? existingPending)
+
+            return getShapeById(existingPending.id) ?? existingPending
         }
 
         const shape = createGeometryShape(geometryType)
@@ -129,29 +211,7 @@ export function DrawGeometryProvider({children}) {
         geometryWindowOpenerRef.current?.(shape)
 
         return shape
-    }, [deleteShape, upsertShape])
-
-    const changeShapeType = useCallback((shapeId, nextDrawToolItemId) => {
-        const nextType = DRAW_TOOL_ITEM_TO_GEOMETRY_TYPE[nextDrawToolItemId]
-
-        if (!nextType) {
-            return
-        }
-
-        setShapes((currentShapes) => syncShapesRef(currentShapes.map((shape) => {
-            if (shape.id !== shapeId) {
-                return shape
-            }
-
-            return convertGeometryShapeType(shape, nextType)
-        })))
-
-        setActiveDrawToolItemId(nextDrawToolItemId)
-    }, [syncShapesRef])
-
-    const getShapeById = useCallback((shapeId) => (
-        shapesRef.current.find((shape) => shape.id === shapeId) ?? null
-    ), [])
+    }, [changeShapeType, getShapeById, upsertShape])
 
     const getStrokeColor = useCallback((mode) => (
         getStrokeColorForMode(strokeColorsByMode, mode)

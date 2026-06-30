@@ -19,7 +19,7 @@ import {
 } from '@/app/tools/map/drawGeometry/drawGeometryGeometry'
 import {
     isGeometryShapeComplete,
-    isGeometryShapePending,
+    isGeometryShapeInPendingDrawStatus,
     normalizeLngLat,
 } from '@/app/tools/map/drawGeometry/drawGeometryModels'
 import {
@@ -62,7 +62,6 @@ export function useDrawGeometryTool(
     const {controlBindings} = useControlBindings()
     const {
         shapes,
-        activeDrawToolItemId,
         activeShapeId,
         updateShape,
         deleteShape,
@@ -74,7 +73,6 @@ export function useDrawGeometryTool(
 
     const shapesRef = useRef(shapes)
     const activeShapeIdRef = useRef(activeShapeId)
-    const activeDrawToolRef = useRef(activeDrawToolItemId)
     const drawingPhaseRef = useRef(0)
     const polygonPreviewLngLatRef = useRef(null)
     const previewOverlayRef = useRef(null)
@@ -86,7 +84,6 @@ export function useDrawGeometryTool(
 
     shapesRef.current = shapes
     activeShapeIdRef.current = activeShapeId
-    activeDrawToolRef.current = activeDrawToolItemId
     bindingsRef.current = controlBindings.drawGeometryTool
     mapCursorRef.current = mapCursor
     themeModeRef.current = themeMode
@@ -204,10 +201,6 @@ export function useDrawGeometryTool(
     }, [])
 
     const isPendingDrawMode = useCallback(() => {
-        if (!activeDrawToolRef.current) {
-            return false
-        }
-
         const shapeId = activeShapeIdRef.current
 
         if (!shapeId) {
@@ -216,7 +209,7 @@ export function useDrawGeometryTool(
 
         const shape = getShapeById(shapeId)
 
-        return Boolean(shape && isGeometryShapePending(shape))
+        return isGeometryShapeInPendingDrawStatus(shape)
     }, [getShapeById])
 
     const applyDrawGeometryCursor = useCallback(() => {
@@ -570,16 +563,16 @@ export function useDrawGeometryTool(
     }, [activeShapeId, resetDrawingInteraction])
 
     useEffect(() => {
-        if (!enabled || !activeDrawToolItemId) {
+        if (!enabled || !activeShapeId) {
             resetDrawingPhase()
         }
-    }, [activeDrawToolItemId, enabled, resetDrawingPhase])
+    }, [activeShapeId, enabled, resetDrawingPhase])
 
     useEffect(() => {
         if (!isPendingDrawMode()) {
             clearDrawGeometryCursor()
         }
-    }, [clearDrawGeometryCursor, isPendingDrawMode, shapes, activeShapeId, activeDrawToolItemId])
+    }, [clearDrawGeometryCursor, isPendingDrawMode, shapes, activeShapeId])
 
     useEffect(() => {
         if (!enabled) {
@@ -662,7 +655,7 @@ export function useDrawGeometryTool(
         }
 
         const handleClick = (event) => {
-            if (!activeDrawToolItemId || event.defaultPrevented) {
+            if (event.defaultPrevented) {
                 return
             }
 
@@ -684,7 +677,9 @@ export function useDrawGeometryTool(
 
             updateMapCursorForPointer(mapPoint)
 
-            if (!activeDrawToolItemId) {
+            const shape = activeShapeIdRef.current ? getShapeById(activeShapeIdRef.current) : null
+
+            if (!shape || shape.status === GEOMETRY_STATUS.COMMITTED) {
                 return
             }
 
@@ -697,7 +692,7 @@ export function useDrawGeometryTool(
         }
 
         const handlePrimarySelect = (event) => {
-            if (activeDrawToolItemId || event.defaultPrevented) {
+            if (isPendingDrawMode() || event.defaultPrevented) {
                 return
             }
 
@@ -732,13 +727,13 @@ export function useDrawGeometryTool(
             clearGeometryHoverCursor()
         }
     }, [
-        activeDrawToolItemId,
         clearDrawGeometryCursor,
         clearGeometryHoverCursor,
         enabled,
         getShapeById,
         handleMapDrawClick,
         handlePointerMovePreview,
+        isPendingDrawMode,
         mapRef,
         onShapePrimaryClick,
         updateMapCursorForPointer,

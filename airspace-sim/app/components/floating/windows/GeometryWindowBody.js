@@ -301,7 +301,13 @@ export default function GeometryWindowBody({shape}) {
                     Geometry
                 </Typography>
                 {showPending ? (
-                    <Chip label='Pending' size='small' color='warning' variant='outlined'/>
+                    <Chip
+                        label='Pending'
+                        size='small'
+                        color='warning'
+                        variant='outlined'
+                        sx={{fontFamily: 'monospace'}}
+                    />
                 ) : null}
             </Stack>
 

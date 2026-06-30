@@ -13,6 +13,7 @@ import {
 import {
     createGeometryShape,
     isGeometryShapeComplete,
+    isGeometryShapeInPendingDrawStatus,
 } from '../../app/tools/map/drawGeometry/drawGeometryModels.js'
 import {GEOMETRY_SHAPE_TYPES, GEOMETRY_STATUS} from '../../app/tools/map/drawGeometry/drawGeometryTypes.js'
 
@@ -84,5 +85,17 @@ describe('draw geometry inscribed conversion', () => {
 
         assert.equal(converted.type, GEOMETRY_SHAPE_TYPES.CIRCLE)
         assert.equal(converted.params.radiusNm, 4)
+    })
+})
+
+describe('draw geometry pending draw status', () => {
+    it('tracks pending draw status separately from incomplete committed shapes', () => {
+        const pendingShape = createGeometryShape(GEOMETRY_SHAPE_TYPES.CIRCLE)
+
+        assert.equal(isGeometryShapeInPendingDrawStatus(pendingShape), true)
+
+        pendingShape.status = GEOMETRY_STATUS.COMMITTED
+
+        assert.equal(isGeometryShapeInPendingDrawStatus(pendingShape), false)
     })
 })
