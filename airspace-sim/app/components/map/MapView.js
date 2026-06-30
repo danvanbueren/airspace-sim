@@ -198,8 +198,6 @@ export default function MapView({
     )
 
     const handleMapContextMenu = useCallback(({point, mapPoint, lngLat, line}) => {
-        cancelDrawingRef.current?.()
-
         const layerTrack = mapPoint ? trackMapLayer.getTrackAtMapPoint(mapPoint) : null
         const trackId = layerTrack?.trackId ?? layerTrack?.id
         const track = trackId ? (getTrack(trackId) ?? layerTrack) : null
@@ -211,6 +209,10 @@ export default function MapView({
                 GEOMETRY_HIT_TEST_PIXEL_RADIUS,
             )
             : null
+
+        if (!geometry) {
+            cancelDrawingRef.current?.()
+        }
 
         openBearingRangeContextMenu({point, lngLat, line, track, geometry})
     }, [getTrack, mapRef, openBearingRangeContextMenu, shapes, trackMapLayer])

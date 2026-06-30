@@ -283,7 +283,7 @@ const MapContextMenu = forwardRef(function MapContextMenu({
                             sx={CONTEXT_MENU_BUTTON_SX}
                             fullWidth
                         >
-                            Delete Geometry
+                            Drop
                         </Button>
                     </>
                 ) : null}
