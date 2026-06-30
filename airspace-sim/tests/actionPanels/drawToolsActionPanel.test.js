@@ -27,6 +27,8 @@ describe('draw tools panel sizing', () => {
             height,
             estimateDrawToolsPanelHeight(width),
         )
+        assert.ok(width >= 210)
+        assert.ok(height >= 374)
         assert.equal(
             Math.ceil(DRAW_TOOLS_DEFAULT_ITEM_IDS.length / DRAW_TOOLS_COMPACT_COLUMN_COUNT),
             DRAW_TOOLS_DEFAULT_ITEM_IDS.length,
