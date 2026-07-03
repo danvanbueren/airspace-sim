@@ -61,6 +61,29 @@ describe('PerformanceMonitor', () => {
         assert.equal(metrics.segments.length, 6)
     })
 
+    it('tracks segment breakdown from the single worst-case frame, not independent segment peaks', () => {
+        const monitor = new PerformanceMonitor()
+        monitor.setEnabled(true)
+
+        // Frame 1: Sim tick is high (10ms), total is 10ms
+        monitor.recordSimTick(10)
+        monitor.commitFrame(16.67)
+
+        // Frame 2: Track symbols is high (8ms), total is 8ms
+        monitor.recordTrackSetData({ trackSymbolsMs: 8 })
+        monitor.commitFrame(16.67)
+
+        // Frame 1 is the worst-case (10ms > 8ms).
+        // So the tracked peaks should be SimTick = 10, TrackSymbols = 0.
+        // Rather than independent peaks (SimTick = 10, TrackSymbols = 8).
+        monitor.flushBucket()
+        const metrics = monitor.getMetrics()
+
+        assert.equal(metrics.history[0].maxSimTickMs, 10)
+        assert.equal(metrics.history[0].maxTrackSymbolsSetDataMs, 0)
+        assert.equal(metrics.history[0].maxMeasuredMs, 10)
+    })
+
     it('absorbs stray measurements recorded after the last frame commit', () => {
         const monitor = new PerformanceMonitor()
         monitor.setEnabled(true)

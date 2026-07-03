@@ -1,14 +1,15 @@
 'use client'
 
-import {resolveFittedFpsStatLabel} from '@/app/tools/performance/formatFpsStatLabel'
-import PeakAvgStatChip from './PeakAvgStatChip'
+import {StatChip} from './PerformanceAnalyticsOverlay'
 
 export default function FpsStatChip({lowFps, avgFps}) {
+    const formattedValue = `${lowFps.toFixed(1)}/${avgFps.toFixed(1)}`
+
     return (
-        <PeakAvgStatChip
-            leadingValue={lowFps}
-            avgValue={avgFps}
-            resolveLabel={resolveFittedFpsStatLabel}
+        <StatChip
+            label='FPS (low/avg)'
+            value={formattedValue}
+            multiline
         />
     )
 }

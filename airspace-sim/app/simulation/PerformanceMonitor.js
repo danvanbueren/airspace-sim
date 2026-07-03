@@ -86,21 +86,6 @@ function addFrameMeasurementsToBucket(bucket, frame) {
     bucket.sensorRadarSetDataMsSum += frame.sensorRadarSetDataMs
     bucket.sensorIffSetDataMsSum += frame.sensorIffSetDataMs
     bucket.viewportSyncMsSum += frame.viewportSyncMs
-    bucket.maxSimTickMs = Math.max(bucket.maxSimTickMs, frame.simTickMs)
-    bucket.maxTrackSymbolsSetDataMs = Math.max(
-        bucket.maxTrackSymbolsSetDataMs,
-        frame.trackSymbolsSetDataMs,
-    )
-    bucket.maxTrackVectorsSetDataMs = Math.max(
-        bucket.maxTrackVectorsSetDataMs,
-        frame.trackVectorsSetDataMs,
-    )
-    bucket.maxSensorRadarSetDataMs = Math.max(
-        bucket.maxSensorRadarSetDataMs,
-        frame.sensorRadarSetDataMs,
-    )
-    bucket.maxSensorIffSetDataMs = Math.max(bucket.maxSensorIffSetDataMs, frame.sensorIffSetDataMs)
-    bucket.maxViewportSyncMs = Math.max(bucket.maxViewportSyncMs, frame.viewportSyncMs)
 }
 
 export class PerformanceMonitor {
@@ -188,11 +173,20 @@ export class PerformanceMonitor {
             return
         }
 
-        const measuredMs = getMeasuredFrameMs(this.currentFrame)
+        const frame = this.currentFrame
+        const measuredMs = getMeasuredFrameMs(frame)
         const bucket = this.currentBucket
 
-        addFrameMeasurementsToBucket(bucket, this.currentFrame)
-        bucket.maxMeasuredMs = Math.max(bucket.maxMeasuredMs, measuredMs)
+        addFrameMeasurementsToBucket(bucket, frame)
+        if (measuredMs > bucket.maxMeasuredMs) {
+            bucket.maxMeasuredMs = measuredMs
+            bucket.maxSimTickMs = frame.simTickMs
+            bucket.maxTrackSymbolsSetDataMs = frame.trackSymbolsSetDataMs
+            bucket.maxTrackVectorsSetDataMs = frame.trackVectorsSetDataMs
+            bucket.maxSensorRadarSetDataMs = frame.sensorRadarSetDataMs
+            bucket.maxSensorIffSetDataMs = frame.sensorIffSetDataMs
+            bucket.maxViewportSyncMs = frame.viewportSyncMs
+        }
         this.currentFrame = createEmptyFrameAccumulator()
         this.latest.updatedAt = performance.now()
     }
@@ -210,7 +204,16 @@ export class PerformanceMonitor {
         bucket.frameCount += 1
         bucket.frameMsSum += frameMs
         bucket.maxFrameMs = Math.max(bucket.maxFrameMs, frameMs)
-        bucket.maxMeasuredMs = Math.max(bucket.maxMeasuredMs, measuredMs)
+
+        if (measuredMs > bucket.maxMeasuredMs) {
+            bucket.maxMeasuredMs = measuredMs
+            bucket.maxSimTickMs = frame.simTickMs
+            bucket.maxTrackSymbolsSetDataMs = frame.trackSymbolsSetDataMs
+            bucket.maxTrackVectorsSetDataMs = frame.trackVectorsSetDataMs
+            bucket.maxSensorRadarSetDataMs = frame.sensorRadarSetDataMs
+            bucket.maxSensorIffSetDataMs = frame.sensorIffSetDataMs
+            bucket.maxViewportSyncMs = frame.viewportSyncMs
+        }
 
         this.currentFrame = createEmptyFrameAccumulator()
         this.smoothed.frameMs = smooth(this.smoothed.frameMs, measuredMs)

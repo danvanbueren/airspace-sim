@@ -1,14 +1,15 @@
 'use client'
 
-import {resolveFittedFrameMsStatLabel} from '@/app/tools/performance/formatFrameMsStatLabel'
-import PeakAvgStatChip from './PeakAvgStatChip'
+import {StatChip} from './PerformanceAnalyticsOverlay'
 
 export default function FrameMsStatChip({peakMs, avgMs}) {
+    const formattedValue = `${peakMs.toFixed(2)}/${avgMs.toFixed(2)} ms`
+
     return (
-        <PeakAvgStatChip
-            leadingValue={peakMs}
-            avgValue={avgMs}
-            resolveLabel={resolveFittedFrameMsStatLabel}
+        <StatChip
+            label='Frame (peak/avg)'
+            value={formattedValue}
+            multiline
         />
     )
 }

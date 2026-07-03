@@ -78,7 +78,7 @@ function LegendItem({color, label}) {
     )
 }
 
-function StatChip({label, value, warn = false, multiline = false}) {
+export function StatChip({label, value, warn = false, multiline = false}) {
     const valueColor = warn ? '#ffb74d' : 'rgba(255, 255, 255, 0.9)'
 
     if (multiline) {
@@ -264,7 +264,7 @@ export default function PerformanceAnalyticsOverlay() {
                             />
                         </Grid>
                         <Grid size={6}>
-                            <StatChip label='Tracks Displayed:' value={metrics.visibleTrackCount} />
+                            <StatChip label='Tracks Displayed' value={metrics.visibleTrackCount} multiline />
                         </Grid>
                         <Grid size={6}>
                             <FrameMsStatChip
@@ -273,7 +273,7 @@ export default function PerformanceAnalyticsOverlay() {
                             />
                         </Grid>
                         <Grid size={6}>
-                            <StatChip label='Tracks Total:' value={metrics.firmTrackCount} />
+                            <StatChip label='Tracks Total' value={metrics.firmTrackCount} multiline />
                         </Grid>
                         <Grid size={12}>
                             <StatChip
