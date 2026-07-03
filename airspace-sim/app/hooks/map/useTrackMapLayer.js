@@ -217,6 +217,7 @@ function trackToFeature(
     evaluationTime = 0,
     inhibitedAttentionIds = [],
     iffRefreshMs = 1000,
+    registeredIconIds = null,
 ) {
     const coordinates = normalizeTrackCoordinates(track)
 
@@ -243,6 +244,8 @@ function trackToFeature(
     )
     const attentions = formatAttentionDisplayLines(flagIds).join('\n')
 
+    const hasIcon = !registeredIconIds || registeredIconIds.has(iconId)
+
     return {
         type: 'Feature',
         id,
@@ -253,7 +256,7 @@ function trackToFeature(
         properties: {
             id,
             trackId: id,
-            icon: iconId,
+            icon: hasIcon ? iconId : null,
             symbolCode,
             label: track.label ?? track.callsign ?? track.name ?? id,
             heading: displayHeading,
@@ -277,6 +280,7 @@ function createFeatureCollection(
     evaluationTime = 0,
     inhibitedAttentionIds = [],
     iffRefreshMs = 1000,
+    registeredIconIds = null,
 ) {
     const features = []
 
@@ -288,6 +292,7 @@ function createFeatureCollection(
             evaluationTime,
             inhibitedAttentionIds,
             iffRefreshMs,
+            registeredIconIds,
         )
 
         if (feature) {
@@ -495,6 +500,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
             evaluationTimeRef.current,
             inhibitedAttentionIdsRef.current,
             iffRefreshMsRef.current,
+            registeredIconIdsRef.current,
         )
         const vectorFeatureCollection = tracksToVectorFeatureCollection(tracks, map)
 
