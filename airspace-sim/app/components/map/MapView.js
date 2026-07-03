@@ -96,6 +96,8 @@ export default function MapView({
     const trackMapLayerGetTrackRef = useRef(null)
     const syncTrackManagementWindowsFromLiveTracksRef = useRef(null)
     const previousLiveTrackIdsRef = useRef(new Set())
+    const releaseGeometryKeyboardCustodyRef = useRef(null)
+    const releaseTrackManagementKeyboardCustodyRef = useRef(null)
     const mapStyle = MAP_STYLES[colorMode]
 
     const {mapRef, mapReady, mapCreationStyle} = useMapLibreMap({
@@ -188,13 +190,34 @@ export default function MapView({
         geometryKeyboardCustodyWindowId,
         registerGeometryWindowElement,
         releaseGeometryKeyboardCustody,
-        claimGeometryKeyboardCustody,
+        claimGeometryKeyboardCustody: baseClaimGeometryKeyboardCustody,
         closeGeometryWindowWithBlur,
         clearKeyboardCustodyForShape,
     } = useGeometryWindowKeyboardCustody({
         geometryWindows,
         bringGeometryWindowToFront,
     })
+
+    releaseGeometryKeyboardCustodyRef.current = releaseGeometryKeyboardCustody
+
+    const claimGeometryKeyboardCustody = useCallback((windowId) => {
+        releaseTrackManagementKeyboardCustodyRef.current?.()
+        baseClaimGeometryKeyboardCustody(windowId)
+    }, [baseClaimGeometryKeyboardCustody])
+
+    const previousGeometryWindowIdsRef = useRef(new Set())
+
+    useEffect(() => {
+        const currentIds = new Set(geometryWindows.map((w) => w.id))
+        const addedId = Array.from(currentIds).find((id) => !previousGeometryWindowIdsRef.current.has(id))
+
+        if (addedId) {
+            bringGeometryWindowToFront(addedId)
+            claimGeometryKeyboardCustody(addedId)
+        }
+
+        previousGeometryWindowIdsRef.current = currentIds
+    }, [geometryWindows, bringGeometryWindowToFront, claimGeometryKeyboardCustody])
 
     const isGeometryKeyboardCustodyActive = useCallback(
         () => geometryKeyboardCustodyWindowId !== null,
@@ -251,15 +274,18 @@ export default function MapView({
     }, [closeContextMenu, mapContainerRef, openDrawToolsPanel])
 
     const handleOpenGeometryWindow = useCallback((shape, elementContainer = null) => {
-        const geometryWindow = openGeometryWindowForShape(shape, elementContainer ?? {
-            x: 120,
-            y: 120,
-        })
+        const existingWindow = geometryWindows.find((w) => w.shapeId === shape.id)
 
-        if (geometryWindow) {
-            bringGeometryWindowToFront(geometryWindow.id)
+        if (existingWindow) {
+            bringGeometryWindowToFront(existingWindow.id)
+            claimGeometryKeyboardCustody(existingWindow.id)
+        } else {
+            openGeometryWindowForShape(shape, elementContainer ?? {
+                x: 120,
+                y: 120,
+            })
         }
-    }, [bringGeometryWindowToFront, openGeometryWindowForShape])
+    }, [bringGeometryWindowToFront, openGeometryWindowForShape, claimGeometryKeyboardCustody, geometryWindows])
 
     useEffect(() => {
         registerGeometryWindowOpener((shape) => {
@@ -432,7 +458,7 @@ export default function MapView({
         trackManagementKeyboardCustodyWindowId,
         registerTrackManagementWindowElement,
         releaseTrackManagementKeyboardCustody,
-        claimTrackManagementKeyboardCustody,
+        claimTrackManagementKeyboardCustody: baseClaimTrackManagementKeyboardCustody,
         closeTrackManagementWindowWithBlur,
         clearKeyboardCustodyForTrack,
         blurTrackWindowsForTrack,
@@ -440,6 +466,27 @@ export default function MapView({
         trackManagementWindows,
         bringTrackManagementWindowToFront,
     })
+
+    releaseTrackManagementKeyboardCustodyRef.current = releaseTrackManagementKeyboardCustody
+
+    const claimTrackManagementKeyboardCustody = useCallback((windowId) => {
+        releaseGeometryKeyboardCustodyRef.current?.()
+        baseClaimTrackManagementKeyboardCustody(windowId)
+    }, [baseClaimTrackManagementKeyboardCustody])
+
+    const previousTrackWindowIdsRef = useRef(new Set())
+
+    useEffect(() => {
+        const currentIds = new Set(trackManagementWindows.map((w) => w.id))
+        const addedId = Array.from(currentIds).find((id) => !previousTrackWindowIdsRef.current.has(id))
+
+        if (addedId) {
+            bringTrackManagementWindowToFront(addedId)
+            claimTrackManagementKeyboardCustody(addedId)
+        }
+
+        previousTrackWindowIdsRef.current = currentIds
+    }, [trackManagementWindows, bringTrackManagementWindowToFront, claimTrackManagementKeyboardCustody])
 
     const keyboardCameraControlsEnabled = (
         trackManagementKeyboardCustodyWindowId === null
@@ -715,24 +762,23 @@ export default function MapView({
     }, [closeTrackManagementWindow, closeTrackManagementWindowWithBlur])
 
     const handleOpenTrackManagementWindow = useCallback((track, event) => {
-        openTrackManagementWindow(track, event)
-        closeContextMenu()
-
         const trackId = track.trackId ?? track.id
 
-        if (trackId) {
-            bringTrackManagementWindowToFront(`track-${trackId}`)
-            const existingWindow = trackManagementWindows.find((trackManagementWindow) => (
-                trackManagementWindow.trackId === trackId
-            ))
+        const existingWindow = trackManagementWindows.find((w) => w.trackId === trackId)
 
-            bringTrackManagementWindowToFront(existingWindow?.id ?? `track-${trackId}`)
+        if (existingWindow) {
+            bringTrackManagementWindowToFront(existingWindow.id)
+            claimTrackManagementKeyboardCustody(existingWindow.id)
+        } else {
+            openTrackManagementWindow(track, event)
         }
+        closeContextMenu()
     }, [
         openTrackManagementWindow,
         closeContextMenu,
         trackManagementWindows,
         bringTrackManagementWindowToFront,
+        claimTrackManagementKeyboardCustody,
     ])
 
     openTrackManagementWindowRef.current = handleOpenTrackManagementWindow
@@ -750,9 +796,6 @@ export default function MapView({
                 return
             }
 
-            releaseTrackManagementKeyboardCustody()
-            releaseGeometryKeyboardCustody()
-
             const trackLayers = [
                 trackMapLayer.layerId,
                 trackMapLayer.labelLayerId,
@@ -763,9 +806,26 @@ export default function MapView({
                 {layers: trackLayers},
             ).length > 0
 
-            if (clickedTrack) {
+            const geometryLayers = [
+                'draw-geometry-fill-layer',
+                'draw-geometry-line-layer',
+                'draw-geometry-label-layer',
+            ].filter((layerId) => map.getLayer(layerId))
+
+            const clickedGeometry = geometryLayers.length > 0 && map.queryRenderedFeatures(
+                [
+                    [event.point.x - 8, event.point.y - 8],
+                    [event.point.x + 8, event.point.y + 8],
+                ],
+                {layers: geometryLayers},
+            ).length > 0
+
+            if (clickedTrack || clickedGeometry) {
                 return
             }
+
+            releaseTrackManagementKeyboardCustody()
+            releaseGeometryKeyboardCustody()
 
             closeMapDismissibleTrackManagementWindowsRef.current?.()
         }
