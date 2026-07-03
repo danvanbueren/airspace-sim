@@ -41,6 +41,23 @@ function toFiniteNumber(value, fallbackValue) {
     return Number.isFinite(parsed) ? parsed : fallbackValue
 }
 
+const STANDARD_MAC_DPRS = [1.0, 2.0, 3.0]
+const STANDARD_OTHER_DPRS = [1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 3.0]
+
+function getNearestBackingScale(dpr, isMac) {
+    const list = isMac ? STANDARD_MAC_DPRS : STANDARD_OTHER_DPRS
+    let nearest = list[0]
+    let minDiff = Math.abs(dpr - nearest)
+    for (let i = 1; i < list.length; i++) {
+        const diff = Math.abs(dpr - list[i])
+        if (diff < minDiff) {
+            minDiff = diff
+            nearest = list[i]
+        }
+    }
+    return nearest
+}
+
 export default function SettingsModalLookAndFeelPage() {
     const {
         appSettings,
@@ -54,7 +71,7 @@ export default function SettingsModalLookAndFeelPage() {
 
     const [platform, setPlatform] = useState('generic')
     const [zoomScale, setZoomScale] = useState(1.0)
-    const [devicePixelRatioOnLoad, setDevicePixelRatioOnLoad] = useState(null)
+    const [backingScale, setBackingScale] = useState(1.0)
 
     useEffect(() => {
         const userAgent = window.navigator.userAgent.toLowerCase()
@@ -69,20 +86,63 @@ export default function SettingsModalLookAndFeelPage() {
         setPlatform(detectedPlatform)
 
         const initialDPR = window.devicePixelRatio || 1.0
-        setDevicePixelRatioOnLoad(initialDPR)
         setZoomScale(initialDPR)
+
+        const isMacPlatform = detectedPlatform === 'mac'
+
+        // Retrieve or compute baseline backing scale
+        let savedScale = null
+        try {
+            const stored = localStorage.getItem('airspace-sim:device-backing-scale')
+            if (stored) {
+                const parsed = parseFloat(stored)
+                if (Number.isFinite(parsed) && parsed > 0) {
+                    savedScale = parsed
+                }
+            }
+        } catch (e) {
+            console.error('Failed to read from localStorage', e)
+        }
+
+        if (!savedScale) {
+            savedScale = getNearestBackingScale(initialDPR, isMacPlatform)
+            try {
+                localStorage.setItem('airspace-sim:device-backing-scale', String(savedScale))
+            } catch (e) {
+                console.error('Failed to write to localStorage', e)
+            }
+        }
+
+        setBackingScale(savedScale)
 
         const handleResize = () => {
             setZoomScale(window.devicePixelRatio || 1.0)
         }
 
+        const handleKeyDown = (e) => {
+            const isResetKey = e.key === '0' && (isMacPlatform ? e.metaKey : e.ctrlKey)
+            if (isResetKey) {
+                setTimeout(() => {
+                    const resetDPR = window.devicePixelRatio || 1.0
+                    setBackingScale(resetDPR)
+                    try {
+                        localStorage.setItem('airspace-sim:device-backing-scale', String(resetDPR))
+                    } catch (err) {
+                        console.error(err)
+                    }
+                }, 150)
+            }
+        }
+
         window.addEventListener('resize', handleResize)
+        window.addEventListener('keydown', handleKeyDown)
         return () => {
             window.removeEventListener('resize', handleResize)
+            window.removeEventListener('keydown', handleKeyDown)
         }
     }, [])
 
-    const relativeZoom = devicePixelRatioOnLoad ? (zoomScale / devicePixelRatioOnLoad) : 1.0
+    const relativeZoom = backingScale ? (zoomScale / backingScale) : 1.0
     const isMac = platform === 'mac'
     const zoomOutLabel = isMac ? '⌘ -' : 'Ctrl -'
     const zoomInLabel = isMac ? '⌘ +' : 'Ctrl +'
@@ -326,7 +386,7 @@ export default function SettingsModalLookAndFeelPage() {
                     sx={{display: 'block', mt: 1}}
                 >
                     Current Zoom: {Math.round(relativeZoom * 100)}%{' '}
-                    {devicePixelRatioOnLoad && devicePixelRatioOnLoad !== 1 && `(Device backing scale: ${Math.round(devicePixelRatioOnLoad * 100)}%)`}{' '}
+                    {backingScale && backingScale !== 1 && `(Device backing scale: ${Math.round(backingScale * 100)}%)`}{' '}
                     · Reset zoom anytime using{' '}
                     <Box
                         component='span'
@@ -362,6 +422,15 @@ export default function SettingsModalLookAndFeelPage() {
                             panSpeedMultiplier: DEFAULT_CONTROL_BINDINGS.keyboardCamera.panSpeedMultiplier,
                         },
                     }))
+                    // Recalibrate device backing scale
+                    try {
+                        localStorage.removeItem('airspace-sim:device-backing-scale')
+                    } catch (e) {
+                        console.error(e)
+                    }
+                    const currentDPR = window.devicePixelRatio || 1.0
+                    const defaultBackingScale = getNearestBackingScale(currentDPR, platform === 'mac')
+                    setBackingScale(defaultBackingScale)
                 }}
             />
         </Stack>
