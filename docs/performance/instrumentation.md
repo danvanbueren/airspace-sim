@@ -15,7 +15,7 @@ When enabled, a **semi-transparent glass panel** with backdrop blur appears at t
 | **X** | Recent history in 1 s intervals (oldest left, newest right; up to 15 columns ≈ 15 s) |
 | **Y** | Peak measured compute in milliseconds for each interval (scale uses the 95th percentile of recent stacks, minimum 20 ms) |
 
-Each vertical bar is one 1 s interval. Colored segments stack **peak measured compute per segment** within that interval (the highest value each segment reached during the bucket). Idle frame gap is left blank — bars are not stretched to fill the 60 fps budget.
+Each vertical bar is one 1 s interval. Colored segments show the workload breakdown of the **actual worst-case single frame** (the frame in the 1-second interval that had the highest total measured compute time). This matches the peak value shown in the metrics chip. Idle frame gap is left blank — bars are not stretched to fill the 60 fps budget.
 
 | Color | Segment | Source |
 |-------|---------|--------|
@@ -30,7 +30,7 @@ A **horizontal tick** on each bar marks the **average measured compute** for tha
 
 Per-bucket **averages** are still recorded alongside these peaks for stats and future use.
 
-**FPS (low/avg)** reflects display refresh rate (RAF spacing, ~60 on a 60 Hz panel, higher on high-refresh displays). The first value is the **lowest** refresh rate seen in the current 1 s bucket (from the longest frame interval); the second is the smoothed average. **Frame (peak/avg)** shows live peak/average measured compute as `Frame (peak/avg): #/# ms` (same instrumented work as the chart, excluding idle time between frames). Decimal precision shrinks automatically if a stat does not fit its column.
+**FPS (low/avg)** reflects display refresh rate (RAF spacing, ~60 on a 60 Hz panel, higher on high-refresh displays). The first value is the lowest refresh rate seen in the current 1 s bucket (from the longest frame interval); the second is the smoothed average. Frame (peak/avg) shows live peak/average measured compute as a multiline card. It represents the same instrumented work as the chart (excluding idle time between frames), with full decimal precision.
 
 A **yellow dashed horizontal line** at **16.67 ms** marks the 60 fps budget and is drawn above the bars so it stays visible.
 
