@@ -356,19 +356,16 @@ export function useFloatingActionPanelLayout({
 
         dragStateRef.current = null
 
-        setPosition((currentPosition) => {
-            if (currentPosition) {
-                commitPositionAnchor(currentPosition.left, currentPosition.top)
+        const currentPosition = positionRef.current
+        if (currentPosition) {
+            commitPositionAnchor(currentPosition.left, currentPosition.top)
 
-                onLayoutCommit?.({
-                    anchor: positionAnchorRef.current,
-                    width: widthRef.current,
-                    height: heightRef.current,
-                })
-            }
-
-            return currentPosition
-        })
+            onLayoutCommit?.({
+                anchor: positionAnchorRef.current,
+                width: widthRef.current,
+                height: heightRef.current,
+            })
+        }
     }, [commitPositionAnchor, onLayoutCommit])
 
     const handleResizeHandlePointerDown = useCallback((event) => {
@@ -450,19 +447,16 @@ export function useFloatingActionPanelLayout({
         setWidth(committedWidth)
         setHeight(committedHeight)
 
-        setPosition((currentPosition) => {
-            if (currentPosition) {
-                commitPositionAnchor(currentPosition.left, currentPosition.top)
+        const currentPosition = positionRef.current
+        if (currentPosition) {
+            commitPositionAnchor(currentPosition.left, currentPosition.top)
 
-                onLayoutCommit?.({
-                    anchor: positionAnchorRef.current,
-                    width: committedWidth,
-                    height: committedHeight,
-                })
-            }
-
-            return currentPosition
-        })
+            onLayoutCommit?.({
+                anchor: positionAnchorRef.current,
+                width: committedWidth,
+                height: committedHeight,
+            })
+        }
     }, [commitPositionAnchor, containerSize, minResizedHeight, onLayoutCommit])
 
     return {
