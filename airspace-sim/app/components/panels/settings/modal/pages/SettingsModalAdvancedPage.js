@@ -82,17 +82,31 @@ export default function SettingsModalAdvancedPage() {
                     Operator-facing display options for track and reference point windows.
                 </Typography>
 
-                <FormControlLabel
-                    control={(
-                        <Switch
-                            checked={Boolean(appSettings.verboseMode)}
-                            onChange={(event) => updateAppSettings({
-                                verboseMode: event.target.checked,
-                            })}
-                        />
-                    )}
-                    label='Verbose mode'
-                />
+                <Stack spacing={1} sx={{alignItems: 'flex-start'}}>
+                    <FormControlLabel
+                        control={(
+                            <Switch
+                                checked={Boolean(appSettings.verboseMode)}
+                                onChange={(event) => updateAppSettings({
+                                    verboseMode: event.target.checked,
+                                })}
+                            />
+                        )}
+                        label='Verbose mode'
+                    />
+
+                    <FormControlLabel
+                        control={(
+                            <Switch
+                                checked={Boolean(appSettings.persistDrawGeometry)}
+                                onChange={(event) => updateAppSettings({
+                                    persistDrawGeometry: event.target.checked,
+                                })}
+                            />
+                        )}
+                        label='Persist geometries'
+                    />
+                </Stack>
             </Box>
 
             <Box>
@@ -124,6 +138,7 @@ export default function SettingsModalAdvancedPage() {
                         ...currentSettings,
                         showPerformanceOverlay: DEFAULT_APP_SETTINGS.showPerformanceOverlay,
                         verboseMode: DEFAULT_APP_SETTINGS.verboseMode,
+                        persistDrawGeometry: DEFAULT_APP_SETTINGS.persistDrawGeometry,
                     }))
                     updateControlBindings((currentBindings) => ({
                         ...currentBindings,

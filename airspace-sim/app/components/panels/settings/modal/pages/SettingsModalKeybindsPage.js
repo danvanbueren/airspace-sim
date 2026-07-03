@@ -43,6 +43,16 @@ const SCOPE_TOOL_KEYBOARD_BINDINGS = [{
     description: 'Toggle a 3 NM radius circle at the cursor to assess group criteria. Caps Lock stays synced with the OS toggle when bound to Caps Lock.',
 },]
 
+const DRAW_GEOMETRY_KEYBOARD_BINDINGS = [{
+    key: 'cancelButton',
+    label: 'Cancel Geometry Draw',
+    description: 'Cancel the active shape drawing session.',
+}, {
+    key: 'completePolygonButton',
+    label: 'Complete Polygon',
+    description: 'Commit the active multi-click polygon/polyline drawing.',
+}]
+
 const MOUSE_BUTTON_OPTIONS = [{
     label: 'Unbound', value: MOUSE_BUTTONS.unbound,
 }, {
@@ -129,6 +139,7 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
     const mapCursor = controlBindings.mapCursor
     const bearingRangeTool = controlBindings.bearingRangeTool
     const scopeTool = controlBindings.scopeTool
+    const drawGeometryTool = controlBindings.drawGeometryTool
 
     const updateKeyboardCameraBinding = useCallback((bindingKey, nextValue) => {
         updateControlBindings((currentBindings) => ({
@@ -165,6 +176,15 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
         }))
     }, [updateControlBindings])
 
+    const updateDrawGeometryKeyboardBinding = useCallback((bindingKey, nextValue) => {
+        updateControlBindings((currentBindings) => ({
+            ...currentBindings, drawGeometryTool: {
+                ...currentBindings.drawGeometryTool,
+                [bindingKey]: [nextValue],
+            },
+        }))
+    }, [updateControlBindings])
+
     const updateMapCursorBinding = useCallback((bindingKey, nextValue) => {
         updateControlBindings((currentBindings) => ({
             ...currentBindings, mapCursor: {
@@ -192,10 +212,12 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
             updateBearingRangeKeyboardBinding(parsedTarget.bindingKey, nextKey)
         } else if (parsedTarget.section === 'scopeTool') {
             updateScopeToolKeyboardBinding(parsedTarget.bindingKey, nextKey)
+        } else if (parsedTarget.section === 'drawGeometryTool') {
+            updateDrawGeometryKeyboardBinding(parsedTarget.bindingKey, nextKey)
         }
 
         setListeningForBinding(null)
-    }, [updateKeyboardCameraBinding, updateBearingRangeKeyboardBinding, updateScopeToolKeyboardBinding])
+    }, [updateKeyboardCameraBinding, updateBearingRangeKeyboardBinding, updateScopeToolKeyboardBinding, updateDrawGeometryKeyboardBinding])
 
     useEffect(() => {
         if (!listeningForBinding) return
@@ -240,6 +262,10 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
 
         if (parsedTarget.section === 'scopeTool') {
             return SCOPE_TOOL_KEYBOARD_BINDINGS.find((binding) => binding.key === parsedTarget.bindingKey)?.label
+        }
+
+        if (parsedTarget.section === 'drawGeometryTool') {
+            return DRAW_GEOMETRY_KEYBOARD_BINDINGS.find((binding) => binding.key === parsedTarget.bindingKey)?.label
         }
 
         return null
@@ -361,6 +387,16 @@ export default function SettingsModalKeybindsPage({onOpenSettingsPage}) {
                 return renderKeyboardBindingRow(binding, {
                     bindingTarget,
                     currentKey: scopeTool[binding.key]?.[0],
+                    isListening: listeningForBinding === bindingTarget,
+                })
+            })}
+
+            {DRAW_GEOMETRY_KEYBOARD_BINDINGS.map((binding) => {
+                const bindingTarget = `drawGeometryTool:${binding.key}`
+
+                return renderKeyboardBindingRow(binding, {
+                    bindingTarget,
+                    currentKey: drawGeometryTool[binding.key]?.[0],
                     isListening: listeningForBinding === bindingTarget,
                 })
             })}
