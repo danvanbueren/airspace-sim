@@ -19,17 +19,17 @@ function moveLayersToTop(map) {
     }
 }
 
-function getFillPaint(strokeColor, fillColor) {
+function getFillPaint() {
     return {
-        'fill-color': fillColor,
+        'fill-color': ['get', 'fillColor'],
         'fill-opacity': ['*', ['get', 'fillOpacity'], ['get', 'opacity']],
-        'fill-outline-color': strokeColor,
+        'fill-outline-color': ['get', 'strokeColor'],
     }
 }
 
-function getLinePaint(strokeColor) {
+function getLinePaint() {
     return {
-        'line-color': strokeColor,
+        'line-color': ['get', 'strokeColor'],
         'line-width': 2,
         'line-opacity': ['get', 'opacity'],
     }
@@ -71,8 +71,6 @@ async function waitForStyleReady(map) {
 
 export function ensureDrawGeometryLayers(
     map,
-    strokeColor,
-    fillColor,
     appliedColorsRef,
 ) {
     if (!map.getSource(DRAW_GEOMETRY_SOURCE_ID)) {
@@ -89,7 +87,7 @@ export function ensureDrawGeometryLayers(
             type: 'fill',
             source: DRAW_GEOMETRY_SOURCE_ID,
             filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['>', ['get', 'fillOpacity'], 0]],
-            paint: getFillPaint(strokeColor, fillColor),
+            paint: getFillPaint(),
         })
     }
 
@@ -102,7 +100,7 @@ export function ensureDrawGeometryLayers(
                 ['==', ['geometry-type'], 'LineString'],
                 ['==', ['geometry-type'], 'Polygon'],
             ],
-            paint: getLinePaint(strokeColor),
+            paint: getLinePaint(),
             layout: {
                 'line-cap': 'round',
                 'line-join': 'round',
@@ -121,30 +119,20 @@ export function ensureDrawGeometryLayers(
         })
     }
 
-    const nextColors = `${strokeColor}|${fillColor}`
-
-    if (appliedColorsRef.current !== nextColors) {
-        if (map.getLayer(DRAW_GEOMETRY_FILL_LAYER_ID)) {
-            map.setPaintProperty(DRAW_GEOMETRY_FILL_LAYER_ID, 'fill-color', fillColor)
-            map.setPaintProperty(DRAW_GEOMETRY_FILL_LAYER_ID, 'fill-outline-color', strokeColor)
-        }
-
-        if (map.getLayer(DRAW_GEOMETRY_LINE_LAYER_ID)) {
-            map.setPaintProperty(DRAW_GEOMETRY_LINE_LAYER_ID, 'line-color', strokeColor)
-        }
-
-        appliedColorsRef.current = nextColors
-    }
-
     moveLayersToTop(map)
 }
 
-function buildRenderableFeatureCollection(shapes, strokeColor, textHaloColor) {
+function buildRenderableFeatureCollection(shapes, defaultStrokeColor, defaultFillColor, textHaloColor, themeMode) {
     const featureCollection = buildGeometryFeatureCollection(shapes)
 
     return {
         ...featureCollection,
         features: featureCollection.features.map((feature) => {
+            const shapeId = feature.properties.shapeId ?? feature.properties.id
+            const shape = shapes.find((entry) => entry.id === shapeId)
+            const strokeColor = shape?.strokeColorsByMode?.[themeMode] ?? defaultStrokeColor
+            const fillColor = shape?.fillColorsByMode?.[themeMode] ?? defaultFillColor
+
             if (feature.geometry.type === 'Point') {
                 return {
                     ...feature,
@@ -156,13 +144,13 @@ function buildRenderableFeatureCollection(shapes, strokeColor, textHaloColor) {
                 }
             }
 
-            const shape = shapes.find((entry) => entry.id === feature.properties.id)
-
             return {
                 ...feature,
                 properties: {
                     ...feature.properties,
                     fillOpacity: shape?.fillOpacity ?? 0,
+                    strokeColor,
+                    fillColor,
                 },
             }
         }),
@@ -175,18 +163,19 @@ export function setDrawGeometryShapes(
     strokeColor,
     fillColor,
     textHaloColor,
+    themeMode,
     appliedColorsRef,
 ) {
     if (!map) {
         return false
     }
 
-    const featureCollection = buildRenderableFeatureCollection(shapes, strokeColor, textHaloColor)
+    const featureCollection = buildRenderableFeatureCollection(shapes, strokeColor, fillColor, textHaloColor, themeMode)
     const existingSource = map.getSource(DRAW_GEOMETRY_SOURCE_ID)
 
     if (existingSource) {
         existingSource.setData(featureCollection)
-        ensureDrawGeometryLayers(map, strokeColor, fillColor, appliedColorsRef)
+        ensureDrawGeometryLayers(map, appliedColorsRef)
         map.triggerRepaint()
         return true
     }
@@ -195,7 +184,7 @@ export function setDrawGeometryShapes(
         return false
     }
 
-    ensureDrawGeometryLayers(map, strokeColor, fillColor, appliedColorsRef)
+    ensureDrawGeometryLayers(map, appliedColorsRef)
 
     const source = map.getSource(DRAW_GEOMETRY_SOURCE_ID)
 
@@ -216,6 +205,7 @@ export async function rehydrateDrawGeometryShapes(
     strokeColor,
     fillColor,
     textHaloColor,
+    themeMode,
     appliedColorsRef,
 ) {
     if (!map) {
@@ -223,7 +213,9 @@ export async function rehydrateDrawGeometryShapes(
     }
 
     await waitForStyleReady(map)
-    appliedColorsRef.current = null
+    if (appliedColorsRef) {
+        appliedColorsRef.current = null
+    }
 
     return setDrawGeometryShapes(
         map,
@@ -231,6 +223,7 @@ export async function rehydrateDrawGeometryShapes(
         strokeColor,
         fillColor,
         textHaloColor,
+        themeMode,
         appliedColorsRef,
     )
 }

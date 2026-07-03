@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback} from 'react'
+import {useCallback, useRef} from 'react'
 import {
     Box,
     Divider,
@@ -12,7 +12,13 @@ import {
     Stack,
     TextField,
     Typography,
+    Slider,
 } from '@mui/material'
+import {useTheme} from '@mui/material/styles'
+import {
+    setStrokeColorForMode,
+    setFillColorForMode,
+} from '@/app/tools/map/drawGeometry/drawGeometryColor'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
@@ -31,6 +37,106 @@ import {
 } from '@/app/tools/map/drawGeometry/drawGeometryTypes'
 import {roundManualGeometryParams} from '@/app/tools/map/drawGeometry/drawGeometryRounding'
 import {geometryWindowShouldShowPendingPill} from '@/app/hooks/map/useGeometryWindows'
+
+function ColorPickerSection({
+    label,
+    currentColor,
+    onChangeColor,
+    themeMode,
+}) {
+    const defaultColor = themeMode === 'dark' ? '#ffffff' : '#111111'
+    const swatches = [
+        defaultColor,
+        '#ffc107', // Amber
+        '#10b981', // Emerald
+        '#2196f3', // Azure
+        '#f44336', // Rose
+        '#9c27b0', // Purple
+    ]
+
+    const isCustomActive = !swatches.some(s => s.toLowerCase() === currentColor?.toLowerCase())
+
+    return (
+        <Box>
+            <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 0.5, fontWeight: 500 }}>
+                {label}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                {swatches.map((color) => {
+                    const isActive = currentColor?.toLowerCase() === color.toLowerCase()
+                    return (
+                        <Box
+                            key={color}
+                            onClick={() => onChangeColor(color)}
+                            sx={{
+                                width: 18,
+                                height: 18,
+                                borderRadius: '50%',
+                                bgcolor: color,
+                                cursor: 'pointer',
+                                border: '2px solid',
+                                borderColor: isActive ? 'primary.main' : 'transparent',
+                                boxShadow: isActive ? '0 0 0 1px rgba(0,0,0,0.2)' : 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+                                transition: 'transform 0.15s ease, border-color 0.15s ease',
+                                '&:hover': {
+                                    transform: 'scale(1.15)',
+                                },
+                            }}
+                            title={color === defaultColor ? 'Theme Default' : color}
+                        />
+                    )
+                })}
+                {/* Custom Color Selector */}
+                <Box
+                    sx={{
+                        position: 'relative',
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        background: isCustomActive 
+                            ? currentColor 
+                            : 'linear-gradient(45deg, #f44336, #ffeb3b, #4caf50, #2196f3, #9c27b0)',
+                        border: '2px solid',
+                        borderColor: isCustomActive ? 'primary.main' : 'transparent',
+                        boxShadow: isCustomActive ? '0 0 0 1px rgba(0,0,0,0.2)' : 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'transform 0.15s ease, border-color 0.15s ease',
+                        '&:hover': {
+                            transform: 'scale(1.15)',
+                        },
+                    }}
+                    title={isCustomActive ? `Custom: ${currentColor}` : 'Custom Color'}
+                >
+                    <Box
+                        sx={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            bgcolor: isCustomActive ? 'primary.contrastText' : 'transparent',
+                        }}
+                    />
+                    <input
+                        type='color'
+                        value={currentColor || defaultColor}
+                        onChange={(e) => onChangeColor(e.target.value)}
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            opacity: 0,
+                            cursor: 'pointer',
+                            padding: 0,
+                            border: 'none',
+                        }}
+                    />
+                </Box>
+            </Box>
+        </Box>
+    )
+}
 
 const NM_FIELD_CONFIG = createDeferredNumericFieldConfig({min: 0})
 
@@ -292,6 +398,24 @@ export default function GeometryWindowBody({shape}) {
         updateShape(shape.id, {params: roundManualGeometryParams(paramsUpdate)})
     }, [shape.id, updateShape])
 
+    const theme = useTheme()
+    const strokeColor = shape.strokeColorsByMode?.[theme.palette.mode]
+    const fillColor = shape.fillColorsByMode?.[theme.palette.mode]
+
+    const handleStrokeColorChange = useCallback((newColor) => {
+        const updatedColors = setStrokeColorForMode(shape.strokeColorsByMode, theme.palette.mode, newColor)
+        updateShape(shape.id, {strokeColorsByMode: updatedColors})
+    }, [shape.id, shape.strokeColorsByMode, updateShape, theme.palette.mode])
+
+    const handleFillColorChange = useCallback((newColor) => {
+        const updatedColors = setFillColorForMode(shape.fillColorsByMode, theme.palette.mode, newColor)
+        updateShape(shape.id, {fillColorsByMode: updatedColors})
+    }, [shape.id, shape.fillColorsByMode, updateShape, theme.palette.mode])
+
+    const handleFillOpacityChange = useCallback((event, newValue) => {
+        updateShape(shape.id, {fillOpacity: newValue / 100})
+    }, [shape.id, updateShape])
+
     const showPendingPenUsage = geometryWindowShouldShowPendingPill(shape)
 
     return (
@@ -358,6 +482,41 @@ export default function GeometryWindowBody({shape}) {
             </Typography>
 
             <GeometryCoordinateFields shape={shape} onUpdateParams={handleParamsUpdate}/>
+
+            <Divider/>
+
+            <Typography sx={GEOMETRY_SECTION_HEADING_SX}>
+                Styling
+            </Typography>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <ColorPickerSection
+                    label="Stroke Color"
+                    currentColor={strokeColor}
+                    onChangeColor={handleStrokeColorChange}
+                    themeMode={theme.palette.mode}
+                />
+                <ColorPickerSection
+                    label="Fill Color"
+                    currentColor={fillColor}
+                    onChangeColor={handleFillColorChange}
+                    themeMode={theme.palette.mode}
+                />
+                <Box>
+                    <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 0.5, fontWeight: 500 }}>
+                        Fill Opacity ({Math.round((shape.fillOpacity ?? 0) * 100)}%)
+                    </Typography>
+                    <Slider
+                        value={Math.round((shape.fillOpacity ?? 0) * 100)}
+                        onChange={handleFillOpacityChange}
+                        min={0}
+                        max={100}
+                        size='small'
+                        valueLabelDisplay='auto'
+                        sx={{ mt: 0.5 }}
+                    />
+                </Box>
+            </Box>
         </Stack>
     )
 }

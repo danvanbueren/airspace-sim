@@ -41,6 +41,7 @@ export function estimateDrawToolsPanelHeight(panelWidthPx = estimateDrawToolsPan
     const baseHeight = DRAW_TOOLS_HEADER_CHROME_PX
         + (rowCount * COMPACT_BUTTON_MIN_HEIGHT_PX)
         + (Math.max(0, rowCount - 1) * ACTION_PANEL_GRID_GAP_COMPACT_PX)
+        + 140 // Add extra height for the styling section (colors & opacity)
 
     return Math.ceil(baseHeight * DRAW_TOOLS_PANEL_HEIGHT_SCALE)
 }

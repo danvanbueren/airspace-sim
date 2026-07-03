@@ -105,3 +105,13 @@ export function createDefaultFillColorsByMode() {
         light: '#111111',
     }
 }
+
+export function setFillColorForMode(colorsByMode, mode, color) {
+    const oppositeMode = mode === 'dark' ? 'light' : 'dark'
+
+    return {
+        ...colorsByMode,
+        [mode]: color,
+        [oppositeMode]: convertStrokeColorForOppositeMode(color, mode),
+    }
+}

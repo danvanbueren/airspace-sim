@@ -197,6 +197,7 @@ export function useDrawGeometryTool(
             overlay,
             previewShapes,
             getStrokeColor(themeModeRef.current),
+            themeModeRef.current,
             constructionPreview,
         )
     }, [getPreviewShapes, getRacetrackConstructionPreview, getStrokeColor, mapRef])
@@ -218,6 +219,7 @@ export function useDrawGeometryTool(
             strokeColor,
             fillColor,
             textHaloColor,
+            themeModeRef.current,
             appliedColorsRef,
         )
     }, [getFillColor, getRenderableShapes, getStrokeColor, mapRef])
@@ -387,12 +389,15 @@ export function useDrawGeometryTool(
             }
         }
 
-        vertices.push(normalizeLngLat(lngLat))
-        polygonPreviewLngLatRef.current = null
-        applyShapeUpdate(shape.id, {vertices, closed: false, finalized: false})
+        const normalized = normalizeLngLat(lngLat)
+        if (normalized) {
+            vertices.push(normalized)
+            polygonPreviewLngLatRef.current = null
+            applyShapeUpdate(shape.id, {vertices, closed: false, finalized: false})
 
-        if (vertices.length >= 2) {
-            drawingPhaseRef.current = vertices.length
+            if (vertices.length >= 2) {
+                drawingPhaseRef.current = vertices.length
+            }
         }
 
         return true
@@ -672,7 +677,7 @@ export function useDrawGeometryTool(
 
         appliedColorsRef.current = null
         syncMapAndPreview()
-    }, [enabled, shapes, themeMode, syncMapAndPreview])
+    }, [enabled, shapes, themeMode, getStrokeColor, getFillColor, syncMapAndPreview])
 
     useEffect(() => {
         if (!enabled || !mapRef.current) {
@@ -692,6 +697,7 @@ export function useDrawGeometryTool(
                 strokeColor,
                 fillColor,
                 textHaloColor,
+                themeModeRef.current,
                 appliedColorsRef,
             )
             ensurePreviewOverlay()
