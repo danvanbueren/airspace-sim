@@ -2,7 +2,8 @@
 
 import {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react'
 import {ACTION_PANEL_ITEM_IDS} from '@/app/tools/actionPanels/actionPanelRegistry'
-import {useAppSettings} from '@/app/contexts/AppSettingsContext'
+import {useAppSettings, APP_SETTINGS_COOKIE_NAME} from '@/app/contexts/AppSettingsContext'
+import {readCookieValue} from '@/app/tools/browser/CookieStorage'
 import {
     createDefaultFillColorsByMode,
     createDefaultStrokeColorsByMode,
@@ -53,11 +54,28 @@ export function DrawGeometryProvider({children}) {
     const hasHydratedRef = useRef(false)
     const prevPersistRef = useRef(undefined)
 
-    // 1. Initial hydration on mount if persistence is enabled
+    // 1. Initial hydration on mount
     useEffect(() => {
-        if (persistDrawGeometry && !hasHydratedRef.current) {
-            hasHydratedRef.current = true
-            setIsLoaded(true)
+        if (hasHydratedRef.current) {
+            return
+        }
+
+        // Determine if persistence is enabled by checking both the context prop
+        // and reading the cookie directly to avoid delay from asynchronous setting hydration.
+        let shouldPersist = persistDrawGeometry
+        try {
+            const cookieVal = readCookieValue(APP_SETTINGS_COOKIE_NAME)
+            if (cookieVal) {
+                const parsedCookie = JSON.parse(decodeURIComponent(cookieVal))
+                if (parsedCookie && typeof parsedCookie === 'object') {
+                    shouldPersist = parsedCookie.persistDrawGeometry === true
+                }
+            }
+        } catch (e) {
+            console.error('Failed to parse appSettings cookie in DrawGeometryProvider', e)
+        }
+
+        if (shouldPersist) {
             try {
                 const storedShapes = localStorage.getItem('drawGeometryShapes')
                 if (storedShapes) {
@@ -82,12 +100,10 @@ export function DrawGeometryProvider({children}) {
                 console.error('Failed to load persisted geometry state', e)
             }
         }
-    }, [persistDrawGeometry, syncShapesRef])
 
-    // Mount indicator to mark loaded if settings don't request persistence
-    useEffect(() => {
+        hasHydratedRef.current = true
         setIsLoaded(true)
-    }, [])
+    }, [persistDrawGeometry, syncShapesRef])
 
     // 2. Save changes to localStorage when shapes/settings change
     useEffect(() => {
