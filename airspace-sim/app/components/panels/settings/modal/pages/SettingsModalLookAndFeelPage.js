@@ -1,5 +1,6 @@
 'use client'
 
+import {useEffect, useState} from 'react'
 import {
     Box,
     Chip,
@@ -50,6 +51,42 @@ export default function SettingsModalLookAndFeelPage() {
     const {controlBindings, updateControlBindings} = useControlBindings()
     const {mode: colorMode, setColorMode} = useColorMode()
     const keyboardCamera = controlBindings.keyboardCamera
+
+    const [platform, setPlatform] = useState('generic')
+    const [zoomScale, setZoomScale] = useState(1.0)
+    const [devicePixelRatioOnLoad, setDevicePixelRatioOnLoad] = useState(null)
+
+    useEffect(() => {
+        const userAgent = window.navigator.userAgent.toLowerCase()
+        let detectedPlatform = 'generic'
+        if (userAgent.includes('mac')) {
+            detectedPlatform = 'mac'
+        } else if (userAgent.includes('win')) {
+            detectedPlatform = 'win'
+        } else if (userAgent.includes('linux')) {
+            detectedPlatform = 'linux'
+        }
+        setPlatform(detectedPlatform)
+
+        const initialDPR = window.devicePixelRatio || 1.0
+        setDevicePixelRatioOnLoad(initialDPR)
+        setZoomScale(initialDPR)
+
+        const handleResize = () => {
+            setZoomScale(window.devicePixelRatio || 1.0)
+        }
+
+        window.addEventListener('resize', handleResize)
+        return () => {
+            window.removeEventListener('resize', handleResize)
+        }
+    }, [])
+
+    const relativeZoom = devicePixelRatioOnLoad ? (zoomScale / devicePixelRatioOnLoad) : 1.0
+    const isMac = platform === 'mac'
+    const zoomOutLabel = isMac ? '⌘ -' : 'Ctrl -'
+    const zoomInLabel = isMac ? '⌘ +' : 'Ctrl +'
+    const resetLabel = isMac ? '⌘ 0' : 'Ctrl 0'
 
     const updateKeyboardCameraNumber = (bindingKey, nextValue) => {
         updateControlBindings((currentBindings) => ({
@@ -236,6 +273,75 @@ export default function SettingsModalLookAndFeelPage() {
                         />
                     </Box>
                 </Stack>
+            </Box>
+
+            <Box>
+                <Typography variant='h6' sx={{fontWeight: 'bold', mb: 1}}>
+                    Browser Zoom Scale
+                </Typography>
+
+                <Typography variant='body2' color='text.secondary' sx={{mb: 2}}>
+                    Reflects the current native browser zoom level (adjusted via system or browser zoom settings).
+                </Typography>
+
+                <Stack direction='row' spacing={2} sx={{alignItems: 'center', width: '100%'}}>
+                    <Chip
+                        label={zoomOutLabel}
+                        variant='outlined'
+                        size='small'
+                        sx={{fontFamily: 'monospace', fontWeight: 'bold'}}
+                    />
+                    <Slider
+                        value={relativeZoom}
+                        min={0.5}
+                        max={3.0}
+                        step={0.05}
+                        sx={{
+                            flexGrow: 1,
+                            pointerEvents: 'none',
+                            '& .MuiSlider-thumb': {
+                                display: 'none',
+                            },
+                            '& .MuiSlider-track': {
+                                background: 'linear-gradient(90deg, #1976d2, #2e7d32)',
+                                border: 'none',
+                            },
+                            '& .MuiSlider-rail': {
+                                opacity: 0.28,
+                            },
+                        }}
+                    />
+                    <Chip
+                        label={zoomInLabel}
+                        variant='outlined'
+                        size='small'
+                        sx={{fontFamily: 'monospace', fontWeight: 'bold'}}
+                    />
+                </Stack>
+
+                <Typography
+                    variant='caption'
+                    color='text.secondary'
+                    component='div'
+                    sx={{display: 'block', mt: 1}}
+                >
+                    Current Zoom: {Math.round(relativeZoom * 100)}%{' '}
+                    {devicePixelRatioOnLoad && devicePixelRatioOnLoad !== 1 && `(Device backing scale: ${Math.round(devicePixelRatioOnLoad * 100)}%)`}{' '}
+                    · Reset zoom anytime using{' '}
+                    <Box
+                        component='span'
+                        sx={{
+                            fontFamily: 'monospace',
+                            fontWeight: 'bold',
+                            px: 0.5,
+                            py: 0.2,
+                            bgcolor: 'action.selected',
+                            borderRadius: 1,
+                        }}
+                    >
+                        {resetLabel}
+                    </Box>
+                </Typography>
             </Box>
 
             <SettingsModalPageRestoreFooter
