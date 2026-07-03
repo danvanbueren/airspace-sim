@@ -6,6 +6,10 @@ import {
 import {getRacetrackMaxRadiusNm} from './drawGeometryGeometry.js'
 import {clampLngLatToMapDisplayBounds} from './drawGeometryMapBounds.js'
 import {roundGeometryDrawOffsetNm} from './drawGeometryRounding.js'
+import {
+    createDefaultStrokeColorsByMode,
+    createDefaultFillColorsByMode,
+} from './drawGeometryColor.js'
 
 function createLngLat(lat = 0, lng = 0) {
     return {lat, lng}
@@ -47,7 +51,13 @@ export function createGeometrySystemId(existingShapes = []) {
     return `${GEOMETRY_SYSTEM_ID_PREFIX}${maxNumber + 1}`
 }
 
-export function createGeometryShape(type, {id, existingShapes = []} = {}) {
+export function createGeometryShape(type, {
+    id,
+    existingShapes = [],
+    strokeColorsByMode,
+    fillColorsByMode,
+    fillOpacity,
+} = {}) {
     return {
         id: id ?? createGeometrySystemId(existingShapes),
         name: '',
@@ -55,7 +65,9 @@ export function createGeometryShape(type, {id, existingShapes = []} = {}) {
         status: GEOMETRY_STATUS.PENDING,
         params: createDefaultParamsForType(type),
         createdAt: Date.now(),
-        fillOpacity: 0,
+        fillOpacity: typeof fillOpacity === 'number' ? fillOpacity : 0.2,
+        strokeColorsByMode: strokeColorsByMode ? {...strokeColorsByMode} : createDefaultStrokeColorsByMode(),
+        fillColorsByMode: fillColorsByMode ? {...fillColorsByMode} : createDefaultFillColorsByMode(),
     }
 }
 

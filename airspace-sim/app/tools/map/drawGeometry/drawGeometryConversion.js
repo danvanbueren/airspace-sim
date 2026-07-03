@@ -105,7 +105,8 @@ function normalizeGeometryParamsForType(type, params) {
             }
         case GEOMETRY_SHAPE_TYPES.POLYGON:
             return {
-                vertices: Array.isArray(params.vertices) ? params.vertices : defaults.vertices,
+                vertices: (Array.isArray(params.vertices) ? params.vertices : defaults.vertices)
+                    .filter((vertex) => vertex && typeof vertex === 'object' && Number.isFinite(vertex.lat) && Number.isFinite(vertex.lng)),
                 closed: Boolean(params.closed),
                 finalized: Boolean(params.finalized),
             }

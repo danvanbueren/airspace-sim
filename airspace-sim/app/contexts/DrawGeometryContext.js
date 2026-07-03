@@ -1,7 +1,8 @@
 'use client'
 
-import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react'
+import {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react'
 import {ACTION_PANEL_ITEM_IDS} from '@/app/tools/actionPanels/actionPanelRegistry'
+import {useAppSettings} from '@/app/contexts/AppSettingsContext'
 import {
     createDefaultFillColorsByMode,
     createDefaultStrokeColorsByMode,
@@ -31,6 +32,11 @@ export function DrawGeometryProvider({children}) {
     const [activeShapeId, setActiveShapeId] = useState(null)
     const [strokeColorsByMode, setStrokeColorsByMode] = useState(createDefaultStrokeColorsByMode)
     const [fillColorsByMode, setFillColorsByMode] = useState(createDefaultFillColorsByMode)
+    const [defaultFillOpacity, setDefaultFillOpacity] = useState(0.2)
+    const [isLoaded, setIsLoaded] = useState(false)
+
+    const {appSettings} = useAppSettings()
+    const persistDrawGeometry = appSettings.persistDrawGeometry
 
     const shapesRef = useRef(shapes)
     shapesRef.current = shapes
@@ -38,15 +44,86 @@ export function DrawGeometryProvider({children}) {
     activeShapeIdRef.current = activeShapeId
     const geometryWindowOpenerRef = useRef(null)
 
-    const registerGeometryWindowOpener = useCallback((opener) => {
-        geometryWindowOpenerRef.current = opener
-    }, [])
-
     const syncShapesRef = useCallback((nextShapes) => {
         shapesRef.current = nextShapes
 
         return nextShapes
     }, [])
+
+    const hasHydratedRef = useRef(false)
+    const prevPersistRef = useRef(undefined)
+
+    // 1. Initial hydration on mount if persistence is enabled
+    useEffect(() => {
+        if (persistDrawGeometry && !hasHydratedRef.current) {
+            hasHydratedRef.current = true
+            setIsLoaded(true)
+            try {
+                const storedShapes = localStorage.getItem('drawGeometryShapes')
+                if (storedShapes) {
+                    const parsed = JSON.parse(storedShapes)
+                    if (Array.isArray(parsed)) {
+                        setShapes(syncShapesRef(parsed))
+                    }
+                }
+                const storedStroke = localStorage.getItem('drawGeometryStrokeColors')
+                if (storedStroke) {
+                    setStrokeColorsByMode(JSON.parse(storedStroke))
+                }
+                const storedFill = localStorage.getItem('drawGeometryFillColors')
+                if (storedFill) {
+                    setFillColorsByMode(JSON.parse(storedFill))
+                }
+                const storedOpacity = localStorage.getItem('drawGeometryDefaultFillOpacity')
+                if (storedOpacity) {
+                    setDefaultFillOpacity(Number(storedOpacity))
+                }
+            } catch (e) {
+                console.error('Failed to load persisted geometry state', e)
+            }
+        }
+    }, [persistDrawGeometry, syncShapesRef])
+
+    // Mount indicator to mark loaded if settings don't request persistence
+    useEffect(() => {
+        setIsLoaded(true)
+    }, [])
+
+    // 2. Save changes to localStorage when shapes/settings change
+    useEffect(() => {
+        if (!isLoaded) {
+            return
+        }
+        if (persistDrawGeometry) {
+            try {
+                localStorage.setItem('drawGeometryShapes', JSON.stringify(shapes))
+                localStorage.setItem('drawGeometryStrokeColors', JSON.stringify(strokeColorsByMode))
+                localStorage.setItem('drawGeometryFillColors', JSON.stringify(fillColorsByMode))
+                localStorage.setItem('drawGeometryDefaultFillOpacity', String(defaultFillOpacity))
+            } catch (e) {
+                console.error('Failed to persist geometry state', e)
+            }
+        } else {
+            // Only clear storage if the user explicitly turned off persistence during this session
+            if (prevPersistRef.current === true) {
+                try {
+                    localStorage.removeItem('drawGeometryShapes')
+                    localStorage.removeItem('drawGeometryStrokeColors')
+                    localStorage.removeItem('drawGeometryFillColors')
+                    localStorage.removeItem('drawGeometryDefaultFillOpacity')
+                } catch (e) {
+                    // Ignore
+                }
+            }
+        }
+        prevPersistRef.current = persistDrawGeometry
+    }, [shapes, strokeColorsByMode, fillColorsByMode, defaultFillOpacity, persistDrawGeometry, isLoaded])
+
+    const registerGeometryWindowOpener = useCallback((opener) => {
+        geometryWindowOpenerRef.current = opener
+    }, [])
+
+
 
     const clearDrawSession = useCallback(() => {
         setActiveDrawToolItemId(null)
@@ -217,6 +294,9 @@ export function DrawGeometryProvider({children}) {
 
         const shape = createGeometryShape(geometryType, {
             existingShapes: shapesRef.current,
+            strokeColorsByMode,
+            fillColorsByMode,
+            fillOpacity: defaultFillOpacity,
         })
 
         shapesRef.current = [...shapesRef.current.filter((entry) => entry.id !== shape.id), shape]
@@ -226,7 +306,7 @@ export function DrawGeometryProvider({children}) {
         geometryWindowOpenerRef.current?.(shape)
 
         return shape
-    }, [cancelPendingShape, changeShapeType, getShapeById, upsertShape])
+    }, [cancelPendingShape, changeShapeType, getShapeById, upsertShape, strokeColorsByMode, fillColorsByMode, defaultFillOpacity])
 
     const getStrokeColor = useCallback((mode) => (
         getStrokeColorForMode(strokeColorsByMode, mode)
@@ -242,8 +322,10 @@ export function DrawGeometryProvider({children}) {
         activeShapeId,
         strokeColorsByMode,
         fillColorsByMode,
+        defaultFillOpacity,
         setStrokeColorsByMode,
         setFillColorsByMode,
+        setDefaultFillOpacity,
         upsertShape,
         updateShape,
         deleteShape,
@@ -283,6 +365,7 @@ export function DrawGeometryProvider({children}) {
         strokeColorsByMode,
         updateShape,
         upsertShape,
+        defaultFillOpacity,
     ])
 
     return (

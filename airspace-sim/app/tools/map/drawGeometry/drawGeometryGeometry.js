@@ -257,7 +257,8 @@ function buildRacetrackRing(center1, center2, radiusNm) {
 }
 
 function buildPolygonCoordinates(vertices, closed) {
-    const coordinates = vertices.map((vertex) => [vertex.lng, vertex.lat])
+    const validVertices = (vertices ?? []).filter((v) => v && typeof v === 'object' && Number.isFinite(v.lat) && Number.isFinite(v.lng))
+    const coordinates = validVertices.map((vertex) => [vertex.lng, vertex.lat])
 
     if (closed && coordinates.length > 0) {
         const [firstLng, firstLat] = coordinates[0]
@@ -316,14 +317,16 @@ export function getGeometryLabelPoint(shape) {
 
             return getNorthEdgePoint(northernTangent, 0)
         }
-        case GEOMETRY_SHAPE_TYPES.POLYGON:
-            if (!params.vertices?.length) {
+        case GEOMETRY_SHAPE_TYPES.POLYGON: {
+            const validVertices = (params.vertices ?? []).filter((v) => v && typeof v === 'object' && Number.isFinite(v.lat) && Number.isFinite(v.lng))
+            if (!validVertices.length) {
                 return null
             }
 
-            return params.vertices.reduce((northernVertex, vertex) => (
-                vertex.lat > northernVertex.lat ? vertex : northernVertex
-            ), params.vertices[0])
+            return validVertices.reduce((northernVertex, vertex) => (
+                vertex && northernVertex && vertex.lat > northernVertex.lat ? vertex : northernVertex
+            ), validVertices[0])
+        }
         default:
             return null
     }

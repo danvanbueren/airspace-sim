@@ -4,26 +4,47 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-## Material UI Version
+# Airspace Simulator - Agent Rules & Core Standards
+
+Welcome! This document outlines the core guidelines, architectural rules, and lessons learned for working on the airspace simulator codebase.
+
+## Table of Contents
+1. [Core Development Rules & Frameworks](#core-development-rules--frameworks)
+   - [Material UI (MUI 9) Guidelines](#material-ui-mui-9-guidelines)
+   - [React Effects & Hook Dependencies](#react-effects-and-hook-dependencies)
+   - [Code Formatting & Styling](#code-formatting-and-styling)
+2. [Lessons Learned & Core Design Standards](#lessons-learned--core-design-standards)
+   - [Fail Gracefully](#fail-gracefully)
+   - [1. React State Updates in Event Handlers, Not Render/Dispatch Callbacks](#1-react-state-updates-in-event-handlers-not-renderdispatch-callbacks)
+   - [2. Draggable Window Inset Borders](#2-draggable-window-inset-borders)
+   - [3. Map Click Event Race Conditions](#3-map-click-event-race-conditions)
+   - [4. Hydration and Settings Race Conditions](#4-hydration-and-settings-race-conditions)
+3. [Project Workflows & Processes](#project-workflows--processes)
+   - [Pull Requests (Keep Scope Unified)](#pull-requests)
+   - [Documentation (README & docs/)](#documentation-readme-and-docs)
+   - [Roadmap Page Integration](#settings-roadmap-page)
+   - [External Links Management](#external-links)
+
+---
+
+## Core Development Rules & Frameworks
+
+### Material UI (MUI 9) Guidelines
 
 Use the Material UI version installed in this project, not examples from another major version. Check `package-lock.json` before writing or updating MUI code; it is the source of truth for the exact installed packages. At the time this rule was written, `@mui/material`, `@mui/icons-material`, and `@mui/system` are on version `9.0.0`.
 
 When using Material UI APIs, verify patterns against the installed version's documentation or local package types. Avoid deprecated imports, props, styling APIs, or theming patterns from earlier MUI versions.
 
-### MUI 9 slots, `slotProps`, and styling (read before writing JSX)
+#### MUI 9 slots, `slotProps`, and styling (read before writing JSX)
 
 This project is on **MUI 9**. Training data from MUI v4–v8 is a common source of bugs here. The most frequent mistake is passing **layout/style props directly on a component** when MUI 9 only forwards a small, explicit prop surface to the underlying DOM node.
 
-#### The React warning you must avoid
-
+##### The React warning you must avoid
 If you see:
-
 `React does not recognize the 'alignItems' prop on a DOM element`
-
 …you almost certainly put a style/layout prop on the JSX tag instead of in `sx` or `slotProps`. Fix the callsite; do not work around it with native `<span style={…}>` unless there is a strong reason.
 
-#### Rule 1 — `Box`, `Paper`, `Typography`: use `sx`, not system props
-
+##### Rule 1 — `Box`, `Paper`, `Typography`: use `sx`, not system props
 In MUI 9 these components accept **`sx`** (and `component`) for styling. They do **not** accept `alignItems`, `justifyContent`, `flexWrap`, `gap`, `display`, etc. as top-level JSX props.
 
 ```jsx
@@ -37,8 +58,7 @@ In MUI 9 these components accept **`sx`** (and `component`) for styling. They do
 <Paper elevation={0} sx={{display: 'flex', alignItems: 'center', gap: 1}}>
 ```
 
-#### Rule 2 — `Stack`: only a few top-level props are valid
-
+##### Rule 2 — `Stack`: only a few top-level props are valid
 `Stack` supports `direction`, `spacing`, `divider`, `useFlexGap`, `component`, `children`, and **`sx`**. It does **not** support `alignItems`, `justifyContent`, or `flexWrap` as top-level props in v9.
 
 ```jsx
@@ -49,8 +69,7 @@ In MUI 9 these components accept **`sx`** (and `component`) for styling. They do
 <Stack direction='row' spacing={1} sx={{alignItems: 'center', flexWrap: 'wrap'}}>
 ```
 
-#### Rule 3 — composite components use `slotProps`, not `PaperProps` / `*Props`
-
+##### Rule 3 — composite components use `slotProps`, not `PaperProps` / `*Props`
 MUI 9 replaced most `FooProps` passthrough APIs with **`slotProps`**. Each key names an internal **slot** (sub-component). Props under that key are forwarded to that slot's component.
 
 Common slots in this codebase:
@@ -86,7 +105,7 @@ slotProps: {
 slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
 ```
 
-#### Rule 4 — put layout/styles on the correct layer
+##### Rule 4 — put layout/styles on the correct layer
 
 | Goal | Do this |
 |------|---------|
@@ -97,16 +116,13 @@ slotProps={TEXT_INPUT_ENTER_BLUR_SLOT_PROPS}
 
 Do **not** pass `alignItems` through `slotProps.paper` when you own the `Paper` element — put it in that `Paper`'s `sx` instead. `slotProps.paper` is for when **MUI** renders the `Paper` inside a composite component.
 
-#### Rule 5 — verify against installed types
-
+##### Rule 5 — verify against installed types
 Before adding unfamiliar MUI props, check the component's `.d.ts` under `node_modules/@mui/material/<Component>/` or grep this repo for an existing pattern. If a prop is not listed in the component's public API, assume it will leak to the DOM.
 
-#### Rule 6 — deferred text and number inputs (commit on blur)
-
+##### Rule 6 — deferred text and number inputs (commit on blur)
 Do **not** write user-facing `TextField` values directly to context, cookies, or parent state on every keystroke. Partial input (especially numbers that get clamped in `normalizeSettings`) will fight the operator mid-edit.
 
 **Required pattern for text/number fields:**
-
 1. Keep a **local draft** while the field is focused.
 2. Validate while typing only enough to flag clearly invalid input — show `error` and `helperText` on the `TextField`.
 3. **Commit on blur** (and on **Enter**, which must blur the input via `TEXT_INPUT_ENTER_BLUR_SLOT_PROPS`).
@@ -129,13 +145,13 @@ Prefer `type='text'` with `inputMode='numeric'` or `inputMode='decimal'` instead
 
 Discrete controls (switches, selects, radio groups, sliders) may still update immediately.
 
+---
 
-## React Effects and Hook Dependencies
+### React Effects and Hook Dependencies
 
 Infinite re-render loops (`Maximum update depth exceeded`) usually come from `useEffect` calling `setState` while a dependency gets a **new reference every render**. Follow these rules when adding or reviewing hooks, especially around the simulation tick pipeline.
 
-### Do not put unstable objects in effect dependency arrays
-
+#### Do not put unstable objects in effect dependency arrays
 Objects, arrays, and inline functions from context hooks or `useMemo` without stable deps are compared by **reference**. If a parent re-renders every simulation tick and recreates the value, the effect tears down and re-runs on every tick — often calling `setState` again and hitting React's update limit.
 
 **Prefer refs for values the effect body must read but that should not restart the effect:**
@@ -154,8 +170,7 @@ useEffect(() => {
 
 See `app/hooks/simulation/useSimulationLoop.js`: `performanceInstrumentation` and `simulationSettings` are stored in refs; the animation effect depends only on `simulationEnabled` and `trackUpdateHz`.
 
-### Avoid `?? []` and `?? {}` in dependency lists
-
+#### Avoid `?? []` and `?? {}` in dependency lists
 `value ?? []` creates a **new empty array every render** when `value` is nullish, which makes any hook that lists it as a dependency run every render.
 
 ```javascript
@@ -169,8 +184,7 @@ useEffect(() => { ... }, [snapshot?.tracks ?? EMPTY_TRACKS])
 
 Better still: pass the stable field from state/context (`appSettings.inhibitedAttentions`) without a fallback when normalization already guarantees an array.
 
-### Do not call time-varying functions during render for effect deps
-
+#### Do not call time-varying functions during render for effect deps
 Calling `Date.now()`, `getSimulationTimestamp()` (before the first engine tick), or similar **during render** produces a new value every render and re-triggers effects unnecessarily.
 
 ```javascript
@@ -187,8 +201,7 @@ useIffEmergencyAlarms(
 
 Expose tick-aligned timestamps on snapshots (`TrackEngine.getSnapshot().evaluationTime`) instead of sampling wall clock during render.
 
-### Keep long-lived subscriptions stable
-
+#### Keep long-lived subscriptions stable
 Map listeners, `requestAnimationFrame` loops, and engine `subscribe` handlers should use **stable callbacks** (`useCallback` with refs for changing data). Re-subscribing every tick wastes work and can amplify snapshot-driven re-render bugs.
 
 When `setState` runs inside an effect, bail out if nothing changed:
@@ -199,15 +212,16 @@ setPositionsByTrackId((previous) => (
 ))
 ```
 
-### Checklist before merging hook changes
-
+#### Checklist before merging hook changes
 - Effect deps are primitives, stable callbacks, or module-level constants — not context objects recreated each render.
 - Refs hold latest objects/functions when the effect body needs them but restart would be harmful.
 - No `?? []` / `?? {}` fallbacks in dependency arrays.
 - No wall-clock or engine time sampled during render solely to feed a `useEffect` dependency.
 - Long-lived subscriptions (map events, rAF, engine listeners) use stable handler references.
 
-## Code Formatting And Styling
+---
+
+### Code Formatting and Styling
 
 Prioritize readability and standardized best practices throughout the codebase. Keep formatting consistent with the surrounding file, use clear names, and prefer straightforward control flow over clever or densely packed code.
 
@@ -215,28 +229,55 @@ Avoid excessively long components, hooks, or files. Split large front-end compon
 
 Use React context where it fits the domain and reduces long prop chains through intermediate components. Keep context values focused and stable; do not introduce context for state that is only used by a narrow parent-child pair.
 
-## Pull Requests
+---
+
+## Lessons Learned & Core Design Standards
+
+Future agents should automatically update this section to capture new lessons learned, design patterns, or user preferences as they are identified. Always review existing standards and adhere to them during development:
+
+### Fail Gracefully
+
+Design all systems—especially user-defined geometries, file/storage parser loaders, on-map coordinate rendering, and properties calculators—to fail gracefully. Never assume that input values from `localStorage`, network requests, or user inputs are perfectly structured or initialized. Always use defensive defaults, nullish coalescing, optional chaining, and coordinates array sanitization (e.g. filtering out non-object, null, or non-finite elements) to ensure that partial or corrupted data never crashes the application.
+
+### 1. React State Updates in Event Handlers, Not Render/Dispatch Callbacks
+- **Standard**: Do not dispatch external callbacks that trigger state updates for other components (e.g., parent update callbacks like `onHeightCommit`, `onLayoutCommit`, etc.) inside a React state updater callback function (e.g. `setHeight((c) => { onCommit(c); return c; })`). This results in React warnings (`Cannot update a component while rendering a different component`).
+- **Implementation**: Calculate state values first, trigger local state updates (e.g., `setHeight(value)`), and then invoke the parent callbacks directly from within event handlers (like pointer-up, mouse-up, or click listeners).
+
+### 2. Draggable Window Inset Borders
+- **Standard**: In CSS/React styling, child component containers with backgrounds will draw over parent borders or parent inset box-shadows.
+- **Implementation**: Ensure that all draggable window borders, outlines, or focus outlines are drawn in the parent component's `&::after` pseudo-element with `position: absolute, top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', borderRadius: 'inherit', zIndex: 9999`. This guarantees they display cleanly on top of all child content.
+
+### 3. Map Click Event Race Conditions
+- **Standard**: Clicking interactive elements on the map (like track icons or geometries) triggers both specific element layer click listeners and general map click listeners.
+- **Implementation**: General map click listeners designed to release window custody/focus must check if specific layers (e.g. `draw-geometry-fill-layer`, `draw-geometry-line-layer`, `draw-geometry-label-layer`) were clicked at that location (using bounding box queries) before clearing states. Return early from the map click listener to prevent focus loss.
+
+### 4. Hydration and Settings Race Conditions
+- **Standard**: Client-side settings (like cookies or local storage settings) hydrate asynchronously on mount. Do not trigger cleaning/wiping actions on storage (like removing persistent shape coordinates) simply because a setting is initially `false` on the first render tick.
+- **Implementation**: Track setting changes with transition references (e.g., `prevPersistRef.current`). Only clear/wipe local storage elements when a user actively toggles the setting from `true` to `false` in the settings panel during the session.
+
+---
+
+## Project Workflows & Processes
+
+### Pull Requests
 
 **Keep related work in a single PR.** Do not split one user request, feature, or polish pass across multiple stacked PRs unless the user explicitly asks for separate reviews.
 
 Opening several PRs for the same area (for example copy edits, then input behavior, then layout tweaks) creates painful rebase chains, duplicate review, and merge-order dependencies. Instead:
-
 - Use **one branch and one PR** for the full scope of the task.
 - Add commits to that branch as the work evolves.
 - If a prior PR from the same session is still open and touches the same feature, **extend that branch/PR** rather than opening another.
 
 Only open a second PR when the work is genuinely independent (different subsystem, no shared files, safe to merge in any order) or when the user requests a split.
 
-## Documentation (README and docs/)
+### Documentation (README and docs/)
 
 The repository root [`README.md`](../README.md) is the primary **user-facing** overview. Treat it and contributor docs under [`docs/`](../docs/README.md) as part of every change, not separate follow-up tasks.
 
-### Root README
-
+#### Root README
 Whenever you add, remove, rename, or materially change code, validate whether the root README still accurately describes the project. Update it in the same work session when anything is out of date or missing. Do not leave README drift for a later pass.
 
 At minimum, review and update the root README when your change affects:
-
 - **Repository structure** — new, moved, or removed directories and files; update the tree and path descriptions.
 - **Business logic and workflows** — simulation behavior, operator flows, settings, persistence, merge/correlation/initiation rules, or API boundaries between UI and engine (summarize briefly; link to `docs/` for depth).
 - **Architecture explanations** — provider layout, tick pipeline, module responsibilities, or how components and hooks connect.
@@ -244,14 +285,12 @@ At minimum, review and update the root README when your change affects:
 - **Capabilities and roadmap** — user-visible features, toggles, panels, or planned work that should be discoverable without reading source.
 
 When updating the root README:
-
 - Keep it concise — short summaries with links to [`docs/architecture/`](../docs/architecture/README.md) for deep dives.
 - Prefer accurate, concise prose over listing every file touched.
 - If a change is internal-only with no user or contributor impact, briefly confirm the README is still correct; no edit is required.
 - The short [`airspace-sim/README.md`](README.md) should continue to point to the root README; update it only if the application directory role or quick-start steps change.
 
-### Contributor docs (`docs/`)
-
+#### Contributor docs (`docs/`)
 Use `docs/` for contributor-facing detail that would make the root README too long:
 
 | Folder | Purpose |
@@ -261,17 +300,14 @@ Use `docs/` for contributor-facing detail that would make the root README too lo
 | [`docs/performance/`](../docs/performance/README.md) | Performance investigations and optimization roadmaps |
 
 When your change affects architecture, planned work, or measured performance:
-
 - Update the relevant doc in the same work session — do not leave doc drift for a later pass.
 - Add or adjust cross-links between the root README, architecture docs, and plans.
 - If architecture detail grows in the README during a change, move it to `docs/architecture/` and replace with a summary link.
 
-### Implementation plans (`docs/plans/`)
-
+#### Implementation plans (`docs/plans/`)
 Each plan file is the **single source of truth** for its feature area until the work ships.
 
 When you implement work covered by a plan:
-
 1. Update the plan’s **Shipped commits** section at the **top** of the file with the commit SHA or PR link **before** checking off status rows.
 2. Keep the **Status at a glance** checklist in sync with shipped commits and remaining phases.
 3. Mark completed checklist items with ✅ and link to the introducing commit or pull request.
@@ -279,27 +315,25 @@ When you implement work covered by a plan:
 
 When you add a new multi-step feature or refactor, create a new plan under `docs/plans/` and add an entry to [`docs/plans/README.md`](../docs/plans/README.md) and the root README architecture table if user-contributors should discover it.
 
-## Settings Roadmap Page
+### Settings Roadmap Page
 
 The in-app **Settings → Roadmap** page is backed by [`app/content/settings-roadmap.js`](app/content/settings-roadmap.js). Treat it as part of every change that affects project direction or delivered capabilities, not a separate follow-up task.
-
-## External Links
-
-Maintain outbound URLs in [`app/content/externalLinks.js`](app/content/externalLinks.js). Import helpers such as `githubCommitUrl` and `githubBlobUrl` instead of hardcoding GitHub paths. After changing CARTO basemap URLs, run `npm run sync:map-style-urls` to update `public/map-styles/`.
-
-The program name shown in the app comes from `package.json` `name` via [`app/config/projectName.js`](app/config/projectName.js).
 
 Whenever you ship a user-visible feature, close out planned work, or add or reprioritize future items, validate whether the roadmap still reflects reality. Update it in the same work session when anything is out of date or missing. Do not leave roadmap drift for a later pass.
 
 At minimum, review and update the roadmap when your change affects:
-
 - **Completed work** — mark shipped items with ✅, place them under the correct month section, and link to the introducing commit.
 - **Planned or exploratory work** — add, remove, or reword **Future** items when scope, priorities, or naming change.
 - **Feature grouping or naming** — keep category prefixes (for example, `Map & scope tools`, `Tracks & symbology`) consistent with how capabilities are described elsewhere.
 
 When updating the roadmap:
-
 - Keep the existing tone, structure, and checklist format; extend sections in place rather than duplicating content.
 - Prefer accurate, concise item titles over listing every file touched.
 - If a change is internal-only with no roadmap impact, briefly confirm the page is still correct; no edit is required.
 - When the roadmap changes materially, also review the root README **Roadmap** section so the high-level summary stays aligned.
+
+### External Links
+
+Maintain outbound URLs in [`app/content/externalLinks.js`](app/content/externalLinks.js). Import helpers such as `githubCommitUrl` and `githubBlobUrl` instead of hardcoding GitHub paths. After changing CARTO basemap URLs, run `npm run sync:map-style-urls` to update `public/map-styles/`.
+
+The program name shown in the app comes from `package.json` `name` via [`app/config/projectName.js`](app/config/projectName.js).

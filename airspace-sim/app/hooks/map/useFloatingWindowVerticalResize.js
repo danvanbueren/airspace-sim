@@ -93,18 +93,15 @@ export function useFloatingWindowVerticalResize({
 
         resizeStateRef.current = null
 
-        setHeight((currentHeight) => {
-            const committedHeight = clampWindowHeight(
-                currentHeight ?? minHeight,
-                minHeight,
-                resolveMaxHeight(),
-            )
+        const committedHeight = clampWindowHeight(
+            height ?? minHeight,
+            minHeight,
+            resolveMaxHeight(),
+        )
 
-            onHeightCommit?.(committedHeight)
-
-            return committedHeight
-        })
-    }, [minHeight, onHeightCommit, resolveMaxHeight])
+        setHeight(committedHeight)
+        onHeightCommit?.(committedHeight)
+    }, [height, minHeight, onHeightCommit, resolveMaxHeight])
 
     return {
         height,

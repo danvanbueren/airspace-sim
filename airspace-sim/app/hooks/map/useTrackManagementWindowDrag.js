@@ -137,27 +137,27 @@ export function useTrackManagementWindowDrag({
             dragState.captureTarget.releasePointerCapture(event.pointerId)
         }
 
+        const finalPosition = dragState.currentPosition
+
         stopWindowPointerTracking()
         dragStateRef.current = null
 
-        setDragPosition((currentDragPosition) => {
-            if (currentDragPosition) {
-                const containerSize = getContainerSize(mapContainerRefRef.current)
-                const windowSize = getWindowSize(trackManagementWindowSizeRef.current)
+        setDragPosition(null)
 
-                onMoveCompleteRef.current?.(
-                    windowIdRef.current,
-                    absoluteToEdgeAnchor(
-                        currentDragPosition.x,
-                        currentDragPosition.y,
-                        containerSize,
-                        windowSize,
-                    ),
-                )
-            }
+        if (finalPosition) {
+            const containerSize = getContainerSize(mapContainerRefRef.current)
+            const windowSize = getWindowSize(trackManagementWindowSizeRef.current)
 
-            return null
-        })
+            onMoveCompleteRef.current?.(
+                windowIdRef.current,
+                absoluteToEdgeAnchor(
+                    finalPosition.x,
+                    finalPosition.y,
+                    containerSize,
+                    windowSize,
+                ),
+            )
+        }
     }, [stopWindowPointerTracking])
 
     const updateDragPosition = useCallback((event) => {
@@ -178,10 +178,12 @@ export function useTrackManagementWindowDrag({
             mapContainerRefRef.current,
         )
 
-        setDragPosition({
+        const currentPosition = {
             x: boundedPosition.left,
             y: boundedPosition.top,
-        })
+        }
+        dragState.currentPosition = currentPosition
+        setDragPosition(currentPosition)
     }, [])
 
     const handleHeaderPointerDown = useCallback((event) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import {useCallback, useLayoutEffect, useRef} from 'react'
+import {useCallback, useEffect, useLayoutEffect, useRef} from 'react'
 import CloseIcon from '@mui/icons-material/Close'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import {
@@ -134,7 +134,7 @@ export default function GeometryWindow({
         onHeightCommit: handleHeightCommit,
     })
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         if (geometryWindow.positionAnchor) {
             return
         }
@@ -219,8 +219,24 @@ export default function GeometryWindow({
                 overflow: 'hidden',
                 ...GEOMETRY_WINDOW_MONOSPACE_SX,
                 ...(hasKeyboardCustody && {
-                    boxShadow: `inset 0 0 0 2px ${windowChrome.focusOutline}, ${muiTheme.shadows[8]}`,
+                    boxShadow: muiTheme.shadows[8],
                 }),
+                '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    pointerEvents: 'none',
+                    borderRadius: 'inherit',
+                    zIndex: 9999,
+                    ...(hasKeyboardCustody && {
+                        '--focus-color': windowChrome.focusOutline,
+                        boxShadow: `inset 0 0 0 2px ${windowChrome.focusOutline}`,
+                        animation: 'window-focus-pulse 0.35s ease-in-out',
+                    }),
+                },
             })}
         >
             <Box

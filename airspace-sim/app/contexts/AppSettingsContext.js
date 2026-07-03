@@ -46,6 +46,7 @@ export const DEFAULT_APP_SETTINGS = {
     inhibitedAlerts: [],
     showPerformanceOverlay: true,
     verboseMode: true,
+    persistDrawGeometry: false,
     ...DEFAULT_SIMULATION_SETTINGS,
 }
 
@@ -164,6 +165,7 @@ function normalizeSettings(settings) {
             ALERT_SIGNAL_IDS,
         ),
         bearingRangeBehavior: normalizeBearingRangeBehavior(settings?.bearingRangeBehavior),
+        persistDrawGeometry: settings?.persistDrawGeometry === true,
     }
 }
 

@@ -773,8 +773,24 @@ const TrackManagementWindow = forwardRef(function TrackManagementWindow({
                 overflow: 'hidden',
                 ...TRACK_MANAGEMENT_MONOSPACE_SX,
                 ...(hasKeyboardCustody && {
-                    boxShadow: `inset 0 0 0 2px ${identityChrome.focusOutline}, ${theme.shadows[8]}`,
+                    boxShadow: theme.shadows[8],
                 }),
+                '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    pointerEvents: 'none',
+                    borderRadius: 'inherit',
+                    zIndex: 9999,
+                    ...(hasKeyboardCustody && {
+                        '--focus-color': identityChrome.focusOutline,
+                        boxShadow: `inset 0 0 0 2px ${identityChrome.focusOutline}`,
+                        animation: 'window-focus-pulse 0.35s ease-in-out',
+                    }),
+                },
             })}
         >
             <Box

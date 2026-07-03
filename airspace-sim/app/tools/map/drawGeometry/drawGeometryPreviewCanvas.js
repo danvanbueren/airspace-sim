@@ -202,18 +202,20 @@ function drawConstructionPreview(context, map, constructionPreview, strokeColor,
     )
 }
 
-function drawGeometryOnOverlay(context, map, shape, strokeColor, scaleX, scaleY) {
+function drawGeometryOnOverlay(context, map, shape, defaultStrokeColor, themeMode, scaleX, scaleY) {
     const geometry = buildDisplayGeometryGeoJson(shape)
 
     if (!geometry) {
         return
     }
 
+    const strokeColor = shape.strokeColorsByMode?.[themeMode] ?? defaultStrokeColor
+    const fillColor = shape.fillColorsByMode?.[themeMode] ?? strokeColor
     const opacity = shape.status === 'committed' ? 1 : GEOMETRY_PENDING_OPACITY
 
     context.save()
     context.strokeStyle = strokeColor
-    context.fillStyle = strokeColor
+    context.fillStyle = fillColor
     context.globalAlpha = opacity
     context.lineWidth = 2 * scaleX
     context.lineCap = 'round'
@@ -244,7 +246,14 @@ function drawGeometryOnOverlay(context, map, shape, strokeColor, scaleX, scaleY)
     context.restore()
 }
 
-export function drawGeometryPreviewOnOverlay(map, overlay, shapes, strokeColor, constructionPreview = null) {
+export function drawGeometryPreviewOnOverlay(
+    map,
+    overlay,
+    shapes,
+    defaultStrokeColor,
+    themeMode = 'dark',
+    constructionPreview = null,
+) {
     const context = overlay?.getContext('2d')
 
     if (!context || !Array.isArray(shapes)) {
@@ -258,8 +267,8 @@ export function drawGeometryPreviewOnOverlay(map, overlay, shapes, strokeColor, 
     context.clearRect(0, 0, overlay.width, overlay.height)
 
     for (const shape of shapes) {
-        drawGeometryOnOverlay(context, map, shape, strokeColor, scaleX, scaleY)
+        drawGeometryOnOverlay(context, map, shape, defaultStrokeColor, themeMode, scaleX, scaleY)
     }
 
-    drawConstructionPreview(context, map, constructionPreview, strokeColor, scaleX, scaleY)
+    drawConstructionPreview(context, map, constructionPreview, defaultStrokeColor, scaleX, scaleY)
 }
