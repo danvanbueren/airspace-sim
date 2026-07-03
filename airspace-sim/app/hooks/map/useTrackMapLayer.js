@@ -459,6 +459,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
     const tracksRef = useRef(new Map())
     const registeredIconIdsRef = useRef(new Set())
     const pendingIconIdsRef = useRef(new Set())
+    const lastSeenIconsRef = useRef(new Map())
     const frameRef = useRef(null)
     const rehydrateTimeoutRef = useRef(null)
 
@@ -504,19 +505,24 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         )
         const vectorFeatureCollection = tracksToVectorFeatureCollection(tracks, map)
 
-        // Cleanup unused icons from MapLibre memory to prevent memory leaks
-        if (registeredIconIdsRef.current.size > 0) {
-            const activeIconIds = new Set()
-            tracks.forEach((track) => {
-                const symbolCode = resolveTrackSymbolCode(track)
-                const iconId = track.iconId ?? getTrackIconId(track, symbolCode, iconSize, mapColorMode)
-                activeIconIds.add(iconId)
-            })
+        const now = Date.now()
+        const activeIconIds = new Set()
+        tracks.forEach((track) => {
+            const symbolCode = resolveTrackSymbolCode(track)
+            const iconId = track.iconId ?? getTrackIconId(track, symbolCode, iconSize, mapColorMode)
+            activeIconIds.add(iconId)
+            lastSeenIconsRef.current.set(iconId, now)
+        })
 
+        // Cleanup unused icons from MapLibre memory if they haven't been active for 15 seconds to prevent memory leaks and avoid rendering race conditions
+        if (registeredIconIdsRef.current.size > 0) {
             const toDelete = []
             for (const registeredId of registeredIconIdsRef.current) {
                 if (!activeIconIds.has(registeredId)) {
-                    toDelete.push(registeredId)
+                    const lastSeen = lastSeenIconsRef.current.get(registeredId) ?? 0
+                    if (now - lastSeen > 15000) {
+                        toDelete.push(registeredId)
+                    }
                 }
             }
             toDelete.forEach((id) => {
@@ -524,6 +530,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
                     map.removeImage(id)
                 }
                 registeredIconIdsRef.current.delete(id)
+                lastSeenIconsRef.current.delete(id)
             })
         }
 
@@ -836,8 +843,12 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
                     return
                 }
 
+                registeredIconIdsRef.current.forEach((id) => {
+                    if (map.hasImage(id)) map.removeImage(id)
+                })
                 registeredIconIdsRef.current.clear()
                 pendingIconIdsRef.current.clear()
+                lastSeenIconsRef.current.clear()
 
                 ensureTrackLayer()
             }
