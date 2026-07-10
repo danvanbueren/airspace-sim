@@ -36,6 +36,18 @@ export const dynamic = 'force-dynamic'
 export const metadata = {
     title: PROJECT_NAME,
     description: `${PROJECT_NAME} - Non-secure simulator to train on a simulated operational airspace for Command and Control aircrew. This project is personal, and is not owned, operated, or endorsed by any government entities. This repository is unclassified.`,
+    icons: {
+        icon: [
+            { url: '/icon/icon0.svg', type: 'image/svg+xml' },
+            { url: '/icon/icon1.png', type: 'image/png' },
+        ],
+        shortcut: '/icon/favicon.ico',
+        apple: '/icon/apple-icon.png',
+    },
+    manifest: '/icon/manifest.json',
+    appleWebApp: {
+        title: PROJECT_NAME,
+    },
 }
 
 export const viewport = {

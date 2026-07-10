@@ -42,3 +42,6 @@ venv/
 __pycache__
 .next/
 node_modules/
+
+# Allow airspace-sim favicons
+!airspace-sim/public/icon/
