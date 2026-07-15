@@ -449,6 +449,21 @@ function addTrackLayers(map, styleKey) {
             },
         })
     }
+
+    if (!map.getLayer('tracks-highlight')) {
+        map.addLayer({
+            id: 'tracks-highlight',
+            type: 'circle',
+            source: TRACK_SOURCE_ID,
+            paint: {
+                'circle-radius': 18,
+                'circle-color': 'transparent',
+                'circle-stroke-color': '#FFBF00',
+                'circle-stroke-width': 2,
+            },
+            filter: ['==', ['get', 'id'], ''],
+        }, TRACK_LAYER_ID)
+    }
 }
 
 export function useTrackMapLayer(mapRef, mapReady, options = {}) {
@@ -472,6 +487,7 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
         evaluationTime = 0,
         inhibitedAttentionIds = [],
         iffRefreshMs = 1000,
+        reinitiateTargetTrackId = null,
     } = options
 
     const onTrackClickRef = useRef(onTrackClick)
@@ -486,6 +502,14 @@ export function useTrackMapLayer(mapRef, mapReady, options = {}) {
     useEffect(() => {
         onTrackClickRef.current = onTrackClick
     }, [onTrackClick])
+
+    useEffect(() => {
+        if (!mapReady || !mapRef.current) return
+        const map = mapRef.current
+        if (map.getLayer('tracks-highlight')) {
+            map.setFilter('tracks-highlight', ['==', ['get', 'id'], reinitiateTargetTrackId ?? ''])
+        }
+    }, [mapRef, mapReady, reinitiateTargetTrackId])
 
     const applyTrackDataToMap = useCallback((map) => {
         if (!map?.getSource(TRACK_SOURCE_ID)) {

@@ -73,6 +73,8 @@ function toAlertTimestamp(raisedAt) {
 export function MapStateProvider({children}) {
     const [alarmAlertQueue, setAlarmAlertQueue] = useState([])
     const [map, setMap] = useState(null)
+    const [activeMapAction, setActiveMapAction] = useState(null)
+    const [reinitiateTargetTrackId, setReinitiateTargetTrackId] = useState(null)
     const nextAlertIdRef = useRef(1)
     const raisedEmergencyAlarmKeysRef = useRef(new Set())
     const emergencyAlarmLastSeenRef = useRef(new Map())
@@ -206,6 +208,10 @@ export function MapStateProvider({children}) {
         zoomOut,
         flyToCoordinates,
         flyToTrack,
+        activeMapAction,
+        setActiveMapAction,
+        reinitiateTargetTrackId,
+        setReinitiateTargetTrackId,
         getAlertSignalLabel: (signalId) => getSignalDefinition(signalId).label,
     }), [
         alarmAlertQueue,
@@ -222,6 +228,8 @@ export function MapStateProvider({children}) {
         zoomOut,
         flyToCoordinates,
         flyToTrack,
+        activeMapAction,
+        reinitiateTargetTrackId,
     ])
 
     return (

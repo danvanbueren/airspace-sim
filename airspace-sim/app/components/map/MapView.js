@@ -10,6 +10,8 @@ import {useMeasuredElementSize} from '../../hooks/global/useMeasuredElementSize'
 import {useBearingRangeTool} from '../../hooks/map/useBearingRangeTool'
 import {useGroupCriteriaCircleTool} from '../../hooks/map/useGroupCriteriaCircleTool'
 import {useRegisteredMap} from '../../hooks/map/useRegisteredMap'
+import {useMapState} from '../../contexts/MapStateContext'
+import {useMapInitiateTool} from '../../hooks/map/useMapInitiateTool'
 import {useMapViewInteractions} from '../../hooks/map/useMapViewInteractions/useMapViewInteractions'
 import {useMapContextMenuState} from '../../hooks/map/useMapContextMenuState'
 import {useTrackManagementWindows} from '../../hooks/map/useTrackManagementWindows'
@@ -90,6 +92,9 @@ export default function MapView({
     const openTrackManagementWindowRef = useRef(null)
     const cancelDrawingRef = useRef(null)
     const closeMapDismissibleTrackManagementWindowsRef = useRef(null)
+    const {activeMapAction, setActiveMapAction, reinitiateTargetTrackId, setReinitiateTargetTrackId} = useMapState()
+    const activeMapActionRef = useRef(activeMapAction)
+    activeMapActionRef.current = activeMapAction
     const skipLiveFieldsByWindowIdRef = useRef({})
     const liveTracksRef = useRef([])
     const trackManagementWindowsRef = useRef([])
@@ -114,8 +119,11 @@ export default function MapView({
     const mapCursor = useMapCursorState(mapRef, mapReady && mapInteractionsEnabled)
 
     const handleMapTrackClick = useCallback((track, event) => {
+        if (activeMapAction) {
+            return
+        }
         openTrackManagementWindowRef.current?.(track, event)
-    }, [])
+    }, [activeMapAction])
 
     const simulationSnapshot = useSimulationLoop(mapRef, mapReady)
 
@@ -128,7 +136,9 @@ export default function MapView({
         evaluationTime: simulationSnapshot?.evaluationTime ?? 0,
         inhibitedAttentionIds: appSettings.inhibitedAttentions ?? EMPTY_INHIBITED_ATTENTIONS,
         iffRefreshMs: appSettings.iffRefreshMs,
+        reinitiateTargetTrackId,
     })
+
 
     useRegisteredMap(mapRef, mapReady, registerMap)
     const [mapVisibleTracks, setMapVisibleTracks] = useState([])
@@ -444,6 +454,15 @@ export default function MapView({
         onTrackUpdated: handleTrackUpdated,
     })
 
+    useMapInitiateTool(mapRef, mapReady, {
+        initiateTrack,
+        updateTrackManagementWindow,
+        getTrack,
+        upsertManualTrack,
+        trackMapLayer,
+        trackManagementWindows,
+    })
+
     const handleCreateReferencePoint = useCallback((elementContainer) => {
         initiateReferencePoint(elementContainer, simulationTracks)
     }, [initiateReferencePoint, simulationTracks])
@@ -494,6 +513,9 @@ export default function MapView({
     )
 
     const geometryDrawDragPanBlocked = useMemo(() => {
+        if (activeMapAction) {
+            return true
+        }
         if (!activeShapeId) {
             return false
         }
@@ -501,7 +523,7 @@ export default function MapView({
         const activeShape = shapes.find((shape) => shape.id === activeShapeId)
 
         return activeShape?.status === GEOMETRY_STATUS.PENDING
-    }, [activeShapeId, shapes])
+    }, [activeMapAction, activeShapeId, shapes])
 
     const interactionsEnabled = useMapViewInteractions(
         mapRef,
@@ -792,7 +814,7 @@ export default function MapView({
         const map = mapRef.current
 
         const handleMapClick = (event) => {
-            if (event.defaultPrevented) {
+            if (activeMapActionRef.current || event.defaultPrevented) {
                 return
             }
 
