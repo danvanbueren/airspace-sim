@@ -65,6 +65,11 @@ export default `Planned work for ${PROJECT_NAME}, grouped chronologically. Compl
 - ✅ Reference point creation from the map context menu — ${commit('16e3321')}
 - ✅ WebGL-based track attention rendering optimization
 
+## July 2026
+
+### Map & scope tools
+
+- ✅ Interactive click-and-drag Initiate and Re-Initiate tools for manual tracks
 
 ## Future
 

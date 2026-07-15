@@ -43,7 +43,6 @@ describe('normalizeActionPanelsState', () => {
             ACTION_PANEL_ITEM_IDS.ZOOM_IN,
             ACTION_PANEL_ITEM_IDS.ZOOM_OUT,
             ACTION_PANEL_ITEM_IDS.HOME,
-            ACTION_PANEL_ITEM_IDS.CENTER_E3,
             ACTION_PANEL_ITEM_IDS.INITIATE,
             ACTION_PANEL_ITEM_IDS.RE_INITIATE,
         ])

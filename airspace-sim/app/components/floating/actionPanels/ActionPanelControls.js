@@ -28,6 +28,7 @@ import {useSensorDisplay} from '@/app/contexts/SensorDisplayContext'
 import {useAlarmAlertActions} from '@/app/hooks/global/useAlarmAlertActions'
 import {MISC_SIGNAL_ID} from '@/app/simulation/signalDefinitions'
 import {getDrawShapeIconComponent} from '@/app/components/floating/actionPanels/DrawShapeIcons'
+import {useMapState} from '@/app/contexts/MapStateContext'
 
 const LARGE_CONTROL_HEIGHT_PX = 80
 
@@ -42,6 +43,17 @@ const LARGE_BUTTON_SX = {
     borderColor: 'grey.800',
     '&:hover': {
         borderColor: 'grey.400',
+    },
+}
+
+const LARGE_BUTTON_ACTIVE_SX = {
+    ...LARGE_BUTTON_SX,
+    color: '#000000',
+    backgroundColor: '#FFBF00',
+    borderColor: '#FFBF00',
+    '&:hover': {
+        backgroundColor: '#FFD700',
+        borderColor: '#FFD700',
     },
 }
 
@@ -114,6 +126,7 @@ export function ActionPanelEmptyContent({onConfigure}) {
 function useActionPanelItemActions() {
     const {activeToggles, setActiveDisplayToggles, isToggleActive} = useSensorDisplay()
     const {raiseAlarmAlert, zoomIn, zoomOut} = useAlarmAlertActions()
+    const {setActiveMapAction, setReinitiateTargetTrackId} = useMapState()
 
     const handleToggleChange = useCallback((toggleKey, isActive) => {
         setActiveDisplayToggles(
@@ -137,23 +150,14 @@ function useActionPanelItemActions() {
                     message: 'HOME action is not yet implemented.',
                 })
                 break
-            case 'CENTER_E3':
-                raiseAlarmAlert({
-                    signalId: MISC_SIGNAL_ID,
-                    message: 'CENTER ON E-3 action is not yet implemented.',
-                })
-                break
+
             case 'INITIATE':
-                raiseAlarmAlert({
-                    signalId: 'UI_INITIATE',
-                    message: 'INITIATE action is coming soon.',
-                })
+                setActiveMapAction((prev) => prev === 'INITIATE' ? null : 'INITIATE')
+                setReinitiateTargetTrackId(null)
                 break
             case 'RE_INITIATE':
-                raiseAlarmAlert({
-                    signalId: 'UI_RE_INITIATE',
-                    message: 'RE-INITIATE action is coming soon.',
-                })
+                setActiveMapAction((prev) => prev === 'RE_INITIATE' ? null : 'RE_INITIATE')
+                setReinitiateTargetTrackId(null)
                 break
             default:
                 break
@@ -189,6 +193,7 @@ function UnifiedLargeControls({
     isToggleActive,
     handleToggleChange,
     runButtonAction,
+    activeButtonActionKey,
 }) {
     const renderableItemIds = filterRenderableItemIds(itemIds)
     const columnCount = getLargeGridColumnCount(panelWidthPx, renderableItemIds.length)
@@ -223,12 +228,14 @@ function UnifiedLargeControls({
                     )
                 }
 
+                const isActiveButton = activeButtonActionKey === definition.actionKey
+
                 return (
                     <Button
                         key={`action-panel-large-button-${itemId}`}
-                        variant='outlined'
-                        color='inherit'
-                        sx={LARGE_BUTTON_SX}
+                        variant={isActiveButton ? 'contained' : 'outlined'}
+                        color={isActiveButton ? 'primary' : 'inherit'}
+                        sx={isActiveButton ? LARGE_BUTTON_ACTIVE_SX : LARGE_BUTTON_SX}
                         disabled={definition.disabled}
                         onClick={() => runButtonAction(definition.actionKey)}
                     >
@@ -337,6 +344,9 @@ export default function ActionPanelControls({
         runButtonAction: defaultRunButtonAction,
     } = useActionPanelItemActions()
 
+    const {activeMapAction} = useMapState()
+    const currentActiveButtonActionKey = activeButtonActionKey ?? activeMapAction
+
     const runButtonAction = runButtonActionOverride ?? defaultRunButtonAction
 
     const controlsProps = useMemo(() => ({
@@ -346,9 +356,9 @@ export default function ActionPanelControls({
         isToggleActive,
         handleToggleChange,
         runButtonAction,
-        activeButtonActionKey,
+        activeButtonActionKey: currentActiveButtonActionKey,
     }), [
-        activeButtonActionKey,
+        currentActiveButtonActionKey,
         compactColumnCount,
         handleToggleChange,
         isToggleActive,

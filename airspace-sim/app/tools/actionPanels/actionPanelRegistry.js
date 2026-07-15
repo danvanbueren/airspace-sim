@@ -22,7 +22,7 @@ export const ACTION_PANEL_ITEM_IDS = {
     ZOOM_IN: 'ZOOM_IN',
     ZOOM_OUT: 'ZOOM_OUT',
     HOME: 'HOME',
-    CENTER_E3: 'CENTER_E3',
+
     DRAW_RECTANGLE: 'DRAW_RECTANGLE',
     DRAW_SQUARE: 'DRAW_SQUARE',
     DRAW_CIRCLE: 'DRAW_CIRCLE',
@@ -103,12 +103,7 @@ export const ACTION_PANEL_ITEM_CATALOG = [
         label: formatActionLabel(ACTION_PANEL_ITEM_IDS.HOME),
         actionKey: ACTION_PANEL_ITEM_IDS.HOME,
     },
-    {
-        id: ACTION_PANEL_ITEM_IDS.CENTER_E3,
-        type: ACTION_PANEL_ITEM_TYPES.BUTTON,
-        label: formatActionLabel(ACTION_PANEL_ITEM_IDS.CENTER_E3),
-        actionKey: ACTION_PANEL_ITEM_IDS.CENTER_E3,
-    },
+
     {
         id: ACTION_PANEL_ITEM_IDS.DRAW_RECTANGLE,
         type: ACTION_PANEL_ITEM_TYPES.BUTTON,
