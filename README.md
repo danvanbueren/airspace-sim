@@ -35,13 +35,13 @@ The Next.js application and `package.json` live in the nested `airspace-sim/` di
 3. Install dependencies:
 
 ```bash
-npm install
+bun install
 ```
 
 4. Start the development server:
 
 ```bash
-npm run dev
+bun dev
 ```
 
 5. Open the local app URL printed by Next.js, typically [http://localhost:3000](http://localhost:3000).
@@ -49,8 +49,8 @@ npm run dev
 Before opening a pull request, make sure tests pass and the app still builds:
 
 ```bash
-npm test
-npm run build
+bun run test
+bun run build
 ```
 
 ### Testers
@@ -62,8 +62,8 @@ To run the app locally:
 ```bash
 git clone https://github.com/danvanbueren/airspace-sim.git
 cd airspace-sim/airspace-sim
-npm install
-npm run dev
+bun install
+bun dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000). Try creating tracks, editing callsigns and platform types in the Track Management window, dragging the map, switching settings, drawing bearing/range lines, changing keybinds, and refreshing the page to confirm persisted settings still behave as expected.
@@ -71,8 +71,8 @@ Then open [http://localhost:3000](http://localhost:3000). Try creating tracks, e
 To test a production-style local deployment:
 
 ```bash
-npm run build
-npm run start
+bun run build
+bun start
 ```
 
 Report issues in [GitHub Issues](https://github.com/danvanbueren/airspace-sim/issues). Helpful reports include:
@@ -131,7 +131,7 @@ airspace-sim/
 +-- CLAUDE.md                # Pointer to shared agent guidance.
 +-- jsconfig.json            # JavaScript path alias configuration.
 +-- next.config.mjs          # Next.js configuration.
-+-- package-lock.json        # Locked dependency versions.
++-- bun.lock                 # Locked dependency versions.
 +-- package.json             # Project scripts and dependencies.
 +-- README.md                # Short pointer to the root README.
 ```
@@ -152,38 +152,38 @@ For contributor documentation (architecture, plans, performance investigations),
 - [react-markdown](https://github.com/remarkjs/react-markdown) with [remark-gfm](https://github.com/remarkjs/remark-gfm) renders the in-app roadmap page from markdown.
 - [mgrs](https://www.npmjs.com/package/mgrs) ([package docs](https://github.com/proj4js/mgrs)) converts coordinates into MGRS.
 - [Fontsource Roboto](https://fontsource.org/fonts/roboto) ([docs](https://fontsource.org/docs/getting-started/introduction)) supplies the Roboto font used by Material UI.
-- [npm](https://www.npmjs.com/) ([docs](https://docs.npmjs.com/)) manages dependencies and local scripts.
+- [Bun](https://bun.sh/) ([docs](https://bun.sh/docs)) manages dependencies and local scripts.
 
-The current locked versions are defined in `package-lock.json`; use that file as the source of truth when checking exact dependency versions.
+The current locked versions are defined in `bun.lock`; use that file as the source of truth when checking exact dependency versions.
 
 ## Scripts
 
 ```bash
-npm run dev
+bun dev
 ```
 
 Starts the Next.js development server.
 
 ```bash
-npm run build
+bun run build
 ```
 
 Creates a production build.
 
 ```bash
-npm run start
+bun start
 ```
 
 Starts the production server after a successful build.
 
 ```bash
-npm test
+bun run test
 ```
 
 Runs the Node test runner over `tests/formatting`, `tests/simulation`, and `tests/milstd2525`.
 
 ```bash
-npm run generate:flight-world
+bun run generate:flight-world
 ```
 
 Regenerates `app/data/airports.json` and `app/data/airRoutes.json` from [OurAirports](https://ourairports.com/data/) open data.
@@ -281,7 +281,7 @@ The mission is to build a practical, extensible, and transparent simulator that 
 - Supported coordinate displays include DD, DDM, DMS, GARS, Geohash, GEOREF, Killbox-style GARS, and MGRS.
 - Configurable keyboard and mouse controls persisted in browser cookies, including click-to-center on the map.
 - In-app settings, keybinds, about, and markdown-backed roadmap pages.
-- Node test suites for formatting, simulation, and symbol helpers (`npm test`).
+- Node test suites for formatting, simulation, and symbol helpers (`bun run test`).
 - Error forwarding into an in-app alert panel for easier testing feedback.
 - Desktop-first experience with keyboard and mouse controls; mobile and tablet devices see an unsupported-platform page instead of the simulator.
 

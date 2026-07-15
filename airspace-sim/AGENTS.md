@@ -31,7 +31,7 @@ Welcome! This document outlines the core guidelines, architectural rules, and le
 
 ### Material UI (MUI 9) Guidelines
 
-Use the Material UI version installed in this project, not examples from another major version. Check `package-lock.json` before writing or updating MUI code; it is the source of truth for the exact installed packages. At the time this rule was written, `@mui/material`, `@mui/icons-material`, and `@mui/system` are on version `9.0.0`.
+Use the Material UI version installed in this project, not examples from another major version. Check `bun.lock` before writing or updating MUI code; it is the source of truth for the exact installed packages. At the time this rule was written, `@mui/material`, `@mui/icons-material`, and `@mui/system` are on version `9.0.0`.
 
 When using Material UI APIs, verify patterns against the installed version's documentation or local package types. Avoid deprecated imports, props, styling APIs, or theming patterns from earlier MUI versions.
 
@@ -334,6 +334,6 @@ When updating the roadmap:
 
 ### External Links
 
-Maintain outbound URLs in [`app/content/externalLinks.js`](app/content/externalLinks.js). Import helpers such as `githubCommitUrl` and `githubBlobUrl` instead of hardcoding GitHub paths. After changing CARTO basemap URLs, run `npm run sync:map-style-urls` to update `public/map-styles/`.
+Maintain outbound URLs in [`app/content/externalLinks.js`](app/content/externalLinks.js). Import helpers such as `githubCommitUrl` and `githubBlobUrl` instead of hardcoding GitHub paths. After changing CARTO basemap URLs, run `bun run sync:map-style-urls` to update `public/map-styles/`.
 
 The program name shown in the app comes from `package.json` `name` via [`app/config/projectName.js`](app/config/projectName.js).

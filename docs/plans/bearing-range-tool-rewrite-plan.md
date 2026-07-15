@@ -1008,7 +1008,7 @@ Use this as a literal work order. Do not skip steps.
 
 - [ ] Read this document end-to-end.
 - [ ] Read `airspace-sim/AGENTS.md` (React effect deps, deferred settings patterns).
-- [ ] Run `npm test` in `airspace-sim/` before and after changes.
+- [ ] Run `bun run test` in `airspace-sim/` before and after changes.
 - [ ] Confirm you are on **modular** `main` (geometry/map layer/labels split exists). **Do not merge PR #72.**
 
 ### Phase 3b — Fix flash (do first)
