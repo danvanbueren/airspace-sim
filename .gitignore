@@ -43,5 +43,10 @@ __pycache__
 .next/
 node_modules/
 
+# Bun
+.bun
+bun-debug.log*
+bun-error.log*
+
 # Allow airspace-sim favicons
 !airspace-sim/public/icon/
