@@ -1,6 +1,12 @@
 import {useEffect, useRef, useState} from 'react'
 import * as maplibregl from 'maplibre-gl'
 
+const MAPLIBRE_WORKER_URL = '/lib/maplibre-gl/maplibre-gl-worker.mjs'
+
+if (typeof window !== 'undefined' && typeof maplibregl.setWorkerUrl === 'function') {
+    maplibregl.setWorkerUrl(MAPLIBRE_WORKER_URL)
+}
+
 const formatMapLibreErrorMessage = (error) => {
     const message = error?.message ?? 'Unknown map error'
 
@@ -47,6 +53,10 @@ export function useMapLibreMap({mapContainerRef, initialStyle, colorMode = 'dark
         if (!mapContainerRef.current || mapRef.current) return
 
         const attributionCollapsedRef = {current: false}
+
+        if (typeof maplibregl.setWorkerUrl === 'function') {
+            maplibregl.setWorkerUrl(MAPLIBRE_WORKER_URL)
+        }
 
         mapRef.current = new maplibregl.Map({
             container: mapContainerRef.current,
